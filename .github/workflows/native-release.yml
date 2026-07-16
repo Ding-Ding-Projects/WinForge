@@ -145,6 +145,40 @@ jobs:
           $setup = Get-ChildItem installer\out-native -Filter 'WinForge-Native-Setup.exe' -File | Select-Object -First 1
           if (-not $setup) { throw 'native installer was not produced' }
 
+      - name: Smoke native C++ installer · 靜默測試原生 C++ 安裝程式
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem installer\out-native -Filter 'WinForge-Native-Setup.exe' -File | Select-Object -First 1
+          if (-not $setup) { throw 'native installer was not produced for smoke test' }
+          $localAppData = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
+          $installRoot = [IO.Path]::GetFullPath((Join-Path $localAppData "WinForge-Native-Installer-Smoke-$env:GITHUB_RUN_ID"))
+          $allowedPrefix = $localAppData.TrimEnd('\') + '\'
+          if (-not $installRoot.StartsWith($allowedPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "installer smoke root escaped LOCALAPPDATA: $installRoot"
+          }
+          if (Test-Path -LiteralPath $installRoot) {
+            throw "installer smoke root already exists unexpectedly: $installRoot"
+          }
+          try {
+            & $setup.FullName '/VERYSILENT' '/SUPPRESSMSGBOXES' '/NORESTART' '/SP-' ("/DIR=$installRoot")
+            if ($LASTEXITCODE -ne 0) { throw "native installer exited with $LASTEXITCODE" }
+            $app = Join-Path $installRoot 'WinForge.exe'
+            $uninstaller = Join-Path $installRoot 'unins000.exe'
+            if (-not (Test-Path -LiteralPath $app)) { throw "installed native app missing: $app" }
+            if (-not (Test-Path -LiteralPath $uninstaller)) { throw "installed native uninstaller missing: $uninstaller" }
+            & $uninstaller '/VERYSILENT' '/SUPPRESSMSGBOXES' '/NORESTART'
+            if ($LASTEXITCODE -ne 0) { throw "native uninstaller exited with $LASTEXITCODE" }
+            if (Test-Path -LiteralPath $installRoot) { throw "native installer smoke left install root behind: $installRoot" }
+          }
+          finally {
+            if (Test-Path -LiteralPath $installRoot) {
+              if (-not $installRoot.StartsWith($allowedPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+                throw "refusing cleanup outside guarded LOCALAPPDATA root: $installRoot"
+              }
+              Remove-Item -LiteralPath $installRoot -Recurse -Force
+            }
+          }
+
       - name: Upload native artifacts · 上載原生 artifacts
         uses: actions/upload-artifact@v4
         with:

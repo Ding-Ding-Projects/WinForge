@@ -135,6 +135,65 @@ namespace
         return result;
     }
 
+    std::wstring StableAutomationSuffix(std::wstring_view value)
+    {
+        // FNV-1a keeps source-aware package identities opaque and stable across
+        // sorting/filtering without exposing an untrusted package ID in UIA.
+        std::uint64_t hash = 1469598103934665603ull;
+        for (auto const character : value)
+        {
+            hash ^= static_cast<std::uint16_t>(character);
+            hash *= 1099511628211ull;
+        }
+        return std::to_wstring(hash);
+    }
+
+    std::wstring BundleAutomationIdentity(
+        winforge::core::packages::PackageItem const& package)
+    {
+        // Keep UI Automation IDs stable as a bundle row moves through sorting,
+        // while including the version and raw metadata that distinguish audit
+        // records. The value is immediately hashed before it reaches UIA.
+        std::wstring identity;
+        auto append = [&identity](std::wstring_view name, std::wstring_view value)
+        {
+            if (!identity.empty())
+            {
+                identity += L'|';
+            }
+            identity += name;
+            identity += L'=';
+            identity += std::to_wstring(value.size());
+            identity += L':';
+            identity += value;
+        };
+        append(L"manager", package.manager_key);
+        append(L"id", package.id);
+        append(L"source", package.source);
+        append(L"version", package.version);
+        return identity;
+    }
+
+    constexpr std::size_t MaximumNativeBundleBytes = 2 * 1024 * 1024;
+    constexpr std::size_t MaximumNativeBundleRecords = 2048;
+    constexpr std::size_t MaximumNativeBundleFieldLength = 512;
+
+    std::size_t BundleRecordCount(
+        winforge::core::packages::PackageBundleSnapshot const& snapshot) noexcept
+    {
+        return snapshot.packages.size() + snapshot.incompatible_packages.size();
+    }
+
+    bool IsBundleItemWithinLimits(
+        winforge::core::packages::PackageItem const& item) noexcept
+    {
+        return item.name.size() <= MaximumNativeBundleFieldLength &&
+            item.id.size() <= MaximumNativeBundleFieldLength &&
+            item.version.size() <= MaximumNativeBundleFieldLength &&
+            item.source.size() <= MaximumNativeBundleFieldLength &&
+            item.manager_key.size() <= MaximumNativeBundleFieldLength;
+    }
+
     std::wstring GuidFormatFromIndex(int32_t index)
     {
         switch (index)
@@ -3510,6 +3569,142 @@ namespace winrt::WinForge::implementation
             failed != 0);
     }
 
+    void MainWindow::AddSelectedPackagesToBundle()
+    {
+        auto const action = CurrentPackageSelectionAction();
+        if (!action)
+        {
+            ClearPackageSelection();
+            RenderPackageManagerView();
+            AnnouncePackageStatus(
+                L"The selected package rows are no longer available because their cached result view changed.",
+                L"已揀套件資料列已經唔可用，因為快取結果檢視已經改變。",
+                true);
+            return;
+        }
+
+        // UniGetUI exposes selected-row bundle append from Discover and
+        // Installed. Updates remains preview-only until a safe native update
+        // bundle contract exists.
+        if (*action != winforge::core::packages::PackageAction::Install &&
+            *action != winforge::core::packages::PackageAction::Uninstall)
+        {
+            AnnouncePackageStatus(
+                L"Only Discover and Installed selections can be added to a native bundle workspace.",
+                L"只可以將 Discover 同已安裝嘅選擇加入原生 bundle 工作區。",
+                true);
+            return;
+        }
+
+        auto const selected = SelectedPackageItems(*action);
+        if (selected.empty())
+        {
+            ClearPackageSelection();
+            RenderPackageManagerView();
+            AnnouncePackageStatus(
+                L"No current cached package rows are selected. Choose one or more results first.",
+                L"而家冇已揀嘅快取套件資料列；請先揀一個或者多個結果。",
+                true);
+            return;
+        }
+
+        std::vector<winforge::core::packages::PackageItem> boundedSelected;
+        boundedSelected.reserve(selected.size());
+        std::size_t rejected = 0;
+        for (auto const& item : selected)
+        {
+            if (IsBundleItemWithinLimits(item))
+            {
+                boundedSelected.push_back(item);
+            }
+            else
+            {
+                ++rejected;
+            }
+        }
+        if (boundedSelected.empty())
+        {
+            ClearPackageSelection();
+            RenderPackageManagerView();
+            AnnouncePackageStatus(
+                L"The selected package metadata exceeds native bundle field limits and was not added.",
+                L"已揀套件 metadata 超過原生 bundle 欄位上限，所以冇加入。",
+                true);
+            return;
+        }
+
+        auto current = winforge::core::packages::NormalizePackageBundleSnapshot({
+            m_packageBundleItems,
+            m_packageBundleIncompatibleItems });
+        auto const existing = BundleRecordCount(current);
+        if (existing >= MaximumNativeBundleRecords)
+        {
+            ClearPackageSelection();
+            RenderPackageManagerView();
+            AnnouncePackageStatus(
+                L"The native bundle workspace has reached its 2,048-record limit.",
+                L"原生 bundle 工作區已達到 2,048 筆記錄上限。",
+                true);
+            return;
+        }
+        auto const remaining = MaximumNativeBundleRecords - existing;
+        if (boundedSelected.size() > remaining)
+        {
+            rejected += boundedSelected.size() - remaining;
+            boundedSelected.resize(remaining);
+        }
+        auto compatibleItems = winforge::core::packages::MergePackageBundleItems(
+            current.packages,
+            boundedSelected);
+        auto snapshot = winforge::core::packages::NormalizePackageBundleSnapshot({
+            std::move(compatibleItems),
+            current.incompatible_packages });
+        auto const before = current.packages.size() + current.incompatible_packages.size();
+        auto const after = snapshot.packages.size() + snapshot.incompatible_packages.size();
+        auto const added = after - before;
+        m_packageBundleItems = snapshot.packages;
+        m_packageBundleIncompatibleItems = snapshot.incompatible_packages;
+        if (added != 0)
+        {
+            // Adding cached rows changes any previously imported/saved
+            // workspace; make the unsaved state explicit rather than implying
+            // the old file was modified on disk.
+            m_packageBundleSourcePath.clear();
+            m_packageBundleImportNote.clear();
+            m_packageBundleDirty = true;
+        }
+        ClearPackageSelection();
+        m_packageView = static_cast<int32_t>(winforge::core::packages::PackageView::Bundles);
+        if (m_packageViewPicker)
+        {
+            m_packageStateApplying = true;
+            m_packageViewPicker.SelectedIndex(m_packageView);
+            m_packageStateApplying = false;
+        }
+        SavePackageManagerState();
+        RenderPackageManagerView();
+
+        if (added != 0)
+        {
+            RecordPackageOperation(
+                L"Added " + std::to_wstring(added) + L" selected cached package(s) to the native bundle workspace. No package command was executed. · 已加入所選快取套件到原生 bundle 工作區，冇執行套件指令。");
+            AnnouncePackageStatus(
+                rejected == 0
+                    ? L"Selected packages were added to the native bundle workspace. No package command was executed."
+                    : L"Selected packages were added, but some rows exceeded native bundle limits and were not added. No package command was executed.",
+                rejected == 0
+                    ? L"已揀套件已加入原生 bundle 工作區；冇執行套件指令。"
+                    : L"已揀套件已加入，但有部分資料列超過原生 bundle 上限，所以冇加入；冇執行套件指令。",
+                rejected != 0);
+        }
+        else
+        {
+            AnnouncePackageStatus(
+                L"Every selected package is already in the native bundle workspace. No package command was executed.",
+                L"每個已揀套件都已經喺原生 bundle 工作區；冇執行套件指令。");
+        }
+    }
+
     void MainWindow::PreviewPackageDetails(
         winforge::core::packages::PackageItem const& package)
     {
@@ -4022,14 +4217,13 @@ namespace winrt::WinForge::implementation
     }
 
     std::wstring MainWindow::BundleSnapshotToJson(
-        std::vector<winforge::core::packages::PackageItem> const& items) const
+        winforge::core::packages::PackageBundleSnapshot const& snapshot) const
     {
-        std::wstring json = LR"({"export_version":1,"packages":[)";
-        bool first = true;
-        for (auto const& item : items)
+        std::wstring json = LR"({"export_version":3,"packages":[)";
+        auto appendPackage = [&json](
+            winforge::core::packages::PackageItem const& item,
+            bool includeManager)
         {
-            if (!first) json += L',';
-            first = false;
             json += LR"({"Id":")";
             json += EscapeJson(item.id);
             json += LR"(","Name":")";
@@ -4038,11 +4232,33 @@ namespace winrt::WinForge::implementation
             json += EscapeJson(item.version);
             json += LR"(","Source":")";
             json += EscapeJson(item.source);
-            json += LR"(","ManagerName":")";
-            json += EscapeJson(item.manager_key);
+            if (includeManager)
+            {
+                json += LR"(","ManagerName":")";
+                json += EscapeJson(item.manager_key);
+            }
             json += L"}";
+        };
+
+        bool first = true;
+        for (auto const& item : snapshot.packages)
+        {
+            if (!first) json += L',';
+            first = false;
+            appendPackage(item, true);
         }
-        json += LR"(],"incompatible_packages":[]})";
+        json += LR"(],"incompatible_packages":[)";
+        first = true;
+        for (auto const& item : snapshot.incompatible_packages)
+        {
+            if (!first) json += L',';
+            first = false;
+            // UniGetUI v3 incompatible records are audit-only and omit the
+            // installable ManagerName field. Keep the native record inert on
+            // export rather than emitting an executable-looking entry.
+            appendPackage(item, false);
+        }
+        json += L"]}";
         return json;
     }
 
@@ -4050,14 +4266,85 @@ namespace winrt::WinForge::implementation
     {
         try
         {
-            auto const sourceItems = !m_packageBundleItems.empty() ? m_packageBundleItems : m_packageItems;
-            std::ofstream output(std::filesystem::path(path), std::ios::binary | std::ios::trunc);
-            if (!output)
+            auto const snapshot = winforge::core::packages::NormalizePackageBundleSnapshot({
+                m_packageBundleItems,
+                m_packageBundleIncompatibleItems });
+            if (BundleRecordCount(snapshot) > MaximumNativeBundleRecords)
             {
                 return false;
             }
-            output << winrt::to_string(BundleSnapshotToJson(sourceItems));
-            return static_cast<bool>(output);
+            auto const withinLimits = [](std::vector<winforge::core::packages::PackageItem> const& items)
+            {
+                return std::all_of(items.begin(), items.end(), IsBundleItemWithinLimits);
+            };
+            if (!withinLimits(snapshot.packages) || !withinLimits(snapshot.incompatible_packages))
+            {
+                return false;
+            }
+            auto const destination = std::filesystem::path(path);
+            auto const json = winrt::to_string(BundleSnapshotToJson(snapshot));
+            if (json.empty() ||
+                json.size() > MaximumNativeBundleBytes ||
+                json.size() > static_cast<std::size_t>((std::numeric_limits<DWORD>::max)()))
+            {
+                return false;
+            }
+
+            // Keep the temporary file in the destination directory so the
+            // final replacement remains atomic, but create it exclusively
+            // from cryptographically random GUID material. This rejects an
+            // attacker-created file/reparse point instead of truncating it.
+            std::filesystem::path temporary;
+            HANDLE temporaryHandle = INVALID_HANDLE_VALUE;
+            for (int attempt = 0; attempt != 8; ++attempt)
+            {
+                temporary = destination;
+                temporary += L".tmp-" + winforge::core::guidgen::NewGuid(L"N");
+                temporaryHandle = CreateFileW(
+                    temporary.c_str(),
+                    GENERIC_WRITE,
+                    0,
+                    nullptr,
+                    CREATE_NEW,
+                    FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_WRITE_THROUGH | FILE_FLAG_OPEN_REPARSE_POINT,
+                    nullptr);
+                if (temporaryHandle != INVALID_HANDLE_VALUE)
+                {
+                    break;
+                }
+                auto const error = GetLastError();
+                if (error != ERROR_FILE_EXISTS && error != ERROR_ALREADY_EXISTS)
+                {
+                    return false;
+                }
+            }
+            if (temporaryHandle == INVALID_HANDLE_VALUE)
+            {
+                return false;
+            }
+
+            DWORD written = 0;
+            auto const writeSucceeded = WriteFile(
+                temporaryHandle,
+                json.data(),
+                static_cast<DWORD>(json.size()),
+                &written,
+                nullptr) && written == json.size() && FlushFileBuffers(temporaryHandle);
+            auto const closeSucceeded = CloseHandle(temporaryHandle);
+            if (!writeSucceeded || !closeSucceeded)
+            {
+                DeleteFileW(temporary.c_str());
+                return false;
+            }
+            if (!MoveFileExW(
+                    temporary.c_str(),
+                    destination.c_str(),
+                    MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+            {
+                DeleteFileW(temporary.c_str());
+                return false;
+            }
+            return true;
         }
         catch (...)
         {
@@ -4065,57 +4352,202 @@ namespace winrt::WinForge::implementation
         }
     }
 
-    bool MainWindow::LoadBundleSnapshot(std::wstring_view path)
+    bool MainWindow::ConfirmBundleWorkspaceReplacement() const
+    {
+        if (!m_packageBundleDirty)
+        {
+            return true;
+        }
+        auto const title = winforge::core::LocalizedText{
+            L"Replace unsaved bundle workspace?",
+            L"取代未儲存嘅 bundle 工作區？" }.Pick(m_language);
+        auto const body = winforge::core::LocalizedText{
+            L"Importing this bundle will discard the unsaved selected rows in the current native bundle workspace. Continue?",
+            L"匯入呢個 bundle 會捨棄目前原生 bundle 工作區未儲存嘅所選資料列。要繼續嗎？" }.Pick(m_language);
+        return MessageBoxW(
+            nullptr,
+            body.c_str(),
+            title.c_str(),
+            MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) == IDYES;
+    }
+
+    MainWindow::BundleSnapshotLoadStatus MainWindow::LoadBundleSnapshot(std::wstring_view path)
     {
         try
         {
-            std::ifstream input(std::filesystem::path(path), std::ios::binary);
+            auto const sourcePath = std::filesystem::path(path);
+            if (!ConfirmBundleWorkspaceReplacement())
+            {
+                return BundleSnapshotLoadStatus::Cancelled;
+            }
+
+            std::ifstream input(sourcePath, std::ios::binary);
             if (!input)
             {
-                return false;
+                return BundleSnapshotLoadStatus::Failed;
             }
-
-            std::ostringstream stream;
-            stream << input.rdbuf();
-            auto json = stream.str();
-            if (json.empty())
+            // Read from the opened handle with a hard bound instead of
+            // trusting pre-open file metadata, which can change before or
+            // during the read. One extra byte detects oversized input.
+            std::string json(MaximumNativeBundleBytes + 1, '\0');
+            input.read(json.data(), static_cast<std::streamsize>(json.size()));
+            auto const read = input.gcount();
+            if (input.bad() ||
+                (input.fail() && !input.eof()) ||
+                read <= 0 ||
+                static_cast<std::size_t>(read) > MaximumNativeBundleBytes)
             {
-                return false;
+                return BundleSnapshotLoadStatus::Failed;
             }
+            json.resize(static_cast<std::size_t>(read));
 
             auto const root = winrt::Windows::Data::Json::JsonObject::Parse(winrt::to_hstring(json));
-            auto const packages = root.GetNamedArray(L"packages");
-            std::vector<winforge::core::packages::PackageItem> loaded;
-            loaded.reserve(packages.Size());
-            for (auto const& entry : packages)
+            auto const hasPackages = root.HasKey(L"packages");
+            auto const hasIncompatible = root.HasKey(L"incompatible_packages");
+            if (!hasPackages && !hasIncompatible)
             {
-                auto const obj = entry.GetObject();
-                winforge::core::packages::PackageItem item;
-                item.id = ToWide(obj.GetNamedString(L"Id", L""));
-                item.name = ToWide(obj.GetNamedString(L"Name", L""));
-                item.version = ToWide(obj.GetNamedString(L"Version", L""));
-                item.source = ToWide(obj.GetNamedString(L"Source", L""));
-                item.manager_key = ToWide(obj.GetNamedString(L"ManagerName", L""));
-                if (!item.manager_key.empty() && !item.id.empty())
+                return BundleSnapshotLoadStatus::Failed;
+            }
+            auto const packages = hasPackages
+                ? root.GetNamedArray(L"packages")
+                : winrt::Windows::Data::Json::JsonArray{};
+            auto const incompatible = hasIncompatible
+                ? root.GetNamedArray(L"incompatible_packages")
+                : winrt::Windows::Data::Json::JsonArray{};
+            if (packages.Size() > MaximumNativeBundleRecords ||
+                incompatible.Size() > MaximumNativeBundleRecords ||
+                packages.Size() + incompatible.Size() > MaximumNativeBundleRecords)
+            {
+                return BundleSnapshotLoadStatus::Failed;
+            }
+
+            int version = 3;
+            if (root.HasKey(L"export_version"))
+            {
+                try
                 {
-                    loaded.push_back(std::move(item));
+                    auto const value = root.GetNamedNumber(L"export_version");
+                    if (!std::isfinite(value) || std::trunc(value) != value ||
+                        value < static_cast<double>(std::numeric_limits<int>::min()) ||
+                        value > static_cast<double>(std::numeric_limits<int>::max()))
+                    {
+                        version = 0;
+                    }
+                    else
+                    {
+                        version = static_cast<int>(value);
+                    }
+                }
+                catch (...)
+                {
+                    version = 0;
                 }
             }
 
-            m_packageBundleItems = std::move(loaded);
+            std::vector<winforge::core::packages::PackageItem> imported;
+            std::vector<winforge::core::packages::PackageItem> explicitlyIncompatible;
+            imported.reserve(packages.Size());
+            explicitlyIncompatible.reserve(incompatible.Size());
+            std::size_t dropped = 0;
+            std::size_t strippedOptions = 0;
+            auto appendEntries = [&dropped, &strippedOptions](
+                winrt::Windows::Data::Json::JsonArray const& entries,
+                std::vector<winforge::core::packages::PackageItem>& destination,
+                bool requiresManager)
+            {
+                for (auto const& entry : entries)
+                {
+                    try
+                    {
+                        auto const object = entry.GetObject();
+                        bool bounded = true;
+                        auto read = [&object, &bounded](winrt::hstring const& name)
+                        {
+                            auto value = ToWide(object.GetNamedString(name, L""));
+                            if (value.size() > MaximumNativeBundleFieldLength)
+                            {
+                                bounded = false;
+                                return std::wstring{};
+                            }
+                            return value;
+                        };
+                        auto const id = read(L"Id");
+                        auto const name = read(L"Name");
+                        auto const version = read(L"Version");
+                        auto const source = read(L"Source");
+                        auto const manager = read(L"ManagerName");
+                        if (object.HasKey(L"InstallationOptions") || object.HasKey(L"Updates"))
+                        {
+                            ++strippedOptions;
+                        }
+                        if (!bounded)
+                        {
+                            ++dropped;
+                            continue;
+                        }
+                        if (id.empty() || (requiresManager && manager.empty()))
+                        {
+                            ++dropped;
+                            continue;
+                        }
+                        destination.push_back({ name, id, version, {}, source, manager });
+                    }
+                    catch (...)
+                    {
+                        ++dropped;
+                    }
+                }
+            };
+            appendEntries(packages, imported, true);
+            appendEntries(incompatible, explicitlyIncompatible, false);
+            if (imported.empty() && explicitlyIncompatible.empty() && dropped != 0)
+            {
+                return BundleSnapshotLoadStatus::Failed;
+            }
+
+            auto snapshot = winforge::core::packages::NormalizePackageBundleSnapshot({
+                std::move(imported),
+                std::move(explicitlyIncompatible) });
+            m_packageBundleItems = snapshot.packages;
+            m_packageBundleIncompatibleItems = snapshot.incompatible_packages;
             m_packageBundleSourcePath = std::wstring(path);
-            m_packageView = 3;
+            m_packageBundleDirty = false;
+            m_packageBundleImportNote.clear();
+            if (version != 3 || strippedOptions != 0 || dropped != 0)
+            {
+                m_packageBundleImportNote =
+                    L"Import safety: metadata only; no package command was executed.";
+                if (version != 3)
+                {
+                    m_packageBundleImportNote += L" Schema version " + std::to_wstring(version) + L" differs from v3.";
+                }
+                if (strippedOptions != 0)
+                {
+                    m_packageBundleImportNote += L" Stripped option metadata from " +
+                        std::to_wstring(strippedOptions) + L" record(s).";
+                }
+                if (dropped != 0)
+                {
+                    m_packageBundleImportNote += L" Rejected " + std::to_wstring(dropped) +
+                        L" oversized or malformed record(s).";
+                }
+                m_packageBundleImportNote +=
+                    L" · 匯入安全：只保留 metadata，冇執行套件指令。";
+            }
+            m_packageView = static_cast<int32_t>(winforge::core::packages::PackageView::Bundles);
             if (m_packageViewPicker)
             {
+                m_packageStateApplying = true;
                 m_packageViewPicker.SelectedIndex(m_packageView);
+                m_packageStateApplying = false;
             }
             RenderPackageManagerView();
             SavePackageManagerState();
-            return true;
+            return BundleSnapshotLoadStatus::Loaded;
         }
         catch (...)
         {
-            return false;
+            return BundleSnapshotLoadStatus::Failed;
         }
     }
 
@@ -4126,7 +4558,9 @@ namespace winrt::WinForge::implementation
 
     std::wstring MainWindow::PromptBundleSavePath() const
     {
-        auto const suggested = m_packageBundleItems.empty() ? L"package-bundle.json" : L"package-bundle.ubundle";
+        auto const suggested = m_packageBundleItems.empty() && m_packageBundleIncompatibleItems.empty()
+            ? L"package-bundle.json"
+            : L"package-bundle.ubundle";
         return PromptSaveBundlePath(nullptr, suggested);
     }
 
@@ -4454,6 +4888,8 @@ namespace winrt::WinForge::implementation
                     if (SaveBundleSnapshot(savePath))
                     {
                         m_packageBundleSourcePath = savePath;
+                        m_packageBundleDirty = false;
+                        RenderPackageManagerView();
                         RecordPackageOperation(
                             L"Exported native bundle snapshot to " + savePath + L". · 已匯出 bundle。");
                         AnnouncePackageStatus(
@@ -4502,13 +4938,24 @@ namespace winrt::WinForge::implementation
                 auto const openPath = PromptBundleOpenPath();
                 if (!openPath.empty())
                 {
-                    if (LoadBundleSnapshot(openPath))
+                    auto const loadStatus = LoadBundleSnapshot(openPath);
+                    if (loadStatus == BundleSnapshotLoadStatus::Loaded)
                     {
                         RecordPackageOperation(
                             L"Imported native bundle snapshot from " + openPath + L". · 已匯入 bundle。");
                         AnnouncePackageStatus(
-                            L"Bundle snapshot imported.",
-                            L"Bundle 快照已匯入。");
+                            m_packageBundleImportNote.empty()
+                                ? L"Bundle snapshot imported."
+                                : L"Bundle snapshot imported with metadata-only safety notes.",
+                            m_packageBundleImportNote.empty()
+                                ? L"Bundle 快照已匯入。"
+                                : L"Bundle 快照已匯入，並有只限 metadata 嘅安全提示。");
+                    }
+                    else if (loadStatus == BundleSnapshotLoadStatus::Cancelled)
+                    {
+                        AnnouncePackageStatus(
+                            L"Bundle import cancelled; the unsaved workspace was kept.",
+                            L"Bundle 匯入已取消；已保留未儲存工作區。");
                     }
                     else
                     {
@@ -5309,8 +5756,8 @@ namespace winrt::WinForge::implementation
             m_packageSecondaryAction.Visibility(Visibility::Visible);
             header = pick(L"Portable package bundles", L"可攜套件清單");
             explanation = pick(
-                L"Native bundle snapshots can now be exported from the current package list and imported back into this tab as a preview.",
-                L"原生 bundle 快照而家可以由目前套件清單匯出，亦可以匯入返嚟呢個分頁做預覽。");
+                L"Native bundle snapshots use an explicit metadata workspace, never the current query list. Import and export remain preview-only and cannot run package commands.",
+                L"原生 bundle 快照會用明確 metadata 工作區，絕對唔會用目前查詢清單。匯入同匯出保持只供預覽，唔可以執行套件指令。");
             break;
         case 4:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
@@ -5366,14 +5813,20 @@ namespace winrt::WinForge::implementation
         }
         else if (m_packageView == 3 || m_packageView == 5 || m_packageView == 6 || m_packageView == 7)
         {
-            m_packagePrimaryAction.IsEnabled(
-                !m_packageWorking && (m_packageView != 5 ||
-                    !m_packageIgnoredRules.empty() ||
-                    !m_packagePinnedRules.empty() ||
-                    !m_packageSnoozedRules.empty()));
             if (m_packageView == 3)
             {
+                auto const hasBundleRecords =
+                    !m_packageBundleItems.empty() || !m_packageBundleIncompatibleItems.empty();
+                m_packagePrimaryAction.IsEnabled(!m_packageWorking && hasBundleRecords);
                 m_packageSecondaryAction.IsEnabled(!m_packageWorking);
+            }
+            else
+            {
+                m_packagePrimaryAction.IsEnabled(
+                    !m_packageWorking && (m_packageView != 5 ||
+                        !m_packageIgnoredRules.empty() ||
+                        !m_packagePinnedRules.empty() ||
+                        !m_packageSnoozedRules.empty()));
             }
         }
         else if (m_packageView == 8)
@@ -5519,6 +5972,33 @@ namespace winrt::WinForge::implementation
                 PreviewSelectedPackageOperations(action);
             });
             selectionActions.Children().Append(previewSelected);
+
+            if (action == winforge::core::packages::PackageAction::Install ||
+                action == winforge::core::packages::PackageAction::Uninstall)
+            {
+                Button addToBundle;
+                addToBundle.Content(box_value(ToHString(pick(
+                    L"Add selected to bundle",
+                    L"加入所選到 bundle"))));
+                addToBundle.Padding(Thickness{ 12, 6, 12, 6 });
+                addToBundle.IsEnabled(!m_packageWorking);
+                AutomationProperties::SetAutomationId(addToBundle, L"NativePackageBatchAddToBundle");
+                AutomationProperties::SetName(
+                    addToBundle,
+                    ToHString(pick(
+                        L"Add selected cached packages to the native bundle workspace",
+                        L"將所選快取套件加入原生 bundle 工作區")));
+                AutomationProperties::SetHelpText(
+                    addToBundle,
+                    ToHString(pick(
+                        L"Copies metadata only. It never runs a package command.",
+                        L"只會複製 metadata，絕對唔會執行套件指令。")));
+                addToBundle.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                {
+                    AddSelectedPackagesToBundle();
+                });
+                selectionActions.Children().Append(addToBundle);
+            }
 
             Button clearSelection;
             clearSelection.Content(box_value(ToHString(pick(L"Clear selection", L"清除選擇"))));
@@ -6001,37 +6481,64 @@ namespace winrt::WinForge::implementation
 
         if (m_packageView == 3)
         {
-            if (m_packageBundleItems.empty())
-            {
-                ApplyPackageSort();
-            }
-            auto bundleItems = m_packageBundleItems.empty() ? m_packageItems : m_packageBundleItems;
+            // Bundle state is explicit. Never fall back to the currently shown
+            // query rows: that could silently export a different workspace.
+            auto bundleItems = m_packageBundleItems;
+            auto incompatibleItems = m_packageBundleIncompatibleItems;
             winforge::core::packages::SortPackageItems(
                 bundleItems,
                 static_cast<winforge::core::packages::PackageSortMode>(m_packageSortMode));
-            if (m_packageBundleSourcePath.empty())
+            winforge::core::packages::SortPackageItems(
+                incompatibleItems,
+                static_cast<winforge::core::packages::PackageSortMode>(m_packageSortMode));
+            if (bundleItems.empty() && incompatibleItems.empty())
             {
                 appendCard(
-                    pick(L"No bundle snapshot loaded", L"未載入 bundle 快照"),
+                    pick(L"No native bundle workspace yet", L"仲未有原生 bundle 工作區"),
                     pick(
-                        L"Use Export bundle to save the current package list, or Import bundle to load a native JSON/.ubundle snapshot into this tab.",
-                        L"用「匯出 bundle」可以保存目前套件清單，或者用「匯入 bundle」將原生 JSON／.ubundle 快照載入到呢個分頁。"),
+                        L"Select cached rows from Discover or Installed, then choose Add selected to bundle. Export becomes available after the workspace has metadata; import only replaces an unsaved workspace after confirmation and no package command can run.",
+                        L"先喺 Discover 或已安裝選擇快取資料列，然後撳「加入所選到 bundle」。工作區有 metadata 後先可以匯出；匯入只會喺確認後取代未儲存工作區，而且絕對唔會執行套件指令。"),
                     L"NativeBundleEmpty");
             }
             else
             {
-                std::wstring sourceLine = pick(
-                    L"Loaded from " + m_packageBundleSourcePath,
-                    L"由 " + m_packageBundleSourcePath + L" 載入。");
+                std::wstring summary = pick(
+                    std::to_wstring(bundleItems.size()) + L" compatible package record(s) and " +
+                        std::to_wstring(incompatibleItems.size()) +
+                        L" incompatible audit record(s). Metadata only; no package command can run from this workspace.",
+                    std::to_wstring(bundleItems.size()) + L" 個相容套件記錄同 " +
+                        std::to_wstring(incompatibleItems.size()) +
+                        L" 個不相容審計記錄。只限 metadata；呢個工作區唔可以執行套件指令。");
+                summary += m_packageBundleDirty
+                    ? pick(L" Changes are not saved yet.", L" 變更仲未儲存。")
+                    : m_packageBundleSourcePath.empty()
+                        ? pick(L" This is an unsaved draft.", L" 呢個係未儲存草稿。")
+                        : pick(L" The workspace is saved.", L" 工作區已儲存。");
                 appendCard(
-                    pick(L"Loaded bundle snapshot", L"已載入 bundle 快照"),
-                    TruncateForUi(sourceLine),
-                    L"NativeBundleSource");
+                    pick(L"Native bundle workspace", L"原生 bundle 工作區"),
+                    summary,
+                    L"NativeBundleDraftSummary");
+                if (!m_packageBundleSourcePath.empty())
+                {
+                    std::wstring sourceLine = pick(
+                        L"Saved or loaded from " + m_packageBundleSourcePath,
+                        L"已保存或者由 " + m_packageBundleSourcePath + L" 載入。");
+                    appendCard(
+                        pick(L"Bundle snapshot path", L"Bundle 快照路徑"),
+                        TruncateForUi(sourceLine),
+                        L"NativeBundleSource");
+                }
+                if (!m_packageBundleImportNote.empty())
+                {
+                    appendCard(
+                        pick(L"Import safety note", L"匯入安全提示"),
+                        m_packageBundleImportNote,
+                        L"NativeBundleImportSafetyNote");
+                }
             }
 
-            for (std::size_t index = 0; index < bundleItems.size(); ++index)
+            for (auto const& package : bundleItems)
             {
-                auto const& package = bundleItems[index];
                 std::wstring metadata = package.manager_key;
                 if (!package.version.empty())
                 {
@@ -6044,7 +6551,31 @@ namespace winrt::WinForge::implementation
                 appendCard(
                     package.name.empty() ? package.id : package.name,
                     package.id + L"\n" + metadata,
-                    L"NativeBundlePackage_" + std::to_wstring(index));
+                    L"NativeBundlePackage_" + StableAutomationSuffix(
+                        BundleAutomationIdentity(package)));
+            }
+            for (auto const& package : incompatibleItems)
+            {
+                std::wstring metadata = package.manager_key.empty()
+                    ? pick(L"Imported incompatible record", L"匯入嘅不相容記錄")
+                    : package.manager_key;
+                if (!package.version.empty())
+                {
+                    metadata += L" · " + package.version;
+                }
+                if (!package.source.empty())
+                {
+                    metadata += L" · " + package.source;
+                }
+                metadata += pick(
+                    L" · retained for review only; no package command can run",
+                    L" · 只保留作審核；唔可以執行套件指令");
+                appendCard(
+                    pick(L"Incompatible: ", L"不相容：") +
+                        (package.name.empty() ? package.id : package.name),
+                    package.id + L"\n" + metadata,
+                    L"NativeBundleIncompatible_" + StableAutomationSuffix(
+                        BundleAutomationIdentity(package)));
             }
             return;
         }
@@ -6157,7 +6688,10 @@ namespace winrt::WinForge::implementation
                 selection.IsEnabled(!m_packageWorking);
                 AutomationProperties::SetAutomationId(
                     selection,
-                    ToHString(L"NativePackageSelect_" + std::to_wstring(index)));
+                    ToHString(L"NativePackageSelect_" + StableAutomationSuffix(
+                        winforge::core::packages::PackageSelectionKey(
+                            package,
+                            selectionActionValue))));
                 AutomationProperties::SetName(
                     selection,
                     ToHString(selectionLabel + L": " +

@@ -18,6 +18,8 @@ Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
+> Managed production reference · 受控正式版參考：the screenshot documents the shipping managed page. The native C++ Bundle-workspace capture is currently `capture-blocked`; no managed image is presented as native visual proof. · 呢張截圖記錄發佈中嘅受控頁。原生 C++ Bundle 工作區截圖目前係 `capture-blocked`；唔會將受控圖片當成原生視覺證據。
+
 ## Native OSS Clones · 開源原生分頁
 
 A native-only index of open-source app ideas already remade as WinForge C# tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出已重製成 WinForge C# 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。

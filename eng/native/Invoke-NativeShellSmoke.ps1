@@ -1110,6 +1110,19 @@ Invoke-OwnedRoute -Route 'package-bundles' -ExpectedTitle 'Package Manager' -Ins
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Portable package bundles', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-bundles alias selects Bundles'
+    $export = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+    $import = Wait-ForElement -Root $root -AutomationId 'NativePackageSecondaryAction'
+    $empty = Wait-ForElement -Root $root -AutomationId 'NativeBundleEmpty'
+    Assert-True -Condition ($empty.Current.Name.StartsWith('No native bundle workspace yet', [StringComparison]::Ordinal) `
+        -and -not $export.Current.IsEnabled -and $import.Current.IsEnabled) `
+        -Name 'Package Manager Bundles exposes an explicit empty workspace, refuses empty export, and leaves inert import available'
+    $bundleControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        $header,
+        $export,
+        $import,
+        $empty)
+    Assert-True -Condition $bundleControlsFit `
+        -Name 'Package Manager Bundles export, import, and workspace guidance are accessible and horizontally unclipped'
 }
 
 Invoke-OwnedRoute -Route 'packages-bundles' -ExpectedTitle 'Package Manager' -Inspect {

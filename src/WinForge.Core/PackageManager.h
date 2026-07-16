@@ -60,6 +60,16 @@ namespace winforge::core::packages
         std::wstring manager_key;
     };
 
+    // A portable bundle keeps installable entries separate from source-local,
+    // malformed, or otherwise non-installable records. The latter are retained
+    // as managerless UniGetUI-v3 audit/logging compatibility records but never
+    // become native argv plans.
+    struct PackageBundleSnapshot
+    {
+        std::vector<PackageItem> packages;
+        std::vector<PackageItem> incompatible_packages;
+    };
+
     enum class PackageSortMode : std::uint8_t
     {
         Manager = 0,
@@ -234,6 +244,23 @@ namespace winforge::core::packages
     [[nodiscard]] std::wstring PackageSelectionKey(
         PackageItem const& item,
         PackageAction action = PackageAction::Install);
+    // Merge cached rows into a portable bundle workspace. Compatible identity
+    // is canonical manager/ID/source/version; incompatible audit records retain
+    // their distinct trimmed source metadata without entering argv handling.
+    [[nodiscard]] std::vector<PackageItem> MergePackageBundleItems(
+        std::span<PackageItem const> existing,
+        std::span<PackageItem const> additions);
+    // Partition a de-duplicated workspace through the native Install reference
+    // and source policy only. This function never builds an argv plan, starts a
+    // process, or writes a file.
+    [[nodiscard]] PackageBundleSnapshot BuildPackageBundleSnapshot(
+        std::span<PackageItem const> items);
+    // Normalize compatible and audit partitions without ever promoting an
+    // explicitly incompatible audit record into the compatible partition.
+    // This is used before append/save so imported audit intent survives a
+    // round trip even when a record's fields would otherwise validate.
+    [[nodiscard]] PackageBundleSnapshot NormalizePackageBundleSnapshot(
+        PackageBundleSnapshot const& snapshot);
 
     [[nodiscard]] ValidationResult ValidatePackageReference(
         std::wstring_view manager_key,

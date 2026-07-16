@@ -6,6 +6,7 @@
 #include <array>
 #include <cwctype>
 #include <stdexcept>
+#include <unordered_set>
 #include <utility>
 
 namespace
@@ -795,6 +796,142 @@ namespace winforge::core::packages
         append(L"id", packageId);
         append(L"source", source);
         return key;
+    }
+
+    namespace
+    {
+        std::wstring PackageBundleIdentityKey(PackageItem const& item)
+        {
+            auto const rawManager = Trim(item.manager_key);
+            auto const rawId = Trim(item.id);
+            auto const rawSource = Trim(item.source);
+            auto const rawVersion = Trim(item.version);
+            auto const manager = Lower(rawManager);
+            auto const resolved = ResolvePackageSource(
+                manager,
+                rawId,
+                rawSource,
+                PackageAction::Install);
+
+            std::wstring key;
+            key.reserve(rawManager.size() + rawId.size() + rawSource.size() + rawVersion.size() + 96);
+            auto append = [&key](std::wstring_view name, std::wstring_view value)
+            {
+                if (!key.empty())
+                {
+                    key += L'|';
+                }
+                key += name;
+                key += L'=';
+                key += std::to_wstring(value.size());
+                key += L':';
+                key += value;
+            };
+
+            // Compatible records retain their canonical manager identity.
+            // UniGetUI-compatible incompatible records deliberately carry no
+            // manager field, so their identity must do the same: otherwise a
+            // manager-backed cached row would duplicate its managerless v3
+            // round-trip audit record. Rejected source/reference data remains
+            // length-prefixed audit metadata and never reaches argv logic.
+            append(L"kind", resolved ? L"compatible" : L"incompatible");
+            append(L"manager", resolved ? std::wstring_view(manager) : std::wstring_view{});
+            append(L"id", rawId);
+            append(L"source", resolved
+                ? std::wstring_view(resolved.resolution->normalized_source)
+                : std::wstring_view(rawSource));
+            append(L"version", rawVersion);
+            return key;
+        }
+    }
+
+    std::vector<PackageItem> MergePackageBundleItems(
+        std::span<PackageItem const> existing,
+        std::span<PackageItem const> additions)
+    {
+        std::vector<PackageItem> merged;
+        merged.reserve(existing.size() + additions.size());
+        std::unordered_set<std::wstring> seen;
+        seen.reserve(existing.size() + additions.size());
+        auto append = [&merged, &seen](std::span<PackageItem const> candidates)
+        {
+            for (auto const& item : candidates)
+            {
+                auto const key = PackageBundleIdentityKey(item);
+                if (seen.insert(key).second)
+                {
+                    merged.push_back(item);
+                }
+            }
+        };
+        append(existing);
+        append(additions);
+        return merged;
+    }
+
+    PackageBundleSnapshot BuildPackageBundleSnapshot(std::span<PackageItem const> items)
+    {
+        PackageBundleSnapshot snapshot;
+        auto const unique = MergePackageBundleItems({}, items);
+        snapshot.packages.reserve(unique.size());
+        snapshot.incompatible_packages.reserve(unique.size());
+        for (auto const& item : unique)
+        {
+            auto const manager = Lower(Trim(item.manager_key));
+            auto const id = Trim(item.id);
+            auto const source = Trim(item.source);
+            auto const version = Trim(item.version);
+            auto const resolved = ResolvePackageSource(
+                manager,
+                id,
+                source,
+                PackageAction::Install);
+            auto normalized = item;
+            normalized.manager_key = manager;
+            normalized.id = id;
+            normalized.version = version;
+            normalized.source = source;
+            if (resolved)
+            {
+                normalized.source = resolved.resolution->normalized_source;
+                snapshot.packages.push_back(std::move(normalized));
+            }
+            else
+            {
+                // The v3 incompatible schema has no ManagerName. Clear it at
+                // the boundary so an in-memory save/load cycle has the same
+                // identity as a portable JSON round trip.
+                normalized.manager_key.clear();
+                snapshot.incompatible_packages.push_back(std::move(normalized));
+            }
+        }
+        return snapshot;
+    }
+
+    PackageBundleSnapshot NormalizePackageBundleSnapshot(PackageBundleSnapshot const& snapshot)
+    {
+        // Only records that were already in the compatible partition are
+        // evaluated against the source policy. An explicitly incompatible
+        // record is inert audit data by caller intent and must remain there
+        // even if its fields happen to validate later.
+        auto normalized = BuildPackageBundleSnapshot(snapshot.packages);
+        std::vector<PackageItem> explicitAudit;
+        explicitAudit.reserve(snapshot.incompatible_packages.size());
+        for (auto const& item : snapshot.incompatible_packages)
+        {
+            auto inert = item;
+            inert.id = Trim(inert.id);
+            inert.version = Trim(inert.version);
+            inert.source = Trim(inert.source);
+            // Match the portable incompatible schema even if an older caller
+            // supplied a manager-backed audit row directly.
+            inert.manager_key.clear();
+            explicitAudit.push_back(std::move(inert));
+        }
+        normalized.incompatible_packages = MergePackageBundleItems(
+            explicitAudit,
+            normalized.incompatible_packages);
+        return normalized;
     }
 
     ValidationResult ValidatePackageReference(
