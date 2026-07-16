@@ -4,6 +4,7 @@
 #include "CheckDigitTests.h"
 #include "CodecTests.h"
 #include "GuidGenTests.h"
+#include "PassGenTests.h"
 #include "RomanNumTests.h"
 #include "UuidV7Tests.h"
 #include "RegexSearchTests.h"
@@ -189,6 +190,10 @@ int wmain(int argc, wchar_t** argv)
     auto const guidGenFailures = winforge::tests::guidgen::RunGuidGenTests();
     passed += 16 - guidGenFailures;
     failed += guidGenFailures;
+
+    auto const passGenCounts = RunPassGenTests();
+    passed += passGenCounts.passed;
+    failed += passGenCounts.failed;
 
     auto const romanNumCounts = RunRomanNumTests();
     passed += romanNumCounts.passed;

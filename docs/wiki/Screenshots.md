@@ -6,6 +6,10 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
+**EN —** On 2026-07-16, the native Password Generator page was launched through `driver.ps1 -Native -Page passgen -WaitMs 16000`. `CopyFromScreen` was unavailable and the `PrintWindow` fallback was blank or near-uniform, so the attempted image was rejected. The requested LowLevel MCP tools are not registered in the active Codex session, so no LowLevel capture is claimed. No canonical screenshot, wiki image, stale image, or managed substitute was replaced or reused; Password Generator is `capture-blocked`.
+
+**粵語 —** 2026-07-16，原生 Password Generator 頁已用 `driver.ps1 -Native -Page passgen -WaitMs 16000` 開啟。`CopyFromScreen` 用唔到，而 `PrintWindow` fallback 係空白／接近單色，所以嘗試嘅圖片已拒絕。要求嘅 LowLevel MCP tools 未有登記喺目前 Codex session，所以唔會聲稱有 LowLevel 擷取。冇替換或者重用 canonical 截圖、wiki 圖、舊圖或者受控替代品；Password Generator 係 `capture-blocked`。
+
 **EN —** On 2026-07-16, the changed native Dashboard, All Apps, Regex Tester, and Package Discover pages were separately launched through `driver.ps1 -Native` at `-WaitMs 16000`. `CopyFromScreen` was unavailable; every `PrintWindow` fallback was blank or near-uniform and rejected. The repo-local LowLevel MCP then created an isolated desktop, launched Regex Tester, resolved its 1980×1320 WinUI HWND, and captured an inspected full-window frame containing only the title bar and blank client surface. The invalid LowLevel PNG was discarded. No canonical screenshot, wiki image, or managed substitute was replaced or reused; all changed native regex pages are honestly `capture-blocked`.
 
 **粵語 —** 2026-07-16，改過嘅原生 Dashboard、所有 app、Regex Tester 同 Package Discover 頁已分別用 `driver.ps1 -Native` 加 `-WaitMs 16000` 開啟。`CopyFromScreen` 用唔到；每個 `PrintWindow` fallback 都係空白／接近單色，所以已拒絕。repo 本機 LowLevel MCP 跟住建立隔離 desktop、開啟 Regex Tester、解析佢 1980×1320 嘅 WinUI HWND，並擷取一張檢查過嘅完整視窗 frame，只得 title bar 同空白 client surface。無效 LowLevel PNG 已經丟棄。冇替換、重用任何 canonical 截圖、wiki 圖或者受控替代品；全部改過嘅原生 regex 頁如實係 `capture-blocked`。
@@ -494,6 +498,9 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Regex Cheatsheet · 正則速查
 > **Capture status · 截圖狀態：** Fresh `regexcheat` capture is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable in this desktop session. The route passed a launch-only check, but no PNG was created, inspected, or claimed as visual verification. · 新嘅 `regexcheat` 截圖係 `capture-blocked`：呢個 desktop session 嘅 `CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。route launch-only check 通過，但冇 PNG 產生、檢查或者當成視覺驗證。
+
+### Password Generator · 密碼產生器
+> **Capture status · 截圖狀態：** Fresh native Password Generator capture is `capture-blocked`: `CopyFromScreen` was unavailable and the `PrintWindow` fallback was blank or near-uniform; the requested LowLevel MCP tools are not registered in the active Codex session, so no LowLevel capture is claimed. No PNG or substitute is shown. · 最新原生 Password Generator 擷取係 `capture-blocked`：`CopyFromScreen` 用唔到，而 `PrintWindow` fallback 係空白／接近單色；要求嘅 LowLevel MCP tools 未有登記喺目前 Codex session，所以唔會聲稱有 LowLevel 擷取。唔會展示 PNG 或替代圖片。
 
 ### UUID v7 · UUID v7 識別碼
 > **Capture status · 截圖狀態：** Fresh native UUID v7 capture is `capture-blocked`: the repository driver rejected its blank/near-uniform `PrintWindow` fallback, and the inspected LowLevel MCP isolated-desktop 1980×1320 HWND capture contained only a title bar and blank client surface; the 1958×1264 client-only frame was also blank. Both invalid PNGs were discarded and no substitute image is shown. · 最新原生 UUID v7 擷取係 `capture-blocked`：repository driver 拒絕咗空白／接近單色 `PrintWindow` fallback，而檢查過嘅 LowLevel MCP 隔離 desktop 1980×1320 HWND 擷取只得 title bar 同空白 client surface；1958×1264 只限 client frame 亦係空白。兩張無效 PNG 已丟棄，唔會展示替代圖片。
