@@ -160,14 +160,24 @@ jobs:
             throw "installer smoke root already exists unexpectedly: $installRoot"
           }
           try {
-            & $setup.FullName '/VERYSILENT' '/SUPPRESSMSGBOXES' '/NORESTART' '/SP-' ("/DIR=$installRoot")
-            if ($LASTEXITCODE -ne 0) { throw "native installer exited with $LASTEXITCODE" }
+            $installer = Start-Process -FilePath $setup.FullName -ArgumentList @(
+              '/VERYSILENT',
+              '/SUPPRESSMSGBOXES',
+              '/NORESTART',
+              '/SP-',
+              "/DIR=$installRoot"
+            ) -Wait -PassThru -NoNewWindow
+            if ($installer.ExitCode -ne 0) { throw "native installer exited with $($installer.ExitCode)" }
             $app = Join-Path $installRoot 'WinForge.exe'
             $uninstaller = Join-Path $installRoot 'unins000.exe'
             if (-not (Test-Path -LiteralPath $app)) { throw "installed native app missing: $app" }
             if (-not (Test-Path -LiteralPath $uninstaller)) { throw "installed native uninstaller missing: $uninstaller" }
-            & $uninstaller '/VERYSILENT' '/SUPPRESSMSGBOXES' '/NORESTART'
-            if ($LASTEXITCODE -ne 0) { throw "native uninstaller exited with $LASTEXITCODE" }
+            $uninstallerProcess = Start-Process -FilePath $uninstaller -ArgumentList @(
+              '/VERYSILENT',
+              '/SUPPRESSMSGBOXES',
+              '/NORESTART'
+            ) -Wait -PassThru -NoNewWindow
+            if ($uninstallerProcess.ExitCode -ne 0) { throw "native uninstaller exited with $($uninstallerProcess.ExitCode)" }
             if (Test-Path -LiteralPath $installRoot) { throw "native installer smoke left install root behind: $installRoot" }
           }
           finally {
