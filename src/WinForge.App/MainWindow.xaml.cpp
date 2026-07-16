@@ -475,8 +475,11 @@ namespace winrt::WinForge::implementation
             m_packageStatePath = PackageManagerStatePath();
             LoadPackageManagerState();
 
-            auto const request = winforge::core::CurrentProcessLaunchRequest();
-            Navigate(request.route, request.argument, true);
+            m_initialLaunchRequest = winforge::core::CurrentProcessLaunchRequest();
+            Activated([this](Windows::Foundation::IInspectable const&, WindowActivatedEventArgs const&)
+            {
+                QueueInitialNavigation();
+            });
         }
         catch (winrt::hresult_error const& error)
         {
@@ -713,6 +716,44 @@ namespace winrt::WinForge::implementation
         }
     }
 
+    void MainWindow::QueueInitialNavigation()
+    {
+        if (m_initialNavigationQueued || !m_initialLaunchRequest)
+        {
+            return;
+        }
+
+        m_initialNavigationQueued = true;
+        auto const request = std::move(*m_initialLaunchRequest);
+        m_initialLaunchRequest.reset();
+        auto const lifetime = get_strong();
+        auto const navigate = [lifetime, request]()
+        {
+            try
+            {
+                lifetime->Navigate(request.route, request.argument, true);
+            }
+            catch (winrt::hresult_error const& error)
+            {
+                lifetime->RenderCatalogError(winrt::to_string(error.message()));
+            }
+            catch (std::exception const& error)
+            {
+                lifetime->RenderCatalogError(error.what());
+            }
+        };
+
+        auto const dispatcher = Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
+        if (dispatcher && dispatcher.TryEnqueue(navigate))
+        {
+            return;
+        }
+
+        // The activated handler normally has a dispatcher. Fall back only if
+        // shutdown has begun, so a valid deep link is never silently dropped.
+        navigate();
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -798,6 +839,11 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::RenderCurrent()
     {
+        if (m_currentRoute != L"module.passwordstrength")
+        {
+            ClearPasswordStrengthSecret();
+        }
+
         if (m_currentRoute == L"search")
         {
             RenderSearch(m_currentArgument);
@@ -846,6 +892,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.passgen")
         {
             RenderPassGen();
+        }
+        else if (module->id == L"module.passwordstrength")
+        {
+            RenderPasswordStrength();
         }
         else if (module->id == L"module.uuidv7")
         {
@@ -3418,6 +3468,451 @@ namespace winrt::WinForge::implementation
         {
             // A live-region failure must never interrupt local password generation.
         }
+    }
+
+    void MainWindow::RenderPasswordStrength()
+    {
+        m_passwordStrengthRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{
+                L"Password Strength", L"密碼強度" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Type a password to see how strong it is — character variety, entropy, estimated crack time and a checklist of good habits.",
+                L"打個密碼入嚟，睇下佢有幾穩陣 — 字元種類、熵值、估計破解時間，仲有一張良好習慣清單。" }.Pick(m_language));
+        page.MaxWidth(760);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativePasswordStrengthPage");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native, local password analysis", L"全原生、本機密碼分析" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(winforge::core::LocalizedText{
+            L"The C++ analyzer works only in memory. Your password is never saved, logged, sent, or copied to the clipboard.",
+            L"C++ 分析器只會喺記憶體度運行。你嘅密碼唔會儲存、記錄、傳送，亦唔會複製去剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativePasswordStrengthImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        Border entryCard = makeCard();
+        StackPanel entryContent;
+        entryContent.Spacing(10);
+        auto const entryLabel = CreateText(
+            winforge::core::LocalizedText{ L"Password to test", L"要測試嘅密碼" }.Pick(m_language), 15, true);
+        entryContent.Children().Append(entryLabel);
+
+        auto storeSecret = [this](std::wstring value)
+        {
+            if (!m_passwordStrengthValue.empty())
+            {
+                SecureZeroMemory(
+                    m_passwordStrengthValue.data(),
+                    m_passwordStrengthValue.size() * sizeof(wchar_t));
+            }
+            m_passwordStrengthValue = std::move(value);
+        };
+
+        m_passwordStrengthHidden = PasswordBox();
+        m_passwordStrengthHidden.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"Type a password locally", L"喺本機輸入密碼" }.Pick(m_language)));
+        m_passwordStrengthHidden.Password(m_passwordStrengthRevealed ? L"" : ToHString(m_passwordStrengthValue));
+        m_passwordStrengthHidden.Visibility(m_passwordStrengthRevealed ? Visibility::Collapsed : Visibility::Visible);
+        AutomationProperties::SetAutomationId(m_passwordStrengthHidden, L"NativePasswordStrengthHiddenInput");
+        AutomationProperties::SetName(m_passwordStrengthHidden, ToHString(winforge::core::LocalizedText{
+            L"Masked password to test", L"隱藏嘅要測試密碼" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_passwordStrengthHidden, entryLabel);
+        m_passwordStrengthHidden.PasswordChanged([this, storeSecret](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_passwordStrengthRendering) return;
+            auto const value = ToWide(sender.as<PasswordBox>().Password());
+            // Collapsing this inactive box clears its visual value. WinUI may
+            // deliver that programmatic event after the render guard has been
+            // restored; never let it erase the locally held secret while the
+            // revealed TextBox is the active editor.
+            if (m_passwordStrengthRevealed && value.empty() && !m_passwordStrengthValue.empty()) return;
+            storeSecret(value);
+            RefreshPasswordStrength();
+        });
+        entryContent.Children().Append(m_passwordStrengthHidden);
+
+        m_passwordStrengthShown = TextBox();
+        m_passwordStrengthShown.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"Password shown locally", L"喺本機顯示密碼" }.Pick(m_language)));
+        m_passwordStrengthShown.IsSpellCheckEnabled(false);
+        m_passwordStrengthShown.Text(m_passwordStrengthRevealed ? ToHString(m_passwordStrengthValue) : L"");
+        m_passwordStrengthShown.Visibility(m_passwordStrengthRevealed ? Visibility::Visible : Visibility::Collapsed);
+        AutomationProperties::SetAutomationId(m_passwordStrengthShown, L"NativePasswordStrengthShownInput");
+        AutomationProperties::SetName(m_passwordStrengthShown, ToHString(winforge::core::LocalizedText{
+            L"Shown password to test", L"顯示咗嘅要測試密碼" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_passwordStrengthShown, entryLabel);
+        m_passwordStrengthShown.TextChanged([this, storeSecret](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_passwordStrengthRendering) return;
+            auto const value = ToWide(sender.as<TextBox>().Text());
+            // Symmetric to the PasswordBox guard above: the hidden plain-text
+            // editor is deliberately cleared, but a delayed programmatic
+            // TextChanged notification must not replace the secret in memory.
+            if (!m_passwordStrengthRevealed && value.empty() && !m_passwordStrengthValue.empty()) return;
+            storeSecret(value);
+            RefreshPasswordStrength();
+        });
+        entryContent.Children().Append(m_passwordStrengthShown);
+
+        m_passwordStrengthReveal = ToggleSwitch();
+        m_passwordStrengthReveal.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"Show the password", L"顯示密碼" }.Pick(m_language))));
+        m_passwordStrengthReveal.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+        m_passwordStrengthReveal.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+        m_passwordStrengthReveal.IsOn(m_passwordStrengthRevealed);
+        AutomationProperties::SetAutomationId(m_passwordStrengthReveal, L"NativePasswordStrengthReveal");
+        AutomationProperties::SetName(m_passwordStrengthReveal, ToHString(winforge::core::LocalizedText{
+            L"Show the password", L"顯示密碼" }.Pick(m_language)));
+        m_passwordStrengthReveal.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_passwordStrengthRendering) return;
+            SetPasswordStrengthReveal(sender.as<ToggleSwitch>().IsOn());
+        });
+        entryContent.Children().Append(m_passwordStrengthReveal);
+        entryCard.Child(entryContent);
+        page.Children().Append(entryCard);
+
+        Border strengthCard = makeCard();
+        StackPanel strengthContent;
+        strengthContent.Spacing(8);
+        Grid strengthHeading;
+        ColumnDefinition titleColumn;
+        titleColumn.Width(GridLengthHelper::FromValueAndType(1.0, GridUnitType::Star));
+        ColumnDefinition bandColumn;
+        bandColumn.Width(GridLengthHelper::FromValueAndType(0.0, GridUnitType::Auto));
+        strengthHeading.ColumnDefinitions().Append(titleColumn);
+        strengthHeading.ColumnDefinitions().Append(bandColumn);
+        auto const strengthTitle = CreateText(
+            winforge::core::LocalizedText{ L"Strength", L"強度" }.Pick(m_language), 15, true);
+        Grid::SetColumn(strengthTitle, 0);
+        strengthHeading.Children().Append(strengthTitle);
+        m_passwordStrengthBand = CreateText(L"—", 15, true);
+        Grid::SetColumn(m_passwordStrengthBand, 1);
+        AutomationProperties::SetAutomationId(m_passwordStrengthBand, L"NativePasswordStrengthBand");
+        strengthHeading.Children().Append(m_passwordStrengthBand);
+        strengthContent.Children().Append(strengthHeading);
+
+        m_passwordStrengthBar = ProgressBar();
+        m_passwordStrengthBar.Minimum(0);
+        m_passwordStrengthBar.Maximum(1);
+        m_passwordStrengthBar.Height(8);
+        AutomationProperties::SetAutomationId(m_passwordStrengthBar, L"NativePasswordStrengthBar");
+        AutomationProperties::SetName(m_passwordStrengthBar, ToHString(winforge::core::LocalizedText{
+            L"Password strength progress", L"密碼強度進度" }.Pick(m_language)));
+        strengthContent.Children().Append(m_passwordStrengthBar);
+
+        m_passwordStrengthStatus = CreateText(L"", 12);
+        m_passwordStrengthStatus.TextWrapping(TextWrapping::Wrap);
+        m_passwordStrengthStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_passwordStrengthStatus, L"NativePasswordStrengthStatus");
+        AutomationProperties::SetLiveSetting(
+            m_passwordStrengthStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        strengthContent.Children().Append(m_passwordStrengthStatus);
+
+        m_passwordStrengthCommonWarning = InfoBar();
+        m_passwordStrengthCommonWarning.IsOpen(false);
+        m_passwordStrengthCommonWarning.IsClosable(false);
+        m_passwordStrengthCommonWarning.Severity(InfoBarSeverity::Error);
+        AutomationProperties::SetAutomationId(m_passwordStrengthCommonWarning, L"NativePasswordStrengthCommonWarning");
+        strengthContent.Children().Append(m_passwordStrengthCommonWarning);
+
+        strengthContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Details", L"詳細資料" }.Pick(m_language), 14, true));
+        m_passwordStrengthLength = CreateText(L"", 13);
+        m_passwordStrengthPool = CreateText(L"", 13);
+        m_passwordStrengthEntropy = CreateText(L"", 13);
+        AutomationProperties::SetAutomationId(m_passwordStrengthLength, L"NativePasswordStrengthLength");
+        AutomationProperties::SetAutomationId(m_passwordStrengthPool, L"NativePasswordStrengthPool");
+        AutomationProperties::SetAutomationId(m_passwordStrengthEntropy, L"NativePasswordStrengthEntropy");
+        strengthContent.Children().Append(m_passwordStrengthLength);
+        strengthContent.Children().Append(m_passwordStrengthPool);
+        strengthContent.Children().Append(m_passwordStrengthEntropy);
+        strengthCard.Child(strengthContent);
+        page.Children().Append(strengthCard);
+
+        Border crackCard = makeCard();
+        StackPanel crackContent;
+        crackContent.Spacing(8);
+        crackContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{
+                L"Estimated time to crack (average, brute force)", L"估計破解時間（平均，暴力破解）" }.Pick(m_language), 14, true));
+        m_passwordStrengthOnline = CreateText(L"", 13);
+        m_passwordStrengthOnline.TextWrapping(TextWrapping::Wrap);
+        m_passwordStrengthGpu = CreateText(L"", 13);
+        m_passwordStrengthGpu.TextWrapping(TextWrapping::Wrap);
+        m_passwordStrengthFast = CreateText(L"", 13);
+        m_passwordStrengthFast.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_passwordStrengthOnline, L"NativePasswordStrengthOnline");
+        AutomationProperties::SetAutomationId(m_passwordStrengthGpu, L"NativePasswordStrengthGpu");
+        AutomationProperties::SetAutomationId(m_passwordStrengthFast, L"NativePasswordStrengthFast");
+        crackContent.Children().Append(m_passwordStrengthOnline);
+        crackContent.Children().Append(m_passwordStrengthGpu);
+        crackContent.Children().Append(m_passwordStrengthFast);
+        crackCard.Child(crackContent);
+        page.Children().Append(crackCard);
+
+        Border checklistCard = makeCard();
+        m_passwordStrengthChecklist = StackPanel();
+        m_passwordStrengthChecklist.Spacing(6);
+        m_passwordStrengthChecklist.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Checklist", L"檢查清單" }.Pick(m_language), 14, true));
+        AutomationProperties::SetAutomationId(m_passwordStrengthChecklist, L"NativePasswordStrengthChecklist");
+        checklistCard.Child(m_passwordStrengthChecklist);
+        page.Children().Append(checklistCard);
+
+        ShowPage(page);
+        m_passwordStrengthRendering = false;
+        RefreshPasswordStrength();
+    }
+
+    void MainWindow::RefreshPasswordStrength()
+    {
+        auto const result = winforge::core::passwordstrength::Analyze(m_passwordStrengthValue);
+        auto const bandLabel = [this, &result]()
+        {
+            static const std::array<winforge::core::LocalizedText, 5> Labels{
+                winforge::core::LocalizedText{ L"Very weak", L"非常弱" },
+                winforge::core::LocalizedText{ L"Weak", L"弱" },
+                winforge::core::LocalizedText{ L"Fair", L"一般" },
+                winforge::core::LocalizedText{ L"Strong", L"強" },
+                winforge::core::LocalizedText{ L"Very strong", L"非常強" },
+            };
+            return Labels[std::clamp(result.band, 0, 4)].Pick(m_language);
+        };
+        auto const bandBlurb = [this, &result]()
+        {
+            static const std::array<winforge::core::LocalizedText, 5> Blurbs{
+                winforge::core::LocalizedText{ L"Cracked almost instantly. Make it much longer and more varied.", L"幾乎即刻俾人破解。要長好多同埋更多變化。" },
+                winforge::core::LocalizedText{ L"Weak — easily guessed. Add length and character types.", L"弱 — 好易估中。加長度同字元種類。" },
+                winforge::core::LocalizedText{ L"Fair — okay for low-value logins, not for anything important.", L"一般 — 低價值帳戶勉強得，重要嘢就唔好。" },
+                winforge::core::LocalizedText{ L"Strong — good for most accounts.", L"強 — 大部分帳戶都夠用。" },
+                winforge::core::LocalizedText{ L"Very strong — excellent for high-value accounts.", L"非常強 — 高價值帳戶都好穩陣。" },
+            };
+            return Blurbs[std::clamp(result.band, 0, 4)].Pick(m_language);
+        };
+
+        auto formatEntropy = [&result]()
+        {
+            std::wostringstream stream;
+            stream.setf(std::ios::fixed);
+            stream.precision(1);
+            stream << result.entropy_bits;
+            return stream.str();
+        };
+        auto const entropy = formatEntropy();
+        auto const empty = result.length == 0;
+        auto const status = empty
+            ? winforge::core::LocalizedText{ L"Start typing to analyze a password.", L"開始打字嚟分析密碼。" }.Pick(m_language)
+            : bandBlurb();
+
+        if (m_passwordStrengthBand)
+        {
+            auto const text = empty ? std::wstring{ L"—" } : bandLabel();
+            m_passwordStrengthBand.Text(ToHString(text));
+            AutomationProperties::SetName(m_passwordStrengthBand, ToHString(text));
+        }
+        if (m_passwordStrengthBar)
+        {
+            m_passwordStrengthBar.Value(empty ? 0.0 : result.fraction);
+            auto const color = empty
+                ? Windows::UI::Color{ 0xFF, 0x80, 0x80, 0x80 }
+                : result.band == 0
+                    ? Windows::UI::Color{ 0xFF, 0xE8, 0x1A, 0x1A }
+                    : result.band == 1
+                        ? Windows::UI::Color{ 0xFF, 0xE8, 0x7A, 0x1A }
+                        : result.band == 2
+                            ? Windows::UI::Color{ 0xFF, 0xE8, 0xC8, 0x1A }
+                            : result.band == 3
+                                ? Windows::UI::Color{ 0xFF, 0x5A, 0xC8, 0x3A }
+                                : Windows::UI::Color{ 0xFF, 0x2E, 0xA8, 0x44 };
+            m_passwordStrengthBar.Foreground(Media::SolidColorBrush(color));
+        }
+        if (m_passwordStrengthStatus)
+        {
+            m_passwordStrengthStatus.Text(ToHString(status));
+            AutomationProperties::SetName(m_passwordStrengthStatus, ToHString(status));
+        }
+        if (m_passwordStrengthCommonWarning)
+        {
+            m_passwordStrengthCommonWarning.IsOpen(!empty && result.is_common);
+            auto const warningTitle = winforge::core::LocalizedText{
+                L"Known common password", L"常見密碼" }.Pick(m_language);
+            auto const warningMessage = winforge::core::LocalizedText{
+                L"This appears in public breach lists — attackers try it first. Do not use it.",
+                L"呢個出現喺公開洩漏名單度 — 攻擊者會第一時間試。唔好用。" }.Pick(m_language);
+            m_passwordStrengthCommonWarning.Title(ToHString(warningTitle));
+            m_passwordStrengthCommonWarning.Message(ToHString(warningMessage));
+            AutomationProperties::SetName(
+                m_passwordStrengthCommonWarning,
+                ToHString(!empty && result.is_common ? warningTitle + L": " + warningMessage : std::wstring{}));
+        }
+
+        auto const lengthText = winforge::core::LocalizedText{
+            L"Length:  " + std::to_wstring(result.length) + L" characters",
+            L"長度：  " + std::to_wstring(result.length) + L" 個字元" }.Pick(m_language);
+        auto const poolText = winforge::core::LocalizedText{
+            L"Character pool:  " + std::to_wstring(result.pool_size) + L" symbols",
+            L"字元集合：  " + std::to_wstring(result.pool_size) + L" 個符號" }.Pick(m_language);
+        auto const entropyText = winforge::core::LocalizedText{
+            L"Entropy:  " + entropy + L" bits",
+            L"熵值：  " + entropy + L" bits" }.Pick(m_language);
+        if (m_passwordStrengthLength)
+        {
+            m_passwordStrengthLength.Text(ToHString(lengthText));
+            AutomationProperties::SetName(m_passwordStrengthLength, ToHString(lengthText));
+        }
+        if (m_passwordStrengthPool)
+        {
+            m_passwordStrengthPool.Text(ToHString(poolText));
+            AutomationProperties::SetName(m_passwordStrengthPool, ToHString(poolText));
+        }
+        if (m_passwordStrengthEntropy)
+        {
+            m_passwordStrengthEntropy.Text(ToHString(entropyText));
+            AutomationProperties::SetName(m_passwordStrengthEntropy, ToHString(entropyText));
+        }
+
+        auto const onlineText = winforge::core::LocalizedText{
+            L"Online (throttled, ~10K/s):  " + winforge::core::passwordstrength::HumanTime(
+                result.online_seconds, winforge::core::passwordstrength::HumanTimeLanguage::English),
+            L"線上（限速，約 1 萬次/秒）：  " + winforge::core::passwordstrength::HumanTime(
+                result.online_seconds, winforge::core::passwordstrength::HumanTimeLanguage::Cantonese) }.Pick(m_language);
+        auto const gpuText = winforge::core::LocalizedText{
+            L"Offline GPU (~10B/s):  " + winforge::core::passwordstrength::HumanTime(
+                result.offline_gpu_seconds, winforge::core::passwordstrength::HumanTimeLanguage::English),
+            L"離線 GPU（約 100 億次/秒）：  " + winforge::core::passwordstrength::HumanTime(
+                result.offline_gpu_seconds, winforge::core::passwordstrength::HumanTimeLanguage::Cantonese) }.Pick(m_language);
+        auto const fastText = winforge::core::LocalizedText{
+            L"Fast rig (~1T/s):  " + winforge::core::passwordstrength::HumanTime(
+                result.fast_seconds, winforge::core::passwordstrength::HumanTimeLanguage::English),
+            L"高速機器（約 1 萬億次/秒）：  " + winforge::core::passwordstrength::HumanTime(
+                result.fast_seconds, winforge::core::passwordstrength::HumanTimeLanguage::Cantonese) }.Pick(m_language);
+        if (m_passwordStrengthOnline)
+        {
+            m_passwordStrengthOnline.Text(ToHString(onlineText));
+            AutomationProperties::SetName(m_passwordStrengthOnline, ToHString(onlineText));
+        }
+        if (m_passwordStrengthGpu)
+        {
+            m_passwordStrengthGpu.Text(ToHString(gpuText));
+            AutomationProperties::SetName(m_passwordStrengthGpu, ToHString(gpuText));
+        }
+        if (m_passwordStrengthFast)
+        {
+            m_passwordStrengthFast.Text(ToHString(fastText));
+            AutomationProperties::SetName(m_passwordStrengthFast, ToHString(fastText));
+        }
+
+        if (!m_passwordStrengthChecklist) return;
+        while (m_passwordStrengthChecklist.Children().Size() > 1)
+        {
+            m_passwordStrengthChecklist.Children().RemoveAt(m_passwordStrengthChecklist.Children().Size() - 1);
+        }
+
+        auto appendCheck = [this](int32_t index, bool passed, std::wstring_view en, std::wstring_view zh)
+        {
+            auto const label = winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
+            auto row = CreateText((passed ? L"✓  " : L"✕  ") + label, 13);
+            row.TextWrapping(TextWrapping::Wrap);
+            AutomationProperties::SetAutomationId(row, ToHString(L"NativePasswordStrengthCheck" + std::to_wstring(index)));
+            AutomationProperties::SetName(row, ToHString((passed ? L"Pass: " : L"Needs work: ") + label));
+            m_passwordStrengthChecklist.Children().Append(row);
+        };
+        appendCheck(0, result.len8, L"At least 8 characters", L"至少 8 個字元");
+        appendCheck(1, result.len12, L"At least 12 characters", L"至少 12 個字元");
+        appendCheck(2, result.len16, L"At least 16 characters", L"至少 16 個字元");
+        appendCheck(3, result.has_lower, L"Has lowercase letters", L"有細楷字母");
+        appendCheck(4, result.has_upper, L"Has uppercase letters", L"有大楷字母");
+        appendCheck(5, result.has_digit, L"Has digits", L"有數字");
+        appendCheck(6, result.has_symbol, L"Has symbols", L"有符號");
+        appendCheck(7, result.no_repeats, L"No 3+ repeated characters", L"冇連續 3 個或以上重複字元");
+        appendCheck(8, result.no_sequences, L"No simple sequences (abc / 123 / qwerty)", L"冇簡單序列（abc / 123 / qwerty）");
+        appendCheck(9, !result.is_common, L"Not a known common password", L"唔係常見密碼");
+    }
+
+    void MainWindow::SetPasswordStrengthReveal(bool revealed)
+    {
+        auto const previousRendering = m_passwordStrengthRendering;
+        m_passwordStrengthRendering = true;
+        m_passwordStrengthRevealed = revealed;
+        if (m_passwordStrengthReveal)
+        {
+            m_passwordStrengthReveal.IsOn(revealed);
+        }
+        if (revealed)
+        {
+            if (m_passwordStrengthHidden)
+            {
+                m_passwordStrengthHidden.Password(L"");
+                m_passwordStrengthHidden.Visibility(Visibility::Collapsed);
+            }
+            if (m_passwordStrengthShown)
+            {
+                m_passwordStrengthShown.Text(ToHString(m_passwordStrengthValue));
+                m_passwordStrengthShown.Visibility(Visibility::Visible);
+            }
+        }
+        else
+        {
+            if (m_passwordStrengthShown)
+            {
+                m_passwordStrengthShown.Text(L"");
+                m_passwordStrengthShown.Visibility(Visibility::Collapsed);
+            }
+            if (m_passwordStrengthHidden)
+            {
+                m_passwordStrengthHidden.Password(ToHString(m_passwordStrengthValue));
+                m_passwordStrengthHidden.Visibility(Visibility::Visible);
+            }
+        }
+        m_passwordStrengthRendering = previousRendering;
+        RefreshPasswordStrength();
+    }
+
+    void MainWindow::ClearPasswordStrengthSecret()
+    {
+        auto const previousRendering = m_passwordStrengthRendering;
+        m_passwordStrengthRendering = true;
+        try
+        {
+            if (!m_passwordStrengthValue.empty())
+            {
+                SecureZeroMemory(
+                    m_passwordStrengthValue.data(),
+                    m_passwordStrengthValue.size() * sizeof(wchar_t));
+            }
+            m_passwordStrengthValue.clear();
+            m_passwordStrengthValue.shrink_to_fit();
+            if (m_passwordStrengthHidden) m_passwordStrengthHidden.Password(L"");
+            if (m_passwordStrengthShown) m_passwordStrengthShown.Text(L"");
+            if (m_passwordStrengthReveal) m_passwordStrengthReveal.IsOn(false);
+            m_passwordStrengthRevealed = false;
+        }
+        catch (...)
+        {
+            // Secret cleanup is best-effort and must never block navigation.
+        }
+        m_passwordStrengthRendering = previousRendering;
     }
 
     void MainWindow::RenderUuidV7()

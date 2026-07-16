@@ -36,6 +36,9 @@ WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + �
 ## Docs
 Bilingual wiki under `docs/wiki/` (Home → category pages, generated feature/button references, reactor hub with seven focused pages, native rewrite status, manual, test report, and screenshot gallery). Canonical page screenshots live under `docs/`; selected wiki-local assets live under `docs/wiki/images/`. Native architecture/status belongs in `docs/Native-Cpp-Rewrite.md` and its wiki/Pages mirrors.
 
+## Persistent repository memory
+Read [`AGENT_MEMORY.md`](AGENT_MEMORY.md) before beginning or closing a task. It preserves the required per-task commit/push/merge/remote-proof workflow, documentation and screenshot evidence requirements, and the LowLevel MCP headless-only operating rule for future agents.
+
 ## Mandatory task completion, docs, screenshots, and Git
 - **Every agent task, however small, ends with a commit and push.** Make an intentional bilingual commit for the task, push its branch, merge it into `main` when the task is complete, push `main`, and delete the merged temporary branch. Never leave completed work only in the working tree.
 - **Before deleting anything, prove the merge is complete.** Do not delete a branch, worktree, or local checkout until the branch is fully merged into `main`, `main` has been pushed, and the remote confirms the finished state. If a task needs cleanup, merge first, verify first, then remove branches/worktrees.

@@ -8,6 +8,7 @@
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/GuidGen.h"
 #include "../WinForge.Core/PassGen.h"
+#include "../WinForge.Core/PasswordStrength.h"
 #include "../WinForge.Core/RomanNum.h"
 #include "../WinForge.Core/UuidV7.h"
 #include "../WinForge.Core/ModuleRecord.h"
@@ -80,6 +81,8 @@ namespace winrt::WinForge::implementation
         winforge::core::LanguageMode m_language{ winforge::core::LanguageMode::Bilingual };
         std::vector<winforge::core::ModuleRecord> m_modules;
         winforge::core::RouteIndex m_routeIndex;
+        std::optional<winforge::core::LaunchRequest> m_initialLaunchRequest;
+        bool m_initialNavigationQueued{ false };
         Microsoft::UI::Xaml::Controls::NavigationView m_navigation{ nullptr };
         Microsoft::UI::Xaml::Controls::Grid m_content{ nullptr };
         Microsoft::UI::Xaml::Controls::AutoSuggestBox m_search{ nullptr };
@@ -160,6 +163,20 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ProgressBar m_passGenEntropyBar{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_passGenOutput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_passGenStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::PasswordBox m_passwordStrengthHidden{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_passwordStrengthShown{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_passwordStrengthReveal{ nullptr };
+        Microsoft::UI::Xaml::Controls::ProgressBar m_passwordStrengthBar{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passwordStrengthBand{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passwordStrengthStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::InfoBar m_passwordStrengthCommonWarning{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passwordStrengthLength{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passwordStrengthPool{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passwordStrengthEntropy{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passwordStrengthOnline{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passwordStrengthGpu{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passwordStrengthFast{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_passwordStrengthChecklist{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_uuidV7CountBox{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_uuidV7MonotonicSwitch{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_uuidV7GeneratedOutput{ nullptr };
@@ -265,6 +282,9 @@ namespace winrt::WinForge::implementation
         std::wstring m_passGenOutputValue{};
         std::wstring m_passGenStatusValue{};
         bool m_passGenRendering{ false };
+        std::wstring m_passwordStrengthValue{};
+        bool m_passwordStrengthRevealed{ false };
+        bool m_passwordStrengthRendering{ false };
         int32_t m_uuidV7Count{ 1 };
         bool m_uuidV7Monotonic{ true };
         std::wstring m_uuidV7GeneratedValue{};
@@ -331,6 +351,7 @@ namespace winrt::WinForge::implementation
         void BuildShell();
         void BuildPrimaryNavigation();
         void Navigate(std::wstring_view route, std::wstring_view argument = {}, bool deepLink = false);
+        void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
         void RenderDashboard();
@@ -468,6 +489,10 @@ namespace winrt::WinForge::implementation
         void UpdatePassGenEntropy();
         void CopyPassGenOutput();
         void AnnouncePassGenStatus(std::wstring_view message, bool warning = false);
+        void RenderPasswordStrength();
+        void RefreshPasswordStrength();
+        void SetPasswordStrengthReveal(bool revealed);
+        void ClearPasswordStrengthSecret();
         void RenderUuidV7();
         void GenerateUuidV7Values();
         void DecodeUuidV7Value();

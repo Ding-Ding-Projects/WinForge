@@ -35,6 +35,10 @@ Package Discover regex is cache-only: it never enters argv or HTTPS, cannot begi
 
 Check Digit, Text to Binary, Case Converter, GUID Generator, Base32/Base58/Ascii85, and Roman Numerals have real native C++ cores and C++/WinRT pages. They retain state across English/Cantonese/Bilingual rerenders, use explicit clipboard actions, and expose stable accessibility IDs. Their individual ledger rows remain in progress until all evidence—including visual evidence—is available. · Check Digit、Text to Binary、Case Converter、GUID Generator、Base32／Base58／Ascii85 同 Roman Numerals 已有真正原生 C++ core 同 C++/WinRT 頁面。佢哋會喺英文／粵語／雙語重繪時保留狀態、用明確 clipboard 動作，同有穩定無障礙 ID。所有證據（包括視覺證據）齊全前，各自 ledger 項仍然係進行中。
 
+## Native Password Strength · 原生密碼強度
+
+`module.passwordstrength` is a live native C++ local-only analyzer. It uses the managed ASCII-pool entropy contract, local common-password/repeat/sequence checks, rating and crack-time bands, plus a masked-default in-memory reveal editor. It never persists, logs, sends, or copies the value, clears it on navigation, and guards delayed inactive-editor updates so a reveal toggle cannot erase the analysis model. The Debug/Release core suites include 11 focused checks; the 212/212 headless native shell smoke covers masking, reveal state, common-password warnings, aliases, language retention, accessibility, and clipping. Its row remains `in-progress` only because the inspected LowLevel 852×880 capture had a blank client surface and was discarded. · `module.passwordstrength` 係即時原生 C++、只限本機嘅分析器。佢用受控版 ASCII 字元池熵值合約、本機常見密碼／重複／序列檢查、評級同破解時間範圍，加上預設遮蔽嘅只限記憶體顯示輸入。佢絕對唔會持久化、記錄、傳送或者複製值，導覽時會清除，亦會保護非活動輸入框嘅延遲更新，避免顯示切換抹走分析模型。Debug／Release core 包括 11 個專項檢查；212/212 無頭原生 shell smoke 覆蓋遮蔽、顯示狀態、常見密碼警告、alias、語言保留、無障礙同裁切。呢項只因檢查過嘅 LowLevel 852×880 擷取有空白 client surface、已經丟棄而保持 `in-progress`。
+
 ## Verification · 驗證
 
 ```powershell
@@ -44,12 +48,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShel
 ```
 
 - Debug and Release x64 native builds: **0 errors**. · Debug 同 Release x64 原生建置：**0 errors**。
-- Native tests: **389/389** in Debug and Release (343 core + 46 parser), including the native regex-surface contract and safe recipe/assertion vectors. · 原生測試：Debug 同 Release 都係 **389/389**（343 個 core + 46 個 parser），包括原生 regex 搜尋位置合約同安全 recipe／assertion vectors。
+- Native tests: **379/379** in Debug and Release, including the native regex-surface contract, Password Generator, and **11** focused Password Strength checks. · 原生測試：Debug 同 Release 都係 **379/379**，包括原生 regex 搜尋位置合約、Password Generator 同 **11** 個 Password Strength 專項檢查。
 - Catalog parity: 346 fixed routes, five dynamic families, 319 registry records, and 22 categories. · 目錄對等：346 條固定路線、五組動態家族、319 條 registry 記錄同 22 個分類。
-- Elevated process-owned UI Automation smoke: **171/171**. It verifies the native UI, recipe/assertion builder controls, invalid-Apply blocking, deterministic Package Discover routing, and fail-closed behavior—not normal-integrity external package activity. · 提權、自有 process UI Automation smoke：**171/171**。佢驗證原生 UI、recipe／assertion 建立器控制、無效 Apply 阻擋、確定性 Package Discover 導覽同 fail-closed 行為，唔係正常 integrity 外部套件活動。
+- Headless process-owned UI Automation smoke: **212/212**. It verifies the native UI, recipe/assertion builder controls, invalid-Apply blocking, deterministic Package Discover routing, Password Strength masking/reveal/local-warning behavior, clipping, and fail-closed behavior—not normal-integrity external package activity. · 無頭、自有 process UI Automation smoke：**212/212**。佢驗證原生 UI、recipe／assertion 建立器控制、無效 Apply 阻擋、確定性 Package Discover 導覽、Password Strength 遮蔽／顯示／本機警告行為、裁切同 fail-closed 行為，唔係正常 integrity 外部套件活動。
 
 ## Visual evidence · 視覺證據
 
 Every changed native Package Manager view is currently `capture-blocked`. The required repository driver and a persistent LowLevel HTTP MCP headless desktop both launched Discover, Updates, and Installed, but each inspected HWND PNG had only a title bar plus a blank or near-uniform WinUI client frame. Invalid images were discarded; no stale, synthetic, blank, or managed image is presented as native evidence. `docs/screenshot-packages.png` remains a managed-production reference only. · 每個改過嘅原生 Package Manager view 目前都係 `capture-blocked`。必需 repository driver 同持續 LowLevel HTTP MCP 無頭 desktop 都成功開啟 Discover、Updates 同 Installed，但每張檢查過嘅 HWND PNG 都只得 title bar 同空白／接近單色 WinUI client frame。無效圖片已丟棄；唔會將舊、合成、空白或者受控圖片當成原生證據。`docs/screenshot-packages.png` 仍然只係受控正式版參考。
+
+Password Strength was also launched through the persistent LowLevel MCP headless desktop after the 212/212 shell gate. The 852×880 window capture reported `rendered_ok`, but inspection found a blank client surface beneath its title bar. The invalid PNG was discarded; the page is `capture-blocked`, not visual-pass. · Password Strength 亦喺 212/212 shell 閘門後經持續 LowLevel MCP 無頭 desktop 開啟。852×880 視窗擷取回報 `rendered_ok`，但檢查發現 title bar 下面嘅 client surface 空白。無效 PNG 已丟棄；頁面係 `capture-blocked`，唔係 visual-pass。
 
 See the [full native rewrite record](../docs/Native-Cpp-Rewrite.md) and [machine-readable parity ledger](../docs/cpp-port-parity.json). · 詳情請睇[完整原生重寫記錄](../docs/Native-Cpp-Rewrite.md)同[機器可讀對等清單](../docs/cpp-port-parity.json)。
