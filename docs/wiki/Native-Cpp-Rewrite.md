@@ -16,9 +16,9 @@ Unported routes render an explicit native pending page; routing to a page is not
 ## Current evidence · 目前證據
 
 - Debug native build: 0 errors; Release native build: 0 errors. · Debug 原生建置：0 errors；Release 原生建置：0 errors。
-- Native core tests: **368/368** in Debug and **368/368** in Release, including **14/14** focused Password Generator checks. · 原生核心測試：Debug **368/368**、Release **368/368**，包括 **14/14** 個 Password Generator 專項檢查。
+- Native core tests: **379/379** in Debug and **379/379** in Release, including **14/14** focused Password Generator and **11/11** focused Password Strength checks. · 原生核心測試：Debug **379/379**、Release **379/379**，包括 **14/14** 個 Password Generator 同 **11/11** 個 Password Strength 專項檢查。
 - Catalog parity: 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows. · 目錄對等：346 條固定路線、五組動態家族、319 條 registry 記錄、22 個分類同 346 條 ledger rows。
-- Elevated process-owned UI Automation smoke: **200/200**, covering routing, bilingual accessibility, live controls, native regex search/builder, UUID v7, Password Generator class/passphrase/copy/rerender/aliases, Package Manager batch-consent policy, and clipping checks. · 提權、自有 process UI Automation smoke：**200/200**，涵蓋導覽、雙語無障礙、即時控制、原生 regex 搜尋／建立器、UUID v7、Password Generator 字元類別／通行短語／Copy／重建／alias、Package Manager 批次確認政策同裁切檢查。
+- Elevated process-owned UI Automation smoke: **212/212**, covering routing, bilingual accessibility, live controls, native regex search/builder, UUID v7, Password Generator, Password Strength masking/reveal/local warnings/language retention, Package Manager batch-consent policy, and clipping checks. · 提權、自有 process UI Automation smoke：**212/212**，涵蓋導覽、雙語無障礙、即時控制、原生 regex 搜尋／建立器、UUID v7、Password Generator、Password Strength 遮蔽／顯示／本機警告／語言保留、Package Manager 批次確認政策同裁切檢查。
 
 This is native core/UI and fail-closed evidence, not normal-integrity external package-manager execution proof. · 呢啲係原生 core／UI 同 fail-closed 證據，唔係正常 integrity 外部 Package Manager 執行證明。
 
@@ -43,6 +43,10 @@ Discover regex is local cache only: it never reaches argv or HTTPS, external Sea
 ## Native Password Generator · 原生密碼產生器
 
 `module.passgen` is a live native C++ Password Generator reachable through `passgen`, `password`, and the canonical route. Its testable core uses Windows BCrypt cryptographic randomness with unbiased rejection sampling; it produces 4–128-character passwords with guaranteed selected classes, optional ambiguous-character removal and no-repeat enforcement, plus 3–10-word passphrases from the current 252-word dictionary with an editable separator, capitalization, and an optional trailing digit. Entropy is shown in both modes, output supports 1–100 rows, language rerenders retain generated content, and the clipboard changes only through explicit Copy. The row remains `in-progress` solely because fresh visual capture is blocked. · `module.passgen` 係即時原生 C++ 密碼產生器，可以用 `passgen`、`password` 同本體 route 開啟。可測試 core 用 Windows BCrypt 加密碼學隨機值配合無偏 rejection sampling；會產生 4–128 字元、保證已揀類別嘅密碼，可選移除易混淆字元同禁止重複，亦可用現有 252 字詞字典產生 3–10 字通行短語，支援可編輯分隔符、大寫同可選尾數字。兩種模式都有熵值、輸出支援 1–100 行、轉語言時保留已產生內容，而且剪貼簿只會經明確 Copy 改動。清單列只因最新視覺擷取受阻而保持 `in-progress`。
+
+## Native Password Strength · 原生密碼強度
+
+`module.passwordstrength` is a native C++ local-only Password Strength analyzer available through `passwordstrength`, `pwstrength`, and the canonical route. It calculates ASCII-pool entropy, rating and crack-time bands, and local common-password, repeat, and sequence warnings. The editor is masked by default; reveal is explicit and in-memory only, the value clears on navigation, and there is no persistence, log, network, or clipboard path. The source guards delayed programmatic events from an inactive editor so hide/show never clears the analysis model. The focused core suite has 11 checks, and the 212/212 headless UI smoke covers masking, reveal, common-password warnings, aliases, language retention, accessibility, and horizontal bounds. The row remains `in-progress` solely because the inspected LowLevel 852×880 capture had a blank client surface and was discarded. · `module.passwordstrength` 係原生 C++、只限本機嘅密碼強度分析器，可以用 `passwordstrength`、`pwstrength` 同本體 route 開啟。佢會計算 ASCII 字元池熵值、評級同破解時間範圍，以及本機常見密碼、重複同序列警告。輸入預設遮蔽；顯示係明確而且只喺記憶體，導覽時會清除，而且冇持久化、記錄、網絡或者剪貼簿路徑。原始碼會保護非活動輸入框嘅延遲程式事件，所以隱藏／顯示唔會清除分析模型。專項 core 有 11 個檢查，而 212/212 無頭 UI smoke 覆蓋遮蔽、顯示、常見密碼警告、alias、語言保留、無障礙同水平邊界。呢項只因檢查過嘅 LowLevel 852×880 擷取有空白 client surface、已經丟棄而保持 `in-progress`。
 
 ## Visual and accessibility evidence · 視覺同無障礙證據
 

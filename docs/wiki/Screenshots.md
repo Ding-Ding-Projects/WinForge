@@ -6,6 +6,10 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
+**EN —** On 2026-07-16, the native Password Strength page was launched through the persistent LowLevel MCP headless desktop after the 212/212 native shell smoke passed. Its 852×880 full-window capture returned `rendered_ok`, but inspection found only the title bar and a blank client surface. The invalid `docs/screenshot-passwordstrength.png` was discarded; no stale, synthetic, or managed substitute is shown. Password Strength is `capture-blocked`, not visual-pass.
+
+**粵語 —** 2026-07-16，原生 Password Strength 頁喺 212/212 原生 shell smoke 通過後經持續 LowLevel MCP 無頭 desktop 開啟。852×880 完整視窗擷取回報 `rendered_ok`，但檢查只見到 title bar 同空白 client surface。無效 `docs/screenshot-passwordstrength.png` 已經丟棄；冇展示舊、合成或者受控替代品。Password Strength 係 `capture-blocked`，唔係 visual-pass。
+
 **EN —** On 2026-07-16, the native Password Generator page was launched through `driver.ps1 -Native -Page passgen -WaitMs 16000`. `CopyFromScreen` was unavailable and the `PrintWindow` fallback was blank or near-uniform, so the attempted image was rejected. The requested LowLevel MCP tools are not registered in the active Codex session, so no LowLevel capture is claimed. No canonical screenshot, wiki image, stale image, or managed substitute was replaced or reused; Password Generator is `capture-blocked`.
 
 **粵語 —** 2026-07-16，原生 Password Generator 頁已用 `driver.ps1 -Native -Page passgen -WaitMs 16000` 開啟。`CopyFromScreen` 用唔到，而 `PrintWindow` fallback 係空白／接近單色，所以嘗試嘅圖片已拒絕。要求嘅 LowLevel MCP tools 未有登記喺目前 Codex session，所以唔會聲稱有 LowLevel 擷取。冇替換或者重用 canonical 截圖、wiki 圖、舊圖或者受控替代品；Password Generator 係 `capture-blocked`。

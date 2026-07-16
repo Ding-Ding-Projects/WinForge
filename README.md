@@ -19,9 +19,9 @@
 
 ## 🧱 Native C++ Rewrite · 原生 C++ 重寫
 
-**EN —** A genuine C++20/C++/WinRT rewrite is now underway beside the shipping managed app. Debug and Release x64 native WinUI 3 builds finish with 0 errors, the inventory covers **346 fixed routes + five dynamic route families**, the current native test executable passes **368/368 in Debug** and **368/368 in Release** (including 14 Password Generator core checks), and the elevated process-owned UI Automation shell passes **200/200**. Release PE inspection also finds a zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import. This is a migration milestone, not a false full-port claim: unported features display an explicit pending page, and the managed app remains authoritative until every parity row passes.
+**EN —** A genuine C++20/C++/WinRT rewrite is now underway beside the shipping managed app. Debug and Release x64 native WinUI 3 builds finish with 0 errors, the inventory covers **346 fixed routes + five dynamic route families**, the current native test executable passes **379/379 in Debug** and **379/379 in Release** (including 14 Password Generator and 11 Password Strength core checks), and the elevated process-owned UI Automation shell passes **212/212**. Release PE inspection also finds a zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import. This is a migration milestone, not a false full-port claim: unported features display an explicit pending page, and the managed app remains authoritative until every parity row passes.
 
-**粵語 —** 真正嘅 C++20／C++/WinRT 重寫而家會同發佈中受控 app 並行。Debug 同 Release x64 原生 WinUI 3 都以 0 errors 建置，清單涵蓋 **346 條固定路線 + 五組動態路線**，目前原生測試 executable 喺 Debug 係 **368/368**、Release 亦係 **368/368**（包括 14 個 Password Generator core 檢查），而提權、只控制自己 process 嘅 UI Automation shell 亦係 **200/200**。Release PE 審查亦證實 COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import。呢個係遷移里程碑，唔係扮成全功能已移植：未完成功能會顯示明確 pending 頁，而每項對等清單通過之前，受控 app 仍然係權威版本。
+**粵語 —** 真正嘅 C++20／C++/WinRT 重寫而家會同發佈中受控 app 並行。Debug 同 Release x64 原生 WinUI 3 都以 0 errors 建置，清單涵蓋 **346 條固定路線 + 五組動態路線**，目前原生測試 executable 喺 Debug 係 **379/379**、Release 亦係 **379/379**（包括 14 個 Password Generator 同 11 個 Password Strength core 檢查），而提權、只控制自己 process 嘅 UI Automation shell 亦係 **212/212**。Release PE 審查亦證實 COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import。呢個係遷移里程碑，唔係扮成全功能已移植：未完成功能會顯示明確 pending 頁，而每項對等清單通過之前，受控 app 仍然係權威版本。
 
 ### Native safe regex search & builder · 原生安全正規搜尋同建立器
 
@@ -34,6 +34,12 @@
 **EN —** `module.passgen` is now a live native C++ Password Generator, reachable through `passgen`, `password`, and its canonical route. Its testable core uses Windows BCrypt cryptographic randomness with unbiased rejection sampling; it generates passwords with guaranteed selected classes, optional ambiguous-character removal and no-repeat enforcement, plus 3–10-word passphrases from the current 252-word dictionary with selectable separators, capitalization, and an optional trailing digit. The page reports entropy, supports 1–100 output rows, preserves generated state across language rerenders, and writes the clipboard only after explicit Copy. The ledger remains **in progress only because this desktop session cannot produce a valid fresh capture**.
 
 **粵語 —** `module.passgen` 而家係即時原生 C++ 密碼產生器，可以用 `passgen`、`password` 同本體 route 開啟。可測試 core 用 Windows BCrypt 加密碼學隨機值配合無偏 rejection sampling；會產生保證包含已揀字元類別嘅密碼，可選移除易混淆字元同禁止重複，亦可用現有 252 字詞字典產生 3–10 字通行短語，支援分隔符、大寫同可選尾數字。頁面會顯示熵值、支援 1–100 行輸出、轉語言時保留已產生狀態，而且只會喺明確 Copy 後先寫剪貼簿。清單仍然只因呢個 desktop session 產生唔到有效新擷取而標示**進行中**。
+
+### Password Strength native parity · 密碼強度原生對等
+
+**EN —** `module.passwordstrength` is a live native C++ local-only analyzer, available through `passwordstrength`, `pwstrength`, and its canonical route. It calculates the managed ASCII-pool entropy, applies local common-password, repeat, and sequence warnings, reports rating and crack-time bands, starts masked, and supports an explicit in-memory reveal. The value is never persisted, logged, sent, or copied, and it is cleared when navigating away. Debug/Release core tests include 11 focused checks and the 212/212 native UI smoke covers masking, reveal toggles, local warnings, aliases, language retention, accessibility, and horizontal bounds. The row remains `in-progress` only because the inspected LowLevel capture had a blank client surface and was discarded.
+
+**粵語 —** `module.passwordstrength` 係即時原生 C++、只限本機嘅分析器，可以用 `passwordstrength`、`pwstrength` 同本體 route 開啟。佢會計算受控版 ASCII 字元池熵值、喺本機套用常見密碼／重複／序列警告、顯示評級同破解時間範圍；預設遮蔽，並提供明確只喺記憶體嘅顯示切換。密碼絕對唔會持久化、記錄、傳送或者複製，離開頁面時會清除。Debug／Release core 測試包括 11 個專項檢查，而 212/212 原生 UI smoke 覆蓋遮蔽、顯示切換、本機警告、alias、語言保留、無障礙同水平邊界。呢項只因檢查過嘅 LowLevel 擷取有空白 client surface、已經丟棄而保持 `in-progress`。
 
 ### Case Converter native parity · 大小寫轉換原生對等
 

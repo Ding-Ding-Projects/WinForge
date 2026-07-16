@@ -5647,21 +5647,25 @@
                                   ],
                        "risk":  "stateful",
                        "expected":  "Password Strength · 密碼強度 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-16T22:47:04Z",
+                                            "result":  "Pure native C++ Password Strength now analyzes ASCII pools, entropy, common/repeat/sequence signals, crack-time bands, and local-only reveal state without persistence, logging, or clipboard writes. Debug and Release core suites each passed 379/379, catalog parity passed 346 fixed routes plus five dynamic families, and the LowLevel MCP headless shell smoke passed 212/212. The inspected LowLevel PNG had a title bar but a blank client surface, so it was discarded rather than published.",
+                                            "status":  "capture-blocked"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-16 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native implementation keeps the tested password only in memory, clears it on navigation, defaults to a masked editor, and deliberately omits persistence, logs, and clipboard actions. · 2026-07-16 · 只因最新視覺擷取受阻而進行中。原生實作只喺記憶體保留測試密碼、導覽時清除、預設遮蔽輸入，並刻意唔提供持久化、記錄或者剪貼簿動作。"
                    },
                    {
                        "id":  "module.pathdoctor",
