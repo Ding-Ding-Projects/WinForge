@@ -867,3 +867,14 @@ launching the other app.
 
 ---
 _Auto-grown by the WinForge build loop · 由 WinForge 建置迴圈自動擴充_
+
+
+## Command Palette extension evolution · 指令面板擴充套件演進
+
+Implemented: a disabled-by-default declarative extension-pack foundation with validated JSON manifests and three safe actions (`Module`, HTTP(S) `Url`, and `Copy`).
+
+Next parity layer: a reviewed, opt-in out-of-process protocol for rich extension pages and forms. It must preserve the manifest trust boundary, request/response correlation, crash isolation, and no arbitrary command execution.
+
+已完成：預設停用嘅宣告式擴充套件基礎，有驗證 JSON 資訊檔同三種安全操作（`Module`、HTTP(S) `Url`、`Copy`）。
+
+下一個對齊層：已審視、明確選用嘅跨程序協定，支援豐富擴充套件頁面同表單，同時保留資訊檔信任界線、請求／回應關聯、當機隔離，同埋禁止任意指令執行。

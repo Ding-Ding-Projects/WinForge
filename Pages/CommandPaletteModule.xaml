@@ -73,6 +73,21 @@
                 </StackPanel>
             </Border>
 
+            <!-- Declarative extension packs -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ExtensionPacksTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="ExtensionPacksBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <InfoBar x:Name="ExtensionPacksInfo" IsOpen="False" IsClosable="False" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ExtensionImportButton" Click="ExtensionImport_Click" />
+                        <Button x:Name="ExtensionTemplateButton" Click="ExtensionTemplate_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="ExtensionPacksEmptyText" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel x:Name="ExtensionPacksPanel" Spacing="8" />
+                </StackPanel>
+            </Border>
+
             <!-- Bookmarks -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <StackPanel Spacing="10">
