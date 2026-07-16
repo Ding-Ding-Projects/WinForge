@@ -100,6 +100,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RomanNum.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearch.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearchSurface.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexBuilder.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />

@@ -2,6 +2,7 @@
 
 #include "RegexBuilder.h"
 #include "RegexSearch.h"
+#include "RegexSearchSurface.h"
 
 #include <iostream>
 #include <string_view>
@@ -111,6 +112,37 @@ NativeTestCounts RunRegexSearchTests()
     suite.Expect(grouped == L"(?<choice>foo|bar)" && alternation == L"(?:foo|bar)"
             && quantified == L"(?:\\d){2,4}",
         "Regex builder composes groups alternatives and quantifiers");
+
+    auto const recipes = RegexRecipes();
+    auto const literalExact = BuildRegexRecipe(RegexRecipe::LiteralExact, L"a.b");
+    auto const routeId = BuildRegexRecipe(RegexRecipe::NativeRouteId);
+    auto const packageId = BuildRegexRecipe(RegexRecipe::PackageId);
+    auto const semanticVersion = BuildRegexRecipe(RegexRecipe::SemanticVersion);
+    auto const wordBoundary = BuildRegexAssertion(RegexAssertion::WordBoundary);
+    auto const positiveLookahead = BuildRegexAssertion(RegexAssertion::PositiveLookahead, L"bar");
+    auto const negativeLookbehind = BuildRegexAssertion(RegexAssertion::NegativeLookbehind, L"foo");
+    auto const recipeExactExpression = SafeRegex::Compile(literalExact);
+    auto const routeExpression = SafeRegex::Compile(routeId);
+    auto const packageExpression = SafeRegex::Compile(packageId);
+    auto const versionExpression = SafeRegex::Compile(semanticVersion);
+    suite.Expect(recipes.size() == 8 && literalExact == L"^(?:a\\.b)$"
+            && routeExpression.Ok() && routeExpression.expression->FullMatch(L"module.reactor").matched
+            && packageExpression.Ok() && packageExpression.expression->FullMatch(L"WinGet.Client-2").matched
+            && versionExpression.Ok() && versionExpression.expression->Search(L"version v1.2.3-beta+5").matched
+            && wordBoundary == L"\\b" && positiveLookahead == L"(?=bar)"
+            && negativeLookbehind == L"(?<!foo)",
+        "Regex builder recipes and bounded assertions compose valid PCRE2 patterns");
+
+    auto const surfaces = RegexSearchSurfaces();
+    auto const& shellSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::ShellCatalog);
+    auto const& allAppsSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::AllApps);
+    auto const& packageSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::PackageDiscoverCachedResults);
+    suite.Expect(surfaces.size() == 3
+            && shellSurface.search_automation_id == L"NativeShellSearchBox"
+            && allAppsSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults
+            && packageSurface.query_policy == RegexSearchQueryPolicy::LocalCachedResultsOnly
+            && packageSurface.regex_mode_automation_id == L"NativePackageRegexMode",
+        "Regex search-surface contract covers every native search input and package local-only policy");
 
     std::cout << "\nRegex Search tests: " << suite.counts.passed << " passed, "
         << suite.counts.failed << " failed\n";

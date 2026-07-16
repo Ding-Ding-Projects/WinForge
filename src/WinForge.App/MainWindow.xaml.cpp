@@ -416,6 +416,18 @@ namespace
         return result;
     }
 
+    bool ShouldRetainPackageDiscoverResults(
+        int32_t view,
+        winforge::core::packages::PackageAction lastAction,
+        bool probeComplete,
+        bool hasItems) noexcept
+    {
+        return view == static_cast<int32_t>(winforge::core::packages::PackageView::Discover)
+            && lastAction == winforge::core::packages::PackageAction::Search
+            && probeComplete
+            && hasItems;
+    }
+
     NavigationViewItem MakeNavigationItem(
         std::wstring_view label,
         std::wstring_view route,
@@ -516,6 +528,8 @@ namespace winrt::WinForge::implementation
     void MainWindow::BuildShell()
     {
         Root().Children().Clear();
+        auto const& shellRegexSurface = winforge::core::regex::RegexSearchSurfaceFor(
+            winforge::core::regex::RegexSearchSurfaceId::ShellCatalog);
 
         m_navigation = NavigationView();
         m_navigation.PaneTitle(L"WinForge · 視窗調校");
@@ -527,7 +541,9 @@ namespace winrt::WinForge::implementation
 
         m_search = AutoSuggestBox();
         m_search.PlaceholderText(L"Search every native route · 搜尋全部原生路線");
-        AutomationProperties::SetAutomationId(m_search, L"NativeShellSearchBox");
+        AutomationProperties::SetAutomationId(
+            m_search,
+            ToHString(shellRegexSurface.search_automation_id));
         m_search.QuerySubmitted({ this, &MainWindow::OnSearchSubmitted });
         m_search.TextChanged([this](AutoSuggestBox const&, AutoSuggestBoxTextChangedEventArgs const&)
         {
@@ -560,7 +576,9 @@ namespace winrt::WinForge::implementation
         m_shellRegexMode = ToggleSwitch();
         m_shellRegexMode.Header(box_value(L"Use PCRE2 regex · 使用 PCRE2 正規表示式"));
         m_shellRegexMode.IsOn(m_shellRegexEnabled);
-        AutomationProperties::SetAutomationId(m_shellRegexMode, L"NativeShellRegexMode");
+        AutomationProperties::SetAutomationId(
+            m_shellRegexMode,
+            ToHString(shellRegexSurface.regex_mode_automation_id));
         AutomationProperties::SetName(m_shellRegexMode, L"Use PCRE2 regular expressions for native catalog search · 用 PCRE2 正規表示式搜尋原生目錄");
         m_shellRegexMode.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
         {
@@ -597,7 +615,9 @@ namespace winrt::WinForge::implementation
         m_shellRegexBuilder = Button();
         m_shellRegexBuilder.Content(box_value(L"Build regex · 建立正規表示式"));
         m_shellRegexBuilder.HorizontalAlignment(HorizontalAlignment::Stretch);
-        AutomationProperties::SetAutomationId(m_shellRegexBuilder, L"NativeShellRegexBuilder");
+        AutomationProperties::SetAutomationId(
+            m_shellRegexBuilder,
+            ToHString(shellRegexSurface.builder_automation_id));
         AutomationProperties::SetName(m_shellRegexBuilder, L"Open the regex builder for native catalog search · 開啟原生目錄搜尋嘅正規表示式建立器");
         m_shellRegexBuilder.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
         {
@@ -5064,6 +5084,8 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::RenderPackageManager()
     {
+        auto const& packageRegexSurface = winforge::core::regex::RegexSearchSurfaceFor(
+            winforge::core::regex::RegexSearchSurfaceId::PackageDiscoverCachedResults);
         auto const retainCachedResults = m_packageRetainCachedResultsOnNextRender;
         m_packageRetainCachedResultsOnNextRender = false;
         CancelPackageWork();
@@ -5185,7 +5207,9 @@ namespace winrt::WinForge::implementation
                 L"搜尋套件（例如 vscode、vlc、obs）" }.Pick(m_language)));
         m_packageSearchBox.Text(ToHString(
             m_packageDiscoverRegexEnabled ? m_packageDiscoverRegexPattern : m_packageSearchText));
-        AutomationProperties::SetAutomationId(m_packageSearchBox, L"NativePackageSearchBox");
+        AutomationProperties::SetAutomationId(
+            m_packageSearchBox,
+            ToHString(packageRegexSurface.search_automation_id));
         m_packageSearchBox.QuerySubmitted([this](AutoSuggestBox const&, AutoSuggestBoxQuerySubmittedEventArgs const&)
         {
             if (m_packageStateApplying)
@@ -5300,7 +5324,9 @@ namespace winrt::WinForge::implementation
             L"Use PCRE2 regex on cached results only",
             L"只喺已快取結果使用 PCRE2 正規表示式" }.Pick(m_language))));
         m_packageDiscoverRegexMode.IsOn(m_packageDiscoverRegexEnabled);
-        AutomationProperties::SetAutomationId(m_packageDiscoverRegexMode, L"NativePackageRegexMode");
+        AutomationProperties::SetAutomationId(
+            m_packageDiscoverRegexMode,
+            ToHString(packageRegexSurface.regex_mode_automation_id));
         AutomationProperties::SetName(
             m_packageDiscoverRegexMode,
             L"Use PCRE2 regex only for cached Package Discover results · 只喺已快取套件 Discover 結果使用 PCRE2 正規表示式");
@@ -5352,7 +5378,9 @@ namespace winrt::WinForge::implementation
         m_packageDiscoverRegexBuilder = Button();
         m_packageDiscoverRegexBuilder.Content(box_value(L"Build cached-result regex · 建立已快取結果正規表示式"));
         m_packageDiscoverRegexBuilder.HorizontalAlignment(HorizontalAlignment::Left);
-        AutomationProperties::SetAutomationId(m_packageDiscoverRegexBuilder, L"NativePackageRegexBuilder");
+        AutomationProperties::SetAutomationId(
+            m_packageDiscoverRegexBuilder,
+            ToHString(packageRegexSurface.builder_automation_id));
         AutomationProperties::SetName(m_packageDiscoverRegexBuilder, L"Open the regex builder for cached Package Discover results · 開啟已快取套件 Discover 結果嘅正規表示式建立器");
         m_packageDiscoverRegexBuilder.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
         {
@@ -8137,6 +8165,8 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::RenderAllApps(std::wstring_view query)
     {
+        auto const& allAppsRegexSurface = winforge::core::regex::RegexSearchSurfaceFor(
+            winforge::core::regex::RegexSearchSurfaceId::AllApps);
         if (!query.empty())
         {
             m_allAppsSearchText = std::wstring(query);
@@ -8153,7 +8183,9 @@ namespace winrt::WinForge::implementation
             : L"Filter 346 routes · 篩選 346 條路線");
         m_allAppsSearchBox.Text(ToHString(m_allAppsSearchText));
         m_allAppsSearchBox.Margin(Thickness{ 0, 0, 0, 4 });
-        AutomationProperties::SetAutomationId(m_allAppsSearchBox, L"NativeAllAppsSearchBox");
+        AutomationProperties::SetAutomationId(
+            m_allAppsSearchBox,
+            ToHString(allAppsRegexSurface.search_automation_id));
         AutomationProperties::SetName(m_allAppsSearchBox, L"Filter all native routes · 篩選所有原生路線");
         m_allAppsSearchBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
         {
@@ -8166,7 +8198,9 @@ namespace winrt::WinForge::implementation
         m_allAppsRegexMode = ToggleSwitch();
         m_allAppsRegexMode.Header(box_value(L"Use PCRE2 regex for route filter · 用 PCRE2 正規表示式篩選路線"));
         m_allAppsRegexMode.IsOn(m_allAppsRegexEnabled);
-        AutomationProperties::SetAutomationId(m_allAppsRegexMode, L"NativeAllAppsRegexMode");
+        AutomationProperties::SetAutomationId(
+            m_allAppsRegexMode,
+            ToHString(allAppsRegexSurface.regex_mode_automation_id));
         AutomationProperties::SetName(m_allAppsRegexMode, L"Use PCRE2 regular expressions for All Apps filtering · 用 PCRE2 正規表示式篩選所有 app");
         m_allAppsRegexMode.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
         {
@@ -8184,7 +8218,9 @@ namespace winrt::WinForge::implementation
         m_allAppsRegexBuilder = Button();
         m_allAppsRegexBuilder.Content(box_value(L"Build route regex · 建立路線正規表示式"));
         m_allAppsRegexBuilder.HorizontalAlignment(HorizontalAlignment::Left);
-        AutomationProperties::SetAutomationId(m_allAppsRegexBuilder, L"NativeAllAppsRegexBuilder");
+        AutomationProperties::SetAutomationId(
+            m_allAppsRegexBuilder,
+            ToHString(allAppsRegexSurface.builder_automation_id));
         AutomationProperties::SetName(m_allAppsRegexBuilder, L"Open the regex builder for All Apps · 開啟所有 app 嘅正規表示式建立器");
         m_allAppsRegexBuilder.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
         {
@@ -8375,6 +8411,10 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::OpenRegexBuilder(RegexBuilderTarget target, std::wstring_view initialPattern)
     {
+        // Cache retention belongs to a confirmed Package Discover target
+        // application, not to merely opening a builder. The user can change
+        // the selected target while the wizard is open.
+        m_packageRetainCachedResultsOnNextRender = false;
         m_regexBuilderTarget = target;
         m_regexBuilderStep = 0;
         m_regexBuilderPattern = std::wstring(initialPattern);
@@ -8395,10 +8435,6 @@ namespace winrt::WinForge::implementation
             m_regexBuilderCaseSensitive = m_packageSearchCaseSensitiveValue;
             m_regexBuilderMultiline = m_packageDiscoverRegexMultiline;
             m_regexBuilderDotMatchesNewline = m_packageDiscoverRegexDotMatchesNewline;
-            // Returning from the builder must retain an already cached
-            // Discover result list; the regex only filters that local cache.
-            m_packageRetainCachedResultsOnNextRender =
-                m_packageProbeComplete && !m_packageItems.empty();
             break;
         case RegexBuilderTarget::TesterOnly:
         default:
@@ -8441,7 +8477,22 @@ namespace winrt::WinForge::implementation
             AutomationProperties::SetName(
                 m_regexBuilderPreview,
                 L"Regex preview is paused until the pattern is valid · 模式有效之前會暫停正規表示式預覽");
+            if (m_regexBuilderApply)
+            {
+                m_regexBuilderApply.IsEnabled(false);
+                AutomationProperties::SetHelpText(
+                    m_regexBuilderApply,
+                    L"Correct the regex syntax before it can be applied to a target · 修正正規表示式語法先可以套用去目標");
+            }
             return;
+        }
+
+        if (m_regexBuilderApply)
+        {
+            m_regexBuilderApply.IsEnabled(true);
+            AutomationProperties::SetHelpText(
+                m_regexBuilderApply,
+                L"Apply this validated bounded PCRE2 pattern to the selected target · 將已驗證、有界 PCRE2 模式套用去所選目標");
         }
 
         auto const result = expression->Search(m_regexBuilderTestText, true);
@@ -8492,6 +8543,33 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::ApplyRegexBuilderTarget()
     {
+        std::wstring diagnostic;
+        auto const expression = CompileSearchRegex(
+            m_regexBuilderPattern,
+            m_regexBuilderCaseSensitive,
+            m_regexBuilderMultiline,
+            m_regexBuilderDotMatchesNewline,
+            diagnostic);
+        if (!expression)
+        {
+            // A builder target is stateful navigation. Never let an invalid
+            // pattern replace a valid target's result list or settings.
+            if (m_regexBuilderStatus)
+            {
+                m_regexBuilderStatus.Text(ToHString(diagnostic));
+                AutomationProperties::SetName(m_regexBuilderStatus, ToHString(diagnostic));
+            }
+            if (m_regexBuilderApply)
+            {
+                m_regexBuilderApply.IsEnabled(false);
+            }
+            return;
+        }
+
+        // Only a verified Package Discover application can request retained
+        // cached rows. This clears any stale one-shot flag when a user changes
+        // targets in the wizard.
+        m_packageRetainCachedResultsOnNextRender = false;
         switch (m_regexBuilderTarget)
         {
         case RegexBuilderTarget::ShellCatalog:
@@ -8512,16 +8590,23 @@ namespace winrt::WinForge::implementation
             Navigate(L"shell.allapps");
             break;
         case RegexBuilderTarget::PackageDiscover:
+        {
+            auto const retainCachedDiscover = ShouldRetainPackageDiscoverResults(
+                m_packageView,
+                m_packageLastAction,
+                m_packageProbeComplete,
+                !m_packageItems.empty());
             m_packageDiscoverRegexEnabled = true;
             m_packageSearchCaseSensitiveValue = m_regexBuilderCaseSensitive;
             m_packageDiscoverRegexMultiline = m_regexBuilderMultiline;
             m_packageDiscoverRegexDotMatchesNewline = m_regexBuilderDotMatchesNewline;
             m_packageDiscoverRegexPattern = m_regexBuilderPattern;
-            m_packageRetainCachedResultsOnNextRender =
-                m_packageProbeComplete && !m_packageItems.empty();
+            m_packageView = static_cast<int32_t>(winforge::core::packages::PackageView::Discover);
+            m_packageRetainCachedResultsOnNextRender = retainCachedDiscover;
             SavePackageManagerState();
-            Navigate(L"module.packages");
+            Navigate(L"module.packages", L"discover");
             break;
+        }
         case RegexBuilderTarget::TesterOnly:
         default:
             RefreshRegexTesterPreview();
@@ -8533,7 +8618,7 @@ namespace winrt::WinForge::implementation
     {
         auto page = CreatePage(
             L"Regex Tester & Builder · 正規表示式測試器同建立器",
-            L"A four-step native PCRE2-16 wizard: choose a target and flags, compose safe tokens, group or quantify, then test captures and apply. Advanced pattern editing stays available throughout. No JIT is used; patterns and matches have strict interactive limits. · 四步原生 PCRE2-16 精靈：揀目標同旗標、建立安全 token、分組或者量詞、測試擷取再套用；全程都可以直接編輯進階模式。唔用 JIT，模式同符合有嚴格互動限制。");
+            L"A full four-step native PCRE2-16 wizard: choose a registered search target and flags, start from escaped recipes or tokens, compose groups/alternatives/assertions/quantifiers, then test captures and apply only a valid pattern. Advanced pattern editing stays available throughout. No JIT is used; patterns and matches have strict interactive limits. · 完整四步原生 PCRE2-16 精靈：揀已登記搜尋目標同旗標、由已 escape recipe 或 token 開始、建立 group／alternative／assertion／quantifier，之後測試擷取，只會套用有效模式；全程都可以直接編輯進階模式。唔用 JIT，模式同符合有嚴格互動限制。");
         AutomationProperties::SetAutomationId(page, L"NativeRegexTesterPage");
 
         InfoBar safety;
@@ -8556,16 +8641,18 @@ namespace winrt::WinForge::implementation
 
         ComboBox target;
         target.Header(box_value(L"Apply target · 套用目標"));
-        for (auto const label : {
-            L"Native catalog search · 原生目錄搜尋",
-            L"All Apps local filter · 所有 app 本機篩選",
-            L"Package Discover cached results · 套件 Discover 已快取結果",
-            L"Tester only · 只限測試器" })
+        for (auto const& surface : winforge::core::regex::RegexSearchSurfaces())
         {
             ComboBoxItem item;
-            item.Content(box_value(label));
+            auto label = std::wstring(surface.target_name_en);
+            label += L" · ";
+            label += surface.target_name_zh;
+            item.Content(box_value(ToHString(label)));
             target.Items().Append(item);
         }
+        ComboBoxItem testerOnly;
+        testerOnly.Content(box_value(L"Tester only · 只限測試器"));
+        target.Items().Append(testerOnly);
         target.SelectedIndex(static_cast<int32_t>(m_regexBuilderTarget));
         AutomationProperties::SetAutomationId(target, L"NativeRegexBuilderTarget");
         AutomationProperties::SetName(target, L"Regex builder apply target · 正規表示式建立器套用目標");
@@ -8631,7 +8718,7 @@ namespace winrt::WinForge::implementation
         else if (m_regexBuilderStep == 1)
         {
             stepContent.Children().Append(CreateText(
-                L"Compose literal-safe pieces and common PCRE2 tokens. Literal text and character classes are escaped by the native builder before insertion. · 建立 literal-safe 部件同常用 PCRE2 token；literal 文字同字元類別會先由原生建立器 escape。",
+                L"Start from a safe recipe or compose literal-safe pieces and common PCRE2 tokens. Literal text and character classes are escaped by the native builder before insertion. · 由安全 recipe 開始，或者建立 literal-safe 部件同常用 PCRE2 token；literal 文字同字元類別會先由原生建立器 escape。",
                 13));
 
             TextBox literal;
@@ -8643,6 +8730,65 @@ namespace winrt::WinForge::implementation
                 m_regexBuilderLiteral = ToWide(sender.as<TextBox>().Text());
             });
             stepContent.Children().Append(literal);
+
+            ComboBox recipe;
+            recipe.Header(box_value(L"Safe starter recipe · 安全起始 recipe"));
+            for (auto const& descriptor : winforge::core::regex::RegexRecipes())
+            {
+                ComboBoxItem item;
+                auto label = std::wstring(descriptor.name_en);
+                label += L" · ";
+                label += descriptor.name_zh;
+                item.Content(box_value(ToHString(label)));
+                recipe.Items().Append(item);
+            }
+            recipe.SelectedIndex(std::clamp(
+                m_regexBuilderRecipeIndex,
+                0,
+                static_cast<int32_t>(winforge::core::regex::RegexRecipes().size()) - 1));
+            AutomationProperties::SetAutomationId(recipe, L"NativeRegexBuilderRecipe");
+            recipe.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+            {
+                m_regexBuilderRecipeIndex = std::clamp(
+                    sender.as<ComboBox>().SelectedIndex(),
+                    0,
+                    static_cast<int32_t>(winforge::core::regex::RegexRecipes().size()) - 1);
+            });
+            stepContent.Children().Append(recipe);
+
+            Button applyRecipe;
+            applyRecipe.Content(box_value(L"Replace pattern with recipe · 用 recipe 取代模式"));
+            AutomationProperties::SetAutomationId(applyRecipe, L"NativeRegexBuilderApplyRecipe");
+            applyRecipe.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                auto const recipes = winforge::core::regex::RegexRecipes();
+                auto const index = std::clamp(
+                    m_regexBuilderRecipeIndex,
+                    0,
+                    static_cast<int32_t>(recipes.size()) - 1);
+                auto const& descriptor = recipes[static_cast<std::size_t>(index)];
+                if (descriptor.requires_literal && !HasNonWhitespace(m_regexBuilderLiteral))
+                {
+                    if (m_regexBuilderStatus)
+                    {
+                        auto const message = L"Enter literal text before using this recipe · 用呢個 recipe 前請先輸入 literal 文字";
+                        m_regexBuilderStatus.Text(message);
+                        AutomationProperties::SetName(m_regexBuilderStatus, message);
+                    }
+                    return;
+                }
+                m_regexBuilderPattern = winforge::core::regex::BuildRegexRecipe(
+                    descriptor.recipe,
+                    m_regexBuilderLiteral);
+                if (m_regexBuilderPatternBox)
+                {
+                    m_regexBuilderPatternBox.Text(ToHString(m_regexBuilderPattern));
+                    m_regexBuilderPatternBox.SelectionStart(
+                        static_cast<int32_t>(m_regexBuilderPatternBox.Text().size()));
+                }
+                RefreshRegexTesterPreview();
+            });
+            stepContent.Children().Append(applyRecipe);
 
             Button appendLiteral;
             appendLiteral.Content(box_value(L"Append escaped literal · 加入已 escape literal"));
@@ -8694,7 +8840,7 @@ namespace winrt::WinForge::implementation
         else if (m_regexBuilderStep == 2)
         {
             stepContent.Children().Append(CreateText(
-                L"Wrap the current pattern in a non-capturing or named group, build an alternation, and then apply a quantifier. · 用 non-capturing 或 named group 包住現有模式、建立 alternation，再套用量詞。",
+                L"Wrap the current pattern in a non-capturing or named group, build an alternation or assertion, and then apply a quantifier. · 用 non-capturing 或 named group 包住現有模式、建立 alternation 或 assertion，再套用量詞。",
                 13));
 
             TextBox captureName;
@@ -8756,6 +8902,61 @@ namespace winrt::WinForge::implementation
                 }
             });
             stepContent.Children().Append(buildAlternation);
+
+            ComboBox assertion;
+            assertion.Header(box_value(L"Assertion · assertion"));
+            for (auto const label : {
+                L"Word boundary (\\b) · word 邊界",
+                L"Not a word boundary (\\B) · 唔係 word 邊界",
+                L"Positive lookahead (?=...) · 正面 lookahead",
+                L"Negative lookahead (?!...) · 負面 lookahead",
+                L"Positive lookbehind (?<=...) · 正面 lookbehind",
+                L"Negative lookbehind (?<!...) · 負面 lookbehind" })
+            {
+                ComboBoxItem item;
+                item.Content(box_value(label));
+                assertion.Items().Append(item);
+            }
+            assertion.SelectedIndex(std::clamp(m_regexBuilderAssertionIndex, 0, 5));
+            AutomationProperties::SetAutomationId(assertion, L"NativeRegexBuilderAssertion");
+            assertion.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+            {
+                m_regexBuilderAssertionIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 5);
+            });
+            stepContent.Children().Append(assertion);
+
+            TextBox assertionFragment;
+            assertionFragment.Header(box_value(L"Lookaround PCRE2 fragment (advanced; not escaped) · lookaround PCRE2 片段（進階；唔會 escape）"));
+            assertionFragment.Text(ToHString(m_regexBuilderAssertion));
+            AutomationProperties::SetAutomationId(assertionFragment, L"NativeRegexBuilderAssertionFragment");
+            assertionFragment.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                m_regexBuilderAssertion = ToWide(sender.as<TextBox>().Text());
+            });
+            stepContent.Children().Append(assertionFragment);
+
+            Button appendAssertion;
+            appendAssertion.Content(box_value(L"Append assertion · 加入 assertion"));
+            AutomationProperties::SetAutomationId(appendAssertion, L"NativeRegexBuilderAppendAssertion");
+            appendAssertion.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                auto const token = winforge::core::regex::BuildRegexAssertion(
+                    static_cast<winforge::core::regex::RegexAssertion>(
+                        std::clamp(m_regexBuilderAssertionIndex, 0, 5)),
+                    m_regexBuilderAssertion);
+                if (token.empty())
+                {
+                    if (m_regexBuilderStatus)
+                    {
+                        auto const message = L"Enter an advanced fragment for a lookaround assertion · lookaround assertion 請輸入進階片段";
+                        m_regexBuilderStatus.Text(message);
+                        AutomationProperties::SetName(m_regexBuilderStatus, message);
+                    }
+                    return;
+                }
+                AppendRegexBuilderToken(token);
+            });
+            stepContent.Children().Append(appendAssertion);
 
             ComboBox quantifier;
             quantifier.Header(box_value(L"Quantifier for current pattern · 目前模式嘅量詞"));
@@ -8904,16 +9105,16 @@ namespace winrt::WinForge::implementation
         });
         navigation.Children().Append(next);
 
-        Button apply;
-        apply.Content(box_value(m_regexBuilderTarget == RegexBuilderTarget::TesterOnly
+        m_regexBuilderApply = Button();
+        m_regexBuilderApply.Content(box_value(m_regexBuilderTarget == RegexBuilderTarget::TesterOnly
             ? L"Refresh preview · 重新整理預覽"
             : L"Apply regex to target · 套用正規表示式到目標"));
-        AutomationProperties::SetAutomationId(apply, L"NativeRegexBuilderApply");
-        apply.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        AutomationProperties::SetAutomationId(m_regexBuilderApply, L"NativeRegexBuilderApply");
+        m_regexBuilderApply.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
         {
             ApplyRegexBuilderTarget();
         });
-        navigation.Children().Append(apply);
+        navigation.Children().Append(m_regexBuilderApply);
         page.Children().Append(navigation);
 
         ShowPage(page);

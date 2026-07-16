@@ -12,6 +12,7 @@
 #include "../WinForge.Core/PackageMutationCoordinator.h"
 #include "../WinForge.Core/PackageRuntime.h"
 #include "../WinForge.Core/RegexSearch.h"
+#include "../WinForge.Core/RegexSearchSurface.h"
 #include "../WinForge.Core/RouteIndex.h"
 
 #include <atomic>
@@ -238,9 +239,12 @@ namespace winrt::WinForge::implementation
 
         enum class RegexBuilderTarget : std::uint8_t
         {
-            ShellCatalog,
-            AllApps,
-            PackageDiscover,
+            ShellCatalog = static_cast<std::uint8_t>(
+                winforge::core::regex::RegexSearchSurfaceId::ShellCatalog),
+            AllApps = static_cast<std::uint8_t>(
+                winforge::core::regex::RegexSearchSurfaceId::AllApps),
+            PackageDiscover = static_cast<std::uint8_t>(
+                winforge::core::regex::RegexSearchSurfaceId::PackageDiscoverCachedResults),
             TesterOnly,
         };
 
@@ -255,6 +259,9 @@ namespace winrt::WinForge::implementation
         std::wstring m_regexBuilderCharacterClass{};
         std::wstring m_regexBuilderCaptureName{};
         std::wstring m_regexBuilderAlternatives{};
+        std::wstring m_regexBuilderAssertion{};
+        int32_t m_regexBuilderRecipeIndex{ 0 };
+        int32_t m_regexBuilderAssertionIndex{ 0 };
         int32_t m_regexBuilderQuantifierIndex{ 0 };
         int32_t m_regexBuilderRangeMinimum{ 0 };
         int32_t m_regexBuilderRangeMaximum{ 1 };
@@ -263,6 +270,7 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_regexBuilderTestTextBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_regexBuilderStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_regexBuilderPreview{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_regexBuilderApply{ nullptr };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
 
