@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-14T01:59:15.271Z",
+    "generatedAtUtc":  "2026-07-16T18:10:58Z",
     "baselineCommit":  "16b9f9da779b67731eec587737b592d6ec8aa625",
     "baselineCounts":  {
                            "routes":  346,
@@ -7817,25 +7817,36 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.Core/UuidV7.h",
+                                      "src/WinForge.Core/UuidV7.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "tests/native/WinForge.Core.Tests/UuidV7Tests.h",
+                                      "tests/native/WinForge.Core.Tests/UuidV7Tests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
                        "risk":  "stateful",
-                       "expected":  "UUID v7 · UUID v7 識別碼 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "expected":  "UUID v7 · UUID v7 識別碼 is a native C++ RFC 9562 generator/decoder, reachable through uuidv7 and its canonical route, with canonical and bulk generation, guarded monotonic ordering, local decode/timestamp metadata, language retention, and explicit-copy-only clipboard effects.",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
-                                    },
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
+                                   },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-16T18:10:58Z",
+                                            "result":  "Native C++ RFC 9562 UUID v7 generator/decoder implemented. Debug and Release native tests each passed 400/400 (including 11 focused UUID v7 cases); catalog parity passed 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows; elevated process-owned UI Automation passed 185/185, including canonical generation, URN/braced decode, timestamp and variant metadata, explicit copy only, stale-result clearing/collapse, language-state retention, aliases, accessibility, and horizontal bounds. The required driver launched uuidv7 but rejected its blank/near-uniform PrintWindow fallback after CopyFromScreen was unavailable. The requested LowLevel MCP isolated desktop launched the 1980x1320 WinUI HWND; the inspected full frame had only a title bar and blank client surface and the 1958x1264 client capture was blank. Invalid PNGs were discarded.",
+                                            "status":  "capture-blocked"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-16 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native UUID v7 core uses a 48-bit Unix-millisecond timestamp, cryptographic randomness, and guarded monotonic ordering across same-millisecond generation, backwards clocks, and rand_a overflow; the local decoder accepts canonical, compact, braced, and urn:uuid forms and reports version, variant, canonical lowercase, and v7/best-effort-v1 UTC/local time. All clipboard writes are explicit Copy only, and invalid input clears/collapses stale results. Driver and inspected LowLevel MCP captures were blank/near-uniform and were discarded; no stale, synthetic, or managed image is used as native evidence. · 2026-07-16 · 進行中，只因最新視覺擷取受阻。原生 UUID v7 core 用 48-bit Unix millisecond timestamp、加密碼學隨機值，同喺同一毫秒產生、時鐘倒退同 rand_a overflow 時受保護嘅 monotonic 排序；本機 decoder 接受標準、緊湊、花括號同 urn:uuid 格式，並報告 version、variant、標準小楷同 v7／best-effort-v1 UTC／本機時間。所有剪貼簿寫入只會經明確 Copy，而無效輸入會清除／摺疊舊結果。driver 同檢查過嘅 LowLevel MCP 擷取係空白／接近單色，已丟棄；冇用舊、合成或者受控圖片當原生證據。"
                    },
                    {
                        "id":  "module.vault-volumes",
