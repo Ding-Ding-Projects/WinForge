@@ -967,8 +967,6 @@ Invoke-OwnedRoute -Route 'caseconvert' -ExpectedTitle 'Case Converter' -Inspect 
     Assert-True -Condition ($input.Current.Name.StartsWith('Input text', [StringComparison]::Ordinal)) `
         -Name 'Case Converter input has a localized accessible name'
     $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeCaseConvertInput' -Value 'helloWorld42API'
-    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
-        [System.Windows.Automation.ValuePattern]::Pattern)
 
     Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputCamel' -ExpectedValue 'helloWorld42Api' | Out-Null
     Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputPascal' -ExpectedValue 'HelloWorld42Api' | Out-Null
@@ -988,8 +986,6 @@ Invoke-OwnedRoute -Route 'caseconvert' -ExpectedTitle 'Case Converter' -Inspect 
     Assert-True -Condition $true -Name 'Case Converter copies a populated row through the live native UI'
 
     $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeCaseConvertInput' -Value ''
-    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
-        [System.Windows.Automation.ValuePattern]::Pattern)
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeCaseConvertCopyCamel'
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix 'Nothing to copy' | Out-Null
     Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputCamel' -ExpectedValue '' | Out-Null
@@ -1116,6 +1112,103 @@ Invoke-OwnedRoute -Route 'guidgen' -ExpectedTitle 'GUID & ID Generator' -Inspect
 
 foreach ($alias in @('module.guidgen')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'GUID & ID Generator'
+}
+
+Invoke-OwnedRoute -Route 'uuidv7' -ExpectedTitle 'UUID v7' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeUuidV7ImplementationStatus',
+        'NativeUuidV7Count',
+        'NativeUuidV7Monotonic',
+        'NativeUuidV7Generate',
+        'NativeUuidV7GeneratedOutput',
+        'NativeUuidV7CopyGenerated',
+        'NativeUuidV7DecodeInput',
+        'NativeUuidV7Decode',
+        'NativeUuidV7CopyTimestamp',
+        'NativeUuidV7Status'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $uuidControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV7Count'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV7Monotonic'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV7Generate'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV7GeneratedOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV7CopyGenerated'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV7DecodeInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV7Decode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV7CopyTimestamp'))
+    Assert-True -Condition $uuidControlsFit `
+        -Name 'UUID v7 exposes native controls, accessibility, and horizontal clipping safety'
+
+    $count = Wait-ForElement -Root $root -AutomationId 'NativeUuidV7Count'
+    $monotonic = Wait-ForElement -Root $root -AutomationId 'NativeUuidV7Monotonic'
+    $decodeInput = Wait-ForElement -Root $root -AutomationId 'NativeUuidV7DecodeInput'
+    Assert-True -Condition ($count.Current.Name.StartsWith('Number of UUID v7 values', [StringComparison]::Ordinal)) `
+        -Name 'UUID v7 count has a localized accessible name'
+    Assert-True -Condition ($monotonic.Current.Name.StartsWith('Keep UUID v7 values', [StringComparison]::Ordinal)) `
+        -Name 'UUID v7 monotonic switch has a localized accessible name'
+    Assert-True -Condition ($decodeInput.Current.Name.StartsWith('UUID value to decode', [StringComparison]::Ordinal)) `
+        -Name 'UUID v7 decode input has a localized accessible name'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV7CopyGenerated'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV7Status' -Prefix 'Nothing to copy' | Out-Null
+    Assert-True -Condition $true -Name 'UUID v7 leaves clipboard untouched until an explicit populated copy action'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV7Generate'
+    Wait-ForElementValueWhere -Root $root -AutomationId 'NativeUuidV7GeneratedOutput' `
+        -Description 'one canonical RFC 9562 UUIDv7' `
+        -Predicate {
+            param($value)
+            return $value -match '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        } | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV7Status' -Prefix 'Generated 1 UUIDv7 value.' | Out-Null
+    Assert-True -Condition $true -Name 'UUID v7 generates a canonical RFC 9562 value through the live native UI'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV7CopyGenerated'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV7Status' -Prefix 'Generated UUIDv7 values copied to clipboard' | Out-Null
+    Assert-True -Condition $true -Name 'UUID v7 copies generated values only after explicit confirmation'
+
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeUuidV7DecodeInput' `
+        -Value 'urn:uuid:{01234567-89AB-7ABC-9D09-0A0B0C0D0E0F}' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV7Decode'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV7VersionOutput' -ExpectedValue '7' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV7VariantOutput' -ExpectedValue 'RFC 4122/9562 (10xx)' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV7CanonicalOutput' `
+        -ExpectedValue '01234567-89ab-7abc-9d09-0a0b0c0d0e0f' | Out-Null
+    Wait-ForElementValueWhere -Root $root -AutomationId 'NativeUuidV7UtcOutput' `
+        -Description 'decoded UTC timestamp' `
+        -Predicate { param($value) return $value -match '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' } | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV7Status' -Prefix 'Valid UUIDv7' | Out-Null
+    Assert-True -Condition $true -Name 'UUID v7 decodes canonical URN input locally with timestamp and variant metadata'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV7CopyTimestamp'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV7Status' -Prefix 'Timestamp copied to clipboard' | Out-Null
+    Assert-True -Condition $true -Name 'UUID v7 copies a decoded timestamp only through an explicit button'
+
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeUuidV7DecodeInput' -Value 'not-a-uuid' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV7Decode'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV7Status' -Prefix 'That is not a valid UUID' | Out-Null
+    $canonicalAfterInvalid = Find-ByAutomationId -Root $root -AutomationId 'NativeUuidV7CanonicalOutput'
+    Assert-True -Condition ($null -eq $canonicalAfterInvalid) `
+        -Name 'UUID v7 clears and collapses stale decode results after invalid input'
+
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeUuidV7DecodeInput' `
+        -Value '01234567-89ab-7abc-9d09-0a0b0c0d0e0f' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV7Decode'
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'UUID v7' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV7CanonicalOutput' `
+        -ExpectedValue '01234567-89ab-7abc-9d09-0a0b0c0d0e0f' | Out-Null
+    Assert-True -Condition $true -Name 'UUID v7 preserves decode state across language rerender'
+}
+
+foreach ($alias in @('uuidv7', 'module.uuidv7')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'UUID v7'
 }
 
 Invoke-OwnedRoute -Route 'roman' -ExpectedTitle 'Roman Numerals' -Inspect {

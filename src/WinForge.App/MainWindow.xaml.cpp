@@ -843,6 +843,10 @@ namespace winrt::WinForge::implementation
         {
             RenderGuidGen();
         }
+        else if (module->id == L"module.uuidv7")
+        {
+            RenderUuidV7();
+        }
         else if (module->id == L"module.romannum")
         {
             RenderRomanNum();
@@ -2838,6 +2842,447 @@ namespace winrt::WinForge::implementation
         catch (...)
         {
             // Accessibility notification failure must not break identifier generation.
+        }
+    }
+
+    void MainWindow::RenderUuidV7()
+    {
+        m_uuidV7Rendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{
+                L"UUID v7", L"UUID v7 識別碼" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Generate RFC 9562 time-ordered UUIDv7 identifiers, or decode a UUID to inspect its version, variant, and embedded timestamp.",
+                L"產生 RFC 9562 按時間排序嘅 UUIDv7 識別碼，或者解碼 UUID 睇版本、變體同內嵌時間戳。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeUuidV7Page");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native UUID v7 generation and decoding", L"全原生 UUID v7 產生同解碼" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(winforge::core::LocalizedText{
+            L"C++ uses BCrypt randomness, RFC 9562 timestamp/version/variant bits, a monotonic guard, local decoding, and explicit-copy clipboard actions only.",
+            L"C++ 使用 BCrypt 隨機源、RFC 9562 時間戳／版本／變體位元、單調排序保護、本機解碼；只有明確複製先會寫入剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativeUuidV7ImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        Border generateCard = makeCard();
+        StackPanel generateContent;
+        generateContent.Spacing(12);
+        generateContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Generate", L"產生" }.Pick(m_language), 15, true));
+
+        auto countLabel = CreateText(
+            winforge::core::LocalizedText{ L"How many (1–1000)", L"數量（1–1000）" }.Pick(m_language),
+            14,
+            true);
+        generateContent.Children().Append(countLabel);
+
+        m_uuidV7CountBox = NumberBox();
+        m_uuidV7CountBox.Value(m_uuidV7Count);
+        m_uuidV7CountBox.Minimum(winforge::core::uuidv7::MinimumBulkCount);
+        m_uuidV7CountBox.Maximum(winforge::core::uuidv7::MaximumBulkCount);
+        m_uuidV7CountBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_uuidV7CountBox.MinWidth(160);
+        m_uuidV7CountBox.MaxWidth(300);
+        AutomationProperties::SetAutomationId(m_uuidV7CountBox, L"NativeUuidV7Count");
+        AutomationProperties::SetName(m_uuidV7CountBox, ToHString(winforge::core::LocalizedText{
+            L"Number of UUID v7 values to generate", L"要產生嘅 UUID v7 數量" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_uuidV7CountBox, countLabel);
+        m_uuidV7CountBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_uuidV7Rendering) return;
+            auto value = sender.Value();
+            if (std::isnan(value)) value = 1;
+            m_uuidV7Count = std::clamp(
+                static_cast<int32_t>(value),
+                winforge::core::uuidv7::MinimumBulkCount,
+                winforge::core::uuidv7::MaximumBulkCount);
+        });
+        generateContent.Children().Append(m_uuidV7CountBox);
+
+        m_uuidV7MonotonicSwitch = ToggleSwitch();
+        m_uuidV7MonotonicSwitch.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"Sortable / monotonic", L"可排序／單調遞增" }.Pick(m_language))));
+        m_uuidV7MonotonicSwitch.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+        m_uuidV7MonotonicSwitch.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+        m_uuidV7MonotonicSwitch.IsOn(m_uuidV7Monotonic);
+        AutomationProperties::SetAutomationId(m_uuidV7MonotonicSwitch, L"NativeUuidV7Monotonic");
+        AutomationProperties::SetName(m_uuidV7MonotonicSwitch, ToHString(winforge::core::LocalizedText{
+            L"Keep UUID v7 values strictly ordered within the same millisecond", L"同一毫秒內保持 UUID v7 嚴格排序" }.Pick(m_language)));
+        m_uuidV7MonotonicSwitch.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_uuidV7Rendering) return;
+            m_uuidV7Monotonic = sender.as<ToggleSwitch>().IsOn();
+        });
+        generateContent.Children().Append(m_uuidV7MonotonicSwitch);
+
+        auto generateButton = Button();
+        generateButton.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Generate", L"產生" }.Pick(m_language))));
+        generateButton.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(generateButton, L"NativeUuidV7Generate");
+        AutomationProperties::SetName(generateButton, ToHString(winforge::core::LocalizedText{
+            L"Generate UUID v7 values", L"產生 UUID v7" }.Pick(m_language)));
+        generateButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            GenerateUuidV7Values();
+        });
+        generateContent.Children().Append(generateButton);
+
+        m_uuidV7GeneratedOutput = TextBox();
+        m_uuidV7GeneratedOutput.IsReadOnly(true);
+        m_uuidV7GeneratedOutput.IsSpellCheckEnabled(false);
+        m_uuidV7GeneratedOutput.AcceptsReturn(true);
+        m_uuidV7GeneratedOutput.TextWrapping(TextWrapping::NoWrap);
+        m_uuidV7GeneratedOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_uuidV7GeneratedOutput.Height(180);
+        m_uuidV7GeneratedOutput.Text(ToHString(m_uuidV7GeneratedValue));
+        AutomationProperties::SetAutomationId(m_uuidV7GeneratedOutput, L"NativeUuidV7GeneratedOutput");
+        AutomationProperties::SetName(m_uuidV7GeneratedOutput, ToHString(winforge::core::LocalizedText{
+            L"Generated UUID v7 values", L"已產生嘅 UUID v7" }.Pick(m_language)));
+        AutomationProperties::SetHelpText(m_uuidV7GeneratedOutput, ToHString(m_uuidV7GeneratedValue));
+        generateContent.Children().Append(m_uuidV7GeneratedOutput);
+
+        auto copyGenerated = Button();
+        copyGenerated.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy all", L"全部複製" }.Pick(m_language))));
+        copyGenerated.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(copyGenerated, L"NativeUuidV7CopyGenerated");
+        AutomationProperties::SetName(copyGenerated, ToHString(winforge::core::LocalizedText{
+            L"Copy generated UUID v7 values", L"複製已產生嘅 UUID v7" }.Pick(m_language)));
+        copyGenerated.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyUuidV7Value(
+                m_uuidV7GeneratedValue,
+                winforge::core::LocalizedText{ L"Generated UUIDv7 values copied to clipboard.", L"已複製產生嘅 UUIDv7 去剪貼簿。" }.Pick(m_language));
+        });
+        generateContent.Children().Append(copyGenerated);
+        generateCard.Child(generateContent);
+        page.Children().Append(generateCard);
+
+        Border decodeCard = makeCard();
+        StackPanel decodeContent;
+        decodeContent.Spacing(12);
+        decodeContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Decode", L"解碼" }.Pick(m_language), 15, true));
+        auto decodeLabel = CreateText(
+            winforge::core::LocalizedText{ L"UUID input", L"UUID 輸入" }.Pick(m_language), 14, true);
+        decodeContent.Children().Append(decodeLabel);
+
+        m_uuidV7DecodeInput = TextBox();
+        m_uuidV7DecodeInput.IsSpellCheckEnabled(false);
+        m_uuidV7DecodeInput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_uuidV7DecodeInput.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"Paste a UUID, urn:uuid value, or braced UUID…", L"貼 UUID、urn:uuid 或大括號 UUID…" }.Pick(m_language)));
+        m_uuidV7DecodeInput.Text(ToHString(m_uuidV7DecodeInputValue));
+        AutomationProperties::SetAutomationId(m_uuidV7DecodeInput, L"NativeUuidV7DecodeInput");
+        AutomationProperties::SetName(m_uuidV7DecodeInput, ToHString(winforge::core::LocalizedText{
+            L"UUID value to decode", L"要解碼嘅 UUID" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_uuidV7DecodeInput, decodeLabel);
+        m_uuidV7DecodeInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_uuidV7Rendering) return;
+            m_uuidV7DecodeInputValue = ToWide(sender.as<TextBox>().Text());
+            if (m_uuidV7DecodeInputValue.empty())
+            {
+                ClearUuidV7DecodeResults();
+            }
+        });
+        decodeContent.Children().Append(m_uuidV7DecodeInput);
+
+        auto decodeButton = Button();
+        decodeButton.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Decode", L"解碼" }.Pick(m_language))));
+        decodeButton.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(decodeButton, L"NativeUuidV7Decode");
+        AutomationProperties::SetName(decodeButton, ToHString(winforge::core::LocalizedText{
+            L"Decode UUID version variant and timestamp", L"解碼 UUID 版本、變體同時間戳" }.Pick(m_language)));
+        decodeButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            DecodeUuidV7Value();
+        });
+        decodeContent.Children().Append(decodeButton);
+
+        m_uuidV7DecodeResults = StackPanel();
+        m_uuidV7DecodeResults.Spacing(8);
+        m_uuidV7DecodeResults.Visibility(Visibility::Collapsed);
+        AutomationProperties::SetAutomationId(m_uuidV7DecodeResults, L"NativeUuidV7DecodeResults");
+
+        auto addResult = [this, &decodeContent](
+            std::wstring_view label,
+            std::wstring_view automationId,
+            std::wstring_view accessibleName)
+        {
+            auto caption = CreateText(label, 12, true);
+            caption.Opacity(0.75);
+            m_uuidV7DecodeResults.Children().Append(caption);
+            TextBox value;
+            value.IsReadOnly(true);
+            value.IsSpellCheckEnabled(false);
+            value.FontFamily(Media::FontFamily(L"Consolas"));
+            value.TextWrapping(TextWrapping::Wrap);
+            AutomationProperties::SetAutomationId(value, ToHString(automationId));
+            AutomationProperties::SetName(value, ToHString(accessibleName));
+            m_uuidV7DecodeResults.Children().Append(value);
+            return value;
+        };
+        m_uuidV7VersionOutput = addResult(
+            winforge::core::LocalizedText{ L"Version", L"版本" }.Pick(m_language),
+            L"NativeUuidV7VersionOutput",
+            winforge::core::LocalizedText{ L"UUID version", L"UUID 版本" }.Pick(m_language));
+        m_uuidV7VariantOutput = addResult(
+            winforge::core::LocalizedText{ L"Variant", L"變體" }.Pick(m_language),
+            L"NativeUuidV7VariantOutput",
+            winforge::core::LocalizedText{ L"UUID variant", L"UUID 變體" }.Pick(m_language));
+        m_uuidV7UtcOutput = addResult(
+            winforge::core::LocalizedText{ L"Timestamp (UTC)", L"時間戳（UTC）" }.Pick(m_language),
+            L"NativeUuidV7UtcOutput",
+            winforge::core::LocalizedText{ L"UUID timestamp in UTC", L"UUID UTC 時間戳" }.Pick(m_language));
+        m_uuidV7LocalOutput = addResult(
+            winforge::core::LocalizedText{ L"Timestamp (local)", L"時間戳（本地）" }.Pick(m_language),
+            L"NativeUuidV7LocalOutput",
+            winforge::core::LocalizedText{ L"UUID timestamp in local time", L"UUID 本地時間戳" }.Pick(m_language));
+        m_uuidV7CanonicalOutput = addResult(
+            winforge::core::LocalizedText{ L"Canonical", L"標準格式" }.Pick(m_language),
+            L"NativeUuidV7CanonicalOutput",
+            winforge::core::LocalizedText{ L"Canonical UUID", L"標準 UUID" }.Pick(m_language));
+        decodeContent.Children().Append(m_uuidV7DecodeResults);
+
+        auto copyTimestamp = Button();
+        copyTimestamp.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy timestamp", L"複製時間戳" }.Pick(m_language))));
+        copyTimestamp.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(copyTimestamp, L"NativeUuidV7CopyTimestamp");
+        AutomationProperties::SetName(copyTimestamp, ToHString(winforge::core::LocalizedText{
+            L"Copy decoded UTC timestamp", L"複製已解碼 UTC 時間戳" }.Pick(m_language)));
+        copyTimestamp.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyUuidV7Value(
+                m_uuidV7TimestampValue,
+                winforge::core::LocalizedText{ L"Timestamp copied to clipboard.", L"已複製時間戳去剪貼簿。" }.Pick(m_language));
+        });
+        decodeContent.Children().Append(copyTimestamp);
+        decodeCard.Child(decodeContent);
+        page.Children().Append(decodeCard);
+
+        m_uuidV7Status = CreateText(L"", 12.5);
+        m_uuidV7Status.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_uuidV7Status, L"NativeUuidV7Status");
+        AutomationProperties::SetLiveSetting(
+            m_uuidV7Status,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_uuidV7Status);
+
+        ShowPage(page);
+        m_uuidV7Rendering = false;
+
+        if (!m_uuidV7DecodeInputValue.empty())
+        {
+            DecodeUuidV7Value();
+        }
+    }
+
+    void MainWindow::GenerateUuidV7Values()
+    {
+        try
+        {
+            auto value = m_uuidV7CountBox ? m_uuidV7CountBox.Value() : static_cast<double>(m_uuidV7Count);
+            if (std::isnan(value)) value = 1;
+            m_uuidV7Count = std::clamp(
+                static_cast<int32_t>(value),
+                winforge::core::uuidv7::MinimumBulkCount,
+                winforge::core::uuidv7::MaximumBulkCount);
+            if (m_uuidV7CountBox)
+            {
+                m_uuidV7CountBox.Value(m_uuidV7Count);
+            }
+            if (m_uuidV7MonotonicSwitch)
+            {
+                m_uuidV7Monotonic = m_uuidV7MonotonicSwitch.IsOn();
+            }
+
+            m_uuidV7GeneratedValue = winforge::core::uuidv7::BulkUuidV7(
+                m_uuidV7Count,
+                m_uuidV7Monotonic);
+            if (m_uuidV7GeneratedOutput)
+            {
+                m_uuidV7GeneratedOutput.Text(ToHString(m_uuidV7GeneratedValue));
+                AutomationProperties::SetHelpText(m_uuidV7GeneratedOutput, ToHString(m_uuidV7GeneratedValue));
+            }
+
+            auto const count = std::to_wstring(m_uuidV7Count);
+            AnnounceUuidV7Status(winforge::core::LocalizedText{
+                L"Generated " + count + L" UUIDv7 value" + (m_uuidV7Count == 1 ? L"." : L"s."),
+                L"已產生 " + count + L" 個 UUIDv7。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceUuidV7Status(winforge::core::LocalizedText{
+                L"Could not generate UUIDv7 values.", L"無法產生 UUIDv7。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::ClearUuidV7DecodeResults()
+    {
+        m_uuidV7TimestampValue.clear();
+        if (m_uuidV7VersionOutput) m_uuidV7VersionOutput.Text(L"");
+        if (m_uuidV7VariantOutput) m_uuidV7VariantOutput.Text(L"");
+        if (m_uuidV7UtcOutput) m_uuidV7UtcOutput.Text(L"");
+        if (m_uuidV7LocalOutput) m_uuidV7LocalOutput.Text(L"");
+        if (m_uuidV7CanonicalOutput) m_uuidV7CanonicalOutput.Text(L"");
+        if (m_uuidV7DecodeResults) m_uuidV7DecodeResults.Visibility(Visibility::Collapsed);
+    }
+
+    void MainWindow::DecodeUuidV7Value()
+    {
+        if (!m_uuidV7DecodeResults)
+        {
+            return;
+        }
+
+        try
+        {
+            auto const decoded = winforge::core::uuidv7::DecodeUuid(m_uuidV7DecodeInputValue);
+            if (!decoded.ok)
+            {
+                ClearUuidV7DecodeResults();
+                AnnounceUuidV7Status(decoded.error == L"empty"
+                    ? winforge::core::LocalizedText{ L"Paste a UUID to decode.", L"貼 UUID 入嚟解碼。" }.Pick(m_language)
+                    : winforge::core::LocalizedText{ L"That is not a valid UUID.", L"呢個唔係有效 UUID。" }.Pick(m_language), true);
+                return;
+            }
+
+            auto const version = std::to_wstring(decoded.version);
+            m_uuidV7VersionOutput.Text(ToHString(version));
+            m_uuidV7VariantOutput.Text(ToHString(decoded.variant_name));
+            m_uuidV7CanonicalOutput.Text(ToHString(decoded.canonical));
+            AutomationProperties::SetHelpText(m_uuidV7VersionOutput, ToHString(version));
+            AutomationProperties::SetHelpText(m_uuidV7VariantOutput, ToHString(decoded.variant_name));
+            AutomationProperties::SetHelpText(m_uuidV7CanonicalOutput, ToHString(decoded.canonical));
+
+            if (decoded.has_timestamp)
+            {
+                auto const utc = winforge::core::uuidv7::FormatTimestampUtc(decoded.unix_milliseconds);
+                auto const local = winforge::core::uuidv7::FormatTimestampLocal(decoded.unix_milliseconds);
+                auto const unavailable = winforge::core::LocalizedText{
+                    L"(timestamp is outside the displayable calendar range)",
+                    L"（時間戳超出可顯示日曆範圍）" }.Pick(m_language);
+                auto const utcText = utc.empty() ? unavailable : utc;
+                auto const localText = local.empty() ? unavailable : local;
+                m_uuidV7UtcOutput.Text(ToHString(utcText));
+                m_uuidV7LocalOutput.Text(ToHString(localText));
+                AutomationProperties::SetHelpText(m_uuidV7UtcOutput, ToHString(utcText));
+                AutomationProperties::SetHelpText(m_uuidV7LocalOutput, ToHString(localText));
+                m_uuidV7TimestampValue = utc;
+            }
+            else
+            {
+                auto const none = winforge::core::LocalizedText{
+                    L"(no embedded timestamp for this version)",
+                    L"（呢個版本冇內嵌時間戳）" }.Pick(m_language);
+                m_uuidV7UtcOutput.Text(ToHString(none));
+                m_uuidV7LocalOutput.Text(ToHString(none));
+                AutomationProperties::SetHelpText(m_uuidV7UtcOutput, ToHString(none));
+                AutomationProperties::SetHelpText(m_uuidV7LocalOutput, ToHString(none));
+                m_uuidV7TimestampValue.clear();
+            }
+            m_uuidV7DecodeResults.Visibility(Visibility::Visible);
+
+            if (decoded.version == 7)
+            {
+                AnnounceUuidV7Status(winforge::core::LocalizedText{
+                    L"Valid UUIDv7 — timestamp extracted.", L"有效 UUIDv7 — 已抽出時間戳。" }.Pick(m_language));
+            }
+            else if (decoded.version == 1)
+            {
+                AnnounceUuidV7Status(winforge::core::LocalizedText{
+                    L"This is UUIDv1, not v7 — timestamp decoded best-effort.",
+                    L"呢個係 UUIDv1，唔係 v7 — 已盡力解碼時間戳。" }.Pick(m_language));
+            }
+            else
+            {
+                AnnounceUuidV7Status(winforge::core::LocalizedText{
+                    L"This UUID version does not carry a time-ordered timestamp.",
+                    L"呢個 UUID 版本冇按時間排序嘅時間戳。" }.Pick(m_language), true);
+            }
+        }
+        catch (...)
+        {
+            ClearUuidV7DecodeResults();
+            AnnounceUuidV7Status(winforge::core::LocalizedText{
+                L"Could not decode that UUID.", L"無法解碼呢個 UUID。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::CopyUuidV7Value(std::wstring_view value, std::wstring_view successMessage)
+    {
+        if (value.empty())
+        {
+            AnnounceUuidV7Status(winforge::core::LocalizedText{
+                L"Nothing to copy.", L"冇嘢可以複製。" }.Pick(m_language), true);
+            return;
+        }
+
+        try
+        {
+            Windows::ApplicationModel::DataTransfer::DataPackage package;
+            package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+            package.SetText(ToHString(value));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+            AnnounceUuidV7Status(successMessage);
+        }
+        catch (...)
+        {
+            AnnounceUuidV7Status(winforge::core::LocalizedText{
+                L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::AnnounceUuidV7Status(std::wstring_view message, bool warning)
+    {
+        if (!m_uuidV7Status) return;
+
+        m_uuidV7Status.Text(ToHString(message));
+        m_uuidV7Status.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_uuidV7Status, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_uuidV7Status,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_uuidV7Status);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_uuidV7Status);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility notification failure must not break UUID handling.
         }
     }
 

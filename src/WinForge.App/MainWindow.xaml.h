@@ -8,6 +8,7 @@
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/GuidGen.h"
 #include "../WinForge.Core/RomanNum.h"
+#include "../WinForge.Core/UuidV7.h"
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageMutationCoordinator.h"
 #include "../WinForge.Core/PackageRuntime.h"
@@ -141,6 +142,17 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_guidGenInspectHexBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_guidGenInspectMeta{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_guidGenStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_uuidV7CountBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_uuidV7MonotonicSwitch{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV7GeneratedOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV7DecodeInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_uuidV7DecodeResults{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV7VersionOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV7VariantOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV7UtcOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV7LocalOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV7CanonicalOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_uuidV7Status{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_romanNumExtendedSwitch{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_romanNumNumberInput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_romanNumRomanOutput{ nullptr };
@@ -219,6 +231,12 @@ namespace winrt::WinForge::implementation
         std::wstring m_guidGenNanoValue{};
         std::wstring m_guidGenInspectValue{};
         bool m_guidGenRendering{ false };
+        int32_t m_uuidV7Count{ 1 };
+        bool m_uuidV7Monotonic{ true };
+        std::wstring m_uuidV7GeneratedValue{};
+        std::wstring m_uuidV7DecodeInputValue{};
+        std::wstring m_uuidV7TimestampValue{};
+        bool m_uuidV7Rendering{ false };
         bool m_romanNumExtended{ false };
         std::wstring m_romanNumNumberInputValue{};
         std::wstring m_romanNumRomanInputValue{};
@@ -411,6 +429,12 @@ namespace winrt::WinForge::implementation
         void GenerateNanoIdValue();
         void RefreshGuidInspector();
         void AnnounceGuidGenStatus(std::wstring_view message, bool warning = false);
+        void RenderUuidV7();
+        void GenerateUuidV7Values();
+        void DecodeUuidV7Value();
+        void ClearUuidV7DecodeResults();
+        void CopyUuidV7Value(std::wstring_view value, std::wstring_view successMessage);
+        void AnnounceUuidV7Status(std::wstring_view message, bool warning = false);
         void RenderRomanNum();
         void RefreshRomanNum(bool refreshNumber = true, bool refreshRoman = true);
         void AnnounceRomanNumStatus(std::wstring_view message, bool warning = false);

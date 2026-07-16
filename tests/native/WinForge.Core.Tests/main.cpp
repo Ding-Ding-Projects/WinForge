@@ -5,6 +5,7 @@
 #include "CodecTests.h"
 #include "GuidGenTests.h"
 #include "RomanNumTests.h"
+#include "UuidV7Tests.h"
 #include "RegexSearchTests.h"
 #include "Localization.h"
 #include "PackageManagerTests.h"
@@ -192,6 +193,10 @@ int wmain(int argc, wchar_t** argv)
     auto const romanNumCounts = RunRomanNumTests();
     passed += romanNumCounts.passed;
     failed += romanNumCounts.failed;
+
+    auto const uuidV7Counts = RunUuidV7Tests();
+    passed += uuidV7Counts.passed;
+    failed += uuidV7Counts.failed;
 
     auto const regexSearchCounts = RunRegexSearchTests();
     passed += regexSearchCounts.passed;
