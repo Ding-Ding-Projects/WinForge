@@ -1,6 +1,8 @@
 #include "RegexBuilder.h"
+#include "RegexSearch.h"
 
 #include <algorithm>
+#include <array>
 
 namespace
 {
@@ -28,6 +30,28 @@ namespace
 
 namespace winforge::core::regex
 {
+    namespace
+    {
+        constexpr std::array<RegexRecipeDescriptor, 8> kRecipes{
+            RegexRecipeDescriptor{ RegexRecipe::LiteralContains,
+                L"Literal contains", L"literal 包含", true },
+            RegexRecipeDescriptor{ RegexRecipe::LiteralExact,
+                L"Literal exact match", L"literal 完全符合", true },
+            RegexRecipeDescriptor{ RegexRecipe::LiteralStartsWith,
+                L"Literal starts with", L"literal 開頭符合", true },
+            RegexRecipeDescriptor{ RegexRecipe::LiteralEndsWith,
+                L"Literal ends with", L"literal 結尾符合", true },
+            RegexRecipeDescriptor{ RegexRecipe::WholeWordLiteral,
+                L"Whole literal word", L"完整 literal word", true },
+            RegexRecipeDescriptor{ RegexRecipe::NativeRouteId,
+                L"Native route id", L"原生路線 id", false },
+            RegexRecipeDescriptor{ RegexRecipe::PackageId,
+                L"Package id", L"套件 id", false },
+            RegexRecipeDescriptor{ RegexRecipe::SemanticVersion,
+                L"Semantic version", L"語義版本", false },
+        };
+    }
+
     std::wstring BuildRegexGroup(std::wstring_view fragment, std::wstring_view capture_name)
     {
         if (IsValidCaptureName(capture_name))
@@ -75,6 +99,57 @@ namespace winforge::core::regex
         case RegexQuantifier::Once:
         default:
             return std::wstring(fragment);
+        }
+    }
+
+    std::span<RegexRecipeDescriptor const> RegexRecipes() noexcept
+    {
+        return kRecipes;
+    }
+
+    std::wstring BuildRegexRecipe(RegexRecipe recipe, std::wstring_view literal)
+    {
+        auto const escaped = EscapeRegexLiteral(literal);
+        switch (recipe)
+        {
+        case RegexRecipe::LiteralExact:
+            return L"^(?:" + escaped + L")$";
+        case RegexRecipe::LiteralStartsWith:
+            return L"^" + escaped;
+        case RegexRecipe::LiteralEndsWith:
+            return escaped + L"$";
+        case RegexRecipe::WholeWordLiteral:
+            return L"\\b" + escaped + L"\\b";
+        case RegexRecipe::NativeRouteId:
+            return L"^module\\.[A-Za-z0-9._-]+$";
+        case RegexRecipe::PackageId:
+            return L"^[A-Za-z0-9][A-Za-z0-9._-]*$";
+        case RegexRecipe::SemanticVersion:
+            return L"\\bv?\\d+(?:\\.\\d+){1,3}(?:[-+][A-Za-z0-9.-]+)?\\b";
+        case RegexRecipe::LiteralContains:
+        default:
+            return escaped;
+        }
+    }
+
+    std::wstring BuildRegexAssertion(RegexAssertion assertion, std::wstring_view fragment)
+    {
+        switch (assertion)
+        {
+        case RegexAssertion::WordBoundary:
+            return L"\\b";
+        case RegexAssertion::NotWordBoundary:
+            return L"\\B";
+        case RegexAssertion::PositiveLookahead:
+            return fragment.empty() ? std::wstring{} : L"(?=" + std::wstring(fragment) + L")";
+        case RegexAssertion::NegativeLookahead:
+            return fragment.empty() ? std::wstring{} : L"(?!" + std::wstring(fragment) + L")";
+        case RegexAssertion::PositiveLookbehind:
+            return fragment.empty() ? std::wstring{} : L"(?<=" + std::wstring(fragment) + L")";
+        case RegexAssertion::NegativeLookbehind:
+            return fragment.empty() ? std::wstring{} : L"(?<!" + std::wstring(fragment) + L")";
+        default:
+            return {};
         }
     }
 }

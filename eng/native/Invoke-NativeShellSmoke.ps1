@@ -552,19 +552,55 @@ Invoke-OwnedRoute -Route 'regextester' -ExpectedTitle 'Regex Tester & Builder' -
     Assert-True -Condition $stepOneFits -Name 'Regex builder step one is horizontally unclipped'
 
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
-    Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderLiteral' | Out-Null
+    foreach ($id in @(
+        'NativeRegexBuilderLiteral',
+        'NativeRegexBuilderRecipe',
+        'NativeRegexBuilderApplyRecipe',
+        'NativeRegexBuilderAppendLiteral'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexBuilderLiteral' -Value 'module.reactor' | Out-Null
+    $recipe = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderRecipe'
+    Select-ComboIndex -Combo $recipe -Index 1
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderApplyRecipe'
+    $recipePattern = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeRegexPattern')).Current.Value
+    Assert-True -Condition ($recipePattern -eq '^(?:module\.reactor)$') `
+        -Name 'Regex builder recipe escapes a literal exact-match pattern'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '(?<suite>WinForge)\s+Native' | Out-Null
     $stepTwoFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderLiteral'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderRecipe'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderApplyRecipe'),
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderAppendLiteral'))
-    Assert-True -Condition $stepTwoFits -Name 'Regex builder token-composition step is horizontally unclipped'
+    Assert-True -Condition $stepTwoFits -Name 'Regex builder recipe-and-token step is horizontally unclipped'
 
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
-    Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderQuantifier' | Out-Null
+    foreach ($id in @(
+        'NativeRegexBuilderCaptureName',
+        'NativeRegexBuilderAssertion',
+        'NativeRegexBuilderAssertionFragment',
+        'NativeRegexBuilderAppendAssertion',
+        'NativeRegexBuilderQuantifier',
+        'NativeRegexBuilderApplyQuantifier'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    $assertion = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderAssertion'
+    Select-ComboIndex -Combo $assertion -Index 0
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderAppendAssertion'
+    $assertionPattern = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeRegexPattern')).Current.Value
+    Assert-True -Condition $assertionPattern.EndsWith('\b', [StringComparison]::Ordinal) `
+        -Name 'Regex builder appends a bounded word-boundary assertion'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '(?<suite>WinForge)\s+Native' | Out-Null
     $stepThreeFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderCaptureName'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderAssertion'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderAssertionFragment'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderAppendAssertion'),
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderQuantifier'),
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderApplyQuantifier'))
-    Assert-True -Condition $stepThreeFits -Name 'Regex builder grouping-and-quantifier step is horizontally unclipped'
+    Assert-True -Condition $stepThreeFits -Name 'Regex builder grouping-assertion-and-quantifier step is horizontally unclipped'
 
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
     Wait-ForElement -Root $root -AutomationId 'NativeRegexTestInput' | Out-Null
@@ -574,7 +610,9 @@ Invoke-OwnedRoute -Route 'regextester' -ExpectedTitle 'Regex Tester & Builder' -
 
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '[' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexStatus' -Prefix 'Regex syntax needs correction' | Out-Null
-    Assert-True -Condition $true -Name 'Regex builder rejects invalid live patterns safely'
+    $invalidApply = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderApply'
+    Assert-True -Condition (-not $invalidApply.Current.IsEnabled) `
+        -Name 'Regex builder rejects invalid live patterns and blocks target application'
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '^module\.reactor$' | Out-Null
 
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderBack'
@@ -582,6 +620,15 @@ Invoke-OwnedRoute -Route 'regextester' -ExpectedTitle 'Regex Tester & Builder' -
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
     Wait-ForElement -Root $root -AutomationId 'NativeRegexTestInput' | Out-Null
 
+    $target = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderTarget'
+    Select-ComboIndex -Combo $target -Index 0
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderApply'
+    Wait-ForPageTitle -Root $root -Prefix 'Search results' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeRoute_module_reactor' | Out-Null
+    Assert-True -Condition $true -Name 'Regex builder applies a validated pattern to the native Shell catalog target'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeShellRegexBuilder'
+    Wait-ForPageTitle -Root $root -Prefix 'Regex Tester & Builder' | Out-Null
     $target = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderTarget'
     Select-ComboIndex -Combo $target -Index 1
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderApply'
@@ -592,6 +639,38 @@ Invoke-OwnedRoute -Route 'regextester' -ExpectedTitle 'Regex Tester & Builder' -
     $allAppsValue = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeAllAppsSearchBox')).Current.Value
     Assert-True -Condition ($allAppsToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and $allAppsValue -eq '^module\.reactor$') `
         -Name 'Regex builder applies its pattern and flags to the selected native All Apps target'
+}
+
+Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $updatesHeader = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    $updatesHeaderName = $updatesHeader.Current.Name
+    $queryAudit = Wait-ForElement -Root $root -AutomationId 'NativePackageQueryAudit'
+    $auditBefore = $queryAudit.Current.Name
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeShellRegexBuilder'
+    Wait-ForPageTitle -Root $root -Prefix 'Regex Tester & Builder' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '^module\.reactor$' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexStatus' -Prefix 'PCRE2 pattern is valid' | Out-Null
+    $target = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderTarget'
+    Select-ComboIndex -Combo $target -Index 2
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderApply'
+    Wait-ForPageTitle -Root $root -Prefix 'Package Manager' | Out-Null
+
+    $discoverHeader = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    $packageMode = Wait-ForElement -Root $root -AutomationId 'NativePackageRegexMode'
+    $packageToggle = [System.Windows.Automation.TogglePattern]$packageMode.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $packageValue = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchBox')).Current.Value
+    $primary = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+    $queryAudit = Wait-ForElement -Root $root -AutomationId 'NativePackageQueryAudit'
+    Assert-True -Condition ($updatesHeaderName.StartsWith('Available updates', [StringComparison]::Ordinal) `
+        -and $discoverHeader.Current.Name.StartsWith('Discover packages', [StringComparison]::Ordinal) `
+        -and $packageToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On `
+        -and $packageValue -eq '^module\.reactor$' `
+        -and -not $primary.Current.IsEnabled `
+        -and $queryAudit.Current.Name -eq $auditBefore) `
+        -Name 'Regex builder deterministically targets Discover, clears stale Update rows, and never starts a package query'
 }
 
 Invoke-OwnedRoute -Route 'checkdigit' -ExpectedTitle 'Check Digit Validator' -Inspect {
