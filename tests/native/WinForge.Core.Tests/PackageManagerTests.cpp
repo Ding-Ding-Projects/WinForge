@@ -224,6 +224,83 @@ NativeTestCounts RunPackageManagerTests()
         && delimiterKey != PackageSelectionKey(selectedStore),
         "Discover selection identity length-prefixes cached delimiters and excludes invalid source text");
 
+    PackageItem bundleStore{ L"Example Tool", L"Example.Tool", L"1.0", L"", L"msstore", L"winget" };
+    auto bundleStoreCanonical = bundleStore;
+    bundleStoreCanonical.source = L"MSStore";
+    auto bundleWinget = bundleStore;
+    bundleWinget.source = L"winget";
+    auto bundleSecondVersion = bundleStore;
+    bundleSecondVersion.version = L"2.0";
+    auto bundleDefaultSource = bundleStore;
+    bundleDefaultSource.id = L"Example.DefaultSource";
+    bundleDefaultSource.source.clear();
+    auto bundleLocal = bundleStore;
+    bundleLocal.id = L"Example.Local";
+    bundleLocal.source = L"Local PC";
+    auto bundleUnsafeSource = bundleStore;
+    bundleUnsafeSource.id = L"Example.UnsafeSource";
+    bundleUnsafeSource.source = L"safe & calc";
+    auto bundleUnsafe = bundleStore;
+    bundleUnsafe.id = L"safe & calc";
+    std::array<PackageItem, 8> const bundleCandidates{
+        bundleStore,
+        bundleStoreCanonical,
+        bundleWinget,
+        bundleSecondVersion,
+        bundleDefaultSource,
+        bundleLocal,
+        bundleUnsafeSource,
+        bundleUnsafe,
+    };
+    auto const mergedBundle = MergePackageBundleItems({}, bundleCandidates);
+    auto const bundleSnapshot = BuildPackageBundleSnapshot(bundleCandidates);
+    auto managerlessAudit = bundleLocal;
+    managerlessAudit.manager_key.clear();
+    PackageBundleSnapshot explicitAuditSnapshot;
+    explicitAuditSnapshot.packages = { bundleStore };
+    explicitAuditSnapshot.incompatible_packages = { bundleWinget, managerlessAudit };
+    auto const normalizedExplicitAudit = NormalizePackageBundleSnapshot(explicitAuditSnapshot);
+    auto localManagerCasing = bundleLocal;
+    localManagerCasing.manager_key = L"WINGET";
+    std::array<PackageItem, 2> const casingAuditCandidates{
+        bundleLocal,
+        localManagerCasing,
+    };
+    auto const casingAuditSnapshot = BuildPackageBundleSnapshot(casingAuditCandidates);
+    auto const stableCasingAuditSnapshot = NormalizePackageBundleSnapshot(casingAuditSnapshot);
+    std::array<PackageItem, 1> const readdedAuditCandidate{ bundleLocal };
+    auto const appendedRoundTripAudit = MergePackageBundleItems(
+        casingAuditSnapshot.incompatible_packages,
+        readdedAuditCandidate);
+    PackageBundleSnapshot appendedRoundTripSnapshot;
+    appendedRoundTripSnapshot.incompatible_packages = appendedRoundTripAudit;
+    auto const stableAppendedRoundTripAudit = NormalizePackageBundleSnapshot(appendedRoundTripSnapshot);
+    expect(mergedBundle.size() == 7
+        && mergedBundle[0].source == L"msstore"
+        && mergedBundle[1].source == L"winget"
+        && mergedBundle[2].version == L"2.0"
+        && bundleSnapshot.packages.size() == 4
+        && bundleSnapshot.packages[0].manager_key == L"winget"
+        && bundleSnapshot.packages[0].source == L"msstore"
+        && bundleSnapshot.packages[2].version == L"2.0"
+        && bundleSnapshot.packages[3].source.empty()
+        && bundleSnapshot.incompatible_packages.size() == 3
+        && bundleSnapshot.incompatible_packages[0].id == L"Example.Local"
+        && bundleSnapshot.incompatible_packages[1].id == L"Example.UnsafeSource"
+        && bundleSnapshot.incompatible_packages[2].id == L"safe & calc"
+        && normalizedExplicitAudit.packages.size() == 1
+        && normalizedExplicitAudit.incompatible_packages.size() == 2
+        && normalizedExplicitAudit.incompatible_packages[0].source == L"winget"
+        && normalizedExplicitAudit.incompatible_packages[1].manager_key.empty()
+        && casingAuditSnapshot.incompatible_packages.size() == 1
+        && casingAuditSnapshot.incompatible_packages[0].manager_key.empty()
+        && stableCasingAuditSnapshot.incompatible_packages.size() == 1
+        && stableCasingAuditSnapshot.incompatible_packages[0].manager_key.empty()
+        && appendedRoundTripAudit.size() == 1
+        && stableAppendedRoundTripAudit.incompatible_packages.size() == 1
+        && stableAppendedRoundTripAudit.incompatible_packages[0].manager_key.empty(),
+        "Portable bundle merge preserves source/version identity, keeps explicit audit rows inert, and is normalization-stable without an argv plan");
+
     std::array<std::pair<std::wstring_view, std::wstring_view>, 11> const valid_references{
         std::pair{ L"winget", L"Microsoft.PowerToys" },
         std::pair{ L"scoop", L"extras/7zip" },

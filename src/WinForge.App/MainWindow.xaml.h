@@ -140,6 +140,7 @@ namespace winrt::WinForge::implementation
         std::vector<winforge::core::packages::PackageItem> m_packageItems;
         std::unordered_set<std::wstring> m_packageSelectedKeys;
         std::vector<winforge::core::packages::PackageItem> m_packageBundleItems;
+        std::vector<winforge::core::packages::PackageItem> m_packageBundleIncompatibleItems;
         std::vector<PackageManagerRunState> m_packageRunStates;
         std::vector<PackageOperationEntry> m_packageOperations;
         std::vector<PackageIgnoredRule> m_packageIgnoredRules;
@@ -165,6 +166,8 @@ namespace winrt::WinForge::implementation
         bool m_packageSearchCaseSensitiveValue{ false };
         bool m_packageSearchIgnoreSpecialValue{ false };
         std::wstring m_packageBundleSourcePath{};
+        std::wstring m_packageBundleImportNote{};
+        bool m_packageBundleDirty{ false };
         std::wstring m_packageDetailsTarget{};
         int32_t m_packageSortMode{ 0 };
         int32_t m_checkDigitScheme{ 0 };
@@ -235,6 +238,7 @@ namespace winrt::WinForge::implementation
         [[nodiscard]] std::vector<winforge::core::packages::PackageItem> SelectedPackageItems(
             winforge::core::packages::PackageAction action) const;
         void PreviewSelectedPackageOperations(winforge::core::packages::PackageAction action);
+        void AddSelectedPackagesToBundle();
         void PreviewPackageDetails(
             winforge::core::packages::PackageItem const& package);
         void StartPackageDetailsQuery(
@@ -258,10 +262,17 @@ namespace winrt::WinForge::implementation
         [[nodiscard]] bool IsPackageUpdateSuppressed(
             winforge::core::packages::PackageItem const& package) const;
         void PreviewPackageBulkUpdate();
+        enum class BundleSnapshotLoadStatus : std::uint8_t
+        {
+            Loaded,
+            Cancelled,
+            Failed,
+        };
         [[nodiscard]] std::wstring BundleSnapshotToJson(
-            std::vector<winforge::core::packages::PackageItem> const& items) const;
-        [[nodiscard]] bool LoadBundleSnapshot(std::wstring_view path);
+            winforge::core::packages::PackageBundleSnapshot const& snapshot) const;
+        [[nodiscard]] BundleSnapshotLoadStatus LoadBundleSnapshot(std::wstring_view path);
         [[nodiscard]] bool SaveBundleSnapshot(std::wstring_view path) const;
+        [[nodiscard]] bool ConfirmBundleWorkspaceReplacement() const;
         [[nodiscard]] std::wstring PromptBundleOpenPath() const;
         [[nodiscard]] std::wstring PromptBundleSavePath() const;
         void PopulatePackageManagerFilters(Microsoft::UI::Xaml::Controls::StackPanel const& panel);
