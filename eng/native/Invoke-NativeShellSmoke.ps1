@@ -213,6 +213,83 @@ function Set-ElementValueAndWait {
     return $element
 }
 
+function Get-EditableValuePattern {
+    param(
+        [Parameter(Mandatory)]$Element
+    )
+
+    try {
+        return [System.Windows.Automation.ValuePattern]$Element.GetCurrentPattern(
+            [System.Windows.Automation.ValuePattern]::Pattern)
+    }
+    catch {
+        # AutoSuggestBox occasionally exposes its value through the child Edit
+        # provider rather than the outer control. Keep the smoke surface
+        # independent of that WinUI provider detail.
+        $condition = New-Object System.Windows.Automation.PropertyCondition(
+            [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+            [System.Windows.Automation.ControlType]::Edit)
+        $edit = $Element.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+        if (-not $edit) { throw }
+        return [System.Windows.Automation.ValuePattern]$edit.GetCurrentPattern(
+            [System.Windows.Automation.ValuePattern]::Pattern)
+    }
+}
+
+function Set-EditableValueAndWait {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$AutomationId,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Value
+    )
+
+    $element = Wait-ForElement -Root $Root -AutomationId $AutomationId
+    $pattern = Get-EditableValuePattern -Element $element
+    $pattern.SetValue($Value)
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        $element = Wait-ForElement -Root $Root -AutomationId $AutomationId
+        $actual = (Get-EditableValuePattern -Element $element).Current.Value
+        if ($actual -eq $Value) { return $element }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    throw "Expected editable '$AutomationId' value '$Value', got '$actual'."
+}
+
+function Set-ToggleState {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$AutomationId,
+        [Parameter(Mandatory)][bool]$IsOn
+    )
+
+    $element = Wait-ForElement -Root $Root -AutomationId $AutomationId
+    $toggle = [System.Windows.Automation.TogglePattern]$element.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $expected = if ($IsOn) {
+        [System.Windows.Automation.ToggleState]::On
+    }
+    else {
+        [System.Windows.Automation.ToggleState]::Off
+    }
+    if ($toggle.Current.ToggleState -ne $expected) {
+        $toggle.Toggle()
+        $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+        do {
+            $element = Wait-ForElement -Root $Root -AutomationId $AutomationId
+            $toggle = [System.Windows.Automation.TogglePattern]$element.GetCurrentPattern(
+                [System.Windows.Automation.TogglePattern]::Pattern)
+            if ($toggle.Current.ToggleState -eq $expected) { break }
+            Start-Sleep -Milliseconds 100
+        } while ([DateTime]::UtcNow -lt $deadline)
+    }
+    if ($toggle.Current.ToggleState -ne $expected) {
+        throw "Toggle '$AutomationId' did not reach the expected state."
+    }
+    return $element
+}
+
 function Invoke-ElementByAutomationId {
     param(
         [Parameter(Mandatory)]$Root,
@@ -277,6 +354,42 @@ function Select-ComboIndex {
     $selection.Select()
 }
 
+function Test-HorizontalBoundsWithinWindow {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][System.Collections.IEnumerable]$Elements
+    )
+
+    $window = $Root.Current.BoundingRectangle
+    foreach ($element in $Elements) {
+        if (-not $element) { return $false }
+        $rect = $element.Current.BoundingRectangle
+        # A vertically off-screen item is not clipped: the shared page host
+        # intentionally exposes it through its vertical ScrollViewer. Ask UIA
+        # to bring it into view before taking the horizontal measurement.
+        if ($rect.Width -le 0 -or $rect.Height -le 0) {
+            try {
+                $scrollItem = [System.Windows.Automation.ScrollItemPattern]$element.GetCurrentPattern(
+                    [System.Windows.Automation.ScrollItemPattern]::Pattern)
+                $scrollItem.ScrollIntoView()
+                Start-Sleep -Milliseconds 100
+                $rect = $element.Current.BoundingRectangle
+            }
+            catch {
+                return $false
+            }
+        }
+        if ($rect.Width -le 0 -or $rect.Height -le 0) { return $false }
+        # Vertical overflow is intentionally scrollable. Horizontal overflow
+        # is the clipping defect this smoke check is designed to catch.
+        if ($rect.Left -lt ($window.Left - 2) -or $rect.Right -gt ($window.Right + 2)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
 function Invoke-OwnedRoute {
     param(
         [Parameter(Mandatory)][string]$Route,
@@ -319,6 +432,38 @@ Invoke-OwnedRoute -Route 'dashboard' -ExpectedTitle 'WinForge Native' -Inspect {
     }
 }
 
+Invoke-OwnedRoute -Route 'dashboard' -ExpectedTitle 'WinForge Native' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeShellSearchBox',
+        'NativeShellRegexMode',
+        'NativeShellRegexBuilder',
+        'NativeShellSearchExecute',
+        'NativeShellRegexStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Set-ToggleState -Root $root -AutomationId 'NativeShellRegexMode' -IsOn $true | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeShellSearchBox' -Value '^module\.reactor$' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeShellSearchExecute'
+    Wait-ForPageTitle -Root $root -Prefix 'Search results' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeRoute_module_reactor' | Out-Null
+    Assert-True -Condition $true -Name 'shell catalog regex matches a native route through the explicit search action'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeShellSearchBox' -Value '[' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeShellSearchExecute'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSearchRegexStatus' -Prefix 'Regex needs correction' | Out-Null
+    Assert-True -Condition $true -Name 'shell catalog regex reports invalid syntax without crashing or routing a literal alias'
+
+    $shellControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeShellRegexMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeShellRegexBuilder'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeShellSearchExecute'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeShellRegexStatus'))
+    Assert-True -Condition $shellControlsFit -Name 'shell regex controls are horizontally unclipped'
+}
+
 Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     param($root, $title)
     $filter = Wait-ForElement -Root $root -AutomationId 'NativeAllAppsSearchBox'
@@ -326,6 +471,30 @@ Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     $value.SetValue('reactor')
     Wait-ForElement -Root $root -AutomationId 'NativeAllApps_module_reactor' | Out-Null
     Assert-True -Condition $true -Name 'All Apps filter updates its live native list'
+
+    foreach ($id in @(
+        'NativeAllAppsRegexMode',
+        'NativeAllAppsRegexBuilder',
+        'NativeAllAppsRegexStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Set-ToggleState -Root $root -AutomationId 'NativeAllAppsRegexMode' -IsOn $true | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAllAppsSearchBox' -Value '^module\.reactor$' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeAllApps_module_reactor' | Out-Null
+    Assert-True -Condition $true -Name 'All Apps PCRE2 regex matches an anchored individual route id'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAllAppsSearchBox' -Value '[' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAllAppsRegexStatus' -Prefix 'Regex syntax needs correction' | Out-Null
+    Assert-True -Condition $true -Name 'All Apps retains responsiveness and reports an invalid regex locally'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAllAppsSearchBox' -Value '^module\.reactor$' | Out-Null
+    $allAppsRegexControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeAllAppsSearchBox'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAllAppsRegexMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAllAppsRegexBuilder'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAllAppsRegexStatus'))
+    Assert-True -Condition $allAppsRegexControlsFit -Name 'All Apps regex controls are horizontally unclipped'
 
     $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
     $expand = [System.Windows.Automation.ExpandCollapsePattern]$language.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
@@ -340,6 +509,73 @@ Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     }
     $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
     Assert-True -Condition ($english -and $dashboard.Current.Name -eq 'Dashboard') -Name 'language picker rerenders navigation in English'
+}
+
+Invoke-OwnedRoute -Route 'regextester' -ExpectedTitle 'Regex Tester & Builder' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeRegexBuilderSafety',
+        'NativeRegexBuilderTarget',
+        'NativeRegexPattern',
+        'NativeRegexStatus',
+        'NativeRegexBuilderPreview',
+        'NativeRegexBuilderBack',
+        'NativeRegexBuilderNext',
+        'NativeRegexBuilderApply'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '(?<suite>WinForge)\s+Native' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexStatus' -Prefix 'PCRE2 pattern is valid' | Out-Null
+    $stepOneFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexPattern'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderBack'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderNext'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderApply'))
+    Assert-True -Condition $stepOneFits -Name 'Regex builder step one is horizontally unclipped'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
+    Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderLiteral' | Out-Null
+    $stepTwoFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderLiteral'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderAppendLiteral'))
+    Assert-True -Condition $stepTwoFits -Name 'Regex builder token-composition step is horizontally unclipped'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
+    Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderQuantifier' | Out-Null
+    $stepThreeFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderCaptureName'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderQuantifier'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderApplyQuantifier'))
+    Assert-True -Condition $stepThreeFits -Name 'Regex builder grouping-and-quantifier step is horizontally unclipped'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
+    Wait-ForElement -Root $root -AutomationId 'NativeRegexTestInput' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexTestInput' -Value 'WinForge Native' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexBuilderPreview' -Prefix 'Match at' | Out-Null
+    Assert-True -Condition $true -Name 'Regex tester reports native named-capture match metadata'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '[' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexStatus' -Prefix 'Regex syntax needs correction' | Out-Null
+    Assert-True -Condition $true -Name 'Regex builder rejects invalid live patterns safely'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '^module\.reactor$' | Out-Null
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderBack'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexBuilderStep' -Prefix 'Step 3' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
+    Wait-ForElement -Root $root -AutomationId 'NativeRegexTestInput' | Out-Null
+
+    $target = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderTarget'
+    Select-ComboIndex -Combo $target -Index 1
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderApply'
+    Wait-ForPageTitle -Root $root -Prefix 'All Apps' | Out-Null
+    $allAppsMode = Wait-ForElement -Root $root -AutomationId 'NativeAllAppsRegexMode'
+    $allAppsToggle = [System.Windows.Automation.TogglePattern]$allAppsMode.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $allAppsValue = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeAllAppsSearchBox')).Current.Value
+    Assert-True -Condition ($allAppsToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and $allAppsValue -eq '^module\.reactor$') `
+        -Name 'Regex builder applies its pattern and flags to the selected native All Apps target'
 }
 
 Invoke-OwnedRoute -Route 'checkdigit' -ExpectedTitle 'Check Digit Validator' -Inspect {
@@ -509,42 +745,6 @@ Invoke-OwnedRoute -Route 'binarytext' -ExpectedTitle 'Text to Binary' -Inspect {
 
 foreach ($alias in @('textbinary', 'module.binarytext')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Text to Binary'
-}
-
-function Test-HorizontalBoundsWithinWindow {
-    param(
-        [Parameter(Mandatory)]$Root,
-        [Parameter(Mandatory)][System.Collections.IEnumerable]$Elements
-    )
-
-    $window = $Root.Current.BoundingRectangle
-    foreach ($element in $Elements) {
-        if (-not $element) { return $false }
-        $rect = $element.Current.BoundingRectangle
-        # A vertically off-screen item is not clipped: the shared page host
-        # intentionally exposes it through its vertical ScrollViewer.  Ask UIA
-        # to bring it into view before taking the horizontal measurement.
-        if ($rect.Width -le 0 -or $rect.Height -le 0) {
-            try {
-                $scrollItem = [System.Windows.Automation.ScrollItemPattern]$element.GetCurrentPattern(
-                    [System.Windows.Automation.ScrollItemPattern]::Pattern)
-                $scrollItem.ScrollIntoView()
-                Start-Sleep -Milliseconds 100
-                $rect = $element.Current.BoundingRectangle
-            }
-            catch {
-                return $false
-            }
-        }
-        if ($rect.Width -le 0 -or $rect.Height -le 0) { return $false }
-        # Vertical overflow is intentionally scrollable.  Horizontal overflow
-        # is the clipping defect this smoke check is designed to catch.
-        if ($rect.Left -lt ($window.Left - 2) -or $rect.Right -gt ($window.Right + 2)) {
-            return $false
-        }
-    }
-
-    return $true
 }
 
 Invoke-OwnedRoute -Route 'base32' -ExpectedTitle 'Base32 / 58 / 85' -Inspect {
@@ -1058,17 +1258,31 @@ Invoke-OwnedRoute -Route 'package-discover' -ExpectedTitle 'Package Manager' -In
     foreach ($id in @(
         'NativePackageSearchModePicker',
         'NativePackageSearchCaseSensitive',
-        'NativePackageSearchIgnoreSpecial'
+        'NativePackageSearchIgnoreSpecial',
+        'NativePackageRegexMode',
+        'NativePackageRegexBuilder',
+        'NativePackageRegexApply',
+        'NativePackageRegexStatus',
+        'NativePackageQueryAudit'
     )) {
         Wait-ForElement -Root $root -AutomationId $id | Out-Null
     }
     $discoverFilterControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
         (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchModePicker'),
         (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchCaseSensitive'),
-        (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchIgnoreSpecial')
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchIgnoreSpecial'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageRegexMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageRegexBuilder'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageRegexApply'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageRegexStatus'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageQueryAudit')
     )
     Assert-True -Condition $discoverFilterControlsFit `
         -Name 'Package Manager Discover filter controls are accessible and horizontally unclipped'
+
+    # Preferences persist across processes; begin the literal-filter contract
+    # from a known state before exercising the local-only regex branch below.
+    Set-ToggleState -Root $root -AutomationId 'NativePackageRegexMode' -IsOn $false | Out-Null
 
     # Start from a known *different* state. The package preferences persist
     # between native processes, so selecting Exact or enabling a toggle only
@@ -1090,6 +1304,27 @@ Invoke-OwnedRoute -Route 'package-discover' -ExpectedTitle 'Package Manager' -In
         -Prefix 'Package Manager status: Discover filters applied locally' | Out-Null
     Assert-True -Condition $true `
         -Name 'Package Manager re-filters cached Discover results without starting another package query'
+
+    $queryAudit = Wait-ForElement -Root $root -AutomationId 'NativePackageQueryAudit'
+    $auditBefore = $queryAudit.Current.Name
+    Set-ToggleState -Root $root -AutomationId 'NativePackageRegexMode' -IsOn $true | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePackageSearchBox' -Value '.*' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativePackageRegexApply'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePackageRegexStatus' -Prefix 'PCRE2 regex filters cached Discover results only' | Out-Null
+    $queryAudit = Wait-ForElement -Root $root -AutomationId 'NativePackageQueryAudit'
+    $primaryInRegexMode = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+    $workingInRegexMode = Find-ByAutomationId -Root $root -AutomationId 'NativePackageWorkingState'
+    Assert-True -Condition ($queryAudit.Current.Name -eq $auditBefore -and -not $primaryInRegexMode.Current.IsEnabled -and -not $workingInRegexMode) `
+        -Name 'Package Manager regex applies only to cached Discover rows and cannot start a remote query'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePackageSearchBox' -Value '[' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativePackageRegexApply'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePackageRegexStatus' -Prefix 'Regex syntax needs correction' | Out-Null
+    $queryAudit = Wait-ForElement -Root $root -AutomationId 'NativePackageQueryAudit'
+    Assert-True -Condition ($queryAudit.Current.Name -eq $auditBefore) `
+        -Name 'Package Manager invalid regex keeps the remote query epoch unchanged'
+
+    Set-ToggleState -Root $root -AutomationId 'NativePackageRegexMode' -IsOn $false | Out-Null
 
     $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
     Select-ComboItem -Combo $language -Name 'English'

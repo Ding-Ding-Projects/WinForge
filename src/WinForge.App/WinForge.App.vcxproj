@@ -74,6 +74,7 @@
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="HybridCRT.props" />
+  <Import Project="$(ProjectDir)..\..\eng\native\NativeRegex.props" />
 
   <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="PropertySheets">
@@ -139,6 +140,8 @@
     <ClInclude Include="..\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\WinForge.Core\RomanNum.h" />
+    <ClInclude Include="..\WinForge.Core\RegexSearch.h" />
+    <ClInclude Include="..\WinForge.Core\RegexBuilder.h" />
     <ClInclude Include="..\WinForge.Core\Localization.h" />
     <ClInclude Include="..\WinForge.Core\ModuleRecord.h" />
     <ClInclude Include="..\WinForge.Core\PackageManager.h" />
@@ -178,6 +181,12 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\RomanNum.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\RegexSearch.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\RegexBuilder.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\PackageManager.cpp">

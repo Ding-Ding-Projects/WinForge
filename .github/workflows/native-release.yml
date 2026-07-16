@@ -13,6 +13,9 @@ on:
       - 'WinForge.Native.sln'
       - 'installer/WinForge.Native.iss'
       - 'packages.config'
+      - 'vcpkg.json'
+      - 'eng/native/NativeRegex.props'
+      - 'THIRD-PARTY-NOTICES.txt'
       - '.github/workflows/native-release.yml'
   pull_request:
     branches: [ main ]
@@ -24,6 +27,9 @@ on:
       - 'WinForge.Native.sln'
       - 'installer/WinForge.Native.iss'
       - 'packages.config'
+      - 'vcpkg.json'
+      - 'eng/native/NativeRegex.props'
+      - 'THIRD-PARTY-NOTICES.txt'
       - '.github/workflows/native-release.yml'
   workflow_dispatch:
     inputs:
@@ -83,6 +89,19 @@ jobs:
         with:
           vs-version: '[17.0,18.0)'
 
+      - name: Restore native PCRE2 dependency · 還原原生 PCRE2 依賴
+        shell: pwsh
+        env:
+          VCPKG_DISABLE_METRICS: '1'
+        run: |
+          # The manifest pins a historical builtin baseline, so the clone must
+          # retain that commit rather than use a shallow checkout.
+          git clone https://github.com/microsoft/vcpkg "$env:RUNNER_TEMP\vcpkg"
+          & "$env:RUNNER_TEMP\vcpkg\bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw 'vcpkg bootstrap failed' }
+          & "$env:RUNNER_TEMP\vcpkg\vcpkg.exe" install --triplet x64-windows-static --x-manifest-root="$env:GITHUB_WORKSPACE"
+          if ($LASTEXITCODE -ne 0) { throw 'PCRE2 vcpkg install failed' }
+
       - name: Restore native NuGet packages · 還原原生 NuGet 套件
         shell: pwsh
         run: |
@@ -128,7 +147,11 @@ jobs:
       - name: Portable native zip · 原生可攜 zip
         shell: pwsh
         run: |
-          Compress-Archive -Path "${{ steps.runtime.outputs.dir }}\*" -DestinationPath "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" -Force
+          $staging = Join-Path $env:RUNNER_TEMP "WinForge-native-${{ steps.runtime.outputs.version }}"
+          New-Item -ItemType Directory -Path $staging -Force | Out-Null
+          Copy-Item -Path "${{ steps.runtime.outputs.dir }}\*" -Destination $staging -Recurse -Force
+          Copy-Item -LiteralPath 'THIRD-PARTY-NOTICES.txt' -Destination $staging -Force
+          Compress-Archive -Path "$staging\*" -DestinationPath "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" -Force
 
       - name: Install Inno Setup · 安裝 Inno Setup
         shell: pwsh
@@ -170,8 +193,10 @@ jobs:
             if ($installer.ExitCode -ne 0) { throw "native installer exited with $($installer.ExitCode)" }
             $app = Join-Path $installRoot 'WinForge.exe'
             $uninstaller = Join-Path $installRoot 'unins000.exe'
+            $notices = Join-Path $installRoot 'THIRD-PARTY-NOTICES.txt'
             if (-not (Test-Path -LiteralPath $app)) { throw "installed native app missing: $app" }
             if (-not (Test-Path -LiteralPath $uninstaller)) { throw "installed native uninstaller missing: $uninstaller" }
+            if (-not (Test-Path -LiteralPath $notices)) { throw "installed third-party notices missing: $notices" }
             $uninstallerProcess = Start-Process -FilePath $uninstaller -ArgumentList @(
               '/VERYSILENT',
               '/SUPPRESSMSGBOXES',

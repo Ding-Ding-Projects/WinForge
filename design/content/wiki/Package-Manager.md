@@ -12,10 +12,14 @@ One cached Discover, Updates, or Installed row can create a redacted reviewed In
 
 The coordinator retains the redacted reviewed argv plus request/lifecycle metadata in memory. Existing Operations history receives one bounded redacted lifecycle event; third-party stdout, stderr, and runtime diagnostics are withheld. Multi-select batches, Preview selected, and Update all remain preview-only and never call the mutation coordinator. · 協調器會喺記憶體保留已遮蔽已檢視 argv 連同要求／生命週期 metadata。現有 Operations 歷史會收到一條有界已遮蔽生命週期事件；第三方 stdout、stderr 同執行時診斷會略去。多選批次、預覽所選同全部更新都保持只供預覽，絕對唔會呼叫修改協調器。
 
+## PCRE2 cached Discover regex · PCRE2 已快取 Discover 正規表示式
+
+PCRE2-16 regex is a separate bounded, non-JIT local filter over cached Discover rows. It never reaches argv or HTTPS, disables external Search while active, and a native guard rejects query launch. `NativePackageQueryAudit` changes only for a real CLI/HTTPS query, so UI Automation can prove regex filtering does not fan out. Exact is full-match; Similar and ignore-special normalization are unavailable in regex mode. · PCRE2-16 regex 係已快取 Discover 資料列上獨立、有界、非 JIT 嘅本機篩選。佢絕對唔會去 argv 或 HTTPS、啟用時會停用外部 Search，而且原生 guard 會拒絕開查詢。`NativePackageQueryAudit` 只會喺真正 CLI／HTTPS 查詢時改，所以 UI Automation 可以證明 regex 篩選冇 fan out。Exact 係 full-match；regex 模式冇 Similar 同忽略特殊字元正規化。
+
 ## Safety and evidence · 安全同證據
 
-- Debug and Release native tests: **355/355** each (309 core route/package-manager checks + 46 parser checks), including 29 focused coordinator cases. · Debug 同 Release 原生測試：各自 **355/355**（309 個 core route／package-manager 檢查 + 46 個 parser 檢查），包括 29 個協調器專項案例。
-- Elevated process-owned UI Automation smoke: **148/148**, including all eleven manager filters and Package Manager horizontal-bound checks. · 提權、自有 process UI Automation smoke：**148/148**，包括全部十一個管理器篩選同 Package Manager 水平邊界檢查。
+- Debug and Release native tests: **374/374** each (328 core route/package-manager checks + 46 parser checks), including safe cached-Discover PCRE2 regex vectors. · Debug 同 Release 原生測試：各自 **374/374**（328 個 core route／package-manager 檢查 + 46 個 parser 檢查），包括安全已快取 Discover PCRE2 regex vectors。
+- Elevated process-owned UI Automation smoke: **164/164**, including all eleven manager filters, cache-only regex/no-query assertions, and Package Manager horizontal-bound checks. · 提權、自有 process UI Automation smoke：**164/164**，包括全部十一個管理器篩選、只限快取 regex／唔開查詢 assertion 同 Package Manager 水平邊界檢查。
 - Catalog parity: 346 fixed routes, five dynamic families, 319 registry records, and 22 categories. · 目錄對等：346 條固定路線、五組動態家族、319 條 registry 記錄同 22 個分類。
 - Normal-integrity external query/mutation proof remains blocked because this session is elevated; the runtime fails closed. · 正常 integrity 外部查詢／修改證明仍受阻，因為呢個 session 已提權；runtime 會 fail closed。
 - Visual evidence is capture-blocked, not a visual pass. The managed image above remains clearly labelled as managed only. · 視覺證據係 capture-blocked，唔係 visual pass。上面受控圖片已清楚標示只屬受控版。

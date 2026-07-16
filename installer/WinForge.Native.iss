@@ -45,6 +45,9 @@ Name: "desktopicon"; Description: "Create a desktop shortcut · 建立桌面捷�
 
 [Files]
 Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "*.pdb,*.ilk"; Flags: recursesubdirs createallsubdirs ignoreversion
+; PCRE2 is linked statically by the native regex layer. Keep its complete
+; redistribution notice beside every installed binary.
+Source: "..\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\WinForge Native"; Filename: "{app}\{#MyAppExe}"

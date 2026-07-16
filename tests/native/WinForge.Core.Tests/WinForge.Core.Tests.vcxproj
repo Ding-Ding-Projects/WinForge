@@ -30,6 +30,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(ProjectDir)..\..\..\eng\native\NativeRegex.props" />
   <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -57,6 +58,7 @@
     <ClCompile Include="CodecTests.cpp" />
     <ClCompile Include="GuidGenTests.cpp" />
     <ClCompile Include="RomanNumTests.cpp" />
+    <ClCompile Include="RegexSearchTests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
     <ClCompile Include="PackageMutationCoordinatorTests.cpp" />
@@ -70,6 +72,8 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RomanNum.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\RegexSearch.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\RegexBuilder.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageMutationCoordinator.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageParsers.cpp" />
@@ -84,6 +88,7 @@
     <ClInclude Include="CodecTests.h" />
     <ClInclude Include="GuidGenTests.h" />
     <ClInclude Include="RomanNumTests.h" />
+    <ClInclude Include="RegexSearchTests.h" />
     <ClInclude Include="PackageManagerTests.h" />
     <ClInclude Include="PackageMutationCoordinatorTests.h" />
     <ClInclude Include="PackageRuntimeTests.h" />
@@ -94,6 +99,8 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RomanNum.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearch.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RegexBuilder.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PackageManager.h" />

@@ -229,6 +229,12 @@ powershell -ExecutionPolicy Bypass -File eng\native\Test-NativeCatalogParity.ps1
 powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
 ```
 
-See [Native C++ Rewrite](Native-Cpp-Rewrite.md) for the 346-route + five-family contract, current Debug/Release 233/233 native test executable (191 core + 42 parser), linked managed-reference Check Digit 24/24 and Text to Binary 18/18 regressions, elevated 59/59 shell evidence, the two native utility slices, normal-integrity and screenshot blockers, safety invariants, and no-CLR cutover rule. · 346 路線 + 五組動態合約、目前 Debug／Release 233/233 原生測試 executable（191 core + 42 parser）、連結嘅受控參考檢查碼 24/24 同文字轉二進位 18/18 回歸、提權 59/59 shell 證據、兩個原生 utility 批次、正常 integrity 同截圖阻礙、安全 invariant 同 no-CLR 切換規則，請睇[原生 C++ 重寫](Native-Cpp-Rewrite.md)。
+### Native PCRE2 regex toolchain · 原生 PCRE2 regex 工具鏈
+
+**EN —** Native regex search is a pinned static `pcre2-16` vcpkg dependency (`vcpkg.json` plus `eng/native/NativeRegex.props`). Build through the normal native solution so the static Debug/Release libraries are restored; do not substitute `std::regex`, enable PCRE2 JIT, or pass a Package Discover pattern to argv/HTTPS. Run the core executable and shell smoke after changing search or wizard behavior; this slice passes 374/374 Debug and Release checks plus 164/164 elevated UI Automation checks. `THIRD-PARTY-NOTICES.txt` is shipped in both the portable archive and Inno Setup install root.
+
+**粵語 —** 原生 regex 搜尋係固定 static `pcre2-16` vcpkg 相依（`vcpkg.json` 加 `eng/native/NativeRegex.props`）。要經正常原生 solution 建置，先會還原 static Debug／Release library；唔好用 `std::regex` 代替、唔好開 PCRE2 JIT，亦唔可以將 Package Discover 模式傳去 argv／HTTPS。改咗搜尋或者精靈行為後，要行 core executable 同 shell smoke；呢個批次通過 374/374 Debug 同 Release 檢查加 164/164 提權 UI Automation 檢查。`THIRD-PARTY-NOTICES.txt` 會放入可攜 archive 同 Inno Setup 安裝根目錄。
+
+See [Native C++ Rewrite](Native-Cpp-Rewrite.md) for the 346-route + five-family contract, current native evidence, normal-integrity and screenshot blockers, safety invariants, and no-CLR cutover rule. · 346 路線 + 五組動態合約、目前原生證據、正常 integrity 同截圖阻礙、安全 invariant 同 no-CLR 切換規則，請睇[原生 C++ 重寫](Native-Cpp-Rewrite.md)。
 
 [← Wiki Home](Home.md)

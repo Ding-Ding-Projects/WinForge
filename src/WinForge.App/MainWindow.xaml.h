@@ -11,6 +11,7 @@
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageMutationCoordinator.h"
 #include "../WinForge.Core/PackageRuntime.h"
+#include "../WinForge.Core/RegexSearch.h"
 #include "../WinForge.Core/RouteIndex.h"
 
 #include <atomic>
@@ -79,9 +80,17 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::NavigationView m_navigation{ nullptr };
         Microsoft::UI::Xaml::Controls::Grid m_content{ nullptr };
         Microsoft::UI::Xaml::Controls::AutoSuggestBox m_search{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_shellRegexMode{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_shellRegexBuilder{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_shellSearchExecute{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_shellRegexStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_languagePicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_allAppsSearchBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_allAppsRegexMode{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_allAppsRegexBuilder{ nullptr };
         Microsoft::UI::Xaml::Controls::ListView m_allAppsList{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_allAppsCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_allAppsRegexStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageViewPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageSortPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::AutoSuggestBox m_packageSearchBox{ nullptr };
@@ -89,12 +98,17 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ComboBox m_packageSearchModePicker{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_packageSearchCaseSensitive{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_packageSearchIgnoreSpecial{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_packageDiscoverRegexMode{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_packageDiscoverRegexBuilder{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_packageDiscoverRegexApply{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_packageDiscoverRegexStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_packagePrimaryAction{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_packageSecondaryAction{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_packageOperationsAction{ nullptr };
         Microsoft::UI::Xaml::Controls::ProgressRing m_packageBusy{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_packageResultsHeader{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_packageLiveStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_packageQueryAudit{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_packageResults{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_packageManagerFilters{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_checkDigitSchemePicker{ nullptr };
@@ -164,11 +178,18 @@ namespace winrt::WinForge::implementation
         std::filesystem::path m_packageStatePath;
         bool m_packageStateApplying{ false };
         std::uint64_t m_packageOperationSequence{ 0 };
+        std::uint64_t m_packageQueryEpoch{ 0 };
         std::wstring m_packageSearchText{};
         winforge::core::packages::PackageSearchMode m_packageSearchMode{
             winforge::core::packages::PackageSearchMode::Both };
         bool m_packageSearchCaseSensitiveValue{ false };
         bool m_packageSearchIgnoreSpecialValue{ false };
+        bool m_packageDiscoverRegexEnabled{ false };
+        bool m_packageDiscoverRegexMultiline{ false };
+        bool m_packageDiscoverRegexDotMatchesNewline{ false };
+        std::wstring m_packageDiscoverRegexPattern{};
+        std::wstring m_packageDiscoverRegexDiagnostic{};
+        bool m_packageRetainCachedResultsOnNextRender{ false };
         std::wstring m_packageBundleSourcePath{};
         std::wstring m_packageBundleImportNote{};
         bool m_packageBundleDirty{ false };
@@ -203,6 +224,45 @@ namespace winrt::WinForge::implementation
         std::wstring m_romanNumRomanOutputValue{};
         std::wstring m_romanNumNumberOutputValue{};
         bool m_romanNumRendering{ false };
+        bool m_shellRegexEnabled{ false };
+        bool m_shellRegexCaseSensitive{ false };
+        bool m_shellRegexMultiline{ false };
+        bool m_shellRegexDotMatchesNewline{ false };
+        std::wstring m_shellRegexDiagnostic{};
+        std::wstring m_allAppsSearchText{};
+        bool m_allAppsRegexEnabled{ false };
+        bool m_allAppsRegexCaseSensitive{ false };
+        bool m_allAppsRegexMultiline{ false };
+        bool m_allAppsRegexDotMatchesNewline{ false };
+        std::wstring m_allAppsRegexDiagnostic{};
+
+        enum class RegexBuilderTarget : std::uint8_t
+        {
+            ShellCatalog,
+            AllApps,
+            PackageDiscover,
+            TesterOnly,
+        };
+
+        RegexBuilderTarget m_regexBuilderTarget{ RegexBuilderTarget::TesterOnly };
+        int32_t m_regexBuilderStep{ 0 };
+        bool m_regexBuilderCaseSensitive{ false };
+        bool m_regexBuilderMultiline{ false };
+        bool m_regexBuilderDotMatchesNewline{ false };
+        std::wstring m_regexBuilderPattern{};
+        std::wstring m_regexBuilderTestText{ L"WinForge Native\r\nPackage Manager" };
+        std::wstring m_regexBuilderLiteral{};
+        std::wstring m_regexBuilderCharacterClass{};
+        std::wstring m_regexBuilderCaptureName{};
+        std::wstring m_regexBuilderAlternatives{};
+        int32_t m_regexBuilderQuantifierIndex{ 0 };
+        int32_t m_regexBuilderRangeMinimum{ 0 };
+        int32_t m_regexBuilderRangeMaximum{ 1 };
+        bool m_regexBuilderRangeUnbounded{ false };
+        Microsoft::UI::Xaml::Controls::TextBox m_regexBuilderPatternBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_regexBuilderTestTextBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_regexBuilderStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_regexBuilderPreview{ nullptr };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
 
@@ -216,6 +276,11 @@ namespace winrt::WinForge::implementation
         void RenderDashboard();
         void RenderAllApps(std::wstring_view query = {});
         void PopulateAllApps(std::wstring_view query);
+        void RenderRegexTester();
+        void OpenRegexBuilder(RegexBuilderTarget target, std::wstring_view initialPattern = {});
+        void ApplyRegexBuilderTarget();
+        void AppendRegexBuilderToken(std::wstring_view token);
+        void RefreshRegexTesterPreview();
         void RenderPackageManager();
         void RenderPackageManagerView();
         void LoadPackageManagerState();
@@ -341,7 +406,16 @@ namespace winrt::WinForge::implementation
 
         [[nodiscard]] winforge::core::ModuleRecord const* FindModule(std::wstring_view route) const;
         [[nodiscard]] winforge::core::ModuleRecord const* FindLaunchModule(std::wstring_view route) const;
-        [[nodiscard]] bool Matches(winforge::core::ModuleRecord const& module, std::wstring_view query) const;
+        [[nodiscard]] std::shared_ptr<winforge::core::regex::SafeRegex const> CompileSearchRegex(
+            std::wstring_view pattern,
+            bool caseSensitive,
+            bool multiline,
+            bool dotMatchesNewline,
+            std::wstring& diagnostic) const;
+        [[nodiscard]] bool Matches(
+            winforge::core::ModuleRecord const& module,
+            std::wstring_view query,
+            winforge::core::regex::SafeRegex const* expression = nullptr) const;
         [[nodiscard]] Microsoft::UI::Xaml::Controls::StackPanel CreatePage(
             std::wstring_view title,
             std::wstring_view subtitle);
@@ -361,6 +435,7 @@ namespace winrt::WinForge::implementation
         void OnSearchSubmitted(
             Microsoft::UI::Xaml::Controls::AutoSuggestBox const&,
             Microsoft::UI::Xaml::Controls::AutoSuggestBoxQuerySubmittedEventArgs const& args);
+        void SubmitShellSearch(std::wstring_view query);
         void OnLanguageChanged(
             winrt::Windows::Foundation::IInspectable const&,
             Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);

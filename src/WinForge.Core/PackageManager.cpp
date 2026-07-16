@@ -696,6 +696,50 @@ namespace winforge::core::packages
         std::span<PackageItem const> raw_items,
         PackageSearchOptions options)
     {
+        if (options.regex)
+        {
+            std::vector<PackageItem> filtered;
+            filtered.reserve(raw_items.size());
+            auto const regex_matches = [&options](std::wstring_view value, bool full_match)
+            {
+                auto const result = full_match
+                    ? options.regex->FullMatch(value)
+                    : options.regex->Search(value);
+                return result.matched;
+            };
+            for (auto const& item : raw_items)
+            {
+                bool matches{};
+                switch (options.mode)
+                {
+                case PackageSearchMode::Name:
+                    matches = regex_matches(item.name, false);
+                    break;
+                case PackageSearchMode::Id:
+                    matches = regex_matches(item.id, false);
+                    break;
+                case PackageSearchMode::Exact:
+                    matches = regex_matches(item.name, true)
+                        || regex_matches(item.id, true);
+                    break;
+                case PackageSearchMode::Similar:
+                    // Similar is disabled by the native UI in regex mode. Keep
+                    // the core deterministic if a caller supplies it anyway.
+                    [[fallthrough]];
+                case PackageSearchMode::Both:
+                default:
+                    matches = regex_matches(item.name, false)
+                        || regex_matches(item.id, false);
+                    break;
+                }
+                if (matches)
+                {
+                    filtered.push_back(item);
+                }
+            }
+            return filtered;
+        }
+
         // "Similar" deliberately retains the full cached list. This mirrors
         // the managed UniGetUI-style view, where the package engines decide
         // which related rows to return and the local filter must not discard

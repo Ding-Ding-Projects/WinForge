@@ -7,8 +7,8 @@ WinForge is migrating to a genuine C++20/C++/WinRT WinUI 3 application. C# and X
 | Evidence · 證據 | Current result · 目前結果 |
 |---|---|
 | Native route inventory · 原生 route 清單 | 346 fixed routes, five dynamic families, 319 registry entries, 22 categories · 346 條固定路線、五組動態家族、319 條 registry 記錄、22 個分類 |
-| Debug / Release core tests · Debug／Release 核心測試 | **355/355** each (309 core + 46 parser) · 各自 **355/355**（309 個 core + 46 個 parser） |
-| Native shell accessibility smoke · 原生 shell 無障礙 smoke | **148/148** elevated process-owned UI Automation checks · **148/148** 提權、自有 process UI Automation 檢查 |
+| Debug / Release core tests · Debug／Release 核心測試 | **374/374** each (328 core + 46 parser) · 各自 **374/374**（328 個 core + 46 個 parser） |
+| Native shell accessibility smoke · 原生 shell 無障礙 smoke | **164/164** elevated process-owned UI Automation checks · **164/164** 提權、自有 process UI Automation 檢查 |
 | Catalog parity · 目錄對等 | 346 fixed routes, five dynamic families, 319 registry entries, 22 categories, 346 ledger rows · 346 條固定路線、五組動態家族、319 條 registry 記錄、22 個分類、346 條 ledger rows |
 
 Unported routes display an explicit native pending page; a resolved route is never presented as feature parity. · 未移植 route 會顯示明確原生 pending 頁；route 解析到唔會當成功能對等。
@@ -21,8 +21,12 @@ An individual cached Install/Update/Uninstall row can become an `AwaitingConsent
 
 Normal-integrity external execution proof is still blocked in this elevated session. Batch consent, elevation mediation, full bundle interoperability, Setup/bootstrap, scheduler/notifications, richer manager UX, and wider settings are pending. · 正常 integrity 外部執行證明仍喺呢個提權 session 受阻。批次確認、提升權限調停、完整 Bundle 互通、Setup／bootstrap、排程／通知、豐富管理器 UX 同更廣設定仍待完成。
 
+## Native regex search and builder · 原生正規搜尋同建立器
+
+Native PCRE2-16 now powers Shell catalog search, All Apps, and cached Package Discover filtering. It is bounded and non-JIT. The real four-step `module.regextester` builder handles flags, safe composition, groups/alternation/quantifiers, match/capture preview, and application to a chosen native target. Package regex is cache-only, never enters argv/HTTPS, disables remote Search, and its `NativePackageQueryAudit` changes only for a real package query. PCRE2 attribution ships in `THIRD-PARTY-NOTICES.txt`, the portable ZIP, and the installer. · 原生 PCRE2-16 而家處理 Shell 目錄搜尋、所有 app 同已快取 Package Discover 篩選；佢有界而且唔用 JIT。真正四步 `module.regextester` 建立器處理旗標、安全組合、group／alternation／quantifier、match／capture 預覽同套用去已揀原生目標。Package regex 只限快取、唔會入 argv／HTTPS、會停用遠端 Search，而且 `NativePackageQueryAudit` 只會喺真正套件查詢時改。PCRE2 歸屬會放喺 `THIRD-PARTY-NOTICES.txt`、可攜 ZIP 同 installer。
+
 ## Visual and completion status · 視覺同完成狀態
 
-The required driver and repo-local LowLevel MCP isolated-desktop captures produced blank or near-uniform WinUI client frames for changed native pages, so no invalid or stale PNG is shown as native evidence; these views are `capture-blocked`. The 148/148 UI Automation sweep is behavioral/accessibility proof, not a visual pass. · 必需 driver 同 repo 本機 LowLevel MCP 隔離 desktop 擷取為改過原生頁面得到空白／接近單色 WinUI client frame，所以唔會將無效或者舊 PNG 當做原生證據；呢啲 view 係 `capture-blocked`。148/148 UI Automation 掃描係行為／無障礙證明，唔係 visual pass。
+On 2026-07-16 the required driver retried Dashboard, All Apps, Regex Tester, and Package Discover, while repo-local LowLevel MCP captured Regex Tester and Package Discover on an isolated desktop. `CopyFromScreen` was unavailable, and every inspected `PrintWindow`/HWND client frame was blank or near-uniform; no invalid or stale PNG is shown as native evidence, so these views are `capture-blocked`. The 164/164 UI Automation sweep is behavioral/accessibility proof, not a visual pass. · 2026-07-16，必需 driver 重新嘗試 Dashboard、所有 app、Regex Tester 同 Package Discover，而 repo 本機 LowLevel MCP 喺隔離 desktop 擷取 Regex Tester 同 Package Discover。`CopyFromScreen` 用唔到，而且每張檢查過嘅 `PrintWindow`／HWND client frame 都係空白／接近單色；唔會將無效或者舊 PNG 當做原生證據，所以呢啲 view 係 `capture-blocked`。164/164 UI Automation 掃描係行為／無障礙證明，唔係 visual pass。
 
 Full cutover still requires every route, control, service, companion, launcher, updater, installer, protocol, test, documentation mirror, and screenshot to pass with a final native-binary audit. · 完整切換仍然要求每條 route、control、service、companion、launcher、updater、installer、protocol、test、文件鏡像同截圖都通過，並有最後原生 binary audit。
