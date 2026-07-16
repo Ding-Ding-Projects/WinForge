@@ -9,9 +9,11 @@
 #include "../WinForge.Core/GuidGen.h"
 #include "../WinForge.Core/RomanNum.h"
 #include "../WinForge.Core/ModuleRecord.h"
+#include "../WinForge.Core/PackageMutationCoordinator.h"
 #include "../WinForge.Core/PackageRuntime.h"
 #include "../WinForge.Core/RouteIndex.h"
 
+#include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -143,6 +145,7 @@ namespace winrt::WinForge::implementation
         std::vector<winforge::core::packages::PackageItem> m_packageBundleIncompatibleItems;
         std::vector<PackageManagerRunState> m_packageRunStates;
         std::vector<PackageOperationEntry> m_packageOperations;
+        winforge::core::packages::PackageMutationCoordinator m_packageMutationCoordinator;
         std::vector<PackageIgnoredRule> m_packageIgnoredRules;
         std::vector<PackagePinnedRule> m_packagePinnedRules;
         std::vector<PackageSnoozedRule> m_packageSnoozedRules;
@@ -152,6 +155,7 @@ namespace winrt::WinForge::implementation
             winforge::core::packages::PackageAction::Probe };
         bool m_packageProbeComplete{ false };
         bool m_packageWorking{ false };
+        std::atomic_bool m_packageMutationWorkerRunning{ false };
         int32_t m_packageView{ 0 };
         bool m_packageRememberView{ true };
         bool m_packageRememberSearch{ true };
@@ -229,6 +233,13 @@ namespace winrt::WinForge::implementation
         void PreviewPackageOperation(
             winforge::core::packages::PackageItem const& package,
             winforge::core::packages::PackageAction action);
+        void RequestPackageMutation(
+            winforge::core::packages::PackageItem const& package,
+            winforge::core::packages::PackageAction action);
+        void ConfirmPackageMutation(std::wstring id);
+        void CancelPackageMutation(std::wstring id);
+        void RetryPackageMutation(std::wstring id);
+        void StartNextPackageMutation();
         [[nodiscard]] std::optional<winforge::core::packages::PackageAction> CurrentPackageSelectionAction() const;
         void SetPackageSelected(
             winforge::core::packages::PackageItem const& package,

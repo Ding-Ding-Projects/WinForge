@@ -1,6 +1,7 @@
 #include "PackageMutationCoordinator.h"
 #include "PackageMutationCoordinatorTests.h"
 
+#include <algorithm>
 #include <iostream>
 #include <string_view>
 
@@ -76,6 +77,17 @@ NativeTestCounts RunPackageMutationCoordinatorTests()
     Expect(!coordinator.RunNext(successExecutor) && executorCalls == 1,
         "cancel-before-start never invokes the executor");
 
+    PackageMutationCoordinator uniqueIdCoordinator;
+    auto stableId = uniqueIdCoordinator.Submit(Request(L"stable-id", L"Contoso.StableId"));
+    auto collidingId = uniqueIdCoordinator.Submit(Request(L"stable-id", L"Contoso.OtherPackage"));
+    auto uniqueIdSnapshot = uniqueIdCoordinator.Snapshot();
+    Expect(stableId.accepted && !collidingId.accepted && !collidingId.duplicate &&
+        collidingId.record.diagnostic == L"duplicate-mutation-id" &&
+        collidingId.record.request.package.id.empty() &&
+        uniqueIdSnapshot.size() == 1 &&
+        uniqueIdSnapshot.front().request.package.id == L"Contoso.StableId",
+        "duplicate external mutation ids are rejected without aliasing or reflecting coordinator records");
+
     auto second = coordinator.Submit(Request(L"second", L"Contoso.Second"));
     auto third = coordinator.Submit(Request(L"third", L"Contoso.Third"));
     Expect(second.accepted && third.accepted && coordinator.Confirm(L"second") && coordinator.Confirm(L"third"),
@@ -85,6 +97,17 @@ NativeTestCounts RunPackageMutationCoordinatorTests()
     Expect(secondDone && thirdDone && secondDone->request.id == L"second" &&
         thirdDone->request.id == L"third" && executorCalls == 3,
         "serial queue preserves explicit confirmation order");
+
+    PackageMutationCoordinator startedCoordinator;
+    auto started = startedCoordinator.Submit(Request(L"started", L"Contoso.Started"));
+    bool startedCallbackObservedRunning = false;
+    Expect(started.accepted && startedCoordinator.Confirm(L"started") &&
+        startedCoordinator.RunNext(successExecutor, [&startedCallbackObservedRunning](
+            PackageMutationRecord const& record)
+        {
+            startedCallbackObservedRunning = record.state == PackageMutationState::Running;
+        }) && startedCallbackObservedRunning,
+        "running transition notifies hosts after coordinator state is live");
 
     PackageMutationCoordinator runningCoordinator;
     auto running = runningCoordinator.Submit(Request(L"running", L"Contoso.Running"));
@@ -103,6 +126,32 @@ NativeTestCounts RunPackageMutationCoordinatorTests()
         cancelled->cancellation_requested,
         "running cancellation propagates a stop request to the executor");
 
+    PackageMutationCoordinator lifecycleCoordinator;
+    auto lifecycleRunning = lifecycleCoordinator.Submit(Request(L"lifecycle-running", L"Contoso.LifecycleRunning"));
+    auto lifecycleQueued = lifecycleCoordinator.Submit(Request(L"lifecycle-queued", L"Contoso.LifecycleQueued"));
+    auto lifecycleAwaiting = lifecycleCoordinator.Submit(Request(L"lifecycle-awaiting", L"Contoso.LifecycleAwaiting"));
+    Expect(lifecycleRunning.accepted && lifecycleQueued.accepted && lifecycleAwaiting.accepted &&
+        lifecycleCoordinator.Confirm(L"lifecycle-running") && lifecycleCoordinator.Confirm(L"lifecycle-queued"),
+        "lifecycle cancellation fixture prepares running queued and awaiting work");
+    bool lifecycleCancelled = false;
+    auto lifecycleCompleted = lifecycleCoordinator.RunNext([&](PackageMutationRequest const&, std::stop_token token)
+    {
+        lifecycleCancelled = lifecycleCoordinator.CancelAll();
+        PackageRuntimeResult result;
+        result.command_started = true;
+        result.cancelled = token.stop_requested();
+        return result;
+    });
+    auto lifecycleSnapshot = lifecycleCoordinator.Snapshot();
+    auto const allLifecycleCancelled = std::all_of(
+        lifecycleSnapshot.begin(), lifecycleSnapshot.end(), [](PackageMutationRecord const& record)
+        {
+            return record.state == PackageMutationState::Cancelled;
+        });
+    Expect(lifecycleCancelled && lifecycleCompleted &&
+        lifecycleCompleted->state == PackageMutationState::Cancelled && allLifecycleCancelled,
+        "lifecycle cancellation stops active work and cancels every pending mutation");
+
     PackageMutationCoordinator retryCoordinator;
     auto retry = retryCoordinator.Submit(Request(L"retry", L"Contoso.Retry"));
     Expect(retry.accepted && retryCoordinator.Confirm(L"retry"), "retry fixture starts once with consent");
@@ -111,16 +160,16 @@ NativeTestCounts RunPackageMutationCoordinatorTests()
         PackageRuntimeResult result;
         result.command_started = true;
         result.exit_code = 17;
-        result.standard_error = L"password=should-not-leak token=also-secret authorization: Bearer private-value";
+        result.standard_error = L"password=should-not-leak token=also-secret access_token=underscore-secret "
+            L"api-key=hyphen-secret {\"token\":\"json-secret\"} https://uri-secret@example.test/";
         result.diagnostic = L"failed with api_key=private-key";
         return result;
     });
     Expect(failed && failed->state == PackageMutationState::Failed &&
         failed->diagnostic.find(L"private-key") == std::wstring::npos &&
-        failed->output_tail.find(L"should-not-leak") == std::wstring::npos &&
-        failed->output_tail.find(L"also-secret") == std::wstring::npos &&
-        failed->output_tail.find(L"private-value") == std::wstring::npos,
-        "failure output and diagnostics are redacted before state retention");
+        failed->diagnostic.find(L"should-not-leak") == std::wstring::npos &&
+        failed->output_tail.empty(),
+        "failure output and diagnostics are withheld from retained coordinator state");
     Expect(retryCoordinator.Retry(L"retry") && !retryCoordinator.RunNext(successExecutor),
         "retry returns to awaiting-consent and cannot rerun automatically");
     Expect(retryCoordinator.Confirm(L"retry") && retryCoordinator.RunNext(successExecutor),
@@ -155,12 +204,49 @@ NativeTestCounts RunPackageMutationCoordinatorTests()
     Expect(!rejectedCoordinator.RunNext(successExecutor),
         "rejected requests never enter the executor queue");
 
+    PackageMutationCoordinator customArgumentsCoordinator;
+    auto customArguments = Request(L"custom-arguments", L"Contoso.CustomArguments");
+    customArguments.install_options.custom_args_install = L"--auth=secret-value";
+    auto customArgumentsRejected = customArgumentsCoordinator.Submit(std::move(customArguments));
+    Expect(!customArgumentsRejected.accepted &&
+        customArgumentsRejected.record.diagnostic == L"custom-mutation-arguments-unsupported" &&
+        customArgumentsRejected.record.command_preview.empty() &&
+        customArgumentsRejected.record.request.install_options.custom_args_install.empty() &&
+        customArgumentsCoordinator.Snapshot().empty(),
+        "custom mutation arguments are rejected without retaining possible credentials");
+
+    PackageMutationCoordinator capacityCoordinator;
+    bool filledCapacity = true;
+    for (std::size_t index = 0; index < MaximumPackageMutationRecords; ++index)
+    {
+        auto submission = capacityCoordinator.Submit(
+            Request(L"capacity-" + std::to_wstring(index), L"Contoso.Capacity" + std::to_wstring(index)));
+        filledCapacity = filledCapacity && submission.accepted;
+    }
+    auto overflow = capacityCoordinator.Submit(Request(L"capacity-overflow", L"Contoso.CapacityOverflow"));
+    Expect(filledCapacity && !overflow.accepted &&
+        overflow.record.diagnostic == L"mutation-queue-capacity-reached" &&
+        capacityCoordinator.Snapshot().size() == MaximumPackageMutationRecords,
+        "pending mutation queue rejects a request when its bounded capacity is full");
+    Expect(capacityCoordinator.Cancel(L"capacity-0") &&
+        capacityCoordinator.Submit(Request(L"capacity-reclaimed", L"Contoso.CapacityReclaimed")).accepted &&
+        capacityCoordinator.Snapshot().size() == MaximumPackageMutationRecords,
+        "terminal mutation history is reclaimed before accepting another reviewed request");
+
     std::wstring oversized(MaximumPackageMutationOutputTail + 300, L'x');
     oversized += L" password=oversized-secret";
     auto redactedTail = RedactPackageMutationText(oversized);
     Expect(redactedTail.size() <= MaximumPackageMutationOutputTail &&
         redactedTail.find(L"oversized-secret") == std::wstring::npos,
         "redacted operation text remains bounded by the output-tail limit");
+    auto adversarialPreview = RedactPackageMutationText(
+        L"--api-key=hyphen-secret --access_token=underscore-secret "
+        L"{\"token\":\"json-secret\"} https://uri-secret@example.test/");
+    Expect(adversarialPreview.find(L"hyphen-secret") == std::wstring::npos &&
+        adversarialPreview.find(L"underscore-secret") == std::wstring::npos &&
+        adversarialPreview.find(L"json-secret") == std::wstring::npos &&
+        adversarialPreview.find(L"uri-secret") == std::wstring::npos,
+        "reviewed command previews redact adversarial secret-like values");
 
     std::cout << counts.passed << " package-mutation-coordinator tests passed, "
         << counts.failed << " failed\n";

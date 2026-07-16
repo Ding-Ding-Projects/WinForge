@@ -28,6 +28,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
 #include <unordered_set>
 #include <utility>
 
@@ -449,6 +450,7 @@ namespace winrt::WinForge::implementation
         Closed([this](Windows::Foundation::IInspectable const&, WindowEventArgs const&)
         {
             CancelPackageWork();
+            static_cast<void>(m_packageMutationCoordinator.CancelAll());
         });
 
         try
@@ -597,8 +599,16 @@ namespace winrt::WinForge::implementation
             CancelPackageWork();
         }
         auto normalized = winforge::core::NormalizeRouteKey(route);
+        auto cancelMutationIfLeavingPackages = [this](std::wstring_view nextRoute)
+        {
+            if (m_currentRoute == L"module.packages" && nextRoute != L"module.packages")
+            {
+                static_cast<void>(m_packageMutationCoordinator.CancelAll());
+            }
+        };
         if (normalized == L"search")
         {
+            cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
             RenderCurrent();
@@ -606,6 +616,7 @@ namespace winrt::WinForge::implementation
         }
         if (normalized == L"manual" && !argument.empty())
         {
+            cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
             RenderCurrent();
@@ -615,12 +626,14 @@ namespace winrt::WinForge::implementation
         auto const* module = deepLink ? FindLaunchModule(normalized) : FindModule(normalized);
         if (!module)
         {
+            cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
             RenderUnknown(normalized);
             return;
         }
 
+        cancelMutationIfLeavingPackages(module->id);
         m_currentRoute = module->id;
         m_currentArgument = std::wstring(argument);
         SelectNavigationItem(module->id);
@@ -2730,9 +2743,12 @@ namespace winrt::WinForge::implementation
             }
 
             CheckBox filter;
-            filter.Content(box_value(ToHString(
+            auto label = CreateText(
                 winforge::core::LocalizedText{
-                    std::wstring(manager.name_en), std::wstring(manager.name_zh) }.Pick(m_language))));
+                    std::wstring(manager.name_en), std::wstring(manager.name_zh) }.Pick(m_language),
+                14);
+            label.TextWrapping(TextWrapping::WrapWholeWords);
+            filter.Content(label);
             filter.Tag(box_value(ToHString(key)));
             filter.IsChecked(m_packageManagersSelected[key]);
             if (m_packageProbeComplete)
@@ -2748,7 +2764,7 @@ namespace winrt::WinForge::implementation
                     AutomationProperties::SetHelpText(filter, ToHString(diagnostic));
                 }
             }
-            filter.Margin(Thickness{ 0, 0, 14, 0 });
+            filter.Margin(Thickness{ 0, 0, 0, 2 });
             AutomationProperties::SetAutomationId(
                 filter,
                 ToHString(L"NativePackageManagerFilter_" + AutomationKey(key)));
@@ -2900,9 +2916,15 @@ namespace winrt::WinForge::implementation
                     auto const object = value.GetObject();
                     PackageOperationEntry entry;
                     entry.id = object.HasKey(L"id") ? ToWide(object.GetNamedString(L"id")) : std::wstring{};
-                    entry.title = object.HasKey(L"title") ? ToWide(object.GetNamedString(L"title")) : std::wstring{};
-                    entry.details = object.HasKey(L"details") ? ToWide(object.GetNamedString(L"details")) : std::wstring{};
-                    entry.status = object.HasKey(L"status") ? ToWide(object.GetNamedString(L"status")) : std::wstring{};
+                    entry.title = object.HasKey(L"title")
+                        ? winforge::core::packages::RedactPackageMutationText(ToWide(object.GetNamedString(L"title")))
+                        : std::wstring{};
+                    entry.details = object.HasKey(L"details")
+                        ? winforge::core::packages::RedactPackageMutationText(ToWide(object.GetNamedString(L"details")))
+                        : std::wstring{};
+                    entry.status = object.HasKey(L"status")
+                        ? winforge::core::packages::RedactPackageMutationText(ToWide(object.GetNamedString(L"status")))
+                        : std::wstring{};
                     entry.created_epoch_seconds = object.HasKey(L"created")
                         ? static_cast<std::int64_t>(object.GetNamedNumber(L"created"))
                         : 0;
@@ -2940,7 +2962,7 @@ namespace winrt::WinForge::implementation
                     PackageOperationEntry entry;
                     entry.id = L"legacy-" + std::to_wstring(m_packageOperationSequence++);
                     entry.title = L"Legacy operation event";
-                    entry.details = ToWide(value.GetString());
+                    entry.details = winforge::core::packages::RedactPackageMutationText(ToWide(value.GetString()));
                     entry.status = L"Imported legacy history";
                     entry.created_epoch_seconds = 0;
                     if (!entry.details.empty())
@@ -3262,9 +3284,12 @@ namespace winrt::WinForge::implementation
         PackageOperationEntry entry;
         entry.id = L"op-" + std::to_wstring(NowUnixSeconds()) + L"-" +
             std::to_wstring(m_packageOperationSequence++);
-        entry.title = std::move(title);
-        entry.details = std::move(details);
-        entry.status = std::move(status);
+        // The operation pane is persisted. Keep it a bounded, redacted
+        // lifecycle ledger even when a legacy preview or a malformed cached
+        // package row supplied text outside the mutation coordinator.
+        entry.title = winforge::core::packages::RedactPackageMutationText(title);
+        entry.details = winforge::core::packages::RedactPackageMutationText(details);
+        entry.status = winforge::core::packages::RedactPackageMutationText(status);
         entry.created_epoch_seconds = NowUnixSeconds();
         m_packageOperations.insert(
             m_packageOperations.begin(),
@@ -3388,6 +3413,269 @@ namespace winrt::WinForge::implementation
         }
         SavePackageManagerState();
         RenderPackageManagerView();
+    }
+
+    void MainWindow::RequestPackageMutation(
+        winforge::core::packages::PackageItem const& package,
+        winforge::core::packages::PackageAction action)
+    {
+        auto const actionEn = action == winforge::core::packages::PackageAction::Install
+            ? std::wstring(L"install")
+            : action == winforge::core::packages::PackageAction::Update
+                ? std::wstring(L"update")
+                : std::wstring(L"uninstall");
+        auto const actionZh = action == winforge::core::packages::PackageAction::Install
+            ? std::wstring(L"安裝")
+            : action == winforge::core::packages::PackageAction::Update
+                ? std::wstring(L"更新")
+                : std::wstring(L"解除安裝");
+
+        winforge::core::packages::PackageMutationRequest request;
+        request.id = L"mutation-" + std::to_wstring(NowUnixSeconds()) + L"-" +
+            std::to_wstring(m_packageOperationSequence++);
+        request.package = package;
+        request.action = action;
+        auto submission = m_packageMutationCoordinator.Submit(std::move(request));
+
+        m_packageView = 8;
+        if (m_packageViewPicker)
+        {
+            m_packageViewPicker.SelectedIndex(m_packageView);
+        }
+
+        if (submission.accepted)
+        {
+            AnnouncePackageStatus(
+                L"Reviewed " + actionEn + L" plan added. Open its Operations card and explicitly confirm before a package command can be queued.",
+                L"已加入已檢視嘅" + actionZh + L"計劃。請喺操作卡明確確認，套件指令先可以排隊。" );
+        }
+        else if (submission.duplicate)
+        {
+            AnnouncePackageStatus(
+                L"A matching package mutation is already awaiting consent, queued, or running.",
+                L"相同嘅套件修改已經等緊確認、排隊中或者執行中。",
+                true);
+        }
+        else
+        {
+            RecordPackageOperation(
+                L"Native " + actionEn + L" request rejected for " + package.id + L" via " +
+                package.manager_key + L": " + submission.record.diagnostic +
+                L". No package command was queued. · 原生操作要求已被拒絕，冇排隊指令。");
+            AnnouncePackageStatus(
+                L"The package operation was rejected before consent or process execution. Review Operations for the validation reason.",
+                L"套件操作喺確認或者 process 執行之前已被拒絕。請喺操作檢視睇驗證原因。",
+                true);
+        }
+        RenderPackageManagerView();
+    }
+
+    void MainWindow::ConfirmPackageMutation(std::wstring id)
+    {
+        if (!m_packageMutationCoordinator.Confirm(id))
+        {
+            AnnouncePackageStatus(
+                L"This package operation is no longer awaiting consent.",
+                L"呢個套件操作已經唔係等緊確認。",
+                true);
+            RenderPackageManagerView();
+            return;
+        }
+        AnnouncePackageStatus(
+            L"Explicit consent recorded. The package command is queued for the serial native worker.",
+            L"已記錄明確確認。套件指令已排入原生串行 worker。" );
+        RenderPackageManagerView();
+        StartNextPackageMutation();
+    }
+
+    void MainWindow::CancelPackageMutation(std::wstring id)
+    {
+        if (!m_packageMutationCoordinator.Cancel(id))
+        {
+            AnnouncePackageStatus(
+                L"This package operation can no longer be cancelled.",
+                L"呢個套件操作已經唔可以取消。",
+                true);
+            RenderPackageManagerView();
+            return;
+        }
+        AnnouncePackageStatus(
+            L"Package operation cancellation was requested. A running process receives a contained stop request.",
+            L"已要求取消套件操作。執行中嘅 process 會收到受控停止要求。" );
+        RenderPackageManagerView();
+        StartNextPackageMutation();
+    }
+
+    void MainWindow::RetryPackageMutation(std::wstring id)
+    {
+        if (!m_packageMutationCoordinator.Retry(id))
+        {
+            AnnouncePackageStatus(
+                L"Only completed, failed, timed-out, or cancelled package operations can request a retry.",
+                L"只有完成、失敗、超時或者已取消嘅套件操作先可以要求重試。",
+                true);
+            RenderPackageManagerView();
+            return;
+        }
+        AnnouncePackageStatus(
+            L"Retry prepared. Fresh explicit consent is required before it can run.",
+            L"已準備重試；執行之前需要重新明確確認。" );
+        RenderPackageManagerView();
+    }
+
+    void MainWindow::StartNextPackageMutation()
+    {
+        if (m_packageMutationWorkerRunning.load() || !m_packageMutationCoordinator.HasRunnableWork())
+        {
+            return;
+        }
+
+        m_packageMutationWorkerRunning.store(true);
+        try
+        {
+            auto lifetime = get_strong();
+            auto dispatcher = Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
+            std::thread worker([lifetime, dispatcher]() mutable
+            {
+                std::optional<winforge::core::packages::PackageMutationRecord> completed;
+                bool workerFailed = false;
+                try
+                {
+                    completed = lifetime->m_packageMutationCoordinator.RunNext(
+                        [](winforge::core::packages::PackageMutationRequest const& request,
+                            std::stop_token cancellationToken)
+                        {
+                            winforge::core::packages::PackageRuntimeOptions options;
+                            options.timeout = std::chrono::minutes(5);
+                            options.cancellation_token = cancellationToken;
+                            return winforge::core::packages::RunPackageMutation(
+                                request.package,
+                                request.action,
+                                request.install_options,
+                                options);
+                        },
+                        [lifetime, dispatcher](winforge::core::packages::PackageMutationRecord const&)
+                        {
+                            try
+                            {
+                                if (dispatcher)
+                                {
+                                    static_cast<void>(dispatcher.TryEnqueue(
+                                        [lifetime]()
+                                        {
+                                            if (lifetime->m_currentRoute == L"module.packages")
+                                            {
+                                                lifetime->RenderPackageManagerView();
+                                            }
+                                        }));
+                                }
+                            }
+                            catch (...)
+                            {
+                                // A render notification is best-effort only;
+                                // mutation containment remains independent.
+                            }
+                        });
+                }
+                catch (...)
+                {
+                    workerFailed = true;
+                    static_cast<void>(lifetime->m_packageMutationCoordinator.CancelAll());
+                }
+
+                bool completionQueued = false;
+                try
+                {
+                    completionQueued = dispatcher && dispatcher.TryEnqueue(
+                        [lifetime, completed = std::move(completed), workerFailed]() mutable
+                        {
+                            lifetime->m_packageMutationWorkerRunning.store(false);
+                            if (workerFailed)
+                            {
+                                lifetime->RecordPackageOperation(
+                                    L"Native package mutation worker failed closed; pending work was cancelled. · 原生套件修改 worker 已 fail closed；等候工作已取消。");
+                                if (lifetime->m_currentRoute == L"module.packages")
+                                {
+                                    lifetime->AnnouncePackageStatus(
+                                        L"The native package mutation worker failed closed and cancelled pending work.",
+                                        L"原生套件修改 worker 已 fail closed，並取消等候工作。",
+                                        true);
+                                    lifetime->RenderPackageManagerView();
+                                }
+                                return;
+                            }
+
+                            if (completed)
+                            {
+                                auto const actionEn = completed->request.action == winforge::core::packages::PackageAction::Install
+                                    ? std::wstring(L"install")
+                                    : completed->request.action == winforge::core::packages::PackageAction::Update
+                                        ? std::wstring(L"update")
+                                        : std::wstring(L"uninstall");
+                                auto const actionZh = completed->request.action == winforge::core::packages::PackageAction::Install
+                                    ? std::wstring(L"安裝")
+                                    : completed->request.action == winforge::core::packages::PackageAction::Update
+                                        ? std::wstring(L"更新")
+                                        : std::wstring(L"解除安裝");
+                                auto const state = std::wstring(winforge::core::packages::PackageMutationStateKey(completed->state));
+                                lifetime->RecordPackageOperation(
+                                    L"Native " + actionEn + L" " + state + L" for " +
+                                    completed->request.package.id + L" via " +
+                                    completed->request.package.manager_key + L": " +
+                                    completed->diagnostic +
+                                    L". · 原生" + actionZh + L"操作狀態：" + state + L"。");
+                                if (lifetime->m_currentRoute == L"module.packages")
+                                {
+                                    lifetime->AnnouncePackageStatus(
+                                        L"Package " + actionEn + L" finished with state " + state + L". Third-party output was withheld.",
+                                        L"套件" + actionZh + L"已完成，狀態係 " + state + L"。第三方輸出唔會保留。",
+                                        completed->state != winforge::core::packages::PackageMutationState::Succeeded);
+                                    lifetime->RenderPackageManagerView();
+                                }
+                            }
+                            lifetime->StartNextPackageMutation();
+                        });
+                }
+                catch (...)
+                {
+                    completionQueued = false;
+                }
+
+                if (!completionQueued)
+                {
+                    // Dispatcher shutdown means the page can no longer surface
+                    // completion. Stop anything still queued rather than letting
+                    // a confirmed mutation continue after its host disappears.
+                    lifetime->m_packageMutationWorkerRunning.store(false);
+                    static_cast<void>(lifetime->m_packageMutationCoordinator.CancelAll());
+                }
+            });
+            worker.detach();
+        }
+        catch (std::exception const&)
+        {
+            m_packageMutationWorkerRunning.store(false);
+            static_cast<void>(m_packageMutationCoordinator.CancelAll());
+            RecordPackageOperation(
+                L"Could not start native package mutation worker; pending work was cancelled. · 無法啟動原生套件修改 worker；等候工作已取消。");
+            AnnouncePackageStatus(
+                L"Could not start the native package mutation worker; pending work was cancelled.",
+                L"無法啟動原生套件修改 worker；等候工作已取消。",
+                true);
+            RenderPackageManagerView();
+        }
+        catch (...)
+        {
+            m_packageMutationWorkerRunning.store(false);
+            static_cast<void>(m_packageMutationCoordinator.CancelAll());
+            RecordPackageOperation(
+                L"Could not start native package mutation worker; pending work was cancelled. · 無法啟動原生套件修改 worker；等候工作已取消。");
+            AnnouncePackageStatus(
+                L"Could not start the native package mutation worker; pending work was cancelled.",
+                L"無法啟動原生套件修改 worker；等候工作已取消。",
+                true);
+            RenderPackageManagerView();
+        }
     }
 
     std::optional<winforge::core::packages::PackageAction> MainWindow::CurrentPackageSelectionAction() const
@@ -4591,8 +4879,8 @@ namespace winrt::WinForge::implementation
         migration.Title(ToHString(winforge::core::LocalizedText{
             L"Native Package Manager runtime", L"原生套件管理 runtime" }.Pick(m_language)));
         migration.Message(ToHString(winforge::core::LocalizedText{
-            L"Availability, discovery, installed-package, update, details, and source queries run through audited C++ argv builders, parsers, HTTPS transport, and a contained Win32 process runner. Mutations remain locked until the native consent coordinator is proven.",
-            L"可用性、搜尋、已安裝套件、更新、詳細資料同來源查詢，會經審核嘅 C++ argv 建立器、解析器、HTTPS transport 同受控 Win32 process runner 執行；修改操作要等原生同意協調器驗證完成先會解鎖。" }.Pick(m_language)));
+            L"Availability, discovery, installed-package, update, details, and source queries run through audited C++ argv builders, parsers, HTTPS transport, and a contained Win32 process runner. Individual reviewed mutations require separate explicit confirmation, run serially only at normal integrity, and retain no third-party output.",
+            L"可用性、搜尋、已安裝套件、更新、詳細資料同來源查詢，會經審核嘅 C++ argv 建立器、解析器、HTTPS transport 同受控 Win32 process runner 執行；個別已檢視修改需要另外明確確認，只會喺正常 integrity 串行執行，而且唔會保留第三方輸出。" }.Pick(m_language)));
         AutomationProperties::SetAutomationId(migration, L"NativePackageManagerMigrationStatus");
         page.Children().Append(migration);
 
@@ -4607,17 +4895,15 @@ namespace winrt::WinForge::implementation
         managerCardContent.Spacing(7);
         managerCardContent.Children().Append(CreateText(
             winforge::core::LocalizedText{ L"Package managers", L"套件管理器" }.Pick(m_language), 13, true));
-        ScrollViewer managerScroller;
-        managerScroller.HorizontalScrollMode(ScrollMode::Auto);
-        managerScroller.HorizontalScrollBarVisibility(ScrollBarVisibility::Auto);
-        managerScroller.VerticalScrollMode(ScrollMode::Disabled);
-        managerScroller.VerticalScrollBarVisibility(ScrollBarVisibility::Disabled);
         m_packageManagerFilters = StackPanel();
-        m_packageManagerFilters.Orientation(Orientation::Horizontal);
+        // Keep one manager per row. A horizontal strip hid right-most
+        // bilingual labels in compact/headless viewports, while the page
+        // already offers a reachable vertical scroll path for every engine.
+        m_packageManagerFilters.Orientation(Orientation::Vertical);
+        m_packageManagerFilters.Spacing(4);
         AutomationProperties::SetAutomationId(m_packageManagerFilters, L"NativePackageManagerFilters");
         PopulatePackageManagerFilters(m_packageManagerFilters);
-        managerScroller.Content(m_packageManagerFilters);
-        managerCardContent.Children().Append(managerScroller);
+        managerCardContent.Children().Append(m_packageManagerFilters);
         managerCard.Child(managerCardContent);
         page.Children().Append(managerCard);
 
@@ -5717,7 +6003,7 @@ namespace winrt::WinForge::implementation
         m_packageSecondaryAction.Visibility(Visibility::Collapsed);
         m_packagePrimaryAction.IsEnabled(false);
         m_packageSecondaryAction.IsEnabled(false);
-        if (m_packageBusy) m_packageBusy.IsActive(m_packageWorking);
+        if (m_packageBusy) m_packageBusy.IsActive(m_packageWorking || m_packageMutationWorkerRunning.load());
 
         std::wstring header;
         std::wstring explanation;
@@ -5728,8 +6014,8 @@ namespace winrt::WinForge::implementation
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Search", L"搜尋"))));
             header = pick(L"Discover packages", L"搜尋套件");
             explanation = pick(
-                L"Searches every selected, available engine concurrently using validated argv or an allowlisted HTTPS endpoint. UniGetUI-style filters then refine only the cached rows; results are read-only while install consent is being ported.",
-                L"會同時搜尋所有已選而且可用嘅引擎，只會用已驗證 argv 或准許清單內 HTTPS endpoint；UniGetUI 式篩選只會整理已快取資料列；安裝同意流程移植完成之前，結果保持只讀。");
+                L"Searches every selected, available engine concurrently using validated argv or an allowlisted HTTPS endpoint. UniGetUI-style filters refine cached rows; each result row can create a reviewed native install plan that still needs its own Confirm execution action.",
+                L"會同時搜尋所有已選而且可用嘅引擎，只會用已驗證 argv 或准許清單內 HTTPS endpoint；UniGetUI 式篩選會整理已快取資料列；每個結果資料列都可以建立已檢視原生安裝計劃，但仲要由自己嘅「確認執行」動作先可以排隊。");
             readOnlyQuery = true;
             break;
         case 1:
@@ -5738,16 +6024,16 @@ namespace winrt::WinForge::implementation
             m_packageSecondaryAction.Visibility(Visibility::Visible);
             header = pick(L"Available updates", L"可用更新");
             explanation = pick(
-                L"Live update enumeration runs per selected engine. Cached rows can create exact native update argv previews; executing an update remains locked until the consent and operation coordinator is proven.",
-                L"會按已選引擎即時列出更新；已快取資料列可以建立準確嘅原生更新 argv 預覽；同意同操作協調器驗證完成之前，執行更新保持鎖住。");
+                L"Live update enumeration runs per selected engine. Each cached row can create a reviewed native update plan requiring its own Confirm execution action; the multi-select Update all path remains preview-only.",
+                L"會按已選引擎即時列出更新；每個已快取資料列都可以建立已檢視原生更新計劃，而且要由自己嘅「確認執行」動作先可以排隊；多選「全部更新」保持只供預覽。");
             readOnlyQuery = true;
             break;
         case 2:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
             header = pick(L"Installed packages", L"已安裝套件");
             explanation = pick(
-                L"Installed packages are enumerated live. Cached rows can create exact native uninstall argv previews; executing an uninstall remains locked until explicit confirmation, elevation, and cancellation behavior pass their native tests.",
-                L"會即時列出已安裝套件；已快取資料列可以建立準確嘅原生解除安裝 argv 預覽；明確確認、提升權限同取消行為通過原生測試之前，執行解除安裝保持鎖住。");
+                L"Installed packages are enumerated live. Each cached row can create a reviewed native uninstall plan requiring separate explicit confirmation; elevation-required requests fail closed and cancellation is available from the operation card.",
+                L"會即時列出已安裝套件；每個已快取資料列都可以建立已檢視原生解除安裝計劃，而且要另外明確確認；需要提升權限嘅要求會 fail closed，亦可以由操作卡取消。");
             readOnlyQuery = true;
             break;
         case 3:
@@ -5791,11 +6077,11 @@ namespace winrt::WinForge::implementation
         default:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
             m_packageSecondaryAction.Content(box_value(ToHString(
-                m_packageView == 8 ? pick(L"Clear history", L"清除歷史") : pick(L"Clear completed", L"清除已完成"))));
+                m_packageView == 8 ? pick(L"Clear preview history", L"清除預覽歷史") : pick(L"Clear completed", L"清除已完成"))));
             m_packageSecondaryAction.Visibility(Visibility::Visible);
             header = pick(L"Operation queue and history", L"操作佇列同歷史");
-            explanation = pick(L"The native coordinator will show queued, running, completed, failed, cancelled, output, retry, and cancellation state here.",
-                L"原生協調器會喺呢度顯示排隊、執行中、完成、失敗、已取消、輸出、重試同取消狀態。");
+            explanation = pick(L"The native coordinator shows reviewed, queued, running, completed, failed, timed-out, cancelled, retry, and cancellation state here. Its detailed queue state and redacted reviewed argv stay in memory; a bounded redacted lifecycle event enters the existing history, while third-party stdout, stderr, and runtime diagnostics are withheld.",
+                L"原生協調器會喺呢度顯示已檢視、排隊、執行中、完成、失敗、超時、已取消、重試同取消狀態。詳細佇列狀態同已遮罩已檢視 argv 只會留喺記憶體；有界、已遮罩嘅生命週期事件會寫入現有歷史，而第三方 stdout、stderr 同 runtime 診斷會略去。");
             break;
         }
 
@@ -6019,12 +6305,12 @@ namespace winrt::WinForge::implementation
             m_packageResults.Children().Append(selectionCard);
         }
 
-        if (m_packageWorking)
+        if (m_packageWorking || m_packageMutationWorkerRunning.load())
         {
             appendCard(
                 pick(L"Native operation in progress", L"原生操作進行中"),
-                pick(L"The page stays responsive while contained processes and HTTPS requests run in the background. Starting another request cancels this generation.",
-                    L"受控 process 同 HTTPS request 喺背景執行期間，頁面會保持流暢；開始另一個要求就會取消今次 generation。"),
+                pick(L"The page stays responsive while contained package processes and HTTPS requests run in the background. The mutation worker is serial and accepts explicit cancellation.",
+                    L"受控套件 process 同 HTTPS request 喺背景執行期間，頁面會保持流暢；修改 worker 係串行，而且接受明確取消。"),
                 L"NativePackageWorkingState");
         }
         else if (!m_packageProbeComplete)
@@ -6065,23 +6351,179 @@ namespace winrt::WinForge::implementation
 
         if (m_packageView == 8)
         {
+            auto const mutationRecords = m_packageMutationCoordinator.Snapshot();
             appendCard(
-                pick(L"Preview queue policy", L"預覽佇列政策"),
-                pick(L"Operation entries are durable preview plans. Run next, run last, and retry only reorder or mark the native queue; they do not execute package-manager mutation commands.",
-                    L"操作項目係可保存嘅預覽計劃。「下一個」、「最後執行」同「重試」只會重新排序或者標記原生佇列；唔會執行套件修改指令。"),
+                pick(L"Native mutation consent policy", L"原生修改確認政策"),
+                pick(L"A package row first creates a redacted reviewed argv plan. A separate Confirm execution control is required to enter the serial normal-integrity queue. The in-memory coordinator keeps that preview with request and lifecycle metadata; a bounded redacted lifecycle event is added to the existing history. Elevation, hooks, unsafe IDs, custom mutation arguments, and overlong previews fail closed. Third-party stdout, stderr, and runtime diagnostics are withheld.",
+                    L"套件資料列會先建立已遮蔽嘅已檢視 argv 計劃。要進入串行正常 integrity 佇列，仲需要另一個「確認執行」控制。記憶體協調器會保留呢個預覽連同要求同生命週期 metadata；現有歷史會加入有界、已遮蔽嘅生命週期事件。提升權限、hooks、唔安全 ID、自訂修改參數同過長預覽都會 fail closed；第三方 stdout、stderr 同執行時診斷絕對唔會保留。"),
                 L"NativePackageQueueSummary",
                 0.9);
 
-            if (m_packageOperations.empty())
+            if (m_packageOperations.empty() && mutationRecords.empty())
             {
                 appendCard(
                     pick(L"No native operations yet", L"暫時未有原生操作"),
-                    pick(L"Availability probes, read-only queries, and preview-only install/update/uninstall plans will appear here. Mutating operation execution is not claimed yet.",
-                        L"可用性探測、只讀查詢，以及只供預覽嘅安裝／更新／解除安裝計劃會喺度顯示；暫時未聲稱會執行修改操作。"),
+                    pick(L"Availability probes, read-only queries, and reviewed package plans will appear here. A reviewed plan never runs until its own Confirm execution control is invoked.",
+                        L"可用性探測、只讀查詢同已檢視嘅套件計劃會喺度顯示。已檢視計劃絕對唔會執行，除非佢自己嘅「確認執行」控制被呼叫。"),
                     L"NativePackageOperationsEmpty");
             }
             else
             {
+                for (auto const& mutation : mutationRecords)
+                {
+                    auto const actionEn = mutation.request.action == winforge::core::packages::PackageAction::Install
+                        ? std::wstring(L"Install")
+                        : mutation.request.action == winforge::core::packages::PackageAction::Update
+                            ? std::wstring(L"Update")
+                            : std::wstring(L"Uninstall");
+                    auto const actionZh = mutation.request.action == winforge::core::packages::PackageAction::Install
+                        ? std::wstring(L"安裝")
+                        : mutation.request.action == winforge::core::packages::PackageAction::Update
+                            ? std::wstring(L"更新")
+                            : std::wstring(L"解除安裝");
+                    auto const stateLabel = [&]()
+                    {
+                        using State = winforge::core::packages::PackageMutationState;
+                        switch (mutation.state)
+                        {
+                        case State::AwaitingConsent: return pick(L"Awaiting explicit consent", L"等緊明確確認");
+                        case State::Queued: return pick(L"Queued", L"已排隊");
+                        case State::Running: return pick(L"Running", L"執行中");
+                        case State::Succeeded: return pick(L"Succeeded", L"已完成");
+                        case State::Failed: return pick(L"Failed", L"失敗");
+                        case State::Cancelled: return pick(L"Cancelled", L"已取消");
+                        case State::TimedOut: return pick(L"Timed out", L"已超時");
+                        case State::Rejected: return pick(L"Rejected", L"已拒絕");
+                        }
+                        return pick(L"Rejected", L"已拒絕");
+                    }();
+                    auto const mutationId = mutation.request.id;
+
+                    Border card;
+                    card.Padding(Thickness{ 16, 12, 16, 12 });
+                    card.CornerRadius(CornerRadius{ 8 });
+                    card.BorderThickness(Thickness{ 1 });
+                    card.BorderBrush(Application::Current().Resources().Lookup(
+                        box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+                    card.Background(Application::Current().Resources().Lookup(
+                        box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+                    StackPanel content;
+                    content.Spacing(6);
+                    auto title = CreateText(
+                        pick(actionEn + L" plan · ", actionZh + L"計劃 · ") +
+                            (mutation.request.package.name.empty()
+                                ? mutation.request.package.id
+                                : mutation.request.package.name),
+                        14,
+                        true);
+                    AutomationProperties::SetAutomationId(
+                        title,
+                        ToHString(L"NativePackageMutationOperation_" + AutomationKey(mutationId)));
+                    AutomationProperties::SetHelpText(
+                        title,
+                        ToHString(mutation.command_preview + L"\n" + mutation.diagnostic));
+                    content.Children().Append(title);
+
+                    std::wstring body = stateLabel + L" · " + mutation.request.package.manager_key;
+                    if (mutation.exit_code)
+                    {
+                        body += L" · exit " + std::to_wstring(*mutation.exit_code);
+                    }
+                    if (mutation.retry_count > 0)
+                    {
+                        body += pick(L" · retries: ", L" · 重試：") + std::to_wstring(mutation.retry_count);
+                    }
+                    body += L"\n" + mutation.command_preview;
+                    if (!mutation.diagnostic.empty())
+                    {
+                        body += L"\n" + mutation.diagnostic;
+                    }
+                    auto details = CreateText(TruncateForUi(body, 1800), 12.5);
+                    details.TextWrapping(TextWrapping::Wrap);
+                    details.IsTextSelectionEnabled(true);
+                    content.Children().Append(details);
+
+                    StackPanel actions;
+                    actions.Orientation(Orientation::Horizontal);
+                    actions.Spacing(8);
+                    using State = winforge::core::packages::PackageMutationState;
+                    if (mutation.state == State::AwaitingConsent)
+                    {
+                        Button confirm;
+                        confirm.Content(box_value(ToHString(pick(L"Confirm execution", L"確認執行"))));
+                        AutomationProperties::SetAutomationId(
+                            confirm,
+                            ToHString(L"NativePackageMutationConfirm_" + AutomationKey(mutationId)));
+                        AutomationProperties::SetName(
+                            confirm,
+                            ToHString(pick(
+                                L"Confirm " + actionEn + L" execution for " + mutation.request.package.id,
+                                L"確認" + actionZh + L"執行：" + mutation.request.package.id)));
+                        AutomationProperties::SetHelpText(
+                            confirm,
+                            ToHString(pick(
+                                L"Queues this one reviewed package command. It may only run at normal integrity and can be cancelled from this card.",
+                                L"會排隊呢一個已檢視套件指令。佢只可以喺正常 integrity 執行，而且可以由呢張卡取消。")));
+                        confirm.Click([this, mutationId](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                        {
+                            ConfirmPackageMutation(mutationId);
+                        });
+                        actions.Children().Append(confirm);
+                    }
+                    if (mutation.state == State::AwaitingConsent || mutation.state == State::Queued || mutation.state == State::Running)
+                    {
+                        Button cancel;
+                        cancel.Content(box_value(ToHString(pick(L"Cancel", L"取消"))));
+                        AutomationProperties::SetAutomationId(
+                            cancel,
+                            ToHString(L"NativePackageMutationCancel_" + AutomationKey(mutationId)));
+                        AutomationProperties::SetName(
+                            cancel,
+                            ToHString(pick(
+                                L"Cancel package operation for " + mutation.request.package.id,
+                                L"取消套件操作：" + mutation.request.package.id)));
+                        cancel.Click([this, mutationId](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                        {
+                            CancelPackageMutation(mutationId);
+                        });
+                        actions.Children().Append(cancel);
+                    }
+                    if (winforge::core::packages::IsTerminalPackageMutationState(mutation.state) &&
+                        mutation.state != State::Rejected)
+                    {
+                        Button retry;
+                        retry.Content(box_value(ToHString(pick(L"Request retry", L"要求重試"))));
+                        AutomationProperties::SetAutomationId(
+                            retry,
+                            ToHString(L"NativePackageMutationRetry_" + AutomationKey(mutationId)));
+                        AutomationProperties::SetName(
+                            retry,
+                            ToHString(pick(
+                                L"Request a retry that will require fresh explicit consent",
+                                L"要求重試；會需要重新明確確認")));
+                        retry.Click([this, mutationId](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                        {
+                            RetryPackageMutation(mutationId);
+                        });
+                        actions.Children().Append(retry);
+                    }
+                    if (actions.Children().Size() > 0)
+                    {
+                        content.Children().Append(actions);
+                    }
+                    card.Child(content);
+                    m_packageResults.Children().Append(card);
+                }
+
+                if (!m_packageOperations.empty())
+                {
+                    appendCard(
+                        pick(L"Preview and read-only history", L"預覽同只讀歷史"),
+                        pick(L"These durable history entries are separate from the consent-gated mutation queue above.",
+                            L"呢啲可保存歷史項目同上面需要確認嘅修改佇列係分開嘅。"),
+                        L"NativePackagePreviewHistory");
+                }
                 for (std::size_t index = 0; index < m_packageOperations.size(); ++index)
                 {
                     auto const& operation = m_packageOperations[index];
@@ -6734,12 +7176,20 @@ namespace winrt::WinForge::implementation
             actions.Spacing(8);
 
             Button mutation;
-            auto const actionLabel = m_packageView == 0
-                ? pick(L"Install", L"安裝")
+            auto const actionNameEn = m_packageView == 0
+                ? std::wstring(L"Install")
                 : m_packageView == 1
-                    ? pick(L"Update", L"更新")
-                    : pick(L"Uninstall", L"解除安裝");
-            mutation.Content(box_value(ToHString(actionLabel)));
+                    ? std::wstring(L"Update")
+                    : std::wstring(L"Uninstall");
+            auto const actionNameZh = m_packageView == 0
+                ? std::wstring(L"安裝")
+                : m_packageView == 1
+                    ? std::wstring(L"更新")
+                    : std::wstring(L"解除安裝");
+            auto const reviewLabel = pick(
+                L"Review " + actionNameEn,
+                L"檢視" + actionNameZh);
+            mutation.Content(box_value(ToHString(reviewLabel)));
             mutation.IsEnabled(!m_packageWorking);
             mutation.HorizontalAlignment(HorizontalAlignment::Left);
             AutomationProperties::SetAutomationId(
@@ -6747,12 +7197,14 @@ namespace winrt::WinForge::implementation
                 ToHString(L"NativePackageMutation_" + AutomationKey(package.manager_key) + L"_" + AutomationKey(package.id)));
             AutomationProperties::SetName(
                 mutation,
-                ToHString(actionLabel + L" preview for " + (package.name.empty() ? package.id : package.name)));
+                ToHString(pick(
+                    L"Review " + actionNameEn + L" plan for " + (package.name.empty() ? package.id : package.name),
+                    L"檢視" + actionNameZh + L"計劃：" + (package.name.empty() ? package.id : package.name))));
             ToolTipService::SetToolTip(
                 mutation,
                 box_value(ToHString(pick(
-                    L"Preview the exact native argv operation plan. This does not execute the package command.",
-                    L"預覽準確嘅原生 argv 操作計劃；唔會執行套件指令。"))));
+                    L"Review the exact native argv plan. A separate explicit Confirm execution action is required before any package command can be queued.",
+                    L"檢視準確嘅原生 argv 計劃；任何套件指令要排隊之前，仲需要另一個明確「確認執行」動作。"))));
             auto packageCopy = package;
             auto action = m_packageView == 0
                 ? winforge::core::packages::PackageAction::Install
@@ -6763,7 +7215,7 @@ namespace winrt::WinForge::implementation
                 Windows::Foundation::IInspectable const&,
                 RoutedEventArgs const&)
             {
-                PreviewPackageOperation(packageCopy, action);
+                RequestPackageMutation(packageCopy, action);
             });
             actions.Children().Append(mutation);
 
@@ -7112,6 +7564,10 @@ namespace winrt::WinForge::implementation
         // let horizontal StackPanels measure at their unconstrained width,
         // which clipped bilingual labels and action buttons on narrow windows.
         page.HorizontalAlignment(HorizontalAlignment::Stretch);
+        // Keep ordinary desktop pages within a readable content measure so
+        // long bilingual text wraps before the shell's horizontal overflow
+        // escape hatch becomes necessary.
+        page.MaxWidth(1280);
         auto heading = CreateText(title, 32, true);
         heading.TextWrapping(TextWrapping::WrapWholeWords);
         AutomationProperties::SetAutomationId(heading, L"NativePageTitle");

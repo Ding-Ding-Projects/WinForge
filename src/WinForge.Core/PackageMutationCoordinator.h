@@ -15,8 +15,9 @@
 namespace winforge::core::packages
 {
     // These limits apply to the in-memory, local-only mutation coordinator. They
-    // bound diagnostics copied from third-party package tools and ensure that a
-    // long-running session cannot turn its activity pane into an unbounded log.
+    // bound reviewed command previews and ensure that a long-running session
+    // cannot turn its activity pane into an unbounded log. Raw third-party
+    // stdout, stderr, and diagnostics are deliberately never retained here.
     inline constexpr std::size_t MaximumPackageMutationRecords = 50;
     inline constexpr std::size_t MaximumPackageMutationOutputTail = 4096;
 
@@ -67,6 +68,8 @@ namespace winforge::core::packages
     using PackageMutationExecutor = std::function<PackageRuntimeResult(
         PackageMutationRequest const& request,
         std::stop_token cancellation_token)>;
+    using PackageMutationStartedCallback = std::function<void(
+        PackageMutationRecord const& record)>;
 
     [[nodiscard]] bool IsTerminalPackageMutationState(PackageMutationState state) noexcept;
     [[nodiscard]] std::wstring_view PackageMutationStateKey(PackageMutationState state) noexcept;
@@ -81,12 +84,18 @@ namespace winforge::core::packages
         // runnable. Retrying returns to AwaitingConsent for the same reason.
         [[nodiscard]] bool Confirm(std::wstring_view id);
         [[nodiscard]] bool Cancel(std::wstring_view id);
+        // Cancels every pending request and requests a contained stop for any
+        // active process. Hosts call this when the Package Manager is closed or
+        // navigated away from so a confirmed mutation never continues invisibly.
+        [[nodiscard]] bool CancelAll();
         [[nodiscard]] bool Retry(std::wstring_view id);
 
         // Runs at most one queued request. It is safe to call from a worker
-        // thread; the executor runs without the coordinator mutex held.
+        // thread; the executor and optional started callback run without the
+        // coordinator mutex held.
         [[nodiscard]] std::optional<PackageMutationRecord> RunNext(
-            PackageMutationExecutor const& executor);
+            PackageMutationExecutor const& executor,
+            PackageMutationStartedCallback const& started = {});
 
         [[nodiscard]] std::vector<PackageMutationRecord> Snapshot() const;
         [[nodiscard]] bool HasRunnableWork() const;
@@ -94,6 +103,7 @@ namespace winforge::core::packages
     private:
         [[nodiscard]] PackageMutationRecord* FindLocked(std::wstring_view id) noexcept;
         [[nodiscard]] PackageMutationRecord const* FindLocked(std::wstring_view id) const noexcept;
+        [[nodiscard]] bool MakeSpaceForNewRecordLocked();
         void TrimTerminalHistoryLocked();
 
         mutable std::mutex m_mutex;

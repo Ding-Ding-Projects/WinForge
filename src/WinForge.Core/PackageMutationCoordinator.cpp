@@ -50,10 +50,22 @@ namespace winforge::core::packages
                 {
                     start += 7;
                 }
+                auto const quote = start < value.size() &&
+                    (value[start] == L'\'' || value[start] == L'"')
+                    ? value[start]
+                    : L'\0';
+                if (quote != L'\0')
+                {
+                    ++start;
+                }
                 auto end = start;
                 while (end < value.size() &&
-                    !std::iswspace(value[end]) && value[end] != L';' &&
-                    value[end] != L'&' && value[end] != L',' && value[end] != L'\'')
+                    (quote != L'\0'
+                        ? value[end] != quote
+                        : !std::iswspace(value[end]) && value[end] != L';' &&
+                            value[end] != L'&' && value[end] != L',' &&
+                            value[end] != L'\'' && value[end] != L'"' &&
+                            value[end] != L'}' && value[end] != L']'))
                 {
                     ++end;
                 }
@@ -82,9 +94,8 @@ namespace winforge::core::packages
                 auto const credentialsBegin = scheme + 3;
                 auto const at = value.find(L'@', credentialsBegin);
                 auto const boundary = value.find_first_of(L"/\\ \t\r\n", credentialsBegin);
-                if (at != std::wstring::npos && (boundary == std::wstring::npos || at < boundary) &&
-                    value.find(L':', credentialsBegin) != std::wstring::npos &&
-                    value.find(L':', credentialsBegin) < at)
+                if (at != std::wstring::npos && at > credentialsBegin &&
+                    (boundary == std::wstring::npos || at < boundary))
                 {
                     value.replace(credentialsBegin, at - credentialsBegin, L"[redacted]");
                     searchFrom = credentialsBegin + std::wstring_view(L"[redacted]@").size();
@@ -105,6 +116,48 @@ namespace winforge::core::packages
             value.erase(0, value.size() - (MaximumPackageMutationOutputTail - 1));
             value.insert(value.begin(), L'…');
             return value;
+        }
+
+        [[nodiscard]] std::wstring RedactPackageMutationTextUnbounded(std::wstring_view value)
+        {
+            std::wstring redacted(value);
+            for (auto const keyword : {
+                L"password=", L"password:", L"\"password\":", L"'password':",
+                L"token=", L"token:", L"\"token\":", L"'token':",
+                L"access_token=", L"access_token:", L"\"access_token\":", L"'access_token':",
+                L"access-token=", L"access-token:", L"\"access-token\":", L"'access-token':",
+                L"apikey=", L"apikey:", L"\"apikey\":", L"'apikey':",
+                L"api_key=", L"api_key:", L"\"api_key\":", L"'api_key':",
+                L"api-key=", L"api-key:", L"\"api-key\":", L"'api-key':",
+                L"authorization:"
+            })
+            {
+                RedactValueAfterKeyword(redacted, keyword);
+            }
+            RedactUriCredentials(redacted);
+            return redacted;
+        }
+
+        [[nodiscard]] bool HasUnsupportedMutationCustomArguments(InstallOptions const& options) noexcept
+        {
+            return !options.custom_args_install.empty() ||
+                !options.custom_args_update.empty() ||
+                !options.custom_args_uninstall.empty();
+        }
+
+        [[nodiscard]] PackageMutationRecord UnstoredRejectedRecord(
+            std::wstring_view id,
+            std::wstring reason,
+            std::uint64_t sequence)
+        {
+            PackageMutationRequest safeRequest;
+            safeRequest.id = id;
+            PackageMutationRecord record;
+            record.request = std::move(safeRequest);
+            record.state = PackageMutationState::Rejected;
+            record.sequence = sequence;
+            record.diagnostic = std::move(reason);
+            return record;
         }
 
         [[nodiscard]] std::wstring MutationIdentity(PackageMutationRequest const& request)
@@ -153,16 +206,7 @@ namespace winforge::core::packages
 
     std::wstring RedactPackageMutationText(std::wstring_view value)
     {
-        std::wstring redacted(value);
-        RedactValueAfterKeyword(redacted, L"password=");
-        RedactValueAfterKeyword(redacted, L"password:");
-        RedactValueAfterKeyword(redacted, L"token=");
-        RedactValueAfterKeyword(redacted, L"token:");
-        RedactValueAfterKeyword(redacted, L"apikey=");
-        RedactValueAfterKeyword(redacted, L"api_key=");
-        RedactValueAfterKeyword(redacted, L"authorization:");
-        RedactUriCredentials(redacted);
-        return BoundedTail(std::move(redacted));
+        return BoundedTail(RedactPackageMutationTextUnbounded(value));
     }
 
     PackageMutationSubmission PackageMutationCoordinator::Submit(PackageMutationRequest request)
@@ -172,12 +216,41 @@ namespace winforge::core::packages
         {
             request.id = L"mutation-" + std::to_wstring(m_next_sequence);
         }
+        if (HasUnsupportedMutationCustomArguments(request.install_options))
+        {
+            // Custom option payloads can carry arbitrary credentials. This
+            // v1 consent surface has no secure per-option secret model, so it
+            // refuses them before any raw request data can enter a snapshot,
+            // preview, or persisted operation event.
+            auto record = UnstoredRejectedRecord(
+                request.id,
+                L"custom-mutation-arguments-unsupported",
+                m_next_sequence++);
+            return { false, false, std::move(record) };
+        }
+        if (FindLocked(request.id))
+        {
+            // Every external operation id is a stable UI/worker handle. Do
+            // not allow a caller to alias an existing record by supplying the
+            // same id for a different mutation. Do not reflect the rejected
+            // caller-owned request back either: package metadata may itself
+            // have originated outside the trusted cached result set.
+            auto record = UnstoredRejectedRecord(
+                request.id,
+                L"duplicate-mutation-id",
+                m_next_sequence);
+            return { false, false, std::move(record) };
+        }
 
         if (!IsMutationAction(request.action))
         {
+            if (!MakeSpaceForNewRecordLocked())
+            {
+                auto record = RejectedRecord(std::move(request), L"mutation-queue-capacity-reached", m_next_sequence++);
+                return { false, false, std::move(record) };
+            }
             auto record = RejectedRecord(std::move(request), L"invalid-mutation-action", m_next_sequence++);
             m_records.push_back(record);
-            TrimTerminalHistoryLocked();
             return { false, false, std::move(record) };
         }
 
@@ -189,18 +262,26 @@ namespace winforge::core::packages
             request.install_options);
         if (!built)
         {
+            if (!MakeSpaceForNewRecordLocked())
+            {
+                auto record = RejectedRecord(std::move(request), L"mutation-queue-capacity-reached", m_next_sequence++);
+                return { false, false, std::move(record) };
+            }
             auto record = RejectedRecord(std::move(request), built.error_code, m_next_sequence++);
             m_records.push_back(record);
-            TrimTerminalHistoryLocked();
             return { false, false, std::move(record) };
         }
         if (built.command->requires_elevation)
         {
+            if (!MakeSpaceForNewRecordLocked())
+            {
+                auto record = RejectedRecord(std::move(request), L"mutation-queue-capacity-reached", m_next_sequence++);
+                return { false, false, std::move(record) };
+            }
             auto record = RejectedRecord(
                 std::move(request),
                 L"elevated-mutations-are-not-supported", m_next_sequence++);
             m_records.push_back(record);
-            TrimTerminalHistoryLocked();
             return { false, false, std::move(record) };
         }
 
@@ -213,15 +294,32 @@ namespace winforge::core::packages
                 return { false, true, existing };
             }
         }
+        if (!MakeSpaceForNewRecordLocked())
+        {
+            auto record = RejectedRecord(std::move(request), L"mutation-queue-capacity-reached", m_next_sequence++);
+            return { false, false, std::move(record) };
+        }
+
+        auto const commandPreview = FormatCommandPreview(*built.command);
+        auto redactedPreview = RedactPackageMutationTextUnbounded(commandPreview);
+        if (redactedPreview.size() > MaximumPackageMutationOutputTail)
+        {
+            // A consent card must always show the full reviewed argv. A
+            // truncated tail would hide the executable or early arguments.
+            auto record = UnstoredRejectedRecord(
+                request.id,
+                L"mutation-command-preview-too-long",
+                m_next_sequence++);
+            return { false, false, std::move(record) };
+        }
 
         PackageMutationRecord record;
         record.request = std::move(request);
         record.state = PackageMutationState::AwaitingConsent;
         record.sequence = m_next_sequence++;
-        record.command_preview = FormatCommandPreview(*built.command);
+        record.command_preview = std::move(redactedPreview);
         record.diagnostic = L"explicit consent is required before this package command can be queued";
         m_records.push_back(record);
-        TrimTerminalHistoryLocked();
         return { true, false, std::move(record) };
     }
 
@@ -257,9 +355,40 @@ namespace winforge::core::packages
             return true;
         }
         record->state = PackageMutationState::Cancelled;
+        record->cancellation_requested = true;
         record->diagnostic = L"cancelled before package command execution";
         TrimTerminalHistoryLocked();
         return true;
+    }
+
+    bool PackageMutationCoordinator::CancelAll()
+    {
+        std::scoped_lock lock(m_mutex);
+        bool cancelled = false;
+        for (auto& record : m_records)
+        {
+            if (IsTerminalPackageMutationState(record.state))
+            {
+                continue;
+            }
+
+            cancelled = true;
+            record.cancellation_requested = true;
+            if (record.state == PackageMutationState::Running)
+            {
+                record.diagnostic = L"cancellation requested because the Package Manager lifecycle ended";
+                if (m_active_stop_source && m_active_id == record.request.id)
+                {
+                    m_active_stop_source->request_stop();
+                }
+                continue;
+            }
+
+            record.state = PackageMutationState::Cancelled;
+            record.diagnostic = L"cancelled because the Package Manager lifecycle ended";
+        }
+        TrimTerminalHistoryLocked();
+        return cancelled;
     }
 
     bool PackageMutationCoordinator::Retry(std::wstring_view id)
@@ -282,10 +411,13 @@ namespace winforge::core::packages
     }
 
     std::optional<PackageMutationRecord> PackageMutationCoordinator::RunNext(
-        PackageMutationExecutor const& executor)
+        PackageMutationExecutor const& executor,
+        PackageMutationStartedCallback const& started)
     {
         PackageMutationRequest request;
         std::stop_token cancellationToken;
+        PackageMutationRecord startedRecord;
+        bool startedRecordAvailable = false;
         {
             std::scoped_lock lock(m_mutex);
             if (m_active_stop_source)
@@ -304,9 +436,23 @@ namespace winforge::core::packages
             found->cancellation_requested = false;
             found->diagnostic = L"package command running in the serial native queue";
             request = found->request;
+            startedRecord = *found;
+            startedRecordAvailable = true;
             m_active_id = request.id;
             m_active_stop_source.emplace();
             cancellationToken = m_active_stop_source->get_token();
+        }
+        if (startedRecordAvailable && started)
+        {
+            try
+            {
+                started(startedRecord);
+            }
+            catch (...)
+            {
+                // UI/status observers are non-authoritative: a failed
+                // notification must never weaken the contained mutation run.
+            }
         }
 
         PackageRuntimeResult runtime;
@@ -343,33 +489,32 @@ namespace winforge::core::packages
         record->command_started = runtime.command_started;
         record->exit_code = runtime.exit_code;
         record->cancellation_requested = record->cancellation_requested || stopRequested;
-        record->diagnostic = RedactPackageMutationText(runtime.diagnostic);
-        std::wstring output = runtime.standard_output;
-        if (!runtime.standard_error.empty())
-        {
-            if (!output.empty()) output += L'\n';
-            output += runtime.standard_error;
-        }
-        record->output_tail = RedactPackageMutationText(output);
+        // Package tools may write arbitrary, secret-bearing text. Do not rely on
+        // best-effort redaction for third-party stdout, stderr, or diagnostics:
+        // retain only a fixed, non-sensitive lifecycle summary and the numeric
+        // exit code above. Reviewed argv previews are separately redacted.
+        record->output_tail.clear();
         if (stopRequested || runtime.cancelled)
         {
             record->state = PackageMutationState::Cancelled;
-            if (record->diagnostic.empty()) record->diagnostic = L"package command cancelled";
+            record->diagnostic = L"package command cancelled; external tool output withheld";
         }
         else if (runtime.timed_out)
         {
             record->state = PackageMutationState::TimedOut;
-            if (record->diagnostic.empty()) record->diagnostic = L"package command timed out";
+            record->diagnostic = L"package command timed out; external tool output withheld";
         }
         else if (runtime.success)
         {
             record->state = PackageMutationState::Succeeded;
-            if (record->diagnostic.empty()) record->diagnostic = L"package command completed";
+            record->diagnostic = L"package command completed; external tool output withheld";
         }
         else
         {
             record->state = PackageMutationState::Failed;
-            if (record->diagnostic.empty()) record->diagnostic = L"package command failed";
+            record->diagnostic = runtime.command_started
+                ? L"package command failed; external tool output withheld"
+                : L"package command did not start; external tool output withheld";
         }
         m_active_stop_source.reset();
         m_active_id.clear();
@@ -410,6 +555,23 @@ namespace winforge::core::packages
             return record.request.id == id;
         });
         return found == m_records.end() ? nullptr : &*found;
+    }
+
+    bool PackageMutationCoordinator::MakeSpaceForNewRecordLocked()
+    {
+        while (m_records.size() >= MaximumPackageMutationRecords)
+        {
+            auto const terminal = std::find_if(m_records.begin(), m_records.end(), [](PackageMutationRecord const& record)
+            {
+                return IsTerminalPackageMutationState(record.state);
+            });
+            if (terminal == m_records.end())
+            {
+                return false;
+            }
+            m_records.erase(terminal);
+        }
+        return true;
     }
 
     void PackageMutationCoordinator::TrimTerminalHistoryLocked()

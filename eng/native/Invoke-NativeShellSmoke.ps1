@@ -938,10 +938,13 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
         (Wait-ForElement -Root $root -AutomationId 'NativePackageOperationsAction'))
     Assert-True -Condition $packageControlsFit -Name 'Package Manager exposes native controls, accessibility, and horizontal clipping safety'
 
-    foreach ($manager in @('winget', 'scoop', 'choco', 'pip', 'npm', 'dotnet', 'psgallery', 'pwsh7', 'cargo', 'bun', 'vcpkg')) {
-        Wait-ForElement -Root $root -AutomationId "NativePackageManagerFilter_$manager" | Out-Null
+    $managerFilters = foreach ($manager in @('winget', 'scoop', 'choco', 'pip', 'npm', 'dotnet', 'psgallery', 'pwsh7', 'cargo', 'bun', 'vcpkg')) {
+        Wait-ForElement -Root $root -AutomationId "NativePackageManagerFilter_$manager"
     }
     Assert-True -Condition $true -Name 'Package Manager exposes all 11 native manager filters'
+    $managerFiltersFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @($managerFilters)
+    Assert-True -Condition $managerFiltersFit `
+        -Name 'Package Manager exposes every manager filter without horizontal clipping'
 
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Available updates', [StringComparison]::Ordinal)) `
@@ -1025,8 +1028,11 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
     Assert-True -Condition $operationViewSelected `
         -Name 'Package Manager switches among its nine native views'
     $queueSummary = Wait-ForElement -Root $root -AutomationId 'NativePackageQueueSummary'
-    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Preview queue policy', [StringComparison]::Ordinal)) `
-        -Name 'Package Manager exposes durable preview queue policy'
+    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Native mutation consent policy', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager exposes explicit mutation-consent policy'
+    $mutationPolicyFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @($queueSummary)
+    Assert-True -Condition $mutationPolicyFits `
+        -Name 'Package Manager mutation-consent policy is accessible and horizontally unclipped'
     $operationEntry = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperation_0'
     $runLast = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperationRunLast_0'
     $retry = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperationRetry_0'
@@ -1236,8 +1242,8 @@ Invoke-OwnedRoute -Route 'package-operations' -ExpectedTitle 'Package Manager' -
     Assert-True -Condition ($header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-operations alias selects Operations'
     $queueSummary = Wait-ForElement -Root $root -AutomationId 'NativePackageQueueSummary'
-    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Preview queue policy', [StringComparison]::Ordinal)) `
-        -Name 'Package Manager package-operations exposes preview queue policy'
+    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Native mutation consent policy', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-operations exposes mutation-consent policy'
 }
 
 Invoke-OwnedRoute -Route 'packages-operations' -ExpectedTitle 'Package Manager' -Inspect {
@@ -1247,8 +1253,8 @@ Invoke-OwnedRoute -Route 'packages-operations' -ExpectedTitle 'Package Manager' 
     Assert-True -Condition ($header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) `
         -Name 'Package Manager packages-operations alias selects Operations'
     $queueSummary = Wait-ForElement -Root $root -AutomationId 'NativePackageQueueSummary'
-    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Preview queue policy', [StringComparison]::Ordinal)) `
-        -Name 'Package Manager packages-operations exposes preview queue policy'
+    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Native mutation consent policy', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager packages-operations exposes mutation-consent policy'
 }
 
 foreach ($case in @(
