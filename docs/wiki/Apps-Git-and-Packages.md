@@ -12,7 +12,7 @@ Open in-app: `WinForge.exe --page git`
 
 ## Package Manager · 套件管理
 
-Native WinForge workspace for 11 managers — WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows PowerShell Gallery, PowerShell 7 PSResourceGet, Cargo, Bun and vcpkg — with nine views for discovery, updates, installed packages, bundles, sources, ignored rules, setup, settings and operations. A shared queue provides history, output, cancel and retry; global/per-package options flow through row, batch, bundle and scheduled operations. · WinForge 原生工作區支援 11 個管理器 — WinGet、Scoop、Chocolatey、pip、npm、.NET 工具、Windows PowerShell Gallery、PowerShell 7 PSResourceGet、Cargo、Bun 同 vcpkg — 並有九個檢視處理搜尋、更新、已安裝套件、清單、來源、忽略規則、引擎設定、背景設定同操作。共用佇列提供歷史、輸出、取消同重試；全域／逐套件選項會套用到單列、批次、清單同排程操作。
+The shipping managed workspace covers 11 managers and nine views. The native C++ port is narrower and **in progress**: it has read-only Discover/Updates/Installed queries, Details, update-rule persistence, source probing, and bounded Bundle metadata. One cached Install/Update/Uninstall row may be reviewed into `AwaitingConsent` and separately confirmed for serial normal-integrity execution. The coordinator keeps at most 50 in-memory records, has cancellation/fresh-consent retry/a five-minute timeout, rejects elevation/hooks/unsafe IDs/custom mutation arguments/oversized previews, and withholds third-party stdout/stderr/runtime diagnostics. It retains redacted reviewed argv plus lifecycle metadata in memory and writes a bounded redacted lifecycle event to existing Operations history. Update all and multi-select remain preview-only; batch consent, elevation mediation, and normal-integrity live proof are still pending. · 發佈中受控工作區涵蓋 11 個管理器同九個檢視。原生 C++ 移植範圍較窄而且**進行中**：有只讀 Discover／Updates／Installed 查詢、Details、更新規則保存、來源探測同有界 Bundle metadata。一條已快取安裝／更新／解除安裝資料列可以檢視成 `AwaitingConsent`，再分開確認，先可以由本機串行正常 integrity 協調器執行。協調器最多保留 50 條記憶體記錄，有取消／重新確認重試／五分鐘逾時，會拒絕提升權限／hooks／唔安全 ID／自訂修改參數／過長預覽，並略去第三方 stdout／stderr／執行時診斷。佢會喺記憶體保留已遮蔽已檢視 argv 連同生命週期 metadata，並向現有 Operations 歷史寫入有界已遮蔽生命週期事件。全部更新同多選保持只供預覽；批次確認、提升權限調停同正常 integrity 即時證明仍待完成。
 
 The pinned source snapshot at `ThirdParty/UniGetUI` is provenance for audit and parity work only. UniGetUI's upstream UI/framework, IPC and telemetry are not compiled or launched; the running feature is WinForge's own bilingual WinUI 3 implementation. · `ThirdParty/UniGetUI` 入面嘅固定原始碼快照只作審核同功能對等參考；UniGetUI 上游 UI／framework、IPC 同 telemetry 唔會被編譯或啟動，實際執行嘅係 WinForge 自己嘅雙語 WinUI 3 實作。
 
@@ -20,9 +20,11 @@ Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
+> The image above is managed-production-only. Fresh native Package Manager capture attempts are all `capture-blocked`: the driver and isolated LowLevel MCP desktop returned blank or near-uniform WinUI client frames, so no stale, synthetic, blank, or managed image is used as native evidence. · 上面張圖只係受控正式版。最新原生 Package Manager 擷取全部係 `capture-blocked`：driver 同隔離 LowLevel MCP desktop 都回傳空白／接近單色 WinUI client frame，所以唔會用舊、合成、空白或者受控圖片當原生證據。
+
 ## Native OSS Clones · 開源原生分頁
 
-A native-only index of open-source app ideas already remade as WinForge C# tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出已重製成 WinForge C# 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
+A native-only index of open-source app ideas being reimplemented as WinForge C++/WinRT tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出正重製成 WinForge C++/WinRT 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
 
 Open in-app: `WinForge.exe --page ossapps`
 

@@ -12,17 +12,17 @@ Open in-app: `WinForge.exe --page git`
 
 ## Package Manager · 套件管理
 
-One front-end over winget, scoop, choco, pip, npm and more. · 統一前端操作 winget、scoop、choco、pip、npm 等。
+The shipping managed page is the full package workspace. The native C++ port is in progress: one cached Install/Update/Uninstall row can be reviewed into `AwaitingConsent` and separately confirmed for serial normal-integrity execution, while Update all and multi-select stay preview-only. The 50-record in-memory coordinator cancels on exit, supports fresh-consent retry, rejects elevation/hooks/unsafe IDs/custom mutation arguments/oversized previews, retains redacted reviewed argv plus lifecycle metadata in memory, writes a bounded redacted lifecycle event to existing Operations history, and withholds third-party stdout/stderr/runtime diagnostics. · 發佈中受控頁面係完整套件工作區。原生 C++ 移植進行中：一條已快取安裝／更新／解除安裝資料列可以檢視成 `AwaitingConsent`，再分開確認，先會正常 integrity 串行執行，而全部更新同多選保持只供預覽。50 條記憶體協調器會喺離開時取消、支援重新確認重試、拒絕提升權限／hooks／唔安全 ID／自訂修改參數／過長預覽、喺記憶體保留已遮蔽已檢視 argv 同生命週期 metadata、向現有 Operations 歷史寫入有界已遮蔽生命週期事件，並略去第三方 stdout／stderr／執行時診斷。
 
 Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
-> Managed production reference · 受控正式版參考：the screenshot documents the shipping managed page. The native C++ Bundle-workspace capture is currently `capture-blocked`; no managed image is presented as native visual proof. · 呢張截圖記錄發佈中嘅受控頁。原生 C++ Bundle 工作區截圖目前係 `capture-blocked`；唔會將受控圖片當成原生視覺證據。
+> Managed production reference · 受控正式版參考：the screenshot documents the shipping managed page. Fresh native Discover, Updates, Installed, and Operations capture attempts are all `capture-blocked`: the driver and isolated LowLevel MCP desktop returned blank or near-uniform WinUI client frames, so no managed image is presented as native visual proof. · 呢張截圖記錄發佈中嘅受控頁。最新原生 Discover、Updates、Installed 同 Operations 擷取全部係 `capture-blocked`：driver 同隔離 LowLevel MCP desktop 都回傳空白／接近單色 WinUI client frame，所以唔會將受控圖片當原生視覺證明。
 
 ## Native OSS Clones · 開源原生分頁
 
-A native-only index of open-source app ideas already remade as WinForge C# tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出已重製成 WinForge C# 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
+A native-only index of open-source app ideas being reimplemented as WinForge C++/WinRT tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出正重製成 WinForge C++/WinRT 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
 
 Open in-app: `WinForge.exe --page ossapps`
 

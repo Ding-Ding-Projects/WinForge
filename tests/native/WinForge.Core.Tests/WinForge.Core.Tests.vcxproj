@@ -59,6 +59,7 @@
     <ClCompile Include="RomanNumTests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
+    <ClCompile Include="PackageMutationCoordinatorTests.cpp" />
     <ClCompile Include="PackageParsers.Tests.cpp" />
     <ClCompile Include="PackageRuntimeTests.cpp" />
     <ClCompile Include="ProcessRunnerTests.cpp" />
@@ -70,6 +71,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RomanNum.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageMutationCoordinator.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageParsers.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageRuntime.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\ProcessRunner.cpp" />
@@ -83,6 +85,7 @@
     <ClInclude Include="GuidGenTests.h" />
     <ClInclude Include="RomanNumTests.h" />
     <ClInclude Include="PackageManagerTests.h" />
+    <ClInclude Include="PackageMutationCoordinatorTests.h" />
     <ClInclude Include="PackageRuntimeTests.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\BinaryText.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CaseConvert.h" />
@@ -94,6 +97,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PackageManager.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageMutationCoordinator.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PackageParsers.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PackageRuntime.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ProcessRunner.h" />

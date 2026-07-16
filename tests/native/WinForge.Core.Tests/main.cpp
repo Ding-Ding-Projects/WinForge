@@ -7,6 +7,7 @@
 #include "RomanNumTests.h"
 #include "Localization.h"
 #include "PackageManagerTests.h"
+#include "PackageMutationCoordinatorTests.h"
 #include "PackageRuntime.h"
 #include "PackageRuntimeTests.h"
 #include "ProcessRunnerTests.h"
@@ -190,6 +191,10 @@ int wmain(int argc, wchar_t** argv)
     auto const package_manager_counts = RunPackageManagerTests();
     passed += package_manager_counts.passed;
     failed += package_manager_counts.failed;
+
+    auto const package_mutation_counts = RunPackageMutationCoordinatorTests();
+    passed += package_mutation_counts.passed;
+    failed += package_mutation_counts.failed;
 
     auto const package_runtime_counts = RunPackageRuntimeTests();
     passed += package_runtime_counts.passed;
