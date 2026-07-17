@@ -1,5 +1,7 @@
 <div align="center">
 
+> Native installer CI · The C++20 installer is contract-checked before packaging, after Inno Setup compilation, and after silent install; see [Native Installer CI](docs/Native-Installer-CI.md). 原生安裝程式 CI 會檢查封裝前、編譯後同靜默安裝後嘅合約。
+
 > Native update · Symbols Palette is now a tested C++/WinRT page: 226 local glyphs in nine bilingual categories, literal-default and opt-in bounded-PCRE2 filtering, explicit clipboard Copy, and aliases symbols/glyphs/module.symbols. See [Native Symbols Palette](docs/Native-Symbols-Palette.md).
 
 # WinForge · 視窗鑄造

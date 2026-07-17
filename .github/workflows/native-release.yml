@@ -144,6 +144,12 @@ jobs:
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "WINFORGE_NATIVE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Verify native installer contract
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File eng\native\Test-NativeInstallerContract.ps1 -PublishDir "${{ steps.runtime.outputs.dir }}"
+          if ($LASTEXITCODE -ne 0) { throw 'native installer contract rejected the staged runtime' }
+
       - name: Portable native zip · 原生可攜 zip
         shell: pwsh
         run: |
@@ -165,14 +171,18 @@ jobs:
           $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
           & $iscc "/DMyAppVersion=${{ steps.runtime.outputs.version }}" "/DMyPublishDir=${{ steps.runtime.outputs.dir }}" 'installer\WinForge.Native.iss'
           if ($LASTEXITCODE -ne 0) { throw 'native Inno Setup build failed' }
-          $setup = Get-ChildItem installer\out-native -Filter 'WinForge-Native-Setup.exe' -File | Select-Object -First 1
-          if (-not $setup) { throw 'native installer was not produced' }
+          $setups = @(Get-ChildItem installer\out-native -Filter 'WinForge-Native-Setup.exe' -File | Sort-Object FullName)
+          if ($setups.Count -ne 1) { throw "expected exactly one native installer, found $($setups.Count)" }
+          $setup = $setups[0]
+          powershell -NoProfile -ExecutionPolicy Bypass -File eng\native\Test-NativeInstallerContract.ps1 -InstallerPath $setup.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'native installer contract rejected the compiled setup executable' }
 
       - name: Smoke native C++ installer · 靜默測試原生 C++ 安裝程式
         shell: pwsh
         run: |
-          $setup = Get-ChildItem installer\out-native -Filter 'WinForge-Native-Setup.exe' -File | Select-Object -First 1
-          if (-not $setup) { throw 'native installer was not produced for smoke test' }
+          $setups = @(Get-ChildItem installer\out-native -Filter 'WinForge-Native-Setup.exe' -File | Sort-Object FullName)
+          if ($setups.Count -ne 1) { throw "expected exactly one native installer for smoke test, found $($setups.Count)" }
+          $setup = $setups[0]
           $localAppData = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
           $installRoot = [IO.Path]::GetFullPath((Join-Path $localAppData "WinForge-Native-Installer-Smoke-$env:GITHUB_RUN_ID"))
           $allowedPrefix = $localAppData.TrimEnd('\') + '\'
@@ -197,6 +207,8 @@ jobs:
             if (-not (Test-Path -LiteralPath $app)) { throw "installed native app missing: $app" }
             if (-not (Test-Path -LiteralPath $uninstaller)) { throw "installed native uninstaller missing: $uninstaller" }
             if (-not (Test-Path -LiteralPath $notices)) { throw "installed third-party notices missing: $notices" }
+            powershell -NoProfile -ExecutionPolicy Bypass -File eng\native\Test-NativeInstallerContract.ps1 -InstallDir $installRoot
+            if ($LASTEXITCODE -ne 0) { throw 'native installer contract rejected the installed payload' }
             $uninstallerProcess = Start-Process -FilePath $uninstaller -ArgumentList @(
               '/VERYSILENT',
               '/SUPPRESSMSGBOXES',

@@ -1,5 +1,11 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Native installer CI · 原生安裝程式 CI
+
+**EN.** Native release CI now calls a reusable installer contract verifier before packaging, after Inno Setup compilation, and after silent installation. It checks the per-user x64 policy, PE payloads, notices, debug-artifact exclusion, exact setup output, and uninstall cleanup. See [Native Installer CI](Native-Installer-CI.md).
+
+**粵語.** Native release CI 而家會喺封裝前、Inno Setup 編譯後同靜默安裝後呼叫可重用 installer contract verifier。佢檢查每用戶 x64 policy、PE payload、notices、debug-artifact exclusion、setup output 同解除安裝清理。詳情見 [Native Installer CI](Native-Installer-CI.md)。
+
 
 ## Native Symbols Palette · 原生特殊符號調色盤
 

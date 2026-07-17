@@ -1,5 +1,11 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Native installer CI · 原生安裝程式 CI
+
+Pages tracks the same native installer contract gate: runtime staging, compiled setup, and installed payload are checked before the native artifacts are published. See [Native Installer CI](Native-Installer-CI.md).
+
+Pages 會追蹤同一個 native installer contract gate：runtime staging、compiled setup 同 installed payload 都會喺原生 artifacts 發佈前驗證。詳情見 [Native Installer CI](Native-Installer-CI.md)。
+
 
 ## Native Symbols Palette · 原生特殊符號調色盤
 

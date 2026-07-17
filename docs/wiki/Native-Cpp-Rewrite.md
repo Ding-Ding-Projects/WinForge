@@ -1,5 +1,11 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Native installer CI · 原生安裝程式 CI
+
+The native installer contract is checked before packaging, after setup compilation, and after silent installation. It enforces per-user x64 policy, PE files, notices, no packaged debug symbols, exact setup output, and uninstall cleanup. See [Native Installer CI](Native-Installer-CI.md).
+
+原生 installer contract 會喺封裝前、setup 編譯後同靜默安裝後驗證；佢強制每用戶 x64 policy、PE files、notices、冇 packaged debug symbols、setup output 正確，同埋解除安裝清理完成。詳情見 [Native Installer CI](Native-Installer-CI.md)。
+
 
 ## Native Symbols Palette · 原生特殊符號調色盤
 
