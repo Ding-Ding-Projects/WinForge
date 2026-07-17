@@ -80,6 +80,7 @@ internal static class Program
         FuelCycleScenarios();
         WasteCapScenarios();
         WaterTreatmentScenarios();
+        AmmoniaPlantScenarios();
         ReactorDependencyScenarios();
         CakeFactoryScenarios();
 
@@ -1011,6 +1012,57 @@ internal static class Program
             bool pass = availDropped && lowTankAlarm && valveGate;
             return (pass, $"avail full={availFull:F2}→drained={availMid:F2} (dropped={availDropped}), lowTankAlarm={lowTankAlarm}, " +
                           $"valveShut→avail={availValveShut:F2} (gate={valveGate}).");
+        });
+    }
+
+    // ====================================================================== AMMONIA PLANT ====
+    private static void AmmoniaPlantScenarios()
+    {
+        Scenario("AMMONIA PLANT POWER GATING (pressurise → synthesise → depressurise on power loss)", () =>
+        {
+            var p = new AmmoniaPlantService();
+            p.Reset();
+            p.SetPowerFraction(1.0); // full 350 MW set-point
+
+            // 1) Reactor generating but plant NOT started: no draw, no pressure, no product.
+            for (int t = 1; t <= 20; t++) p.Step(t, 1100.0, true);
+            bool idleOk = p.DrawnMW == 0 && p.LoopPressureBar <= AmmoniaPlantService.AmbientBar + 0.001 && p.TotalTonnes == 0;
+
+            // 2) Start the plant with a healthy bus: the loop must pressurise past the synthesis
+            //    threshold, hydrogen must flow, and ammonia must accumulate.
+            p.Start();
+            int crossedTick = -1;
+            for (int t = 21; t <= 420; t++)
+            {
+                p.Step(t, 1100.0, true);
+                if (crossedTick < 0 && p.Synthesizing) crossedTick = t;
+            }
+            bool drewPower = Math.Abs(p.DrawnMW - AmmoniaPlantService.MaxDrawMW) < 1.0;
+            bool pressurised = p.LoopPressureBar > AmmoniaPlantService.SynthesisThresholdBar;
+            bool h2Flowing = p.H2RateKgPerHour > 1000; // 350 MW × 85% / 50 kWh/kg ≈ 5,950 kg/h
+            bool producing = p.TonnesPerHour > 1.0 && p.TotalTonnes > 0.5;
+            double co2Expected = p.TotalTonnes * AmmoniaPlantService.GreyCo2PerTonne;
+            bool co2Ok = Math.Abs(p.Co2AvoidedTonnes - co2Expected) < 1e-9;
+            double peakPressure = p.LoopPressureBar;
+            double madeTonnes = p.TotalTonnes;
+
+            // 3) Reactor lost (not generating): the loop must bleed down below the threshold and
+            //    production must stop; the lifetime total must never decrease.
+            for (int t = 421; t <= 620; t++) p.Step(t, 0.0, false);
+            bool depressurised = p.LoopPressureBar < AmmoniaPlantService.SynthesisThresholdBar && !p.Synthesizing;
+            bool stalled = p.TonnesPerHour == 0 && p.DrawnMW == 0 && p.H2RateKgPerHour == 0;
+            bool totalKept = p.TotalTonnes >= madeTonnes;
+
+            // 4) Reset restores the cold state.
+            p.Reset();
+            bool resetOk = !p.Running && p.LoopPressureBar == AmmoniaPlantService.AmbientBar && p.TotalTonnes == 0;
+
+            bool pass = idleOk && drewPower && pressurised && h2Flowing && producing && co2Ok
+                        && depressurised && stalled && totalKept && resetOk && crossedTick > 0;
+            return (pass, $"idle ok={idleOk}; powered: drew={p.SetpointMW:0} MW ok={drewPower}, loop {peakPressure:0.0} bar " +
+                          $"(crossed {AmmoniaPlantService.SynthesisThresholdBar:0} bar at tick {crossedTick}), H2 ok={h2Flowing}, " +
+                          $"made {madeTonnes:0.00} t (CO2 match={co2Ok}); power loss: depressurised={depressurised}, " +
+                          $"stalled={stalled}, totalKept={totalKept}; reset={resetOk}");
         });
     }
 
