@@ -128,7 +128,19 @@ Run the parser regression after changing the reference:
 dotnet run --project tests/RegexCheatService.Tests -c Debug
 ```
 
-**Capture status · 截圖狀態：** The fresh 2026-07-11 `regexcheat` attempt is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable. The route itself passed a subsequent launch-only check; no image is presented as fresh visual verification. · 2026-07-11 新嘅 `regexcheat` 嘗試係 `capture-blocked`：`CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。之後 route launch-only check 通過；冇圖片會當成最新視覺驗證。
+### Native C++/WinRT migration · 原生 C++/WinRT 遷移
+
+`module.regexcheat` is now a live native route backed by a pure-C++ catalog of 67 bilingual reference rows in nine categories and eight explicit Copy-only ready-made patterns. Literal filtering is the default; the fourth registered native regex-search surface uses bounded local PCRE2 only after explicit Regex mode opt-in. Invalid patterns retain the previous visible entries, and the full builder can hand a verified expression back to the Cheatsheet. .NET-only syntax remains inert documentation—never code execution, a process launch, a network request, or a package argument. · `module.regexcheat` 而家係即時原生 route，背後有純 C++ 67 項、九個分類嘅雙語參考目錄，同八個要明確 Copy 嘅現成模式。literal 篩選係預設；第四個已登記嘅原生 regex-search surface 只會喺明確 opt-in Regex mode 後先用有界、本機 PCRE2。無效模式會保留之前顯示嘅項目，而完整 builder 可以將已驗證表達式交返 Cheatsheet。.NET 專用語法仍然係惰性文件——唔會執行 code、啟動 process、發 network request 或成為 package argument。
+
+```powershell
+tests\native\WinForge.Core.Tests\bin\x64\Debug\WinForge.Core.Tests.exe
+powershell -NoProfile -ExecutionPolicy Bypass -File eng\native\Test-NativeCatalogParity.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
+```
+
+**Native evidence · 原生證據：** Debug and Release pass **395/395**, catalog parity covers 346 fixed routes plus five dynamic families, and the isolated LowLevel MCP UI Automation shell passes **224/224**. · Debug 同 Release 都係 **395/395**，catalog parity 涵蓋 346 條固定 routes 同五組 dynamic families，而隔離 LowLevel MCP UI Automation shell 係 **224/224**。
+
+**Capture status · 截圖狀態：** The fresh 2026-07-16 native `regexcheat` capture is `capture-blocked`: the inspected 852×880 full window and 836×841 client-only frames were blank, so both PNGs were discarded. UI Automation is behavioral/accessibility evidence, not visual verification; no stale or managed image is presented as native evidence. · 2026-07-16 新嘅原生 `regexcheat` 擷取係 `capture-blocked`：檢查過嘅 852×880 full window 同 836×841 client-only frame 都係空白，所以兩個 PNG 都已丟棄。UI Automation 係行為／無障礙證據，唔係視覺驗證；冇舊圖或受控版圖片會當成原生證據。
 
 See [Regex Cheatsheet & Reactor Settings Lifecycle](RegexCheat-ReactorSettings-Lifecycle.md) for the complete, safe test boundary. · 完整、安全嘅測試邊界請睇[正則速查同反應堆設定生命週期](RegexCheat-ReactorSettings-Lifecycle.md)。
 

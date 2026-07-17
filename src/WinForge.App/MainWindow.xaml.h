@@ -15,6 +15,7 @@
 #include "../WinForge.Core/PackageMutationCoordinator.h"
 #include "../WinForge.Core/PackageRuntime.h"
 #include "../WinForge.Core/PackageSetup.h"
+#include "../WinForge.Core/RegexCheat.h"
 #include "../WinForge.Core/RegexSearch.h"
 #include "../WinForge.Core/RegexSearchSurface.h"
 #include "../WinForge.Core/RouteIndex.h"
@@ -98,6 +99,14 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ListView m_allAppsList{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_allAppsCount{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_allAppsRegexStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_regexCheatSearchBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_regexCheatRegexMode{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_regexCheatCategoryPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_regexCheatRegexBuilder{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_regexCheatEntryList{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_regexCheatResultCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_regexCheatRegexStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_regexCheatCopyStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageViewPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageSortPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::AutoSuggestBox m_packageSearchBox{ nullptr };
@@ -309,6 +318,13 @@ namespace winrt::WinForge::implementation
         bool m_allAppsRegexMultiline{ false };
         bool m_allAppsRegexDotMatchesNewline{ false };
         std::wstring m_allAppsRegexDiagnostic{};
+        std::wstring m_regexCheatSearchText{};
+        std::wstring m_regexCheatCategoryKey{};
+        bool m_regexCheatRegexEnabled{ false };
+        bool m_regexCheatRegexCaseSensitive{ false };
+        bool m_regexCheatRegexMultiline{ false };
+        bool m_regexCheatRegexDotMatchesNewline{ false };
+        std::wstring m_regexCheatRegexDiagnostic{};
 
         enum class RegexBuilderTarget : std::uint8_t
         {
@@ -318,6 +334,8 @@ namespace winrt::WinForge::implementation
                 winforge::core::regex::RegexSearchSurfaceId::AllApps),
             PackageDiscover = static_cast<std::uint8_t>(
                 winforge::core::regex::RegexSearchSurfaceId::PackageDiscoverCachedResults),
+            RegexCheatsheet = static_cast<std::uint8_t>(
+                winforge::core::regex::RegexSearchSurfaceId::RegexCheatsheetEntries),
             TesterOnly,
         };
 
@@ -358,6 +376,8 @@ namespace winrt::WinForge::implementation
         void RenderDashboard();
         void RenderAllApps(std::wstring_view query = {});
         void PopulateAllApps(std::wstring_view query);
+        void RenderRegexCheatsheet();
+        void RefreshRegexCheatsheetEntries();
         void RenderRegexTester();
         void OpenRegexBuilder(RegexBuilderTarget target, std::wstring_view initialPattern = {});
         void ApplyRegexBuilderTarget();

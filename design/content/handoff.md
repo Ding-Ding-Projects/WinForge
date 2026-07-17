@@ -1,5 +1,11 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## Latest native continuation — 2026-07-16
+
+`module.regexcheat` is now a real C++/WinRT route with a pure-C++ 67-row/9-category bilingual reference catalog, eight copy-only ready-made patterns, default literal filtering, and an explicit bounded-PCRE2 local filter. It is the fourth registered native regex search surface and can round-trip a verified pattern through the full builder. .NET-only reference syntax remains documentation and never executes. Debug/Release native tests passed **395/395**, catalog parity passed 346 fixed routes plus five dynamic families, and isolated LowLevel MCP UI Automation passed **224/224**. The inspected 852×880 full and 836×841 client frames were blank, discarded, and recorded as `capture-blocked`; no stale or managed image is used as native evidence.
+
+`module.regexcheat` 而家係真正嘅 C++/WinRT route，有純 C++ 67 項／9 分類雙語參考、八個只可明確複製嘅現成模式、預設 literal 篩選同明確啟用嘅 bounded-PCRE2 本機篩選。佢係第四個已註冊 native regex search surface，亦可以同完整 builder round-trip 已驗證嘅模式。.NET 專用語法只係文件，唔會執行。Debug/Release **395/395**、catalog parity 同隔離 LowLevel MCP UI Automation **224/224** 都通過；852×880 full 同 836×841 client frame 空白、已丟棄，狀態係 `capture-blocked`。
+
 A complete map of every module/feature: what it does, how to open it, the page + service files, and the
 **real engine it wraps**. WinForge is a bilingual (English + 粵語) WinUI 3 / .NET 11 suite for Windows 11.
 **No redirects** — every shipping feature runs in-app and wraps a real engine/API. A genuine C++20/C++/WinRT rewrite now lives beside this managed oracle; its foundation is routable and verified, but feature parity remains evidence-gated and is not yet claimed.
