@@ -1,5 +1,11 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Native installer CI · 原生安裝程式 CI
+
+Native artifacts are gated by a reusable installer verifier at runtime staging, setup compilation, and post-install payload inspection. See [Native Installer CI](Native-Installer-CI.md).
+
+原生 artifacts 會由可重用 installer verifier 喺 runtime staging、setup compilation 同 post-install payload inspection 驗證。詳情見 [Native Installer CI](Native-Installer-CI.md)。
+
 
 ## Native Symbols Palette · 原生特殊符號調色盤
 
