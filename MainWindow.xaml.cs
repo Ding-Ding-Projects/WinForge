@@ -578,6 +578,10 @@ public sealed partial class MainWindow : Window
             case "fertiliser":
                 Navigator.GoToModule?.Invoke("module.ammonia");
                 break;
+            case "loadshed":
+            case "mwbudget":
+                Navigator.GoToModule?.Invoke("module.loadshed");
+                break;
             case "colormix":
             case "colourmix":
                 Navigator.GoToModule?.Invoke("module.colormix");
@@ -2535,6 +2539,7 @@ public sealed partial class MainWindow : Window
         "module.romannum" => typeof(RomanNumModule),
         "module.cementkiln" => typeof(CementKilnModule),
         "module.ammonia" => typeof(AmmoniaPlantModule),
+        "module.loadshed" => typeof(GridLoadShedModule),
         "module.colormix" => typeof(ColorMixModule),
         "module.jsonsort" => typeof(JsonSortModule),
         "module.loremtext" => typeof(LoremTextModule),
@@ -2952,7 +2957,7 @@ public sealed partial class MainWindow : Window
                 "module.computemine", "module.smelter", "module.datacenter", "module.collider",
                 "module.reactorbank", "module.desal", "module.evcharge", "module.pumpedhydro",
                 "module.districtheat", "module.dac", "module.vertfarm", "module.steelmill",
-                "module.cementkiln", "module.ammonia",
+                "module.cementkiln", "module.ammonia", "module.loadshed",
             },
         },
         new()
