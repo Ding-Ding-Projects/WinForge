@@ -245,6 +245,8 @@ namespace winrt::WinForge::implementation
         bool m_packageDiscoverRegexEnabled{ false };
         bool m_packageDiscoverRegexMultiline{ false };
         bool m_packageDiscoverRegexDotMatchesNewline{ false };
+        bool m_packageDiscoverRegexIgnorePatternWhitespace{ false };
+        bool m_packageDiscoverRegexExplicitCapture{ false };
         std::wstring m_packageDiscoverRegexPattern{};
         std::wstring m_packageDiscoverRegexDiagnostic{};
         bool m_packageRetainCachedResultsOnNextRender{ false };
@@ -311,12 +313,16 @@ namespace winrt::WinForge::implementation
         bool m_shellRegexCaseSensitive{ false };
         bool m_shellRegexMultiline{ false };
         bool m_shellRegexDotMatchesNewline{ false };
+        bool m_shellRegexIgnorePatternWhitespace{ false };
+        bool m_shellRegexExplicitCapture{ false };
         std::wstring m_shellRegexDiagnostic{};
         std::wstring m_allAppsSearchText{};
         bool m_allAppsRegexEnabled{ false };
         bool m_allAppsRegexCaseSensitive{ false };
         bool m_allAppsRegexMultiline{ false };
         bool m_allAppsRegexDotMatchesNewline{ false };
+        bool m_allAppsRegexIgnorePatternWhitespace{ false };
+        bool m_allAppsRegexExplicitCapture{ false };
         std::wstring m_allAppsRegexDiagnostic{};
         std::wstring m_regexCheatSearchText{};
         std::wstring m_regexCheatCategoryKey{};
@@ -324,6 +330,8 @@ namespace winrt::WinForge::implementation
         bool m_regexCheatRegexCaseSensitive{ false };
         bool m_regexCheatRegexMultiline{ false };
         bool m_regexCheatRegexDotMatchesNewline{ false };
+        bool m_regexCheatRegexIgnorePatternWhitespace{ false };
+        bool m_regexCheatRegexExplicitCapture{ false };
         std::wstring m_regexCheatRegexDiagnostic{};
 
         enum class RegexBuilderTarget : std::uint8_t
@@ -341,11 +349,16 @@ namespace winrt::WinForge::implementation
 
         RegexBuilderTarget m_regexBuilderTarget{ RegexBuilderTarget::TesterOnly };
         int32_t m_regexBuilderStep{ 0 };
-        bool m_regexBuilderCaseSensitive{ false };
+        // The standalone tester mirrors managed RegexOptions defaults: case
+        // sensitive until a selected search surface supplies its own state.
+        bool m_regexBuilderCaseSensitive{ true };
         bool m_regexBuilderMultiline{ false };
         bool m_regexBuilderDotMatchesNewline{ false };
+        bool m_regexBuilderIgnorePatternWhitespace{ false };
+        bool m_regexBuilderExplicitCapture{ false };
         std::wstring m_regexBuilderPattern{};
         std::wstring m_regexBuilderTestText{ L"WinForge Native\r\nPackage Manager" };
+        std::wstring m_regexBuilderReplacement{};
         std::wstring m_regexBuilderLiteral{};
         std::wstring m_regexBuilderCharacterClass{};
         std::wstring m_regexBuilderCaptureName{};
@@ -359,8 +372,13 @@ namespace winrt::WinForge::implementation
         bool m_regexBuilderRangeUnbounded{ false };
         Microsoft::UI::Xaml::Controls::TextBox m_regexBuilderPatternBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_regexBuilderTestTextBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_regexBuilderReplacementBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_regexBuilderStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_regexBuilderPreview{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_regexBuilderMatchSummary{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_regexBuilderMatchList{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_regexBuilderReplacementPreview{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_regexBuilderReplacementStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_regexBuilderApply{ nullptr };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
@@ -536,7 +554,9 @@ namespace winrt::WinForge::implementation
             bool caseSensitive,
             bool multiline,
             bool dotMatchesNewline,
-            std::wstring& diagnostic) const;
+            std::wstring& diagnostic,
+            bool ignorePatternWhitespace = false,
+            bool explicitCapture = false) const;
         [[nodiscard]] bool Matches(
             winforge::core::ModuleRecord const& module,
             std::wstring_view query,

@@ -6,6 +6,10 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
+**EN —** On 2026-07-16, the changed native `regextester` page was launched only through an isolated LowLevel MCP headless desktop after the **226/226** native UI Automation campaign. The resolved 852×880 full-window capture and independently inspected 836×841 client-only capture were both blank. Both temporary PNGs were discarded. The **403/403** Debug/Release tests and **226/226** UI Automation checks are behavioral/accessibility evidence only; no stale, synthetic, blank, or managed screenshot was reused. Native Regex Tester is honestly `capture-blocked`.
+
+**粵語 —** 2026-07-16，改過嘅原生 `regextester` 頁面只會喺隔離 LowLevel MCP 無頭 desktop 開啟，而且係 **226/226** 原生 UI Automation campaign 後。已解析嘅 852×880 full-window 擷取同獨立檢查嘅 836×841 client-only 擷取都係空白。兩個暫存 PNG 都已丟棄。**403/403** Debug／Release 測試同 **226/226** UI Automation 檢查只係行為／無障礙證據；冇舊圖、合成圖、空白圖或受控版截圖會被重用。原生 Regex Tester 如實係 `capture-blocked`。
+
 **EN —** On 2026-07-16, the native `regexcheat` page was launched only through the isolated LowLevel MCP headless desktop after the **224/224** native UI Automation sweep. The resolved 852×880 full-window frame showed a title bar with a blank client surface; the independently inspected 836×841 client-only frame was blank as well. Both temporary PNGs were discarded. The 395/395 Debug/Release tests and 224/224 UI Automation checks are behavioral/accessibility evidence only; no stale, synthetic, blank, or managed screenshot was reused. Native Regex Cheatsheet is honestly `capture-blocked`.
 
 **粵語 —** 2026-07-16，原生 `regexcheat` 頁面只會喺隔離 LowLevel MCP 無頭 desktop 開啟，喺 **224/224** 原生 UI Automation sweep 後先擷取。已解析嘅 852×880 full-window frame 有 title bar 但 client surface 空白；另外檢查嘅 836×841 client-only frame 亦係空白。兩個暫存 PNG 都已丟棄。395/395 Debug／Release 測試同 224/224 UI Automation 檢查只係行為／無障礙證據；冇舊圖、合成圖、空白圖或受控版截圖會被重用。原生 Regex Cheatsheet 如實係 `capture-blocked`。
