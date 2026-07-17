@@ -2,7 +2,7 @@
 
 North star: **≥1000 working features across 200+ modules**, run as a continuous Ralph loop. Each iteration: pull from this backlog, implement real (pure-managed) features + modules, fix bugs, verify **build + tests green**, then push → deploy → merge to main. Never stop adding ideas. Themes: **(A) improve Windows · (B) embed open-source apps (respect licenses: compatibility + attribution) · (C) extend existing modules**.
 
-Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:Platform=x64` = 0 errors **and** `tests/ReactorSim.Tests` = 63/63.
+Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:Platform=x64` = 0 errors **and** `tests/ReactorSim.Tests` = 64/64.
 
 ## Status
 - Baseline: 144 modules (2026-07-01).
@@ -47,7 +47,9 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
 - **Batch 20 — DONE: +7 modules → 305 🎉 (crossed 300).**
   ⚛️ 2 more reactor loads (earn ⚡): **Vertical Farm** (LED grow-lights + photoperiod; harvest & sell produce) + **Arc-Furnace Steel Mill** (batch EAF: charge→melt→tap; up to ~800 MW; bath freezes on power loss). Plus general: CSS Unit Converter, Placeholder Image (SVG), HTML Table Convert, Barcode Generator (Code128/39/EAN-13, hand-rolled), JSON Pointer (RFC 6901). Pre-merge fix: JsonPointer XAML Grid/StackPanel tag mismatch. Build 0 errors, tests 62/62.
 - **Batches 21+ — depth + native-rewrite era (status sync 2026-07-17).** The registry now holds **318 registered modules** (grep-verified against `Services/ModuleRegistry.cs`). Post-batch-20 additions include ⚛️ **Cement Kiln** (`module.cementkiln`) plus Color Mixer, JSON Sort, Lorem Text, Phonetic Alphabet, Word Frequency and others; the reactor harness grew to **63/63**. Recent iterations centre on the genuine C++20/C++/WinRT rewrite (`docs/Native-Cpp-Rewrite.md`, `docs/cpp-port-parity.json`, per-slice memory docs under `docs/`), latest slice: the safe native Store App Uninstaller (`docs/Native-App-Uninstaller.md`, visual evidence capture-blocked).
-- **Next focus:** keep shipping ⚛️ reactor loads (Ammonia/fertilizer next; Cement Kiln shipped) + general modules; deepen the ⚡ economy; continue evidence-gated native parity slices. At **318 modules**.
+- **2026-07-17 — ⚛️ Ammonia / Fertilizer Plant shipped → 319.**
+  `module.ammonia` (`--page ammonia|fertilizer|fertiliser`): a reactor-powered green-ammonia (Haber-Bosch) plant — electrolyzer H₂ + air-separated N₂, synthesis loop pressurises toward 200 bar, NH₃ only above 150 bar, ~10 MWh/t at up to 350 MW, CO₂-avoided vs grey (SMR) ammonia, sells NH₃ into the ⚡ economy at 9 ⚡/t. Pure `Services/AmmoniaPlantService.cs` + `Pages/AmmoniaPlantModule` mirroring the Cement Kiln pattern (named `LanguageChanged` handler, marshalled economy events, never throws). **New harness scenario** (power gating: pressurise → synthesise → depressurise on power loss) — harness is now **64 scenarios**. Verified in this iteration (Linux dev box): harness builds 0 warn/0 err and runs **62/64** with only the two known Windows-only disk-probing waste scenarios failing environmentally; new scenario PASSES; page/XAML verified by Roslyn syntax check + name/handler cross-check + XML well-formedness (WinUI build requires the Windows box — run `dotnet build WinForge.sln -c Debug -p:Platform=x64` there before merging to main).
+- **Next focus:** more ⚛️ loads — the epic's remaining unbuilt item is the **live MW-budget / load-shed dashboard** (show every connected load, shed lowest-priority on undervoltage); plus general modules; deepen the ⚡ economy; continue evidence-gated native parity slices. At **319 modules**.
 
 ## Bug / hardening priorities (fold into every iteration)
 - [x] **Freezes — round 1:** offloaded WMI/PDH/`Process.GetProcesses`/sensor ticks to `Task.Run` (SystemMonitor, ProcessExplorer, Connections, BatteryThermal, NativeUtilities); off-thread registry-hive enumeration; Unloaded timer stops (ScreenRecorder); calmed CakeFactory 80ms→200ms; fixed `LanguageChanged` leaks on the hot pages.
@@ -125,4 +127,4 @@ reactor MW):
 - (Reactor) **Data-of-record / Home Assistant mirror** already exists — extend with a live MW-budget dashboard
   that shows every connected load and sheds the lowest-priority ones on undervoltage (load-shed simulator).
 Build cadence: fold 1–2 of these into each Ralph iteration as real reactor-integrated modules (read
-`ElectricPowerMW`, gate work, show a MW meter), verified green + reactor tests 63/63 before merge.
+`ElectricPowerMW`, gate work, show a MW meter), verified green + reactor tests 64/64 before merge.
