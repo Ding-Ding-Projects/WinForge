@@ -53,7 +53,7 @@
                        "notes":  "2026-07-16 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native page is pure C++ data and bounded local regex behavior; .NET-only syntax remains inert reference documentation and no process, network, or package-argument path exists. No stale, synthetic, blank, or managed image is used as native evidence."
                    },
                    {
-                       "id":  "annoyances",
+                        "id":  "annoyances",
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
@@ -61,21 +61,21 @@
                                   ],
                        "risk":  "stateful",
                        "expected":  "Debloat \u0026 Annoyances · 去煩擾 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
-                       "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                         "status":  "not-started",
+                         "evidence":  {
+                                          "static":  "not-started",
+                                          "build":  "not-started",
+                                          "test":  "not-started",
+                                          "launch":  "not-started",
+                                          "visual":  "not-started",
+                                          "behavior":  "not-started",
+                                          "sideEffect":  "not-started",
+                                          "docs":  "not-started"
                                     },
                        "attempts":  [
 
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                         "notes":  "C++ parity evidence has not yet been recorded."
                    },
                    {
                        "id":  "appearance",
@@ -7033,7 +7033,7 @@
                        "notes":  "C++ parity evidence has not yet been recorded."
                    },
                    {
-                       "id":  "module.symbols",
+                        "id":  "module.symbols",
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
@@ -7041,21 +7041,21 @@
                                   ],
                        "risk":  "stateful",
                        "expected":  "Symbols Palette · 特殊符號調色盤 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
-                       "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                        "status":  "in-progress",
+                        "evidence":  {
+                                         "static":  "pass",
+                                         "build":  "pass",
+                                         "test":  "pass",
+                                         "launch":  "pass",
+                                         "visual":  "capture-blocked",
+                                         "behavior":  "pass",
+                                         "sideEffect":  "pass",
+                                         "docs":  "pass"
                                     },
                        "attempts":  [
 
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                        "notes":  "Pure-C++ 226-row/9-category catalog, real C++/WinRT route, aliases symbols/glyphs/module.symbols, literal and bounded-PCRE2 local filters, explicit clipboard Copy, and builder handoff are verified by Debug core 411/411 and owned LowLevel MCP UI Automation 238/238. CopyFromScreen was unavailable and the process-owned PrintWindow fallback was blank/near-uniform, so visual evidence is capture-blocked and no PNG was retained."
                    },
                    {
                        "id":  "module.tableformat",

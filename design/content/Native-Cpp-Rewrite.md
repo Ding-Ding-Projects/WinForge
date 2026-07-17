@@ -1,5 +1,15 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+
+## Native Symbols Palette · 原生特殊符號調色盤
+
+**EN.** The Symbols Palette is now a real C++/WinRT route backed by a pure-C++ catalog of 226 local glyphs across nine bilingual categories. It keeps literal-default and opt-in bounded-PCRE2 filtering, explicit clipboard Copy, category fallback, and Regex Builder return behavior local to the native app. Debug and Release core tests passed 411/411; the owned LowLevel MCP native shell campaign passed 238/238.
+
+**粵語.** 特殊符號調色盤而家係真正 C++/WinRT route，用純 C++ 226 個本機字形、九個雙語分類。佢保留文字預設、可選 bounded-PCRE2 過濾、明確複製、分類 fallback 同 Regex Builder 返回行為，全部留喺原生 app。Debug 同 Release core tests 都係 411/411；LowLevel MCP 原生 shell campaign 238/238 通過。
+
+**Visual evidence / 視覺證據.** The owned capture driver could not use CopyFromScreen and rejected a blank or near-uniform PrintWindow fallback. No screenshot was retained or replaced; the route remains honestly capture-blocked until a graphics-capable isolated desktop is available. See Native-Symbols-Palette.md and wiki/Symbols-Capture-Status.md.
+
+
 > Status: **in progress**. WinForge is being rebuilt as a real C++20/C++/WinRT WinUI 3 application. The managed app remains the behavioral oracle until every ledger row is proven; the native executable does not host, wrap, launch, or communicate with it. · 狀態：**進行中**。WinForge 正在重建成真正嘅 C++20／C++/WinRT WinUI 3 app。每一條 ledger 證據完成前，受控 app 只係行為基準；原生 executable 唔會 host、包裝、開啟或者同佢通訊。
 
 ## Coverage contract · 覆蓋合約

@@ -1,5 +1,14 @@
 # WinForge Exhaustive Smoke Campaign · WinForge 全面冒煙驗證
 
+
+## 2026-07-16 Native Symbols Palette evidence · 原生特殊符號調色盤證據
+
+- **Route / Route：** symbols, glyphs, and module.symbols resolve to the C++/WinRT Symbols Palette.
+- **Behavior / 行為：** 226 local glyphs in nine bilingual categories; literal-default and bounded-PCRE2 filtering; invalid regex preserves prior results; Copy is explicit; Regex Builder returns to the correct local-only search target.
+- **Gates / 閘門：** Debug and Release core tests: 411/411. Owned LowLevel MCP native UI Automation: 238/238.
+- **Screenshot / 截圖：** capture-blocked, not visually passed. CopyFromScreen was unavailable and the blank or near-uniform PrintWindow fallback was rejected; no stale image was kept.
+
+
 **Status · 狀態：** Baseline active · 基線已啟動
 
 > **Coverage correction · 覆蓋修正：** The 323-route figures on this historical campaign page describe the exact legacy manifest used for those batches. The corrected current whole-shell contract is **346 fixed routes plus five dynamic route families** because that manifest omitted 22 runtime category routes and Settings. Historical results remain valid only for their recorded subset. · 呢個歷史 campaign 頁面嘅 323-route 數字係當時 batches 所用舊 manifest 嘅準確記錄。修正後目前全 shell 合約係 **346 條固定路線加五組動態路線**，因為嗰份 manifest 漏咗 22 條執行時分類路線同 Settings。歷史結果只對佢記錄嘅子集有效。

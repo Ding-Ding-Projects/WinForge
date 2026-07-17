@@ -918,6 +918,10 @@ namespace winrt::WinForge::implementation
         {
             RenderRegexCheatsheet();
         }
+        else if (module->id == L"module.symbols")
+        {
+            RenderSymbolsPalette();
+        }
         else if (module->id == L"about")
         {
             RenderAbout();
@@ -10197,6 +10201,308 @@ namespace winrt::WinForge::implementation
         ShowPage(page);
     }
 
+    void MainWindow::RenderSymbolsPalette()
+    {
+        auto const pick = [this](std::wstring_view en, std::wstring_view zh)
+        {
+            return winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
+        };
+
+        m_symbolsRendering = true;
+        auto page = CreatePage(
+            pick(L"Symbols Palette", L"\u7279\u6B8A\u7B26\u865F\u8ABF\u8272\u76E4"),
+            pick(
+                L"A local palette of arrows, maths, currency, Greek, box-drawing and more. Choose a category or search by name, then explicitly copy one symbol.",
+                L"\u672C\u6a5f\u7279\u6b8a\u7b26\u865f\u8abf\u8272\u76e4\uff0c\u6709\u7bad\u5634\u3001\u6578\u5b78\u3001\u8ca8\u5e63\u3001\u5e0c\u81d8\u5b57\u6bcd\u3001\u6846\u7dda\u7b49\u7b49\u3002\u63c0\u500b\u5206\u985e\u6216\u8005\u7528\u540d\u641c\u5c0b\uff0c\u518d\u64f3\u8907\u88fd\u3002"));
+        AutomationProperties::SetAutomationId(page, L"NativeSymbolsPage");
+
+        InfoBar safety;
+        safety.IsOpen(true);
+        safety.IsClosable(false);
+        safety.Severity(InfoBarSeverity::Informational);
+        safety.Title(ToHString(pick(L"Static local catalog", L"\u975c\u614b\u672c\u6a5f\u76ee\u9304")));
+        safety.Message(ToHString(pick(
+            L"All 226 entries are embedded locally. Literal and regex filters only inspect this catalog; no query reaches a command line, package manager, network, or process. Clipboard writes occur only after an explicit Copy action.",
+            L"226 \u500b\u7b26\u865f\u90fd\u5d4c\u5165\u672c\u6a5f\u3002\u641c\u5c0b\u53ea\u6703\u6aa2\u67e5\u76ee\u9304\uff0c\u5514\u6703\u53bb\u6307\u4ee4\u5217\u3001\u5957\u4ef6\u7ba1\u7406\u5668\u3001\u7db2\u7d61\u6216\u7a0b\u5e8f\u3002\u53ea\u6709\u4f60\u64f3\u8907\u88fd\u5148\u6703\u5beb\u5165\u526a\u8cbc\u7c3f\u3002")));
+        AutomationProperties::SetAutomationId(safety, L"NativeSymbolsSafety");
+        page.Children().Append(safety);
+
+        m_symbolsSearchBox = TextBox();
+        m_symbolsSearchBox.Header(box_value(ToHString(pick(L"Search symbols by name or glyph", L"\u7528\u540d\u6216\u7b26\u865f\u641c\u5c0b"))));
+        m_symbolsSearchBox.PlaceholderText(ToHString(pick(
+            L"Literal text by default; enable Regex mode for bounded PCRE2",
+            L"\u9810\u8a2d\u4fc2\u6587\u5b57\u641c\u5c0b\uff1b\u958b Regex \u6a21\u5f0f\u5148\u6703\u7528\u9650\u5236\u5de6\u7684 PCRE2")));
+        m_symbolsSearchBox.Text(ToHString(m_symbolsSearchText));
+        AutomationProperties::SetAutomationId(m_symbolsSearchBox, L"NativeSymbolsSearch");
+        AutomationProperties::SetName(m_symbolsSearchBox, ToHString(pick(L"Symbols Palette local search", L"\u7279\u6b8a\u7b26\u865f\u8abf\u8272\u76e4\u672c\u6a5f\u641c\u5c0b")));
+        m_symbolsSearchBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_symbolsRendering) return;
+            m_symbolsSearchText = ToWide(sender.as<TextBox>().Text());
+            RefreshSymbolsPaletteEntries();
+        });
+        page.Children().Append(m_symbolsSearchBox);
+
+        m_symbolsRegexMode = ToggleSwitch();
+        m_symbolsRegexMode.Header(box_value(ToHString(pick(
+            L"Regex mode (bounded PCRE2 local filter)",
+            L"Regex \u6a21\u5f0f\uff08\u6709\u9650\u5236\u7684 PCRE2 \u672c\u6a5f\u7be9\u9078\uff09"))));
+        m_symbolsRegexMode.IsOn(m_symbolsRegexEnabled);
+        AutomationProperties::SetAutomationId(m_symbolsRegexMode, L"NativeSymbolsRegexMode");
+        m_symbolsRegexMode.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_symbolsRendering) return;
+            m_symbolsRegexEnabled = sender.as<ToggleSwitch>().IsOn();
+            RefreshSymbolsPaletteEntries();
+        });
+        page.Children().Append(m_symbolsRegexMode);
+
+        m_symbolsCategoryPicker = ComboBox();
+        m_symbolsCategoryPicker.Header(box_value(ToHString(pick(L"Symbol category", L"\u7b26\u865f\u5206\u985e"))));
+        ComboBoxItem allCategories;
+        allCategories.Content(box_value(ToHString(pick(L"All categories", L"\u5168\u90e8\u5206\u985e"))));
+        m_symbolsCategoryPicker.Items().Append(allCategories);
+        auto const categories = winforge::core::symbols::SymbolsCategories();
+        int32_t categoryIndex = 0;
+        for (std::size_t index = 0; index < categories.size(); ++index)
+        {
+            auto const& category = categories[index];
+            ComboBoxItem item;
+            item.Content(box_value(ToHString(pick(category.name_en, category.name_zh))));
+            m_symbolsCategoryPicker.Items().Append(item);
+            if (category.key == m_symbolsCategoryKey)
+            {
+                categoryIndex = static_cast<int32_t>(index + 1);
+            }
+        }
+        m_symbolsCategoryPicker.SelectedIndex(categoryIndex);
+        AutomationProperties::SetAutomationId(m_symbolsCategoryPicker, L"NativeSymbolsCategory");
+        AutomationProperties::SetName(m_symbolsCategoryPicker, ToHString(pick(L"Symbols Palette category", L"\u7279\u6b8a\u7b26\u865f\u8abf\u8272\u76e4\u5206\u985e")));
+        m_symbolsCategoryPicker.SelectionChanged([this, categories](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_symbolsRendering) return;
+            auto const index = sender.as<ComboBox>().SelectedIndex();
+            if (index <= 0 || static_cast<std::size_t>(index) > categories.size())
+            {
+                m_symbolsCategoryKey.clear();
+            }
+            else
+            {
+                m_symbolsCategoryKey = categories[static_cast<std::size_t>(index - 1)].key;
+            }
+            RefreshSymbolsPaletteEntries();
+        });
+        page.Children().Append(m_symbolsCategoryPicker);
+
+        m_symbolsRegexBuilder = Button();
+        m_symbolsRegexBuilder.Content(box_value(ToHString(pick(L"Open full Regex Builder", L"\u958b\u555f\u5b8c\u6574 Regex \u5efa\u7acb\u5668"))));
+        m_symbolsRegexBuilder.HorizontalAlignment(HorizontalAlignment::Left);
+        m_symbolsRegexBuilder.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(m_symbolsRegexBuilder, L"NativeSymbolsRegexBuilder");
+        AutomationProperties::SetName(m_symbolsRegexBuilder, ToHString(pick(
+            L"Open the full safe native regex builder for Symbols Palette",
+            L"\u958b\u555f\u7279\u6b8a\u7b26\u865f\u8abf\u8272\u76e4\u7528\u7684\u5b8c\u6574\u5b89\u5168 Regex \u5efa\u7acb\u5668")));
+        m_symbolsRegexBuilder.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            OpenRegexBuilder(RegexBuilderTarget::SymbolsPalette, m_symbolsSearchText);
+        });
+        page.Children().Append(m_symbolsRegexBuilder);
+
+        m_symbolsRegexStatus = CreateText(L"", 12);
+        m_symbolsRegexStatus.TextWrapping(TextWrapping::Wrap);
+        m_symbolsRegexStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_symbolsRegexStatus, L"NativeSymbolsStatus");
+        AutomationProperties::SetLiveSetting(
+            m_symbolsRegexStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_symbolsRegexStatus);
+
+        m_symbolsResultCount = CreateText(L"", 13, true);
+        AutomationProperties::SetAutomationId(m_symbolsResultCount, L"NativeSymbolsResultCount");
+        page.Children().Append(m_symbolsResultCount);
+
+        m_symbolsCopyStatus = CreateText(L"", 12);
+        m_symbolsCopyStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_symbolsCopyStatus, L"NativeSymbolsCopyStatus");
+        AutomationProperties::SetLiveSetting(
+            m_symbolsCopyStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_symbolsCopyStatus);
+
+        auto listHeading = CreateText(pick(L"Symbols", L"\u7b26\u865f"), 20, true);
+        AutomationProperties::SetAutomationId(listHeading, L"NativeSymbolsList");
+        page.Children().Append(listHeading);
+        m_symbolsEntryList = StackPanel();
+        m_symbolsEntryList.Spacing(10);
+        page.Children().Append(m_symbolsEntryList);
+
+        m_symbolsRendering = false;
+        ShowPage(page);
+        RefreshSymbolsPaletteEntries();
+    }
+
+    void MainWindow::RefreshSymbolsPaletteEntries()
+    {
+        if (!m_symbolsEntryList || !m_symbolsResultCount || !m_symbolsRegexStatus)
+        {
+            return;
+        }
+
+        auto const pick = [this](std::wstring_view en, std::wstring_view zh)
+        {
+            return winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
+        };
+        auto query = std::wstring_view(m_symbolsSearchText);
+        while (!query.empty() && std::iswspace(query.front())) query.remove_prefix(1);
+        while (!query.empty() && std::iswspace(query.back())) query.remove_suffix(1);
+
+        std::shared_ptr<winforge::core::regex::SafeRegex const> expression;
+        if (m_symbolsRegexEnabled && !query.empty())
+        {
+            std::wstring diagnostic;
+            expression = CompileSearchRegex(
+                query,
+                m_symbolsRegexCaseSensitive,
+                m_symbolsRegexMultiline,
+                m_symbolsRegexDotMatchesNewline,
+                diagnostic,
+                m_symbolsRegexIgnorePatternWhitespace,
+                m_symbolsRegexExplicitCapture);
+            if (!expression)
+            {
+                m_symbolsRegexDiagnostic = diagnostic;
+                auto const status = pick(
+                    L"Invalid PCRE2 filter; previous symbol results remain visible. " + diagnostic,
+                    L"PCRE2 \u7be9\u9078\u7121\u6548\uff1b\u4e4b\u524d\u7b26\u865f\u7d50\u679c\u6703\u4fdd\u7559\u3002" + diagnostic);
+                m_symbolsRegexStatus.Text(ToHString(status));
+                AutomationProperties::SetName(m_symbolsRegexStatus, ToHString(status));
+                return;
+            }
+        }
+
+        m_symbolsRegexDiagnostic.clear();
+        auto const status = m_symbolsRegexEnabled
+            ? pick(
+                L"PCRE2 local symbol filter is active with strict interactive safety limits.",
+                L"PCRE2 \u672c\u6a5f\u7b26\u865f\u7be9\u9078\u5df2\u958b\u555f\uff0c\u7528\u56b4\u683c\u4ea4\u4e92\u5b89\u5168\u9650\u5236\u3002")
+            : pick(
+                L"Literal local symbol filter is active (case-insensitive).",
+                L"\u5df2\u958b\u555f\u6587\u5b57\u672c\u6a5f\u7b26\u865f\u7be9\u9078\uff08\u5514\u5206\u5927\u5c0f\u5beb\uff09\u3002");
+        m_symbolsRegexStatus.Text(ToHString(status));
+        AutomationProperties::SetName(m_symbolsRegexStatus, ToHString(status));
+
+        auto const matchesRegex = [expression](winforge::core::symbols::SymbolEntry const& entry)
+        {
+            if (!expression) return false;
+            auto const matches = [expression](std::wstring_view field)
+            {
+                return expression->Search(field).matched;
+            };
+            return matches(entry.glyph) || matches(entry.name_en) || matches(entry.name_zh) ||
+                matches(entry.category_en) || matches(entry.category_zh);
+        };
+
+        m_symbolsEntryList.Children().Clear();
+        std::size_t resultCount = 0;
+        for (auto const& entry : winforge::core::symbols::SymbolsEntries())
+        {
+            auto const categoryMatches = m_symbolsCategoryKey.empty() ||
+                entry.category_key == m_symbolsCategoryKey;
+            if (!categoryMatches)
+            {
+                continue;
+            }
+            auto const match = m_symbolsRegexEnabled
+                ? (query.empty() || matchesRegex(entry))
+                : winforge::core::symbols::SymbolsMatchesLiteral(entry, m_symbolsCategoryKey, query);
+            if (!match)
+            {
+                continue;
+            }
+
+            ++resultCount;
+            auto const code = std::to_wstring(static_cast<unsigned int>(entry.glyph.front()));
+            auto const entryId = L"NativeSymbolsEntry_" + code + L"_" + std::wstring(entry.category_key);
+            Border card;
+            card.Padding(Thickness{ 12, 10, 12, 10 });
+            card.Margin(Thickness{ 0, 0, 0, 2 });
+            StackPanel content;
+            content.Spacing(5);
+            auto glyph = CreateText(entry.glyph, 28, true);
+            glyph.FontFamily(Microsoft::UI::Xaml::Media::FontFamily(L"Segoe UI Symbol"));
+            AutomationProperties::SetAutomationId(glyph, ToHString(entryId));
+            AutomationProperties::SetName(glyph, ToHString(pick(entry.name_en, entry.name_zh)));
+            content.Children().Append(glyph);
+            auto name = CreateText(
+                std::wstring(entry.name_en) + L" \u00B7 " + std::wstring(entry.name_zh),
+                14,
+                true);
+            name.TextWrapping(TextWrapping::Wrap);
+            content.Children().Append(name);
+            auto category = CreateText(pick(entry.category_en, entry.category_zh), 12);
+            category.Opacity(0.76);
+            content.Children().Append(category);
+            Button copy;
+            copy.Content(box_value(ToHString(pick(L"Copy symbol", L"\u8907\u88fd\u7b26\u865f"))));
+            copy.HorizontalAlignment(HorizontalAlignment::Left);
+            copy.Padding(Thickness{ 12, 6, 12, 6 });
+            AutomationProperties::SetAutomationId(copy, ToHString(L"NativeSymbolsCopy_" + code + L"_" + std::wstring(entry.category_key)));
+            auto const copyName = pick(entry.name_en, entry.name_zh);
+            AutomationProperties::SetName(copy, ToHString(pick(
+                L"Copy " + copyName + L" symbol",
+                L"\u8907\u88fd " + copyName + L" \u7b26\u865f")));
+            copy.Click([this, value = std::wstring(entry.glyph)](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                try
+                {
+                    Windows::ApplicationModel::DataTransfer::DataPackage package;
+                    package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                    package.SetText(ToHString(value));
+                    Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                    ++m_symbolsCopyCount;
+                    auto const message = winforge::core::LocalizedText{
+                        L"Copied \"" + value + L"\" \u00D7" + std::to_wstring(m_symbolsCopyCount),
+                        L"\u5df2\u8907\u88fd\u300c" + value + L"\u300d \u00D7" + std::to_wstring(m_symbolsCopyCount) }.Pick(m_language);
+                    if (m_symbolsCopyStatus)
+                    {
+                        m_symbolsCopyStatus.Text(ToHString(message));
+                        AutomationProperties::SetName(m_symbolsCopyStatus, ToHString(message));
+                    }
+                }
+                catch (hresult_error const&)
+                {
+                    auto const message = winforge::core::LocalizedText{
+                        L"Clipboard is unavailable; nothing was copied.",
+                        L"\u526a\u8cbc\u7c3f\u4e0d\u53ef\u7528\uff1b\u6c92\u6709\u8907\u88fd\u3002" }.Pick(m_language);
+                    if (m_symbolsCopyStatus)
+                    {
+                        m_symbolsCopyStatus.Text(ToHString(message));
+                        AutomationProperties::SetName(m_symbolsCopyStatus, ToHString(message));
+                    }
+                }
+            });
+            content.Children().Append(copy);
+            card.Child(content);
+            m_symbolsEntryList.Children().Append(card);
+        }
+
+        auto const count = pick(
+            std::to_wstring(resultCount) + L" of " +
+                std::to_wstring(winforge::core::symbols::SymbolsEntries().size()) + L" symbols",
+            std::to_wstring(resultCount) + L" / " +
+                std::to_wstring(winforge::core::symbols::SymbolsEntries().size()) + L" \u500b\u7b26\u865f");
+        m_symbolsResultCount.Text(ToHString(count));
+        AutomationProperties::SetName(m_symbolsResultCount, ToHString(count));
+        if (resultCount == 0)
+        {
+            auto empty = CreateText(pick(
+                L"No symbols match the current local filter.",
+                L"\u6c92\u6709\u7b26\u865f\u7b26\u5408\u73fe\u5728\u672c\u6a5f\u7be9\u9078\u3002"), 14, true);
+            AutomationProperties::SetAutomationId(empty, L"NativeSymbolsEmpty");
+            m_symbolsEntryList.Children().Append(empty);
+        }
+    }
+
     void MainWindow::RenderRegexCheatsheet()
     {
         auto const pick = [this](std::wstring_view en, std::wstring_view zh)
@@ -10578,6 +10884,13 @@ namespace winrt::WinForge::implementation
             m_regexBuilderIgnorePatternWhitespace = m_regexCheatRegexIgnorePatternWhitespace;
             m_regexBuilderExplicitCapture = m_regexCheatRegexExplicitCapture;
             break;
+        case RegexBuilderTarget::SymbolsPalette:
+            m_regexBuilderCaseSensitive = m_symbolsRegexCaseSensitive;
+            m_regexBuilderMultiline = m_symbolsRegexMultiline;
+            m_regexBuilderDotMatchesNewline = m_symbolsRegexDotMatchesNewline;
+            m_regexBuilderIgnorePatternWhitespace = m_symbolsRegexIgnorePatternWhitespace;
+            m_regexBuilderExplicitCapture = m_symbolsRegexExplicitCapture;
+            break;
         case RegexBuilderTarget::TesterOnly:
         default:
             break;
@@ -10939,6 +11252,16 @@ namespace winrt::WinForge::implementation
             m_regexCheatRegexExplicitCapture = m_regexBuilderExplicitCapture;
             m_regexCheatSearchText = m_regexBuilderPattern;
             Navigate(L"module.regexcheat");
+            break;
+        case RegexBuilderTarget::SymbolsPalette:
+            m_symbolsRegexEnabled = true;
+            m_symbolsRegexCaseSensitive = m_regexBuilderCaseSensitive;
+            m_symbolsRegexMultiline = m_regexBuilderMultiline;
+            m_symbolsRegexDotMatchesNewline = m_regexBuilderDotMatchesNewline;
+            m_symbolsRegexIgnorePatternWhitespace = m_regexBuilderIgnorePatternWhitespace;
+            m_symbolsRegexExplicitCapture = m_regexBuilderExplicitCapture;
+            m_symbolsSearchText = m_regexBuilderPattern;
+            Navigate(L"module.symbols");
             break;
         case RegexBuilderTarget::TesterOnly:
         default:

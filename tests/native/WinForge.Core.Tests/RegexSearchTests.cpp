@@ -218,14 +218,19 @@ NativeTestCounts RunRegexSearchTests()
     auto const& allAppsSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::AllApps);
     auto const& packageSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::PackageDiscoverCachedResults);
     auto const& cheatSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::RegexCheatsheetEntries);
-    suite.Expect(surfaces.size() == 4
+    auto const& symbolsSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::SymbolsPalette);
+    suite.Expect(surfaces.size() == 5
             && shellSurface.search_automation_id == L"NativeShellSearchBox"
             && allAppsSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults
             && packageSurface.query_policy == RegexSearchQueryPolicy::LocalCachedResultsOnly
             && packageSurface.regex_mode_automation_id == L"NativePackageRegexMode"
             && cheatSurface.route == L"module.regexcheat"
             && cheatSurface.query_policy == RegexSearchQueryPolicy::LocalCatalog
-            && cheatSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults,
+            && cheatSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults
+            && symbolsSurface.route == L"module.symbols"
+            && symbolsSurface.search_automation_id == L"NativeSymbolsSearch"
+            && symbolsSurface.query_policy == RegexSearchQueryPolicy::LocalCatalog
+            && symbolsSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults,
         "Regex search-surface contract covers each implemented native filter and local-only policy");
 
     std::cout << "\nRegex Search tests: " << suite.counts.passed << " passed, "

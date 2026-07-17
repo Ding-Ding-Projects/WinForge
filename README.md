@@ -1,5 +1,7 @@
 <div align="center">
 
+> Native update · Symbols Palette is now a tested C++/WinRT page: 226 local glyphs in nine bilingual categories, literal-default and opt-in bounded-PCRE2 filtering, explicit clipboard Copy, and aliases symbols/glyphs/module.symbols. See [Native Symbols Palette](docs/Native-Symbols-Palette.md).
+
 # WinForge · 視窗鑄造
 
 **An all-in-one, fully bilingual Windows 11 control center — every module is real and working — crowned by a hyper-realistic flagship nuclear-reactor simulator.**

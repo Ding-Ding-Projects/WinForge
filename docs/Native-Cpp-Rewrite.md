@@ -1,5 +1,15 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+
+## Native Symbols Palette · 原生特殊符號調色盤
+
+**EN.** The Symbols Palette is now a real C++/WinRT route backed by a pure-C++ catalog of 226 local glyphs across nine bilingual categories. It keeps literal-default and opt-in bounded-PCRE2 filtering, explicit clipboard Copy, category fallback, and Regex Builder return behavior local to the native app. Debug and Release core tests passed 411/411; the owned LowLevel MCP native shell campaign passed 238/238.
+
+**粵語.** 特殊符號調色盤而家係真正 C++/WinRT route，用純 C++ 226 個本機字形、九個雙語分類。佢保留文字預設、可選 bounded-PCRE2 過濾、明確複製、分類 fallback 同 Regex Builder 返回行為，全部留喺原生 app。Debug 同 Release core tests 都係 411/411；LowLevel MCP 原生 shell campaign 238/238 通過。
+
+**Visual evidence / 視覺證據.** The owned capture driver could not use CopyFromScreen and rejected a blank or near-uniform PrintWindow fallback. No screenshot was retained or replaced; the route remains honestly capture-blocked until a graphics-capable isolated desktop is available. See Native-Symbols-Palette.md and wiki/Symbols-Capture-Status.md.
+
+
 > Status on 2026-07-16: the native regex/search, Regex Cheatsheet, UUID v7, Password Generator, Password Strength, and bounded Package Manager batch-review slices, plus several utility slices, are runnable and tested, but the whole-product rewrite is **not complete**. The current Debug/Release core gate is **403/403** and the headless process-owned UI Automation smoke is **226/226**; the managed WinUI 3 application remains the shipping behavioral reference until every ledger row passes. · 2026-07-16 狀態：原生 regex／搜尋、Regex Cheatsheet、UUID v7、Password Generator、Password Strength 同有界 Package Manager 批次檢視批次，加上幾個 utility 批次，已經可以執行同測試，但全產品重寫**未完成**。目前 Debug／Release core 閘門係 **403/403**，而無頭、自有 process UI Automation smoke 係 **226/226**；每一項清單全部通過之前，受控 WinUI 3 app 仍然係發佈同功能行為基準。
 
 ## Latest native Regex Tester continuation · 最新原生 Regex Tester 延續

@@ -1,5 +1,15 @@
 # WinForge Full Development Handoff
 
+
+## Native Symbols Palette integration record · 原生特殊符號調色盤整合紀錄
+
+- **Branch / 分支：** codex/native-symbols-palette (pending the verified main integration record).
+- **Scope / 範圍：** native C++ catalog and C++/WinRT page for 226 local symbols, bilingual categories, safe literal/PCRE2 search, explicit Copy, and Regex Builder handoff.
+- **Evidence / 證據：** core tests 411/411 in Debug and Release; owned LowLevel MCP UI Automation 238/238; catalog parity passed.
+- **Visual status / 視覺狀態：** capture-blocked. The isolated driver rejected its blank/near-uniform fallback, so no screenshot is claimed or retained.
+- **Detailed task memory / 詳細任務記憶：** handoff-symbols.md and design/content/handoff-symbols.md.
+
+
 ## Latest integration record — 2026-07-16
 
 **Native Regex Tester all-match and replacement continuation / 原生 Regex Tester all-match 及 replacement 延續**
