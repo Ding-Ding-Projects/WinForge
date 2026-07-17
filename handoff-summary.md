@@ -1,5 +1,14 @@
 # WinForge Full Development Handoff
 
+## Native installer CI integration record · 原生安裝程式 CI 整合紀錄
+
+- **Task commit / 任務提交：** b5cae63dd53e1892aca61e039597d1f3b9a6b73c.
+- **Merge commit / 合併提交：** 1c3c9a1a.
+- **Scope / 範圍：** reusable native installer contract verification at staged runtime, compiled Inno Setup executable, and installed payload boundaries; exact setup-output enforcement; CI documentation and Pages mirrors.
+- **Evidence / 證據：** local static installer contract and three-gate workflow-wiring checks passed. The hosted Windows 2022 CI owns Inno Setup compilation and silent lifecycle execution.
+- **Remote proof / 遙距證明：** after fetch, the task commit, pushed feature tip, and merge commit are ancestors of origin/main. The workflow, verifier, documentation, Pages mirrors, generated site data, and handoff memory exist in the remote main tree.
+- **粵語摘要：** task、已推送 branch tip 同 merge commit 都係 origin/main ancestor；workflow、verifier、docs、Pages mirror、site data 同 handoff memory 都已確認喺 remote main。
+
 
 ## Native Symbols Palette integration record · 原生特殊符號調色盤整合紀錄
 

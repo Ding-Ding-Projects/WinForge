@@ -1,5 +1,11 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## Native installer CI verified integration · 原生安裝程式 CI 已驗證整合
+
+**EN.** The native installer contract task b5cae63dd53e1892aca61e039597d1f3b9a6b73c merged as 1c3c9a1a. After fetch, the task commit, pushed feature tip, and merge commit were proven ancestors of origin/main; the workflow, verifier, docs, Pages mirrors, generated site data, and handoff records were present remotely.
+
+**粵語.** 原生 installer contract task b5cae63dd53e1892aca61e039597d1f3b9a6b73c 合併為 1c3c9a1a。fetch 後 task、已推送 branch tip 同 merge commit 都係 origin/main ancestor；workflow、verifier、docs、Pages mirror、site data 同 handoff records 都已確認喺 remote main。
+
 
 ## Native Symbols Palette record · 原生特殊符號調色盤紀錄
 
