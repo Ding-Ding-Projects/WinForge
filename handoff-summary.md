@@ -1,5 +1,16 @@
 # WinForge Full Development Handoff
 
+
+## Native App Uninstaller integration record / 原生 App 解除安裝器整合記錄
+
+- **Task commit / 任務提交：** 20fd3bb5813ade9056b1215de25473aeaa72660c.
+- **Merge commit / 合併提交：** 477d2b2691e6c99a4b0de5237b6ed92ed70fc09e.
+- **Scope / 範圍：** native current-user Store/UWP inventory, cache-only literal/PCRE2 Regex filtering, reviewed Confirm removal, and normal-integrity fail-closed protection; no deep cleanup or local-data deletion.
+- **Evidence / 證據：** Debug/Release core 417/417, native Debug build 0 warnings/0 errors, catalog parity passed. LowLevel off-screen UI is honestly blocked by a blank WinUI client and missing NativePageTitle after 30 seconds; it never falls back to the visible desktop.
+- **Remote proof / 遠端證明：** after fetch, task commit, pushed feature tip, and merge were ancestors of origin/main, with source, tests, docs, Pages mirror, and headless harness present. Detailed record: handoff-app-uninstaller.md and design/content/handoff-app-uninstaller.md.
+
+**粵語：** 呢個 native slice 冇 deep cleanup 或本機資料刪除；Debug/Release core 各自 417/417。Cheap LowLevel off-screen WinUI frame 空白，headless UI 證據如實受阻，絕不回退去可見桌面。
+
 ## Native installer CI integration record · 原生安裝程式 CI 整合紀錄
 
 - **Task commit / 任務提交：** b5cae63dd53e1892aca61e039597d1f3b9a6b73c.
