@@ -1,5 +1,9 @@
 # Regex Cheatsheet & Reactor Settings Lifecycle Repair · 正則速查同反應堆設定生命週期修復
 
+Current correction — 2026-07-17: Regex Cheatsheet is the **fourth of six** native regex-search surfaces. The current Debug/Release core baseline is **417/417**; earlier 395/403 and 224/226 UI figures are historical. Headless WinUI visual evidence remains `capture-blocked` with no visible-desktop fallback.
+
+目前更正 — 2026-07-17：Regex Cheatsheet 係六個 native regex-search surface 入面的**第四個**。目前 Debug/Release core 基線係 **417/417**；舊的 395/403 同 224/226 UI 數字只屬歷史。headless WinUI 視覺證據仍然 `capture-blocked`，不會回退去可見桌面。
+
 ## Scope · 範圍
 
 **EN —** This repair is deliberately narrow: it corrects a .NET-regex documentation claim and the lifetime of two UI event subscriptions. It does not change reactor physics, system linkage, Home Assistant configuration or I/O, any toggle default, status-API policy, autosave, keep-awake behavior, or the real-shutdown path.

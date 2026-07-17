@@ -1,5 +1,9 @@
 # Regex Cheatsheet & Reactor Settings Lifecycle · 正則速查同反應堆設定生命週期
 
+Current correction — 2026-07-17: Regex Cheatsheet is the **fourth of six** native regex-search surfaces. The current Debug/Release core baseline is **417/417**; earlier 395/403 and 224/226 UI figures are historical. Headless WinUI visual evidence remains `capture-blocked` with no visible-desktop fallback.
+
+目前更正 — 2026-07-17：Regex Cheatsheet 係六個 native regex-search surface 入面的**第四個**。目前 Debug/Release core 基線係 **417/417**；舊的 395/403 同 224/226 UI 數字只屬歷史。headless WinUI 視覺證據仍然 `capture-blocked`，不會回退去可見桌面。
+
 ## What changed · 改咗乜
 
 **EN —** Regex Cheatsheet now documents `(?>a*)`, the valid .NET atomic equivalent of possessive `a*`, instead of the unsupported `*+` syntax. Reactor Settings now keeps one named live-API timer callback per page instance and balances its named language handler across every load/unload cycle.

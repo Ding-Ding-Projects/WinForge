@@ -1,5 +1,9 @@
 # WinForge Exhaustive Smoke Campaign · WinForge 全面冒煙驗證
 
+Supersession — 2026-07-17: This dated campaign is retained as historical evidence only. The current native baseline is Debug/Release core **417/417** with six regex surfaces (including Symbols Palette and cached App Uninstaller). LowLevel off-screen UI verification is presently blocked by a blank WinUI client frame and absent `NativePageTitle` after 30 seconds; it does not fall back to a visible desktop.
+
+取代說明 — 2026-07-17：呢個有日期的 campaign 只保留作歷史證據。現時 native 基線係 Debug/Release core **417/417**，並有六個 regex surface（包括 Symbols Palette 同 cached App Uninstaller）。LowLevel off-screen UI 驗證目前被空白 WinUI client frame 同 30 秒後仍缺少的 `NativePageTitle` 阻塞；不會回退去可見桌面。
+
 
 ## 2026-07-16 Native Symbols Palette evidence · 原生特殊符號調色盤證據
 

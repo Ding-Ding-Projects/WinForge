@@ -48,11 +48,17 @@ Open in-app: `WinForge.exe --page rss`
 
 ## App Uninstaller · 應用程式解除安裝
 
-Remove apps and Appx packages via winget. · 用 winget 移除應用程式同 Appx 套件。
+Native current-user Store/UWP package inventory through the Windows package API, with literal-default/local bounded-regex cache search, review plus explicit Confirm removal, and a normal-integrity fail-closed gate. Deep cleanup is intentionally unavailable and no local-data folder is deleted.  原生用 Windows package API 整理現有使用者 Store/UWP 清單，有 literal 預設／本機 bounded-regex 快取搜尋、覆核加顯式 Confirm 移除，同正常 integrity fail-closed gate。深層清理刻意未開放，而且唔會刪本機資料夾。
 
 Open in-app: `WinForge.exe --page uninstall`
 
-![App Uninstaller](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-uninstall.png)
+> **Current safety correction (2026-07-17):** Deep cleanup is deliberately unavailable in the native migration slice. The confirmed C++/WinRT PackageManager removal never deletes LocalAppData or any other local-data folder.
+>
+> **最新安全更正（2026-07-17）：** 原生 migration slice 刻意未開放 deep cleanup。已確認嘅 C++/WinRT PackageManager 移除絕對唔會刪 LocalAppData 或其他本機資料夾。
+
+> Native C++/WinRT evidence: see [Native App Uninstaller](Native-App-Uninstaller.md). Literal and optional bounded regex search apply only to the current local inventory cache; removal requires review plus a separate Confirm action. Fresh visual capture is capture-blocked, so the stale managed screenshot was retired.
+>
+> 原生 C++/WinRT 證據見 [Native App Uninstaller](Native-App-Uninstaller.md)。literal 同可選 bounded regex 只會篩選目前本機 inventory 快取；移除要 review 加獨立 Confirm。新視覺擷取係 capture-blocked，所以舊 managed 截圖已退休。
 
 ## Android (ADB) · Android（ADB）
 

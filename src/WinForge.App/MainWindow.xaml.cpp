@@ -10,8 +10,11 @@
 #include "../WinForge.Core/RegexBuilder.h"
 #include "../WinForge.Core/RegexCheat.h"
 #include "microsoft.ui.xaml.window.h"
+#include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include <winrt/Windows.Data.Json.h>
+#include <winrt/Windows.Management.Deployment.h>
+#include <winrt/Windows.Storage.h>
 #include <winrt/Microsoft.UI.Xaml.Automation.Peers.h>
 
 #include <chrono>
@@ -333,6 +336,10 @@ namespace
             : std::filesystem::temp_directory_path();
         return root / L"WinForge" / L"native-package-manager-state.json";
     }
+
+    // Deep cleanup is deliberately unavailable until the native port has a
+    // handle-relative deletion primitive with stable identities. Package removal
+    // never deletes LocalAppData content in this migration slice.
 
     std::wstring PromptOpenBundlePath(HWND owner)
     {
@@ -873,6 +880,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.packages")
         {
             RenderPackageManager();
+        }
+        else if (module->id == L"module.uninstall")
+        {
+            RenderAppUninstaller();
         }
         else if (module->id == L"module.checkdigit")
         {
@@ -8897,7 +8908,7 @@ namespace winrt::WinForge::implementation
                     if (batch.state == State::AwaitingConsent)
                     {
                         Button confirm;
-                        confirm.Content(box_value(ToHString(pick(L"Confirm batch execution", L"確認批次執行"))));
+            confirm.Content(box_value(ToHString(pick(L"Confirm uninstall", L"Confirm \u89e3\u9664\u5b89\u88dd"))));
                         confirm.Padding(Thickness{ 12, 6, 12, 6 });
                         AutomationProperties::SetAutomationId(
                             confirm,
@@ -10222,8 +10233,8 @@ namespace winrt::WinForge::implementation
         safety.Severity(InfoBarSeverity::Informational);
         safety.Title(ToHString(pick(L"Static local catalog", L"\u975c\u614b\u672c\u6a5f\u76ee\u9304")));
         safety.Message(ToHString(pick(
-            L"All 226 entries are embedded locally. Literal and regex filters only inspect this catalog; no query reaches a command line, package manager, network, or process. Clipboard writes occur only after an explicit Copy action.",
-            L"226 \u500b\u7b26\u865f\u90fd\u5d4c\u5165\u672c\u6a5f\u3002\u641c\u5c0b\u53ea\u6703\u6aa2\u67e5\u76ee\u9304\uff0c\u5514\u6703\u53bb\u6307\u4ee4\u5217\u3001\u5957\u4ef6\u7ba1\u7406\u5668\u3001\u7db2\u7d61\u6216\u7a0b\u5e8f\u3002\u53ea\u6709\u4f60\u64f3\u8907\u88fd\u5148\u6703\u5beb\u5165\u526a\u8cbc\u7c3f\u3002")));
+            L"Search and Regex mode inspect only the returned in-memory package cache. A row action opens a review; no package changes until Confirm. Removal is disabled at elevated or unsafe integrity, and this migration slice never deletes local data folders.",
+            L"\u641c\u5c0b\u540c Regex \u6a21\u5f0f\u53ea\u6703\u6aa2\u67e5\u5df2\u8fd4\u56de\u7684\u672c\u6a5f\u8a18\u61b6\u9ad4\u5957\u4ef6\u7de9\u5b58\u3002\u64f3\u5217\u52d5\u4f5c\u53ea\u6703\u958b\u8986\u6838\uff1b\u672a\u6309 Confirm \u4e4b\u524d\u5514\u6703\u6539\u8b8a\u5957\u4ef6\u3002\u5982\u679c\u5df2\u63d0\u5347\u6216 integrity \u4e0d\u5b89\u5168\u5c31\u6703\u7981\u7528\u79fb\u9664\uff0c\u800c\u4e14\u9019\u500b migration slice \u7d55\u4e0d\u6703\u522a\u9664\u672c\u6a5f\u8cc7\u6599\u76ee\u9304\u3002")));
         AutomationProperties::SetAutomationId(safety, L"NativeSymbolsSafety");
         page.Children().Append(safety);
 
@@ -10500,6 +10511,732 @@ namespace winrt::WinForge::implementation
                 L"\u6c92\u6709\u7b26\u865f\u7b26\u5408\u73fe\u5728\u672c\u6a5f\u7be9\u9078\u3002"), 14, true);
             AutomationProperties::SetAutomationId(empty, L"NativeSymbolsEmpty");
             m_symbolsEntryList.Children().Append(empty);
+        }
+    }
+
+    void MainWindow::RenderAppUninstaller()
+    {
+        auto const pick = [this](std::wstring_view en, std::wstring_view zh)
+        {
+            return winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
+        };
+
+        m_appUninstallerRendering = true;
+        auto page = CreatePage(
+            pick(L"App Uninstaller", L"\u61C9\u7528\u7A0B\u5F0F\u89E3\u9664\u5B89\u88DD"),
+            pick(
+                L"Review and remove current-user Store/UWP packages with native Windows package APIs. Shared frameworks and resource packages are excluded before they reach this local cache.",
+                L"\u7528\u539F\u751F Windows \u5957\u4EF6 API \u6AA2\u8996\u53CA\u79FB\u9664\u73FE\u6709\u4F7F\u7528\u8005\u7684 Store/UWP \u5957\u4EF6\u3002\u5171\u7528 framework \u53CA resource \u5957\u4EF6\u6703\u55BA\u9032\u5165\u672C\u6A5F\u7DE9\u5B58\u524D\u88AB\u6392\u9664\u3002"));
+        AutomationProperties::SetAutomationId(page, L"NativeAppUninstallerPage");
+
+        InfoBar safety;
+        safety.IsOpen(true);
+        safety.IsClosable(false);
+        safety.Severity(InfoBarSeverity::Informational);
+        safety.Title(ToHString(pick(
+            L"Reviewed current-user removal",
+            L"\u8986\u6838\u5F8C\u5148\u6703\u79FB\u9664\u73FE\u6709\u4F7F\u7528\u8005\u7684\u5957\u4EF6")));
+        safety.Message(ToHString(pick(
+            L"Search and Regex mode inspect only the returned in-memory package cache. A row action opens a review; no package changes until Confirm. Removal is disabled at elevated or unsafe integrity, and this migration slice never deletes local data folders.",
+            L"\u641c\u5c0b\u540c Regex \u6a21\u5f0f\u53ea\u6703\u6aa2\u67e5\u5df2\u8fd4\u56de\u7684\u672c\u6a5f\u8a18\u61b6\u9ad4\u5957\u4ef6\u7de9\u5b58\u3002\u64f3\u5217\u52d5\u4f5c\u53ea\u6703\u958b\u8986\u6838\uff1b\u672a\u6309 Confirm \u4e4b\u524d\u5514\u6703\u6539\u8b8a\u5957\u4ef6\u3002\u5982\u679c\u5df2\u63d0\u5347\u6216 integrity \u4e0d\u5b89\u5168\u5c31\u6703\u7981\u7528\u79fb\u9664\uff0c\u800c\u4e14\u9019\u500b migration slice \u7d55\u4e0d\u6703\u522a\u9664\u672c\u6a5f\u8cc7\u6599\u76ee\u9304\u3002")));
+        AutomationProperties::SetAutomationId(safety, L"NativeAppUninstallerSafety");
+        AutomationProperties::SetName(
+            safety,
+            L"Native App Uninstaller safety: normal integrity required; local data deletion unavailable.");
+        page.Children().Append(safety);
+
+        m_appUninstallerSearchBox = TextBox();
+        m_appUninstallerSearchBox.Header(box_value(ToHString(pick(
+            L"Search the cached Store/UWP inventory",
+            L"\u641C\u5C0B\u5DF2\u7DE9\u5B58\u7684 Store/UWP \u76EE\u9304"))));
+        m_appUninstallerSearchBox.PlaceholderText(ToHString(pick(
+            L"Literal text by default; enable Regex mode for bounded PCRE2",
+            L"\u9810\u8A2D\u4FC2\u6587\u5B57\u641C\u5C0B\uFF1B\u958B Regex \u6A21\u5F0F\u5148\u6703\u7528\u6709\u9650\u5236\u7684 PCRE2")));
+        m_appUninstallerSearchBox.Text(ToHString(m_appUninstallerSearchText));
+        AutomationProperties::SetAutomationId(
+            m_appUninstallerSearchBox,
+            L"NativeAppUninstallerSearch");
+        AutomationProperties::SetName(m_appUninstallerSearchBox, ToHString(pick(
+            L"App Uninstaller local cached package search",
+            L"\u61C9\u7528\u7A0B\u5F0F\u89E3\u9664\u5B89\u88DD\u672C\u6A5F\u7DE9\u5B58\u5957\u4EF6\u641C\u5C0B")));
+        m_appUninstallerSearchBox.TextChanged(
+            [this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                if (m_appUninstallerRendering)
+                {
+                    return;
+                }
+                m_appUninstallerSearchText = ToWide(sender.as<TextBox>().Text());
+                RefreshAppUninstallerEntries();
+            });
+        page.Children().Append(m_appUninstallerSearchBox);
+
+        m_appUninstallerRegexMode = ToggleSwitch();
+        m_appUninstallerRegexMode.Header(box_value(ToHString(pick(
+            L"Regex mode (bounded PCRE2 local cache filter)",
+            L"Regex \u6A21\u5F0F\uFF08\u6709\u9650\u5236\u7684 PCRE2 \u672C\u6A5F\u7DE9\u5B58\u7BE9\u9078\uFF09"))));
+        m_appUninstallerRegexMode.IsOn(m_appUninstallerRegexEnabled);
+        AutomationProperties::SetAutomationId(
+            m_appUninstallerRegexMode,
+            L"NativeAppUninstallerRegexMode");
+        AutomationProperties::SetName(m_appUninstallerRegexMode, ToHString(pick(
+            L"Enable bounded Regex filtering of the local App Uninstaller cache",
+            L"\u958B\u555F\u61C9\u7528\u7A0B\u5F0F\u89E3\u9664\u5B89\u88DD\u672C\u6A5F\u7DE9\u5B58\u7684\u6709\u9650\u5236 Regex \u7BE9\u9078")));
+        m_appUninstallerRegexMode.Toggled(
+            [this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                if (m_appUninstallerRendering)
+                {
+                    return;
+                }
+                m_appUninstallerRegexEnabled = sender.as<ToggleSwitch>().IsOn();
+                RefreshAppUninstallerEntries();
+            });
+        page.Children().Append(m_appUninstallerRegexMode);
+
+        m_appUninstallerRegexBuilder = Button();
+        m_appUninstallerRegexBuilder.Content(box_value(ToHString(pick(
+            L"Open full Regex Builder",
+            L"\u958B\u555F\u5B8C\u6574 Regex \u5EFA\u7ACB\u5668"))));
+        m_appUninstallerRegexBuilder.HorizontalAlignment(HorizontalAlignment::Left);
+        m_appUninstallerRegexBuilder.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(
+            m_appUninstallerRegexBuilder,
+            L"NativeAppUninstallerRegexBuilder");
+        m_appUninstallerRegexBuilder.Click(
+            [this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                OpenRegexBuilder(
+                    RegexBuilderTarget::AppUninstaller,
+                    m_appUninstallerSearchText);
+            });
+        page.Children().Append(m_appUninstallerRegexBuilder);
+
+        m_appUninstallerRefresh = Button();
+        m_appUninstallerRefresh.Content(box_value(ToHString(pick(
+            L"Refresh Store/UWP inventory",
+            L"\u91CD\u65B0\u6574\u7406 Store/UWP \u76EE\u9304"))));
+        m_appUninstallerRefresh.HorizontalAlignment(HorizontalAlignment::Left);
+        m_appUninstallerRefresh.Padding(Thickness{ 14, 8, 14, 8 });
+        m_appUninstallerRefresh.IsEnabled(!m_appUninstallerWorking);
+        AutomationProperties::SetAutomationId(
+            m_appUninstallerRefresh,
+            L"NativeAppUninstallerRefresh");
+        AutomationProperties::SetName(m_appUninstallerRefresh, ToHString(pick(
+            L"Refresh the current-user Store and UWP package inventory",
+            L"\u91CD\u65B0\u6574\u7406\u73FE\u6709\u4F7F\u7528\u8005\u7684 Store \u540C UWP \u5957\u4EF6\u76EE\u9304")));
+        m_appUninstallerRefresh.Click(
+            [this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                StartAppUninstallerRefresh();
+            });
+        page.Children().Append(m_appUninstallerRefresh);
+
+        m_appUninstallerBusy = ProgressRing();
+        m_appUninstallerBusy.IsActive(m_appUninstallerWorking);
+        m_appUninstallerBusy.Visibility(
+            m_appUninstallerWorking ? Visibility::Visible : Visibility::Collapsed);
+        AutomationProperties::SetAutomationId(m_appUninstallerBusy, L"NativeAppUninstallerBusy");
+        page.Children().Append(m_appUninstallerBusy);
+
+        m_appUninstallerStatus = CreateText(L"", 12);
+        m_appUninstallerStatus.TextWrapping(TextWrapping::Wrap);
+        m_appUninstallerStatus.Opacity(0.84);
+        AutomationProperties::SetAutomationId(m_appUninstallerStatus, L"NativeAppUninstallerStatus");
+        AutomationProperties::SetLiveSetting(
+            m_appUninstallerStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_appUninstallerStatus);
+
+        m_appUninstallerResultCount = CreateText(L"", 13, true);
+        AutomationProperties::SetAutomationId(
+            m_appUninstallerResultCount,
+            L"NativeAppUninstallerResultCount");
+        AutomationProperties::SetLiveSetting(
+            m_appUninstallerResultCount,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_appUninstallerResultCount);
+
+        auto list_heading = CreateText(pick(
+            L"Reviewed package inventory",
+            L"\u8986\u6838\u5957\u4EF6\u76EE\u9304"), 20, true);
+        AutomationProperties::SetAutomationId(list_heading, L"NativeAppUninstallerList");
+        page.Children().Append(list_heading);
+
+        m_appUninstallerEntryList = StackPanel();
+        m_appUninstallerEntryList.Spacing(10);
+        page.Children().Append(m_appUninstallerEntryList);
+
+        m_appUninstallerRendering = false;
+        ShowPage(page);
+        RefreshAppUninstallerEntries();
+        if (!m_appUninstallerLoaded && !m_appUninstallerWorking)
+        {
+            StartAppUninstallerRefresh();
+        }
+    }
+
+    void MainWindow::RefreshAppUninstallerEntries()
+    {
+        if (!m_appUninstallerEntryList || !m_appUninstallerResultCount ||
+            !m_appUninstallerStatus || !m_appUninstallerBusy ||
+            !m_appUninstallerRefresh)
+        {
+            return;
+        }
+
+        auto const pick = [this](std::wstring_view en, std::wstring_view zh)
+        {
+            return winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
+        };
+
+        auto query = std::wstring_view(m_appUninstallerSearchText);
+        while (!query.empty() && std::iswspace(query.front()))
+        {
+            query.remove_prefix(1);
+        }
+        while (!query.empty() && std::iswspace(query.back()))
+        {
+            query.remove_suffix(1);
+        }
+
+        std::shared_ptr<winforge::core::regex::SafeRegex const> expression;
+        if (m_appUninstallerRegexEnabled && !query.empty())
+        {
+            std::wstring diagnostic;
+            expression = CompileSearchRegex(
+                query,
+                m_appUninstallerRegexCaseSensitive,
+                m_appUninstallerRegexMultiline,
+                m_appUninstallerRegexDotMatchesNewline,
+                diagnostic,
+                m_appUninstallerRegexIgnorePatternWhitespace,
+                m_appUninstallerRegexExplicitCapture);
+            if (!expression)
+            {
+                m_appUninstallerRegexDiagnostic = diagnostic;
+                auto const status = pick(
+                    L"Invalid PCRE2 filter; prior local package results remain visible. " + diagnostic,
+                    L"PCRE2 \u7BE9\u9078\u7121\u6548\uFF1B\u4E4B\u524D\u672C\u6A5F\u5957\u4EF6\u7D50\u679C\u6703\u4FDD\u7559\u3002" + diagnostic);
+                m_appUninstallerStatus.Text(ToHString(status));
+                AutomationProperties::SetName(m_appUninstallerStatus, ToHString(status));
+                return;
+            }
+        }
+
+        if (m_appUninstallerCompletionLost.exchange(false, std::memory_order_acq_rel))
+        {
+            m_appUninstallerWorking = false;
+            m_appUninstallerReviewPackage.reset();
+            m_appUninstallerStatusMessage = winforge::core::LocalizedText{
+                L"The native worker ended after its UI completion queue closed. Package state was not refreshed; refresh before another action.",
+                L"\u539f\u751f worker \u55ba UI completion queue \u95dc\u9589\u5f8c\u7d50\u675f\u3002\u5957\u4ef6\u72c0\u614b\u672a\u91cd\u65b0\u6574\u7406\uff1b\u8acb\u5148\u91cd\u65b0\u6574\u7406\u5148\u518d\u64cd\u4f5c\u3002" }.Pick(m_language);
+        }
+
+        m_appUninstallerRegexDiagnostic.clear();
+        winforge::core::uninstall::AppUninstallerFilterOptions filter_options;
+        filter_options.case_sensitive =
+            m_appUninstallerRegexEnabled && m_appUninstallerRegexCaseSensitive;
+        filter_options.expression = expression;
+        m_appUninstallerVisiblePackages = winforge::core::uninstall::FilterAppPackages(
+            m_appUninstallerPackages,
+            query,
+            filter_options);
+
+        auto const normal_integrity =
+            winforge::core::packages::IsNormalIntegrityProcess();
+        auto const filter_status = m_appUninstallerRegexEnabled
+            ? pick(
+                L"Bounded PCRE2 filters only the already-returned local package cache.",
+                L"\u6709\u9650\u5236\u7684 PCRE2 \u53EA\u6703\u7BE9\u9078\u5DF2\u8FD4\u56DE\u7684\u672C\u6A5F\u5957\u4EF6\u7DE9\u5B58\u3002")
+            : pick(
+                L"Literal filtering is local and case-insensitive.",
+                L"\u6587\u5B57\u7BE9\u9078\u4FC2\u672C\u6A5F\u7684\uFF0C\u5514\u5206\u5927\u5C0F\u5BEB\u3002");
+        auto status = m_appUninstallerStatusMessage.empty()
+            ? filter_status
+            : m_appUninstallerStatusMessage + L" " + filter_status;
+        if (m_appUninstallerWorking)
+        {
+            status += L" " + pick(
+                L"A native package operation is in progress; controls are disabled.",
+                L"\u539F\u751F\u5957\u4EF6\u64CD\u4F5C\u6B63\u5728\u9032\u884C\uFF1B\u63A7\u4EF6\u5DF2\u7981\u7528\u3002");
+        }
+        if (!m_appUninstallerWorking && !normal_integrity)
+        {
+            status += L" " + pick(
+                L"Removal is disabled while WinForge is elevated or token inspection is unavailable.",
+                L"WinForge \u5df2\u63d0\u5347\u6216 token \u7121\u6cd5\u5b89\u5168\u6aa2\u67e5\uff0c\u79fb\u9664\u5df2\u7981\u7528\u3002");
+        }
+        m_appUninstallerStatus.Text(ToHString(status));
+        AutomationProperties::SetName(m_appUninstallerStatus, ToHString(status));
+
+        auto const count = pick(
+            std::to_wstring(m_appUninstallerVisiblePackages.size()) + L" / " +
+                std::to_wstring(m_appUninstallerPackages.size()) + L" Store/UWP apps",
+            std::to_wstring(m_appUninstallerVisiblePackages.size()) + L" / " +
+                std::to_wstring(m_appUninstallerPackages.size()) + L" \u500B Store/UWP \u61C9\u7528\u7A0B\u5F0F");
+        m_appUninstallerResultCount.Text(ToHString(count));
+        AutomationProperties::SetName(m_appUninstallerResultCount, ToHString(count));
+        m_appUninstallerBusy.IsActive(m_appUninstallerWorking);
+        m_appUninstallerBusy.Visibility(
+            m_appUninstallerWorking ? Visibility::Visible : Visibility::Collapsed);
+        m_appUninstallerRefresh.IsEnabled(!m_appUninstallerWorking);
+
+        m_appUninstallerEntryList.Children().Clear();
+        if (m_appUninstallerReviewPackage)
+        {
+            auto const& package = *m_appUninstallerReviewPackage;
+            Border review;
+            review.Padding(Thickness{ 14, 12, 14, 12 });
+            StackPanel content;
+            content.Spacing(7);
+            auto heading = CreateText(pick(
+                L"Review uninstall",
+                L"\u8986\u6838\u89e3\u9664\u5b89\u88dd"), 18, true);
+            AutomationProperties::SetAutomationId(heading, L"NativeAppUninstallerReview");
+            content.Children().Append(heading);
+            auto identity = CreateText(
+                winforge::core::uninstall::AppPackageDisplayName(package) + L"\n" +
+                    package.name + L"\n" + package.package_full_name,
+                13);
+            identity.TextWrapping(TextWrapping::Wrap);
+            content.Children().Append(identity);
+            auto policy = CreateText(pick(
+                L"Confirm removes this current-user package through PackageManager. This native migration slice never deletes local data folders.",
+                L"Confirm \u6703\u900f\u904e PackageManager \u79fb\u9664\u9019\u500b\u73fe\u6709\u4f7f\u7528\u8005\u5957\u4ef6\u3002\u9019\u500b\u539f\u751f migration slice \u7d55\u4e0d\u6703\u522a\u9664\u672c\u6a5f\u8cc7\u6599\u76ee\u9304\u3002"), 12);
+            policy.TextWrapping(TextWrapping::Wrap);
+            content.Children().Append(policy);
+
+            Button confirm;
+            confirm.Content(box_value(ToHString(pick(L"Confirm uninstall", L"Confirm \u89e3\u9664\u5b89\u88dd"))));
+            confirm.HorizontalAlignment(HorizontalAlignment::Left);
+            confirm.Padding(Thickness{ 14, 8, 14, 8 });
+            confirm.IsEnabled(!m_appUninstallerWorking && normal_integrity);
+            AutomationProperties::SetAutomationId(confirm, L"NativeAppUninstallerConfirm");
+            confirm.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                StartAppUninstallerRemoval();
+            });
+            content.Children().Append(confirm);
+
+            Button cancel;
+            cancel.Content(box_value(ToHString(pick(L"Cancel review", L"\u53D6\u6D88\u8986\u6838"))));
+            cancel.HorizontalAlignment(HorizontalAlignment::Left);
+            cancel.Padding(Thickness{ 14, 8, 14, 8 });
+            cancel.IsEnabled(!m_appUninstallerWorking);
+            AutomationProperties::SetAutomationId(cancel, L"NativeAppUninstallerCancel");
+            cancel.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                if (m_appUninstallerWorking)
+                {
+                    return;
+                }
+                m_appUninstallerReviewPackage.reset();
+                m_appUninstallerStatusMessage = winforge::core::LocalizedText{
+                    L"Removal review cancelled; no package or local data changed.",
+                    L"\u5DF2\u53D6\u6D88\u79FB\u9664\u8986\u6838\uFF1B\u5957\u4EF6\u53CA\u672C\u6A5F\u8CC7\u6599\u90FD\u5514\u6703\u6539\u8B8A\u3002" }.Pick(m_language);
+                RefreshAppUninstallerEntries();
+            });
+            content.Children().Append(cancel);
+            review.Child(content);
+            m_appUninstallerEntryList.Children().Append(review);
+        }
+
+        if (m_appUninstallerVisiblePackages.empty())
+        {
+            auto empty = CreateText(
+                m_appUninstallerLoaded
+                    ? pick(
+                        L"No Store/UWP apps match the current local filter.",
+                        L"\u6C92\u6709 Store/UWP \u61C9\u7528\u7A0B\u5F0F\u7B26\u5408\u73FE\u5728\u672C\u6A5F\u7BE9\u9078\u3002")
+                    : pick(
+                        L"Loading the current-user Store/UWP inventory.",
+                        L"\u6B63\u5728\u6574\u7406\u73FE\u6709\u4F7F\u7528\u8005\u7684 Store/UWP \u76EE\u9304\u3002"),
+                14,
+                true);
+            AutomationProperties::SetAutomationId(empty, L"NativeAppUninstallerEmpty");
+            m_appUninstallerEntryList.Children().Append(empty);
+            return;
+        }
+
+        for (auto const& package : m_appUninstallerVisiblePackages)
+        {
+            auto const suffix = StableAutomationSuffix(package.package_full_name);
+            Border card;
+            card.Padding(Thickness{ 12, 10, 12, 10 });
+            StackPanel content;
+            content.Spacing(5);
+
+            auto display = CreateText(
+                winforge::core::uninstall::AppPackageDisplayName(package),
+                17,
+                true);
+            display.TextWrapping(TextWrapping::Wrap);
+            AutomationProperties::SetAutomationId(
+                display,
+                ToHString(L"NativeAppUninstallerRow_" + suffix));
+            AutomationProperties::SetName(display, ToHString(pick(
+                L"Reviewed package " + winforge::core::uninstall::AppPackageDisplayName(package),
+                L"\u8986\u6838\u5957\u4EF6 " + winforge::core::uninstall::AppPackageDisplayName(package))));
+            content.Children().Append(display);
+
+            auto package_name = CreateText(package.name, 13);
+            package_name.TextWrapping(TextWrapping::Wrap);
+            content.Children().Append(package_name);
+            auto details = CreateText(
+                pick(L"Publisher: ", L"\u767C\u4F48\u8005\uFF1A") +
+                    package.publisher + L"  |  " +
+                    pick(L"Version: ", L"\u7248\u672C\uFF1A") + package.version,
+                12);
+            details.TextWrapping(TextWrapping::Wrap);
+            details.Opacity(0.80);
+            content.Children().Append(details);
+            auto family = CreateText(
+                pick(L"Package family: ", L"\u5957\u4EF6 family\uFF1A") +
+                    package.package_family_name,
+                12);
+            family.TextWrapping(TextWrapping::Wrap);
+            family.Opacity(0.72);
+            content.Children().Append(family);
+
+            Button review_remove;
+            review_remove.Content(box_value(ToHString(pick(
+                L"Review remove",
+                L"\u8986\u6838\u79FB\u9664"))));
+            review_remove.HorizontalAlignment(HorizontalAlignment::Left);
+            review_remove.Padding(Thickness{ 12, 6, 12, 6 });
+            review_remove.IsEnabled(!m_appUninstallerWorking && normal_integrity);
+            AutomationProperties::SetAutomationId(
+                review_remove,
+                ToHString(L"NativeAppUninstallerReviewRemove_" + suffix));
+            review_remove.Click([this, package](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                if (m_appUninstallerWorking)
+                {
+                    return;
+                }
+                m_appUninstallerReviewPackage = package;
+                m_appUninstallerStatusMessage = winforge::core::LocalizedText{
+                    L"Removal review opened. No package has changed.",
+                    L"\u5DF2\u958B\u555F\u79FB\u9664\u8986\u6838\u3002\u5957\u4EF6\u4ECD\u7136\u672A\u6709\u6539\u8B8A\u3002" }.Pick(m_language);
+                RefreshAppUninstallerEntries();
+            });
+            content.Children().Append(review_remove);
+
+            auto deep_cleanup_note = CreateText(pick(
+                L"Deep cleanup is intentionally unavailable until handle-relative deletion is implemented. Package removal never deletes local data.",
+                L"\u6df1\u5c64\u6e05\u7406\u8981\u7b49 handle-relative deletion \u5b8c\u6210\u624d\u6703\u958b\u653e\u3002\u5957\u4ef6\u79fb\u9664\u7d55\u4e0d\u6703\u522a\u9664\u672c\u6a5f\u8cc7\u6599\u3002"), 12);
+            deep_cleanup_note.TextWrapping(TextWrapping::Wrap);
+            deep_cleanup_note.Opacity(0.72);
+            AutomationProperties::SetAutomationId(
+                deep_cleanup_note,
+                ToHString(L"NativeAppUninstallerDeepCleanupStatus_" + suffix));
+            content.Children().Append(deep_cleanup_note);
+
+            card.Child(content);
+            m_appUninstallerEntryList.Children().Append(card);
+        }
+    }
+
+    void MainWindow::StartAppUninstallerRefresh()
+    {
+        if (m_appUninstallerWorking)
+        {
+            return;
+        }
+
+        m_appUninstallerWorking = true;
+        m_appUninstallerReviewPackage.reset();
+        auto const generation = ++m_appUninstallerGeneration;
+        m_appUninstallerStatusMessage = winforge::core::LocalizedText{
+            L"Refreshing the current-user Store/UWP package cache with native Windows APIs.",
+            L"\u6B63\u5728\u7528\u539F\u751F Windows API \u91CD\u65B0\u6574\u7406\u73FE\u6709\u4F7F\u7528\u8005\u7684 Store/UWP \u5957\u4EF6\u7DE9\u5B58\u3002" }.Pick(m_language);
+        if (m_currentRoute == L"module.uninstall")
+        {
+            RefreshAppUninstallerEntries();
+        }
+
+        try
+        {
+            auto lifetime = get_strong();
+            auto dispatcher = Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
+            std::thread worker([lifetime, dispatcher, generation]() mutable
+            {
+                std::vector<winforge::core::uninstall::AppPackage> packages;
+                bool completed = false;
+                std::wstring diagnostic;
+                bool apartment_initialized = false;
+                try
+                {
+                    winrt::init_apartment(winrt::apartment_type::multi_threaded);
+                    apartment_initialized = true;
+                    Windows::Management::Deployment::PackageManager manager;
+                    for (auto const& package : manager.FindPackagesForUser(L""))
+                    {
+                        try
+                        {
+                            if (package.IsFramework() || package.IsResourcePackage())
+                            {
+                                continue;
+                            }
+                        }
+                        catch (hresult_error const&)
+                        {
+                            continue;
+                        }
+
+                        winforge::core::uninstall::AppPackage record;
+                        try
+                        {
+                            auto const id = package.Id();
+                            record.name = ToWide(id.Name());
+                            record.package_full_name = ToWide(id.FullName());
+                            record.package_family_name = ToWide(id.FamilyName());
+                            auto const version = id.Version();
+                            record.version = std::to_wstring(version.Major) + L"." +
+                                std::to_wstring(version.Minor) + L"." +
+                                std::to_wstring(version.Build) + L"." +
+                                std::to_wstring(version.Revision);
+                        }
+                        catch (hresult_error const&)
+                        {
+                            continue;
+                        }
+                        if (record.package_full_name.empty())
+                        {
+                            continue;
+                        }
+                        try
+                        {
+                            record.display_name = ToWide(package.DisplayName());
+                        }
+                        catch (hresult_error const&)
+                        {
+                        }
+                        try
+                        {
+                            record.publisher = ToWide(package.PublisherDisplayName());
+                        }
+                        catch (hresult_error const&)
+                        {
+                        }
+                        try
+                        {
+                            record.install_location = ToWide(package.InstalledLocation().Path());
+                        }
+                        catch (hresult_error const&)
+                        {
+                        }
+                        packages.push_back(std::move(record));
+                    }
+                    completed = true;
+                }
+                catch (hresult_error const&)
+                {
+                    diagnostic = L"The Windows package inventory API was unavailable; no package was changed.";
+                }
+                catch (...)
+                {
+                    diagnostic = L"The native package inventory refresh failed closed; no package was changed.";
+                }
+                if (apartment_initialized)
+                {
+                    winrt::uninit_apartment();
+                }
+
+                try
+                {
+                    bool queued = false;
+                    if (dispatcher)
+                    {
+                        queued = dispatcher.TryEnqueue(
+                            [lifetime, generation, packages = std::move(packages),
+                                completed, diagnostic = std::move(diagnostic)]() mutable
+                            {
+                                if (generation != lifetime->m_appUninstallerGeneration)
+                                {
+                                    return;
+                                }
+                                lifetime->m_appUninstallerWorking = false;
+                                lifetime->m_appUninstallerLoaded = true;
+                                if (completed)
+                                {
+                                    lifetime->m_appUninstallerPackages = std::move(packages);
+                                    lifetime->m_appUninstallerStatusMessage =
+                                        winforge::core::LocalizedText{
+                                            L"Current-user Store/UWP inventory refreshed. Framework and resource packages remain excluded.",
+                                            L"\u73FE\u6709\u4F7F\u7528\u8005\u7684 Store/UWP \u76EE\u9304\u5DF2\u91CD\u65B0\u6574\u7406\u3002framework \u540C resource \u5957\u4EF6\u4ECD\u7136\u88AB\u6392\u9664\u3002" }.Pick(lifetime->m_language);
+                                }
+                                else
+                                {
+                                    lifetime->m_appUninstallerStatusMessage =
+                                        winforge::core::LocalizedText{
+                                            L"Package inventory refresh failed closed; existing cached rows were retained. " + diagnostic,
+                                            L"\u5957\u4EF6\u76EE\u9304\u91CD\u65B0\u6574\u7406\u5DF2 fail closed\uFF1B\u4FDD\u7559\u5DF2\u5B58\u7684\u7DE9\u5B58\u5217\u3002" + diagnostic }.Pick(lifetime->m_language);
+                                }
+                                if (lifetime->m_currentRoute == L"module.uninstall")
+                                {
+                                    lifetime->RefreshAppUninstallerEntries();
+                                }
+                            });
+                    }
+                    if (!queued)
+                    {
+                        lifetime->m_appUninstallerCompletionLost.store(
+                            true, std::memory_order_release);
+                    }
+                }
+                catch (...)
+                {
+                    lifetime->m_appUninstallerCompletionLost.store(
+                        true, std::memory_order_release);
+                }
+            });
+            worker.detach();
+        }
+        catch (...)
+        {
+            m_appUninstallerWorking = false;
+            m_appUninstallerStatusMessage = winforge::core::LocalizedText{
+                L"Could not start the native package inventory worker; no package was changed.",
+                L"\u7121\u6CD5\u958B\u59CB\u539F\u751F\u5957\u4EF6\u76EE\u9304 worker\uFF1B\u6C92\u6709\u5957\u4EF6\u88AB\u6539\u8B8A\u3002" }.Pick(m_language);
+            if (m_currentRoute == L"module.uninstall")
+            {
+                RefreshAppUninstallerEntries();
+            }
+        }
+    }
+
+    void MainWindow::StartAppUninstallerRemoval()
+    {
+        if (m_appUninstallerWorking || !m_appUninstallerReviewPackage ||
+            m_appUninstallerReviewPackage->package_full_name.empty())
+        {
+            return;
+        }
+
+        if (!winforge::core::packages::IsNormalIntegrityProcess())
+        {
+            m_appUninstallerReviewPackage.reset();
+            m_appUninstallerStatusMessage = winforge::core::LocalizedText{
+                L"Package removal is disabled while WinForge is elevated or token inspection is unavailable. No package changed.",
+                L"WinForge \u5df2\u63d0\u5347\u6216 token \u7121\u6cd5\u5b89\u5168\u6aa2\u67e5\uff0c\u5957\u4ef6\u79fb\u9664\u5df2\u7981\u7528\u3002\u6c92\u6709\u5957\u4ef6\u88ab\u6539\u8b8a\u3002" }.Pick(m_language);
+            RefreshAppUninstallerEntries();
+            return;
+        }
+
+
+        auto const package = *m_appUninstallerReviewPackage;
+        m_appUninstallerWorking = true;
+        auto const generation = ++m_appUninstallerGeneration;
+        m_appUninstallerStatusMessage = winforge::core::LocalizedText{
+            L"Confirmed native package removal is running. No other package is queued.",
+            L"\u5df2\u78ba\u8a8d\u7684\u539f\u751f\u5957\u4ef6\u79fb\u9664\u6b63\u5728\u904b\u884c\u3002\u6c92\u6709\u5176\u4ed6\u5957\u4ef6\u88ab\u6392\u968a\u3002" }.Pick(m_language);
+        if (m_currentRoute == L"module.uninstall")
+        {
+            RefreshAppUninstallerEntries();
+        }
+
+        try
+        {
+            auto lifetime = get_strong();
+            auto dispatcher = Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
+            std::thread worker([lifetime, dispatcher, generation, package]() mutable
+            {
+                bool removed = false;
+                bool apartment_initialized = false;
+                try
+                {
+                    winrt::init_apartment(winrt::apartment_type::multi_threaded);
+                    apartment_initialized = true;
+                    Windows::Management::Deployment::PackageManager manager;
+                    auto const result = manager.RemovePackageAsync(
+                        ToHString(package.package_full_name)).get();
+                    removed = static_cast<HRESULT>(result.ExtendedErrorCode()) == S_OK;
+                }
+                catch (hresult_error const&)
+                {
+                    // Provider diagnostics may expose unbounded package-specific text.
+                    // Keep the reviewed UI outcome bounded and fail closed.
+                    removed = false;
+                }
+                catch (...)
+                {
+                    removed = false;
+                }
+                if (apartment_initialized)
+                {
+                    winrt::uninit_apartment();
+                }
+
+                try
+                {
+                    bool queued = false;
+                    if (dispatcher)
+                    {
+                        queued = dispatcher.TryEnqueue(
+                            [lifetime, generation, package = std::move(package), removed]() mutable
+                            {
+                                if (generation != lifetime->m_appUninstallerGeneration)
+                                {
+                                    return;
+                                }
+                                lifetime->m_appUninstallerWorking = false;
+                                lifetime->m_appUninstallerReviewPackage.reset();
+                                if (removed)
+                                {
+                                    lifetime->m_appUninstallerPackages.erase(
+                                        std::remove_if(
+                                            lifetime->m_appUninstallerPackages.begin(),
+                                            lifetime->m_appUninstallerPackages.end(),
+                                            [&package](winforge::core::uninstall::AppPackage const& item)
+                                            {
+                                                return item.package_full_name ==
+                                                    package.package_full_name;
+                                            }),
+                                        lifetime->m_appUninstallerPackages.end());
+                                    lifetime->m_appUninstallerStatusMessage =
+                                        winforge::core::LocalizedText{
+                                            L"Package removal completed for the current user. No local data folder was deleted.",
+                                            L"\u73fe\u6709\u4f7f\u7528\u8005\u7684\u5957\u4ef6\u79fb\u9664\u5df2\u5b8c\u6210\u3002\u6c92\u6709\u522a\u9664\u4efb\u4f55\u672c\u6a5f\u8cc7\u6599\u76ee\u9304\u3002" }.Pick(lifetime->m_language);
+                                }
+                                else
+                                {
+                                    lifetime->m_appUninstallerStatusMessage =
+                                        winforge::core::LocalizedText{
+                                            L"Package removal failed; no local data folder was deleted and no other package changed.",
+                                            L"\u5957\u4ef6\u79fb\u9664\u5931\u6557\uff1b\u6c92\u6709\u522a\u9664\u672c\u6a5f\u8cc7\u6599\u76ee\u9304\uff0c\u4ea6\u6c92\u6709\u5176\u4ed6\u5957\u4ef6\u88ab\u6539\u8b8a\u3002" }.Pick(lifetime->m_language);
+                                }
+                                if (lifetime->m_currentRoute == L"module.uninstall")
+                                {
+                                    lifetime->RefreshAppUninstallerEntries();
+                                }
+                            });
+                    }
+                    if (!queued)
+                    {
+                        lifetime->m_appUninstallerCompletionLost.store(
+                            true, std::memory_order_release);
+                    }
+                }
+                catch (...)
+                {
+                    lifetime->m_appUninstallerCompletionLost.store(
+                        true, std::memory_order_release);
+                }
+            });
+            worker.detach();
+        }
+        catch (...)
+        {
+            m_appUninstallerWorking = false;
+            m_appUninstallerStatusMessage = winforge::core::LocalizedText{
+                L"Could not start the confirmed native removal worker; no package changed.",
+                L"\u7121\u6cd5\u958b\u59cb\u5df2\u78ba\u8a8d\u7684\u539f\u751f\u79fb\u9664 worker\uff1b\u6c92\u6709\u5957\u4ef6\u88ab\u6539\u8b8a\u3002" }.Pick(m_language);
+            if (m_currentRoute == L"module.uninstall")
+            {
+                RefreshAppUninstallerEntries();
+            }
         }
     }
 
@@ -10891,6 +11628,14 @@ namespace winrt::WinForge::implementation
             m_regexBuilderIgnorePatternWhitespace = m_symbolsRegexIgnorePatternWhitespace;
             m_regexBuilderExplicitCapture = m_symbolsRegexExplicitCapture;
             break;
+        case RegexBuilderTarget::AppUninstaller:
+            m_regexBuilderCaseSensitive = m_appUninstallerRegexCaseSensitive;
+            m_regexBuilderMultiline = m_appUninstallerRegexMultiline;
+            m_regexBuilderDotMatchesNewline = m_appUninstallerRegexDotMatchesNewline;
+            m_regexBuilderIgnorePatternWhitespace =
+                m_appUninstallerRegexIgnorePatternWhitespace;
+            m_regexBuilderExplicitCapture = m_appUninstallerRegexExplicitCapture;
+            break;
         case RegexBuilderTarget::TesterOnly:
         default:
             break;
@@ -11262,6 +12007,17 @@ namespace winrt::WinForge::implementation
             m_symbolsRegexExplicitCapture = m_regexBuilderExplicitCapture;
             m_symbolsSearchText = m_regexBuilderPattern;
             Navigate(L"module.symbols");
+            break;
+        case RegexBuilderTarget::AppUninstaller:
+            m_appUninstallerRegexEnabled = true;
+            m_appUninstallerRegexCaseSensitive = m_regexBuilderCaseSensitive;
+            m_appUninstallerRegexMultiline = m_regexBuilderMultiline;
+            m_appUninstallerRegexDotMatchesNewline = m_regexBuilderDotMatchesNewline;
+            m_appUninstallerRegexIgnorePatternWhitespace =
+                m_regexBuilderIgnorePatternWhitespace;
+            m_appUninstallerRegexExplicitCapture = m_regexBuilderExplicitCapture;
+            m_appUninstallerSearchText = m_regexBuilderPattern;
+            Navigate(L"module.uninstall");
             break;
         case RegexBuilderTarget::TesterOnly:
         default:

@@ -217,13 +217,20 @@ NativeTestCounts RunRegexSearchTests()
     auto const& shellSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::ShellCatalog);
     auto const& allAppsSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::AllApps);
     auto const& packageSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::PackageDiscoverCachedResults);
+    auto const& appUninstallerSurface =
+        RegexSearchSurfaceFor(RegexSearchSurfaceId::AppUninstallerCachedResults);
     auto const& cheatSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::RegexCheatsheetEntries);
     auto const& symbolsSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::SymbolsPalette);
-    suite.Expect(surfaces.size() == 5
+    suite.Expect(surfaces.size() == 6
             && shellSurface.search_automation_id == L"NativeShellSearchBox"
             && allAppsSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults
             && packageSurface.query_policy == RegexSearchQueryPolicy::LocalCachedResultsOnly
             && packageSurface.regex_mode_automation_id == L"NativePackageRegexMode"
+            && appUninstallerSurface.route == L"module.uninstall"
+            && appUninstallerSurface.search_automation_id == L"NativeAppUninstallerSearch"
+            && appUninstallerSurface.query_policy == RegexSearchQueryPolicy::LocalCachedResultsOnly
+            && appUninstallerSurface.invalid_pattern_policy ==
+                RegexInvalidPatternPolicy::KeepPriorVisibleResults
             && cheatSurface.route == L"module.regexcheat"
             && cheatSurface.query_policy == RegexSearchQueryPolicy::LocalCatalog
             && cheatSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults
