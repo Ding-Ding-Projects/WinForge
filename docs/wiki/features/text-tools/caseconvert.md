@@ -18,8 +18,20 @@
 
 **粵語 —** 大小寫轉換 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>case convert camel pascal snake kebab constant title sentence dot path train naming identifier variable rename 大小寫 命名 轉換 駝峰 蛇形 烤串 常數 標題 變數 識別碼</code>。
 
+## Native Runtime Contract · 原生執行合約
+
+**EN —** The native C++ converter uses Windows invariant NLS classification and casing, not an optional ICU DLL. This keeps ASCII, CJK, accented, dotted-I, and digit-boundary behavior available on both developer desktops and hosted CI.
+
+**粵語 —** 原生 C++ 轉換器會用 Windows invariant NLS 分類同大小寫處理，而唔係可選 ICU DLL。咁樣 ASCII、CJK、有重音字、點 I 同數字邊界行為喺開發 desktop 同 hosted CI 都可用。
+
 ## Buttons And Controls · 按鈕與控制項
 
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
 | [binding:CopyLabel](../../buttons/text-tools/caseconvert/001-copy-click.md) | `Button` | `` | `Copy_Click` |
+
+## Native Visual Evidence · 原生視覺證據
+
+**EN —** A fresh native Case Converter capture was attempted with the repository driver and a LowLevel headless desktop. The driver rejected its blank/near-uniform `PrintWindow` fallback, and the inspected LowLevel HWND capture showed only a title bar and blank client frame. The stale image was retired; visual evidence is `capture-blocked`, while native tests and UI Automation remain behavioral evidence only.
+
+**粵語 —** repository driver 同 LowLevel 無頭 desktop 都重新嘗試過最新原生 Case Converter 擷取。driver 拒絕咗空白／接近單色嘅 `PrintWindow` fallback，而檢查過嘅 LowLevel HWND 擷取只有 title bar 同空白 client frame。舊圖已移除；視覺證據係 `capture-blocked`，原生測試同 UI Automation 只係行為證據。

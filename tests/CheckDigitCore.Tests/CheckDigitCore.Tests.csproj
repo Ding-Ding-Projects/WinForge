@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Services\CheckDigitService.cs" Link="CheckDigitService.cs" />
+    <None Include="..\fixtures\iban-registry-release-102.txt"
+          Link="Fixtures\iban-registry-release-102.txt"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

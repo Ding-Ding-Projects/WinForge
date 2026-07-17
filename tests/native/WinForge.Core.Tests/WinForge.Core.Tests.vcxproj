@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DC63A1C6-65E6-4539-A763-F39CB5D6977F}</ProjectGuid>
+    <ProjectName>WinForge.Core.Tests</ProjectName>
+    <RootNamespace>WinForgeCoreTests</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(ProjectDir)..\..\..\src\WinForge.App\HybridCRT.props" />
+  <Import Project="$(ProjectDir)..\..\..\eng\native\NativeRegex.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup>
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src\WinForge.Core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /utf-8</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Advapi32.lib;Shell32.lib;Winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="BinaryTextTests.cpp" />
+    <ClCompile Include="CaseConvertTests.cpp" />
+    <ClCompile Include="CheckDigitTests.cpp" />
+    <ClCompile Include="CodecTests.cpp" />
+    <ClCompile Include="GuidGenTests.cpp" />
+    <ClCompile Include="PassGenTests.cpp" />
+    <ClCompile Include="PasswordStrengthTests.cpp" />
+    <ClCompile Include="RomanNumTests.cpp" />
+    <ClCompile Include="UuidV7Tests.cpp" />
+    <ClCompile Include="RegexSearchTests.cpp" />
+    <ClCompile Include="RegexCheatTests.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="PackageManagerTests.cpp" />
+    <ClCompile Include="PackageSetupTests.cpp" />
+    <ClCompile Include="PackageMutationCoordinatorTests.cpp" />
+    <ClCompile Include="PackageParsers.Tests.cpp" />
+    <ClCompile Include="PackageRuntimeTests.cpp" />
+    <ClCompile Include="ProcessRunnerTests.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\BinaryText.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\CaseConvert.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\CheckDigit.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\Codec.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PassGen.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PasswordStrength.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\RomanNum.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\UuidV7.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\RegexSearch.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\RegexCheat.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\RegexBuilder.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageSetup.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageMutationCoordinator.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageParsers.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageRuntime.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\ProcessRunner.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\RouteIndex.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BinaryTextTests.h" />
+    <ClInclude Include="CaseConvertTests.h" />
+    <ClInclude Include="CheckDigitTests.h" />
+    <ClInclude Include="CodecTests.h" />
+    <ClInclude Include="GuidGenTests.h" />
+    <ClInclude Include="PassGenTests.h" />
+    <ClInclude Include="PasswordStrengthTests.h" />
+    <ClInclude Include="RomanNumTests.h" />
+    <ClInclude Include="UuidV7Tests.h" />
+    <ClInclude Include="RegexSearchTests.h" />
+    <ClInclude Include="RegexCheatTests.h" />
+    <ClInclude Include="PackageManagerTests.h" />
+    <ClInclude Include="PackageSetupTests.h" />
+    <ClInclude Include="PackageMutationCoordinatorTests.h" />
+    <ClInclude Include="PackageRuntimeTests.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\BinaryText.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\CaseConvert.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\CheckDigit.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\Codec.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PassGen.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PasswordStrength.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RomanNum.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\UuidV7.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearch.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearchSurface.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RegexCheat.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RegexBuilder.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageManager.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageSetup.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageMutationCoordinator.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageParsers.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageRuntime.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\ProcessRunner.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RouteIndex.h" />
+    <ClInclude Include="ProcessRunnerTests.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures\PackageManagers\*.*" />
+    <None Include="..\..\fixtures\iban-registry-release-102.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

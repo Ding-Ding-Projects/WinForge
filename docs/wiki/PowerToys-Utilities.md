@@ -84,6 +84,8 @@ Open in-app: `WinForge.exe --page mouseutils`
 
 Wrap the pointer to the opposite outer edge of the active display. Choose always-on, Ctrl-held, or Shift-held activation; horizontal, vertical, or both-direction wrapping; and optionally pause it while only one monitor is connected. · 游標去到使用中顯示器嘅外邊會由對面再出現。可選長開、撳住 Ctrl、或者撳住 Shift 先啟用；亦都可以揀橫向、直向、或者兩個方向環繞，仲可以得一個螢幕時暫停。
 
+Fresh visual capture for CursorWrap is currently blocked in this desktop session: `CopyFromScreen` is unavailable and the driver rejected the blank / near-uniform fallback, so no current `screenshot-cursorwrap.png` is available yet. · CursorWrap 嘅最新視覺擷取而家喺呢個 desktop session 受阻：`CopyFromScreen` 唔可用，而 driver 拒絕咗空白／接近單色 fallback，所以暫時未有可用嘅 `screenshot-cursorwrap.png`。
+
 ### Grab and Move · 拖曳移動視窗
 
 Hold Alt (or the Windows key) and left-drag anywhere in a normal window to move it. Optional right-drag resize selects the nearest edge or corner, while exclusions, full-screen-game pausing, Alt-menu suppression, and a live geometry label keep the gesture predictable. · 撳住 Alt（或者 Windows 鍵）之後喺普通視窗任何位置用左鍵拖曳就可以移動。可選右鍵拖曳會揀最近嘅邊或者角縮放；排除清單、全螢幕遊戲暫停、Alt 選單抑制同即時座標標籤令手勢更可預測。
@@ -189,3 +191,43 @@ Open in-app: `WinForge.exe --page flashcards`
 ![Flashcards](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-flashcards.png)
 
 [← Wiki Home](Home.md)
+
+
+## Declarative extension packs · 宣告式擴充套件
+
+Command Palette can import user-managed JSON manifests from `%LOCALAPPDATA%\WinForge\CommandPaletteExtensions`. Each new pack is **disabled by default** and can be enabled, disabled, or removed from the Command Palette module. WinForge validates the schema, pack and command IDs, command counts, targets, and manifest size before storing a private copy.
+
+The initial contract deliberately supports only three safe actions:
+
+- `Module`: opens a registered WinForge `module.*` route.
+- `Url`: opens an absolute `http` or `https` URL.
+- `Copy`: copies bounded text to the clipboard.
+
+The manifest cannot run a process, PowerShell, a script, or unmanaged code. This is a safe extension-pack foundation, not yet a third-party out-of-process extension host with rich pages or forms.
+
+Create a template from the module to obtain a ready-to-edit example:
+
+```json
+{
+  "schema": 1,
+  "id": "example.quick-actions",
+  "name": "Example quick actions",
+  "zh": "示範快速操作",
+  "commands": [
+    {
+      "id": "open-awake",
+      "title": "Open Awake",
+      "zh": "開啟 Awake",
+      "aliases": ["wake"],
+      "action": "Module",
+      "target": "module.awake"
+    }
+  ]
+}
+```
+
+### 宣告式擴充套件
+
+指令面板而家可以匯入由用戶管理嘅 JSON 資訊檔。每個新擴充套件預設都會停用，你可以喺指令面板模組入面明確啟用、停用或者移除。WinForge 會驗證 schema、套件同指令識別碼、指令數量、目標同資訊檔大小，先會儲存自己嘅副本。
+
+第一階段只容許三種安全操作：開啟已註冊嘅 WinForge 模組、開啟 HTTP(S) 網址，或者複製有限長度嘅文字。唔可以執行程序、PowerShell、指令稿或者非受控程式碼。呢個係安全擴充套件基礎，暫時唔係支援豐富頁面／表單嘅第三方跨程序擴充套件主機。

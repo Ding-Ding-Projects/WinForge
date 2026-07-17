@@ -2,9 +2,23 @@
 
 **Status · 狀態：** Baseline active · 基線已啟動
 
+> **Coverage correction · 覆蓋修正：** The 323-route figures on this historical campaign page describe the exact legacy manifest used for those batches. The corrected current whole-shell contract is **346 fixed routes plus five dynamic route families** because that manifest omitted 22 runtime category routes and Settings. Historical results remain valid only for their recorded subset. · 呢個歷史 campaign 頁面嘅 323-route 數字係當時 batches 所用舊 manifest 嘅準確記錄。修正後目前全 shell 合約係 **346 條固定路線加五組動態路線**，因為嗰份 manifest 漏咗 22 條執行時分類路線同 Settings。歷史結果只對佢記錄嘅子集有效。
+
 **EN —** This page records the repeatable evidence model for whole-app WinForge verification. It is deliberately a coverage ledger, not a marketing feature count: a route is complete only when its applicable routing, build, test, launch, visual, behavior, side-effect, and documentation evidence is recorded.
 
 **粵語 —** 呢一頁記錄點樣可以重複做到成個 WinForge app 驗證。佢係涵蓋證據清單，唔係宣傳用功能數字：每條 route 只有喺適用嘅 routing、build、test、launch、visual、behavior、副作用同文件證據都記錄好先算完成。
+
+## 2026-07-16 Native regex search-surface and builder evidence · 2026-07-16 原生 regex 搜尋位置同建立器證據
+
+**EN —** `RegexSearchSurface.h` proves the complete current native search set is Shell catalog, All Apps, and cached Package Discover; each uses bounded PCRE2-16. The full four-step builder now has safe escaped recipes, route/package/version starters, assertions, capture preview, invalid-Apply blocking, and deterministic Package Discover targeting. Debug and Release each pass **389/389** (343 core + 46 parser); catalog parity passes 346 fixed routes plus five dynamic families; the elevated process-owned UI Automation sweep passes **171/171**, including recipes, assertions, invalid Apply, Shell/All Apps target apply, and the cache-only no-query Package Discover regression. The driver launched Dashboard, All Apps, Regex Tester, and Package Discover at `-WaitMs 16000`, but `CopyFromScreen` was unavailable and every PrintWindow fallback was blank/near-uniform. LowLevel MCP independently launched Regex Tester on an isolated desktop; its inspected 1980×1320 full-window frame had only a title bar and blank client surface, so the PNG was discarded and visual evidence is `capture-blocked`.
+
+**粵語 —** `RegexSearchSurface.h` 證明而家完整原生搜尋集合係 Shell 目錄、所有 app 同已快取 Package Discover；每個都用有界 PCRE2-16。完整四步建立器而家有安全已 escape recipe、路線／套件／版本起始式、assertion、capture 預覽、無效 Apply 阻擋同確定性 Package Discover 目標。Debug 同 Release 各自通過 **389/389**（343 個 core + 46 個 parser）；目錄對等通過 346 條固定路線加五組動態家族；提權、自有 process UI Automation sweep 通過 **171/171**，包括 recipe、assertion、無效 Apply、Shell／All Apps 目標套用同只限快取／唔開查詢 Package Discover 回歸。driver 用 `-WaitMs 16000` 開啟 Dashboard、所有 app、Regex Tester 同 Package Discover，但 `CopyFromScreen` 用唔到，而且每個 PrintWindow fallback 都係空白／接近單色。LowLevel MCP 亦喺隔離 desktop 開啟 Regex Tester；檢查過嘅 1980×1320 完整視窗 frame 只得 title bar 同空白 client surface，所以 PNG 已丟棄，視覺證據係 `capture-blocked`。
+
+## 2026-07-16 Native Package Manager batch evidence · 2026-07-16 原生 Package Manager 批次證據
+
+**EN —** The native Package Manager’s bounded batch-review slice is retained in the complete Debug and Release suites at **389/389** each (343 core + 46 parser), including **42/42** focused Package Mutation Coordinator checks. Catalog parity passes 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows. The elevated process-owned shell UI Automation sweep passes **171/171**; it verifies the static batch-consent policy and horizontal bounds, but did not invoke a live package mutation because the session is elevated and the runtime fails closed. The historical Package Manager capture attempts remain blank/near-uniform and `capture-blocked`.
+
+**粵語 —** 原生 Package Manager 有界批次檢視批次會保留喺完整 Debug 同 Release suite，各自通過 **389/389**（343 個 core + 46 個 parser），包括 **42/42** 個 Package Mutation Coordinator 專項檢查。目錄對等通過 346 條固定路線、五組動態家族、319 條 registry 記錄、22 個分類同 346 條 ledger rows。提權、自有 process shell UI Automation sweep 通過 **171/171**；佢驗證靜態批次確認政策同水平邊界，但冇呼叫即時套件修改，因為 session 已提權而 runtime 會 fail closed。歷史 Package Manager 擷取嘗試仍然係空白／接近單色兼 `capture-blocked`。
 
 ## Baseline Snapshot · 基線快照
 
@@ -1122,5 +1136,153 @@ clipboard 同 file writes，冇 disposable target 同明確授權下都刻意冇
 嘗試有開到頁面，但攞唔到 capture。`CopyFromScreen` 唔可用；`PrintWindow` fallback
 產生 uniform frame，然後以 `graphics capture is unavailable in this desktop session` 停止。
 冇 PNG 產生、檢查、替換或者重用。Batch 11 係 `capture-blocked`，絕對唔係 visual-pass。
+
+## Launch-only Batch 12 · 第十二批淨啟動測試
+
+**EN —** Batch 12 covers launchable indices **275–299**: textsort, textstats,
+texttemplate, texttools, textwrap, timelens, timer, timeunit, tomljson, torrent,
+totp, tzplanner, ulid, unicodeinspect, uninstall, unitconvert, unitprice, unixperm,
+urltools, uuidv5, uuidv7, vault-volumes, vertfarm, viaproxy, and videoconference.
+Its generated manifest has **323 routes**, **805 aliases**, 1,294 source-review files,
+350,182 source lines, and no routing or unmapped-alias issue. The local runner used the
+5-second/15-second protocol and recorded **25/25 launch-pass** on the first wait, with
+no retry or failure. Raw ignored evidence remains under `artifacts/smoke/batch12/`.
+
+**Source, safety, and build evidence · 來源、安全同建置證據：** Source review repaired
+Timer’s page-boundary lifecycle: unloading now accumulates and pauses its stopwatch,
+stops all dispatcher timers, clears all three running flags, and uses idempotent named
+language subscribe/unsubscribe paths across reload. `tests/TimerLifecycle.Tests` passes
+**3/3**. The literal-safety guard passes, and the Debug x64 solution build completes
+with **0 errors**. This remains launch/static evidence only: Torrent network/downloads,
+TOTP/clipboard use, uninstall operations, disk/volume actions, permission changes,
+proxy/conference controls, and file or settings writes were not live-executed.
+
+**Visual evidence · 視覺證據：** A fresh self-contained `textsort` driver attempt
+reached the window, but `CopyFromScreen` was unavailable and the `PrintWindow` fallback
+produced a uniform frame. The driver stopped because graphics capture is unavailable in
+this desktop session. No `textsort-default.png` was created, inspected, replaced, or
+reused: Batch 12 is `capture-blocked`, never visual-pass.
+
+**粵語 —** Batch 12 覆蓋可 launch indices **275–299**：textsort、textstats、
+texttemplate、texttools、textwrap、timelens、timer、timeunit、tomljson、torrent、totp、
+tzplanner、ulid、unicodeinspect、uninstall、unitconvert、unitprice、unixperm、urltools、
+uuidv5、uuidv7、vault-volumes、vertfarm、viaproxy 同 videoconference。generated manifest
+有 **323 條 routes**、**805 個 aliases**、1,294 個 source-review files、350,182 行
+source，冇 routing 或 unmapped-alias issue。local runner 用 5 秒／15 秒 protocol，
+第一次 wait 已經記錄 **25/25 launch-pass**，冇 retry 同 failure。raw ignored evidence
+留喺 `artifacts/smoke/batch12/`。
+
+**來源、安全同建置證據 · Source, safety, and build evidence：** 來源審查修正 Timer
+嘅 page-boundary lifecycle：unload 而家會累積同暫停 stopwatch、停晒 dispatcher timers、
+清除三個 running flags，並喺 reload 間用 idempotent named language
+subscribe/unsubscribe。`tests/TimerLifecycle.Tests` **3/3** 通過。literal-safety guard
+通過，Debug x64 solution build 以 **0 errors** 完成。呢個仍然只係 launch／static
+evidence：Torrent 網絡／下載、TOTP／clipboard 使用、uninstall operations、disk／volume
+actions、permission changes、proxy／conference controls，同 file 或 settings writes 都冇
+live-run。
+
+**視覺證據 · Visual evidence：** 新嘅 self-contained `textsort` driver 嘗試有去到
+視窗，但 `CopyFromScreen` 唔可用，`PrintWindow` fallback 產生 uniform frame。driver 因為
+呢個 desktop session graphics capture 唔可用而停止。冇 `textsort-default.png` 產生、
+檢查、替換或者重用：Batch 12 係 `capture-blocked`，絕對唔係 visual-pass。
+
+## Launch-only Batch 13 · 第十三批淨啟動測試
+
+**EN —** Batch 13 completes the registered route inventory. The fresh manifest records
+**323 routes**, **805 aliases**, 1,296 source-review files, 350,519 source lines, 22
+test projects, and no structural routing mismatch. Indices **300–321** (VirtualBox
+through ZoomIt) were run through the local 5-second/15-second protocol: all **22/22**
+were `launch-pass` on the first wait, with no retry or failure. `shell.allapps` is a
+modal shell route rather than a frame page; its focused UI Automation verifier now
+passes and finds `NewTabPickerDialog`, `NewTabPickerSearchBox`, and the selected All
+Apps navigation item without selecting a module.
+
+**Source, safety, and build evidence · 來源、安全同建置證據：** The All Apps verifier
+initially exposed a start-page routing omission: `--page shell.allapps` did not open the
+picker. The startup path now waits for NavigationView load, selects the shell item with
+the selection event suppressed, and awaits one picker invocation. Its source-level
+fixture passes **3/3**. Source review also repaired Unicode-scalar character counting in
+Word Frequency and YAML root-scalar/empty-collection plus escaped-quote comment parsing;
+`tests/StructuredTextTools.Tests` passes **7/7**. A direct review of 40 resolved
+final-route page/service files found no TODO, FIXME, or `NotImplementedException` marker.
+The literal-safety guard passes and the Debug x64 solution build completes with **0
+errors**. No VM/install, feature-flag, voice/VPN, web-login/cloning, registry/Windows,
+packet-capture, Wake-on-LAN, workspace/process, WSL, download, or ZoomIt live action was
+performed.
+
+**Visual evidence · 視覺證據：** Fresh self-contained `virtualbox` and repaired
+`shell.allapps` driver attempts reached WinForge, but `CopyFromScreen` was unavailable
+and the `PrintWindow` fallback produced uniform frames. Graphics capture is unavailable
+in this desktop session. No PNG was created, inspected, replaced, or reused: Batch 13
+is `capture-blocked`, never visual-pass.
+
+**粵語 —** Batch 13 完成已登記嘅 route inventory。新 manifest 有 **323 條 routes**、
+**805 個 aliases**、1,296 個 source-review files、350,519 行 source、22 個 test
+projects，同埋冇 structural routing mismatch。indices **300–321**（VirtualBox 到 ZoomIt）
+用 local 5 秒／15 秒 protocol 跑：全部 **22/22** 第一次 wait 已經 `launch-pass`，冇
+retry 同 failure。`shell.allapps` 係 modal shell route，唔係 frame page；focused UI
+Automation verifier 而家通過，搵到 `NewTabPickerDialog`、`NewTabPickerSearchBox` 同已
+選取嘅 All Apps navigation item，而冇選任何 module。
+
+**來源、安全同建置證據 · Source, safety, and build evidence：** All Apps verifier 最初
+搵到 start-page routing 遺漏：`--page shell.allapps` 冇開 picker。startup path 而家會等
+NavigationView load、選 shell item 時 suppress selection event，再 await 一次 picker
+invocation。source-level fixture **3/3** 通過。來源審查亦修正 Word Frequency Unicode-
+scalar character counting，同 YAML root-scalar／empty-collection 加 escaped-quote comment
+parsing；`tests/StructuredTextTools.Tests` **7/7** 通過。40 個 resolved final-route
+page/service files 嘅 direct review 冇 TODO、FIXME 或 `NotImplementedException` marker。
+literal-safety guard 通過，Debug x64 solution build 以 **0 errors** 完成。冇跑 VM/install、
+feature-flag、voice/VPN、web-login/cloning、registry/Windows、packet-capture、Wake-on-LAN、
+workspace/process、WSL、download 或 ZoomIt live action。
+
+**視覺證據 · Visual evidence：** 新嘅 self-contained `virtualbox` 同修正後
+`shell.allapps` driver 嘗試有去到 WinForge，但 `CopyFromScreen` 唔可用，`PrintWindow`
+fallback 產生 uniform frames。呢個 desktop session graphics capture 唔可用。冇 PNG
+產生、檢查、替換或者重用：Batch 13 係 `capture-blocked`，絕對唔係 visual-pass。
+
+## Campaign closeout · Campaign 結案
+
+**EN —** The final inventory and the reusable range-union verifier now prove the
+complete smoke routing universe: 323 routes total, with thirteen recorded numeric
+ranges covering indices 0–321 exactly once and the index-322 shell.allapps picker
+verified separately by UI Automation. The final range is 300–321 (22/22 first-attempt
+launch-pass); the All Apps verifier finds NewTabPickerDialog, its search box, and the
+selected shell navigation item without selecting a module.
+
+**Static/control evidence · 靜態／控制證據：** The new source-surface auditor passed
+334 XAML files, 2,858/2,858 event handlers, and 1,910/1,910 direct action handlers,
+with no unresolved handler, page-language subscription mismatch, or actionable
+TODO/FIXME/not-implemented marker. It also records 1,969 action controls, 316 generated
+feature references, and 1,853 generated button references. The aggregate test runner
+passed all 23/23 headless projects, including the reactor 63/63 scenario suite. The
+Debug x64 build and literal-safety guard pass with 0 errors.
+
+**Safety/visual disposition · 安全／視覺處置：** This completes a safe smoke baseline,
+not unapproved real-world side effects. Install/remove, VM/WSL, registry/service,
+network/download, credential, device, destructive-file, and external-app actions were
+not live-run. Fresh screenshots remain capture-blocked: CopyFromScreen is unavailable
+and PrintWindow is uniform, so no stale or synthetic PNG is presented as visual proof.
+See the [closeout record](../Exhaustive-Smoke-Closeout.md).
+
+**粵語 —** 最後 inventory 同可重用 range-union verifier 而家證明完整 smoke routing
+universe：總共 323 條 routes，13 個記錄咗嘅 numeric ranges 準確各一次覆蓋 indices
+0–321，而 index 322 shell.allapps picker 會獨立用 UI Automation 驗證。最後一段係
+300–321（22/22 第一次 launch-pass）；All Apps verifier 搵到 NewTabPickerDialog、
+search box 同已選取嘅 shell navigation item，而冇揀 module。
+
+**靜態／控制證據 · Static/control evidence：** 新嘅 source-surface auditor 通過 334
+個 XAML files、2,858/2,858 個 event handlers、同 1,910/1,910 個 direct action
+handlers，冇 unresolved handler、page-language subscription mismatch 或 actionable
+TODO/FIXME/not-implemented marker。佢亦記錄 1,969 個 action controls、316 個生成嘅
+feature references 同 1,853 個生成嘅 button references。aggregate test runner 全部
+23/23 個 headless projects 通過，包括 reactor 63/63 scenario suite。Debug x64 build
+同 literal-safety guard 都以 0 errors 通過。
+
+**安全／視覺處置 · Safety/visual disposition：** 呢個完成安全 smoke baseline，唔係
+未授權嘅真實 side effects。Install/remove、VM/WSL、registry/service、network/download、
+credential、device、destructive-file 同 external-app actions 都冇 live-run。新截圖仍然
+capture-blocked：CopyFromScreen 唔可用而 PrintWindow 係 uniform，所以冇 stale 或
+synthetic PNG 當 visual proof。請睇 [結案記錄](../Exhaustive-Smoke-Closeout.md)。
+
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

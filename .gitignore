@@ -6,6 +6,14 @@
 *.trx
 
 # NuGet
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+project.lock.json
+/packages/
+/vcpkg_installed/
+
 
 # MSIX packaging output
 *.msixupload

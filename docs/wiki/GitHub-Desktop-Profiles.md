@@ -90,6 +90,10 @@ WinForge does not add specialized GitHub MCP tools. An agent can use the existin
 
 WinForge 唔會新增專用 GitHub MCP 工具。Agent 可以使用現有通用 [LowLevel Computer Use MCP](https://github.com/codingmachineedge/lowlevel-computer-use-mcp) catalog，喺離屏 Windows desktop 檢查或者驅動普通權限 GitHub Desktop 視窗：
 
+On this workstation, first look for the local checkout at `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp`. If the checkout exists but the MCP tools are not exposed to the current Codex task, record that exact blocker, then fall back to the repo driver and smoke scripts without claiming LowLevel MCP evidence.
+
+喺呢部工作站，請先喺 `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp` 搵本機 checkout。如果 checkout 存在但目前 Codex task 冇曝露 MCP tools，就要記低呢個準確阻礙，再改用 repo driver 同 smoke scripts；唔可以聲稱已有 LowLevel MCP 證據。
+
 1. `create_headless_desktop` — create a named off-screen desktop. · 建立具名離屏 desktop。
 2. `launch_on_headless_desktop` — launch the selected profile's generated shortcut target or `WinForgeLauncher` profile command on that desktop. · 喺該 desktop 啟動所選設定檔捷徑目標或者 `WinForgeLauncher` 設定檔指令。
 3. `list_headless_windows` — resolve the current window handle; never reuse a handle from an earlier run. · 取得目前視窗 handle；唔好重用上次運行嘅 handle。

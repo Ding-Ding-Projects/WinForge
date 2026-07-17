@@ -807,6 +807,8 @@ launching the other app.
 - [x] **Background Clipboard manager + tray** · 背景剪貼簿 + 系統匣 — DONE (text/image/file history, auto-convert, keep-running-when-closed via Shell_NotifyIcon).
 
 ### Package management (covers "clone UniGetUI" + "auto-install common deps")
+> **Native C++ migration correction (2026-07-16):** the checked items below describe the shipping managed product, not completed native parity. Native Package Manager is **in progress**. Its new Setup slice only reviews fixed Winget IDs through explicit later consent; it does not execute remote scripts or claim full UniGetUI/bootstrap parity. · **原生 C++ 遷移更正（2026-07-16）：** 以下剔選項目描述發佈中 managed 產品，唔係完成嘅原生對等。原生 Package Manager 仍然 **in progress**。新 Setup 批次只會經明確延後同意檢視固定 Winget ID；唔會執行 remote script，亦唔會聲稱完成 UniGetUI／bootstrap 對等。
+
 - [x] **Native Package Manager with UniGetUI-informed parity** · 原生套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management.
 - [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies with progress; other modules retain the shared `PackageService.AutoInstall` bootstrap path.
 
@@ -867,3 +869,14 @@ launching the other app.
 
 ---
 _Auto-grown by the WinForge build loop · 由 WinForge 建置迴圈自動擴充_
+
+
+## Command Palette extension evolution · 指令面板擴充套件演進
+
+Implemented: a disabled-by-default declarative extension-pack foundation with validated JSON manifests and three safe actions (`Module`, HTTP(S) `Url`, and `Copy`).
+
+Next parity layer: a reviewed, opt-in out-of-process protocol for rich extension pages and forms. It must preserve the manifest trust boundary, request/response correlation, crash isolation, and no arbitrary command execution.
+
+已完成：預設停用嘅宣告式擴充套件基礎，有驗證 JSON 資訊檔同三種安全操作（`Module`、HTTP(S) `Url`、`Copy`）。
+
+下一個對齊層：已審視、明確選用嘅跨程序協定，支援豐富擴充套件頁面同表單，同時保留資訊檔信任界線、請求／回應關聯、當機隔離，同埋禁止任意指令執行。

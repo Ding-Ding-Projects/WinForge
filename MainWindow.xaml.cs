@@ -310,6 +310,14 @@ public sealed partial class MainWindow : Window
             });
             return;
         }
+        // `shell.allapps` is a shell surface rather than a frame route. Defer the picker
+        // until NavigationView is loaded so the dialog has a XamlRoot, while preserving the
+        // matching navigation selection for automation and keyboard users.
+        if (string.Equals(App.StartPage, AllAppsPickerKey, StringComparison.OrdinalIgnoreCase))
+        {
+            NavView.Loaded += OnStartPageAllAppsLoaded;
+            return;
+        }
         // Deep-link form: --page "weblogin?url=https://…" opens the in-app login on that URL.
         if (App.StartPage is string wl && wl.StartsWith("weblogin?", StringComparison.OrdinalIgnoreCase))
         {
@@ -2088,6 +2096,30 @@ public sealed partial class MainWindow : Window
     /// <summary>Resolve a nav item by Tag, searching nested groups recursively (pane + footer).</summary>
     private NavigationViewItem? FindByTag(string tag)
         => FindByTag(NavView.MenuItems, tag) ?? FindByTag(NavView.FooterMenuItems, tag);
+
+    private void OnStartPageAllAppsLoaded(object sender, RoutedEventArgs e)
+    {
+        NavView.Loaded -= OnStartPageAllAppsLoaded;
+        DispatcherQueue.TryEnqueue(() => _ = OpenStartPageAllAppsAsync());
+    }
+
+    private async Task OpenStartPageAllAppsAsync()
+    {
+        try
+        {
+            var item = FindByTag(AllAppsPickerKey);
+            if (item is null) return;
+
+            // Selecting the shell item normally invokes the picker. Suppress that event here
+            // and invoke the awaited path once so the command-line route cannot open twice.
+            _syncingTabs = true;
+            try { NavView.SelectedItem = item; }
+            finally { _syncingTabs = false; }
+
+            await OpenAllAppsPickerFromShellAsync();
+        }
+        catch (Exception ex) { CrashLogger.Log("startpage:allapps", ex); }
+    }
 
     private static NavigationViewItem? FindByTag(System.Collections.Generic.IList<object> items, string tag)
     {

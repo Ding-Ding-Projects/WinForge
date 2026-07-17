@@ -1,0 +1,4 @@
+Package Id                         Latest Version      Authors        Downloads
+-----------------------------------------------------------------------------
+dotnetsay                          2.1.7               Microsoft      1000
+contoso.tool                       3.0.0               Contoso        42

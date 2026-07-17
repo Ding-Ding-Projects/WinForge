@@ -1,14 +1,29 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## Latest native continuation — 2026-07-16
+
+`module.regexcheat` is now a real C++/WinRT route with a pure-C++ 67-row/9-category bilingual reference catalog, eight copy-only ready-made patterns, default literal filtering, and an explicit bounded-PCRE2 local filter. It is the fourth registered native regex search surface and can round-trip a verified pattern through the full builder. .NET-only reference syntax remains documentation and never executes. Debug/Release native tests passed **395/395**, catalog parity passed 346 fixed routes plus five dynamic families, and isolated LowLevel MCP UI Automation passed **224/224**. The inspected 852×880 full and 836×841 client frames were blank, discarded, and recorded as `capture-blocked`; no stale or managed image is used as native evidence.
+
+`module.regexcheat` 而家係真正嘅 C++/WinRT route，有純 C++ 67 項／9 分類雙語參考、八個只可明確複製嘅現成模式、預設 literal 篩選同明確啟用嘅 bounded-PCRE2 本機篩選。佢係第四個已註冊 native regex search surface，亦可以同完整 builder round-trip 已驗證嘅模式。.NET 專用語法只係文件，唔會執行。Debug/Release **395/395**、catalog parity 同隔離 LowLevel MCP UI Automation **224/224** 都通過；852×880 full 同 836×841 client frame 空白、已丟棄，狀態係 `capture-blocked`。
+
+### Git integration proof · Git 整合證明
+
+The native Regex Cheatsheet task commit `24f32ba85eade7244dc839760807ea3ea3d1a5d9` was merged into `main` as `2872b234022188d70f250fdbae3d78a740f68fa8`. After fetching, both that task commit and the remote feature-branch tip were proven ancestors of `origin/main`; `AGENTS.md`, the handoff records, native sources/tests, parity ledger, and wiki/Page mirrors were confirmed in the remote main tree before cleanup.
+
+原生 Regex Cheatsheet task commit `24f32ba85eade7244dc839760807ea3ea3d1a5d9` 已經以 `2872b234022188d70f250fdbae3d78a740f68fa8` 合併入 `main`。fetch 後已證明 task commit 同 remote feature-branch tip 都係 `origin/main` 嘅 ancestor；清理前亦已確認 `AGENTS.md`、handoff records、原生 sources／tests、parity ledger 同 wiki／Pages mirrors 都喺 remote main tree。
+
 A complete map of every module/feature: what it does, how to open it, the page + service files, and the
 **real engine it wraps**. WinForge is a bilingual (English + 粵語) WinUI 3 / .NET 11 suite for Windows 11.
-**No redirects** — every feature runs in-app and wraps a real engine/API.
+**No redirects** — every shipping feature runs in-app and wraps a real engine/API. A genuine C++20/C++/WinRT rewrite now lives beside this managed oracle; its foundation is routable and verified, but feature parity remains evidence-gated and is not yet claimed.
 
 完整列出每個模組／功能：做乜、點開、頁面同服務檔案、同埋包住嘅真實引擎。WinForge 係雙語（英文 + 粵語）
-嘅 WinUI 3 / .NET 11 Windows 11 套件。**唔跳轉** — 每個功能都喺 app 內運行、包住真實引擎／API。
+嘅 WinUI 3 / .NET 11 Windows 11 套件。**唔跳轉** — 每個發佈中功能都喺 app 內運行、包住真實引擎／API。而家亦有真正 C++20/C++/WinRT 重寫同受控 oracle 並存；基礎 shell 已可路由同驗證，但功能對等仍要逐項證據把關，未聲稱完成。
 
 ## Build / run / release · 建置／運行／發佈
 - Build: `dotnet build -c Debug -p:Platform=x64` (must stay 0 errors).
+- Native build: `msbuild WinForge.Native.sln /restore /m /p:Configuration=Debug /p:Platform=x64` (the local driver discovers the installed MSVC toolset).
+- Native route/unit evidence: `tests\native\WinForge.Core.Tests\bin\x64\Debug\WinForge.Core.Tests.exe`; native live shell evidence: `powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1`.
+- Native launch: `powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 -Native -Page <id> -NoCapture`. See [Native C++ Rewrite](Native-Cpp-Rewrite.md); a native route is not a port-complete claim.
 - Exe: `bin\x64\Debug\net11.0-windows10.0.26100.0\win-x64\WinForge.exe`. Self-contained (`WindowsAppSDKSelfContained=true`, `WindowsPackageType=None`).
 - Launch a page directly: `WinForge.exe --page <id>` (see `docs/CLI.md` for every id) · master search: `--page search:<q>` · headless docs: `--export-docs docs\features`.
 - Window: **windowed by default (~82% screen), F11 toggles full screen** (saved). Closing **hides to the system tray** (right-click tray → Quit) so the background clipboard monitor keeps running.

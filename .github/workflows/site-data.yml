@@ -18,6 +18,10 @@ on:
       - 'Services/DocsExporter.cs'
       - 'Catalog/**'
       - 'Models/Core.cs'
+      - 'docs/wiki/**'
+      - 'docs/cpp-port-parity.json'
+      - 'src/WinForge.App/Resources/modules.json'
+      - 'eng/native/**'
       - 'tools/regen-site-data.ps1'
       - '.github/workflows/site-data.yml'
   workflow_dispatch:
@@ -42,7 +46,9 @@ jobs:
           dotnet-version: '11.0.x'
 
       - name: Restore
-        run: dotnet restore
+        # The repository intentionally has separate managed and native solutions.
+        # Restore the managed publish target explicitly so MSBuild never has to guess.
+        run: dotnet restore WinForge.csproj -p:Platform=x64 -r win-x64
 
       - name: Publish WinForge (self-contained x64)
         shell: pwsh
@@ -61,7 +67,7 @@ jobs:
           if (-not $pub -or -not (Test-Path "$pub\WinForge.exe")) { throw "publish folder / WinForge.exe not found" }
           "dir=$pub" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Regenerate real site data (tolerant)
+      - name: Regenerate real site and native migration data (tolerant)
         continue-on-error: true
         shell: pwsh
         run: |

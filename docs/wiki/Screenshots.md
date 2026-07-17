@@ -6,6 +6,56 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
+**EN —** On 2026-07-16, the native `regexcheat` page was launched only through the isolated LowLevel MCP headless desktop after the **224/224** native UI Automation sweep. The resolved 852×880 full-window frame showed a title bar with a blank client surface; the independently inspected 836×841 client-only frame was blank as well. Both temporary PNGs were discarded. The 395/395 Debug/Release tests and 224/224 UI Automation checks are behavioral/accessibility evidence only; no stale, synthetic, blank, or managed screenshot was reused. Native Regex Cheatsheet is honestly `capture-blocked`.
+
+**粵語 —** 2026-07-16，原生 `regexcheat` 頁面只會喺隔離 LowLevel MCP 無頭 desktop 開啟，喺 **224/224** 原生 UI Automation sweep 後先擷取。已解析嘅 852×880 full-window frame 有 title bar 但 client surface 空白；另外檢查嘅 836×841 client-only frame 亦係空白。兩個暫存 PNG 都已丟棄。395/395 Debug／Release 測試同 224/224 UI Automation 檢查只係行為／無障礙證據；冇舊圖、合成圖、空白圖或受控版截圖會被重用。原生 Regex Cheatsheet 如實係 `capture-blocked`。
+
+**EN —** On 2026-07-16, the changed native `package-setup` route was launched only on an isolated LowLevel MCP desktop after the **216/216** UI Automation sweep. The resolved 852×880 WinUI window returned `rendered_ok`, but its inspected full-window capture had only the title bar and a blank client area; the inspected 836×841 client-only capture was also blank. Both temporary PNGs were discarded. No managed image was replaced: `docs/screenshot-packages.png` remains labelled as a managed-production reference, and native Setup is `capture-blocked`.
+
+**粵語 —** 2026-07-16，改過嘅原生 `package-setup` route 只會喺隔離 LowLevel MCP desktop 啟動，而且係 **216/216** UI Automation sweep 之後。已解析 852×880 WinUI 視窗回報 `rendered_ok`，但檢查過嘅 full-window 擷取只得 title bar 同空白 client area；檢查過嘅 836×841 client-only 擷取亦都係空白。兩個臨時 PNG 都已丟棄。冇取代任何 managed 圖：`docs/screenshot-packages.png` 仍然標示為 managed-production reference，而 native Setup 係 `capture-blocked`。
+
+**EN —** On 2026-07-16, the native Password Strength page was launched through the persistent LowLevel MCP headless desktop after the 224/224 native shell smoke passed. Its 852×880 full-window capture returned `rendered_ok`, but inspection found only the title bar and a blank client surface. The invalid `docs/screenshot-passwordstrength.png` was discarded; no stale, synthetic, or managed substitute is shown. Password Strength is `capture-blocked`, not visual-pass.
+
+**粵語 —** 2026-07-16，原生 Password Strength 頁喺 224/224 原生 shell smoke 通過後經持續 LowLevel MCP 無頭 desktop 開啟。852×880 完整視窗擷取回報 `rendered_ok`，但檢查只見到 title bar 同空白 client surface。無效 `docs/screenshot-passwordstrength.png` 已經丟棄；冇展示舊、合成或者受控替代品。Password Strength 係 `capture-blocked`，唔係 visual-pass。
+
+**EN —** On 2026-07-16, the native Password Generator page was launched through `driver.ps1 -Native -Page passgen -WaitMs 16000`. `CopyFromScreen` was unavailable and the `PrintWindow` fallback was blank or near-uniform, so the attempted image was rejected. The requested LowLevel MCP tools are not registered in the active Codex session, so no LowLevel capture is claimed. No canonical screenshot, wiki image, stale image, or managed substitute was replaced or reused; Password Generator is `capture-blocked`.
+
+**粵語 —** 2026-07-16，原生 Password Generator 頁已用 `driver.ps1 -Native -Page passgen -WaitMs 16000` 開啟。`CopyFromScreen` 用唔到，而 `PrintWindow` fallback 係空白／接近單色，所以嘗試嘅圖片已拒絕。要求嘅 LowLevel MCP tools 未有登記喺目前 Codex session，所以唔會聲稱有 LowLevel 擷取。冇替換或者重用 canonical 截圖、wiki 圖、舊圖或者受控替代品；Password Generator 係 `capture-blocked`。
+
+**EN —** On 2026-07-16, the changed native Dashboard, All Apps, Regex Tester, and Package Discover pages were separately launched through `driver.ps1 -Native` at `-WaitMs 16000`. `CopyFromScreen` was unavailable; every `PrintWindow` fallback was blank or near-uniform and rejected. The repo-local LowLevel MCP then created an isolated desktop, launched Regex Tester, resolved its 1980×1320 WinUI HWND, and captured an inspected full-window frame containing only the title bar and blank client surface. The invalid LowLevel PNG was discarded. No canonical screenshot, wiki image, or managed substitute was replaced or reused; all changed native regex pages are honestly `capture-blocked`.
+
+**粵語 —** 2026-07-16，改過嘅原生 Dashboard、所有 app、Regex Tester 同 Package Discover 頁已分別用 `driver.ps1 -Native` 加 `-WaitMs 16000` 開啟。`CopyFromScreen` 用唔到；每個 `PrintWindow` fallback 都係空白／接近單色，所以已拒絕。repo 本機 LowLevel MCP 跟住建立隔離 desktop、開啟 Regex Tester、解析佢 1980×1320 嘅 WinUI HWND，並擷取一張檢查過嘅完整視窗 frame，只得 title bar 同空白 client surface。無效 LowLevel PNG 已經丟棄。冇替換、重用任何 canonical 截圖、wiki 圖或者受控替代品；全部改過嘅原生 regex 頁如實係 `capture-blocked`。
+
+**EN —** On 2026-07-16, the native UUID v7 page was launched through `driver.ps1 -Native -Page uuidv7 -WaitMs 16000`. `CopyFromScreen` was unavailable and the `PrintWindow` fallback was blank or near-uniform, so the driver image was rejected; its `-NoCapture` launch succeeded. The requested repo-local LowLevel MCP isolated desktop separately launched UUID v7, resolved its 1980×1320 WinUI HWND, and produced inspected captures: the full frame had only the title bar and blank client surface, and the 1958×1264 client-only capture was blank. Both invalid PNGs were discarded. No canonical screenshot, wiki image, stale image, or managed substitute was replaced or reused; UUID v7 is `capture-blocked`.
+
+**粵語 —** 2026-07-16，原生 UUID v7 頁已用 `driver.ps1 -Native -Page uuidv7 -WaitMs 16000` 開啟。`CopyFromScreen` 用唔到，而 `PrintWindow` fallback 係空白／接近單色，所以 driver 圖已拒絕；`-NoCapture` 開啟成功。按要求嘅 repo 本機 LowLevel MCP 隔離 desktop 亦獨立開啟 UUID v7、解析佢 1980×1320 WinUI HWND，並產生檢查過嘅擷取：完整 frame 只得 title bar 同空白 client surface，而 1958×1264 只限 client 擷取亦係空白。兩張無效 PNG 已經丟棄。冇替換或者重用 canonical 截圖、wiki 圖、舊圖或者受控替代品；UUID v7 係 `capture-blocked`。
+
+**EN —** On 2026-07-16, the required native driver separately attempted `package-discover`, `package-updates`, `package-installed`, and `package-operations` at `-WaitMs 16000`. `CopyFromScreen` was unavailable and every `PrintWindow` fallback was blank or near-uniform. The repo-local LowLevel MCP then created an isolated desktop, launched all four routes, resolved their 1980×1320 WinUI HWNDs, and captured full-window plus client-only PNGs. Each inspected full-window frame contained only the title bar and blank client surface; the invalid eight LowLevel PNGs were discarded. No canonical screenshot, wiki image, or managed substitute was replaced or reused. Every changed native Package Manager view is honestly `capture-blocked`; `docs/screenshot-packages.png` remains a managed-production reference only.
+
+**粵語 —** 2026-07-16，必需原生 driver 分別用 `-WaitMs 16000` 嘗試 `package-discover`、`package-updates`、`package-installed` 同 `package-operations`。`CopyFromScreen` 用唔到，而且每個 `PrintWindow` fallback 都係空白／接近單色。repo 本機 LowLevel MCP 跟住建立隔離 desktop、開啟四條 route、解析佢哋 1980×1320 嘅 WinUI HWND，並擷取完整視窗同只限 client PNG。每張檢查過嘅完整視窗 frame 都只得 title bar 同空白 client surface；八張無效 LowLevel PNG 已經丟棄。冇替換、重用任何 canonical 截圖、wiki 圖或者受控替代品。每個改過嘅原生 Package Manager view 如實係 `capture-blocked`；`docs/screenshot-packages.png` 仍然只係受控正式版參考。
+
+> The Package Manager capture history immediately below is earlier evidence; the current result above is capture-blocked for every changed native Package Manager view. · 下面 Package Manager 擷取歷史係較早證據；上面目前結果係每個改過嘅原生 Package Manager view 都 capture-blocked。
+
+**EN —** On 2026-07-15, the changed native Package Manager Bundle pages (`package-discover`, `package-installed`, and `package-bundles`) were launched separately through the repository driver at `-WaitMs 16000`. `CopyFromScreen` was unavailable; every driver's `PrintWindow` fallback was blank or near-uniform and was rejected. The repo-local LowLevel fallback then created `WinForgeBundleWorkspaceAudit`, launched all three pages, listed their native HWNDs, and captured blank client frames. No valid PNG was accepted, `docs/screenshot-packages.png` was not replaced, and that existing image remains a managed-production reference only; the native pages are `capture-blocked`.
+
+**粵語 —** 2026-07-15 改過嘅原生 Package Manager Bundle 頁（`package-discover`、`package-installed` 同 `package-bundles`）已經分別經 repository driver 用 `-WaitMs 16000` 開啟。`CopyFromScreen` 用唔到；每個 driver 嘅 `PrintWindow` fallback 都係空白／接近單色，所以已被拒絕。repo 本機 LowLevel fallback 跟住建立 `WinForgeBundleWorkspaceAudit`、開三個頁、列出佢哋嘅原生 HWND，再擷取到空白 client frame。冇接受有效 PNG、冇替換 `docs/screenshot-packages.png`，而呢張既有圖片仍然只係受控正式版參考；原生頁面仍然係 `capture-blocked`。
+
+**EN —** On 2026-07-13 the newly native Check Digit Validator was launched through `driver.ps1 -Native -Page checkdigit`; its required fresh capture was attempted again after the standards and accessibility hardening rendered. `CopyFromScreen` was unavailable; the `PrintWindow` fallback produced a blank or near-uniform WinUI client frame and was rejected. The route separately passed all six live UI Automation scheme checks plus localized-name and stale-detail accessibility checks, but that is behavioral—not visual—evidence. No `screenshot-checkdigit.png` was created, replaced, reused, or synthesized; the page is `capture-blocked`.
+
+**粵語 —** 2026-07-13 新完成原生功能嘅檢查碼驗證器已經用 `driver.ps1 -Native -Page checkdigit` 開啟；標準同無障礙加固 render 後亦再次按要求嘗試新截圖。`CopyFromScreen` 用唔到；`PrintWindow` 後備產生空白／接近單色 WinUI client frame，所以已被拒絕。route 另外通過六個格式嘅即時 UI Automation 檢查、本地化名稱同清除舊 detail 無障礙檢查，但嗰啲係行為證據，唔係視覺證據。冇建立、替換、重用或者合成 `screenshot-checkdigit.png`；頁面係 `capture-blocked`。
+
+**EN —** On 2026-07-15 the native Case Converter route was retried through `driver.ps1 -Native -Page caseconvert -WaitMs 15000` and a LowLevel headless desktop. `CopyFromScreen` was unavailable; the driver's `PrintWindow` fallback was blank or near-uniform, and the inspected LowLevel HWND capture showed only a title bar and blank client frame. No current PNG was accepted. `screenshot-caseconvert.png` and its wiki-local copy were retired rather than reused; the page is `capture-blocked`.
+
+**粵語 —** 2026-07-15 原生 Case Converter route 重新用 `driver.ps1 -Native -Page caseconvert -WaitMs 15000` 同 LowLevel 無頭 desktop 嘗試。`CopyFromScreen` 用唔到；driver 嘅 `PrintWindow` fallback 係空白／接近單色，而檢查過嘅 LowLevel HWND 擷取只有 title bar 同空白 client frame。冇接受任何最新 PNG。`screenshot-caseconvert.png` 同 wiki 本機副本已移除，唔會重用；頁面係 `capture-blocked`。
+
+**EN —** On 2026-07-15 the native Roman Numerals route was launched through `driver.ps1 -Native -Page romannum -WaitMs 15000`. `CopyFromScreen` was unavailable and the driver's `PrintWindow` fallback was blank or near-uniform, so no PNG was accepted. An inspected LowLevel headless-desktop HWND capture likewise showed only the WinForge title bar and a blank client frame. No `screenshot-romannum.png` was created, replaced, reused, or synthesized. The current 355/355 native tests and 148/148 UI Automation smoke still include 17 focused Roman cases and 13 Roman assertions, but those are behavior—not visual—evidence; Roman Numerals is `capture-blocked`.
+
+**粵語 —** 2026-07-15 原生羅馬數字 route 已經用 `driver.ps1 -Native -Page romannum -WaitMs 15000` 開啟。`CopyFromScreen` 用唔到，而 driver 嘅 `PrintWindow` fallback 係空白／接近單色，所以冇接受 PNG。檢查過嘅 LowLevel 無頭 desktop HWND 擷取同樣只有 WinForge title bar 同空白 client frame。冇建立、替換、重用或者合成 `screenshot-romannum.png`。目前 355/355 原生測試同 148/148 UI Automation smoke 仍然包含 17 個羅馬數字專項案例同 13 個 Roman assertion，但嗰啲係行為而唔係視覺證據；羅馬數字係 `capture-blocked`。
+
+**EN —** On 2026-07-13 the newly native Text to Binary route was launched through `driver.ps1 -Native -Page binarytext -WaitMs 5000`; its required current capture attempted `CopyFromScreen`, then rejected the blank or near-uniform `PrintWindow` fallback. The exact result was `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` No `screenshot-binarytext.png` exists or was created, replaced, reused, or synthesized. The separate 59/59 UI Automation smoke exercised binary and hex conversion, Move output to input, explicit Copy, malformed-code clearing, accessibility, selected-base/input/output language-state retention, and all aliases; that is behavior evidence only. Text to Binary is `capture-blocked`, not visual-pass.
+
+**粵語 —** 2026-07-13 新完成原生功能嘅文字轉二進位 route 已經用 `driver.ps1 -Native -Page binarytext -WaitMs 5000` 開啟；指定嘅最新截圖先試 `CopyFromScreen`，再拒絕空白／接近單色嘅 `PrintWindow` 後備。確實結果係：`CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` 冇 `screenshot-binarytext.png`，亦冇建立、替換、重用或者合成。獨立 59/59 UI Automation smoke 會操作二進位同十六進位轉換、搬輸出去輸入、明確 Copy、錯誤碼清空、無障礙、轉語言後保留已揀進位／輸入／輸出同全部 alias；嗰啲只係行為證據。文字轉二進位係 `capture-blocked`，唔係 visual-pass。
+
 **EN —** On 2026-07-11, a fresh self-contained Dashboard capture reproduced
 `CopyFromScreen`: `The handle is invalid`. The direct `PrintWindow` fallback
 returned success but its inspected 682×1311 PNG was uniformly
@@ -169,6 +219,39 @@ Short ID capture 嘗試。頁面視窗有出現，但 `CopyFromScreen` 唔可用
 `PrintWindow` fallback 產生 uniform frame。冇 `shortid-default.png` 儲存、檢查、
 替換或者重用；成個 slice 係 `capture-blocked`，唔係 visual-pass。
 
+**EN —** Batch 12 made a fresh self-contained Text Sort capture attempt before its
+25-route launch-only slice. The window was reached, but `CopyFromScreen` was unavailable
+and the `PrintWindow` fallback produced a uniform frame. No `textsort-default.png` was
+saved, inspected, replaced, or reused; the slice is `capture-blocked`, not visual-pass.
+
+**粵語 —** Batch 12 喺 25-route launch-only slice 之前，為文字排序做咗新嘅
+self-contained capture 嘗試。視窗有去到，但 `CopyFromScreen` 唔可用，而 `PrintWindow`
+fallback 產生 uniform frame。冇 `textsort-default.png` 儲存、檢查、替換或者重用；
+成個 slice 係 `capture-blocked`，唔係 visual-pass。
+
+**EN —** Batch 13 made fresh self-contained capture attempts for VirtualBox and the
+repaired All Apps dialog. Both reached WinForge, but `CopyFromScreen` was unavailable
+and `PrintWindow` produced a uniform frame. No `virtualbox-default.png` or
+`shell-allapps-default.png` was saved, inspected, replaced, or reused; these are
+`capture-blocked`, not visual-pass results.
+
+**粵語 —** Batch 13 為 VirtualBox 同修正後嘅 All Apps dialog 做咗新嘅
+self-contained capture 嘗試。兩個都有去到 WinForge，但 `CopyFromScreen` 唔可用，而
+`PrintWindow` 產生 uniform frame。冇 `virtualbox-default.png` 或
+`shell-allapps-default.png` 儲存、檢查、替換或者重用；呢啲係 `capture-blocked`，
+唔係 visual-pass 結果。
+
+**EN —** The exhaustive-smoke closeout preserves the same visual boundary across the
+323-route campaign: every fresh driver attempt that reached capture was blocked because
+CopyFromScreen is unavailable and PrintWindow is uniform. No generated, stale, or
+uninspected PNG is promoted to evidence; consult the closeout record for the exact
+route, source, test, and safety coverage behind this capture-blocked status.
+
+**粵語 —** 完整冒煙測試結案喺 323-route campaign 保留同一個視覺界線：每次有去到
+capture 嘅新 driver 嘗試，都因為 CopyFromScreen 唔可用同 PrintWindow uniform 而受阻。
+冇 generated、stale 或未檢查 PNG 會升格為證據；請睇結案記錄入面支援呢個
+capture-blocked status 嘅 route、source、test 同 safety coverage。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).
@@ -306,6 +389,9 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Rich Preview · 豐富預覽
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-richpreview.png)
 
+### Roman Numerals · 羅馬數字
+> Native visual capture is `capture-blocked`: the repository driver rejected its blank/near-uniform frame, and the inspected LowLevel headless capture showed only a title bar and blank client. No substitute image is shown. · 原生視覺擷取係 `capture-blocked`：repository driver 拒絕咗空白／接近單色 frame，而檢查過嘅 LowLevel 無頭擷取只有 title bar 同空白 client；唔會展示替代圖片。
+
 ### OneDrive · OneDrive
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-onedrive.png)
 
@@ -425,6 +511,12 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Regex Cheatsheet · 正則速查
 > **Capture status · 截圖狀態：** Fresh `regexcheat` capture is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable in this desktop session. The route passed a launch-only check, but no PNG was created, inspected, or claimed as visual verification. · 新嘅 `regexcheat` 截圖係 `capture-blocked`：呢個 desktop session 嘅 `CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。route launch-only check 通過，但冇 PNG 產生、檢查或者當成視覺驗證。
 
+### Password Generator · 密碼產生器
+> **Capture status · 截圖狀態：** Fresh native Password Generator capture is `capture-blocked`: `CopyFromScreen` was unavailable and the `PrintWindow` fallback was blank or near-uniform; the requested LowLevel MCP tools are not registered in the active Codex session, so no LowLevel capture is claimed. No PNG or substitute is shown. · 最新原生 Password Generator 擷取係 `capture-blocked`：`CopyFromScreen` 用唔到，而 `PrintWindow` fallback 係空白／接近單色；要求嘅 LowLevel MCP tools 未有登記喺目前 Codex session，所以唔會聲稱有 LowLevel 擷取。唔會展示 PNG 或替代圖片。
+
+### UUID v7 · UUID v7 識別碼
+> **Capture status · 截圖狀態：** Fresh native UUID v7 capture is `capture-blocked`: the repository driver rejected its blank/near-uniform `PrintWindow` fallback, and the inspected LowLevel MCP isolated-desktop 1980×1320 HWND capture contained only a title bar and blank client surface; the 1958×1264 client-only frame was also blank. Both invalid PNGs were discarded and no substitute image is shown. · 最新原生 UUID v7 擷取係 `capture-blocked`：repository driver 拒絕咗空白／接近單色 `PrintWindow` fallback，而檢查過嘅 LowLevel MCP 隔離 desktop 1980×1320 HWND 擷取只得 title bar 同空白 client surface；1958×1264 只限 client frame 亦係空白。兩張無效 PNG 已丟棄，唔會展示替代圖片。
+
 ---
 
 ## Network · 網絡
@@ -465,6 +557,8 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Package Manager · 套件管理
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
+
+> Managed production reference · 受控正式版參考：this image documents the shipping managed page. The changed native C++ Bundle-workspace routes are `capture-blocked`, so no managed image is substituted as native visual evidence. · 呢張圖記錄發佈中嘅受控頁。改過嘅原生 C++ Bundle 工作區 routes 係 `capture-blocked`，唔會用受控圖片當原生視覺證據。
 
 ### Cake Factory & Farm · 蛋糕工廠與農場
 ![](images/screenshot-cakefactory.png)
@@ -553,6 +647,11 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Mouse Utilities · 滑鼠工具
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouseutils.png)
 
+### CursorWrap · 游標環繞
+> Fresh native capture is blocked in this desktop session: `CopyFromScreen` is unavailable and the driver rejected the blank / near-uniform fallback, so no `screenshot-cursorwrap.png` was created or replaced. The feature remains documented through the live Mouse Utilities page and its text entry here.
+
+> 新原生截圖喺呢個 desktop session 受阻：`CopyFromScreen` 唔可用，而 driver 又拒絕咗空白／接近單色 fallback，所以冇建立或者替換 `screenshot-cursorwrap.png`。呢個功能仍然透過即時 Mouse Utilities 頁面同此處文字條目記錄。
+
 ### Mouse & Pointer · 滑鼠與指標
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouse.png)
 
@@ -561,6 +660,9 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Quick Accent · 快速重音符
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-quickaccent.png)
+
+### Case Converter · 大小寫轉換
+> Fresh native capture is `capture-blocked`: the repository driver rejected a blank/near-uniform `PrintWindow` client frame, and the inspected LowLevel headless-desktop HWND capture was title-bar-only. The stale Case Converter images were retired rather than reused as visual evidence. · 最新原生擷取係 `capture-blocked`：repository driver 拒絕咗空白／接近單色嘅 `PrintWindow` client frame，而檢查過嘅 LowLevel 無頭 desktop HWND 擷取只有 title bar。過時嘅 Case Converter 圖片已移除，唔會重用做視覺證據。
 
 ### Command Not Found · 搵唔到指令
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cmdnotfound.png)
@@ -694,3 +796,14 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Winaero · Winaero 調校
 ![](images/screenshot-winaero.png)
+
+
+## Command Palette extension packs capture status · 指令面板擴充套件截圖狀態
+
+- Launch-only smoke check: `cmdpalette` started successfully after the extension-pack update.
+- Capture attempt: `CopyFromScreen` was unavailable; the `PrintWindow` fallback produced a uniform frame, so graphics capture is unavailable in this desktop session.
+- No replacement canonical screenshot was published, and no visual inspection is claimed for this update.
+
+- 僅啟動測試：擴充套件更新後，`cmdpalette` 已成功啟動。
+- 截圖嘗試：`CopyFromScreen` 未可用；`PrintWindow` 備援只產生單色畫面，所以呢個桌面工作階段未能擷取圖像。
+- 今次冇發佈替代嘅正式截圖，亦都冇聲稱已做視覺檢查。
