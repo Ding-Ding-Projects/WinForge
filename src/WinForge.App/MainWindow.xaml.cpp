@@ -8117,8 +8117,8 @@ namespace winrt::WinForge::implementation
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Probe again", L"再次探測"))));
             header = pick(L"Engine setup", L"引擎設定");
             explanation = pick(
-                L"Non-destructive version probes show which engines are ready. Bootstrap installs remain disabled until the normal-integrity coordinator is complete.",
-                L"非破壞性版本探測會顯示邊啲引擎可用；正常 integrity 協調器完成之前，bootstrap 安裝保持停用。");
+                L"Non-destructive probes show engine availability. Every native bootstrap uses a fixed Winget ID, opens a reviewed argv plan first, and needs a separate normal-integrity confirmation before execution; remote scripts and arbitrary commands are never accepted.",
+                L"非破壞性探測會顯示邊啲引擎可用。每個原生 bootstrap 只會用固定 Winget ID，會先開已審閱 argv 計劃，執行前仍要喺正常 integrity 獨立確認；絕不接受遠端 script 或任意指令。");
             break;
         case 7:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Reset state", L"重設狀態"))));
@@ -8452,6 +8452,238 @@ namespace winrt::WinForge::implementation
                 }
                 appendCard(label, status, L"NativePackageProbe_" + AutomationKey(key));
             }
+
+            auto const wingetKey = std::wstring(L"winget");
+            auto const wingetAvailable = m_packageProbeComplete &&
+                m_packageManagersAvailable.contains(wingetKey) &&
+                m_packageManagersAvailable[wingetKey];
+            using SetupKind = winforge::core::packages::PackageSetupKind;
+            using SetupReadiness = winforge::core::packages::PackageSetupReadiness;
+
+            auto appendSetupCard = [this, &pick, wingetAvailable](
+                winforge::core::packages::PackageSetupDescriptor const& descriptor,
+                SetupReadiness readiness)
+            {
+                Border card;
+                card.Padding(Thickness{ 16 });
+                card.CornerRadius(CornerRadius{ 8 });
+                card.BorderThickness(Thickness{ 1 });
+                card.BorderBrush(Application::Current().Resources().Lookup(
+                    box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+                card.Background(Application::Current().Resources().Lookup(
+                    box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+                StackPanel content;
+                content.Spacing(7);
+                auto const title = pick(descriptor.name_en, descriptor.name_zh);
+                auto const cardId = std::wstring(L"NativePackageSetup_") + AutomationKey(descriptor.key);
+                auto heading = CreateText(title, 14, true);
+                AutomationProperties::SetAutomationId(heading, ToHString(cardId));
+                content.Children().Append(heading);
+
+                std::wstring body;
+                if (!m_packageProbeComplete)
+                {
+                    body = pick(
+                        L"Engine probe is pending. Review controls remain disabled until availability is known.",
+                        L"引擎探測仲未完成；未知道可用性之前，審閱控制會保持停用。");
+                }
+                else
+                {
+                    switch (readiness)
+                    {
+                    case SetupReadiness::AlreadyAvailable:
+                        body = pick(
+                            L"This engine is available. No bootstrap plan is offered.",
+                            L"呢個引擎已經可用，唔會提供 bootstrap 計劃。");
+                        break;
+                    case SetupReadiness::ReadyToReview:
+                        body = pick(
+                            L"Fixed Winget package ID " + std::wstring(descriptor.winget_id) +
+                                L" can be reviewed. It is not executed until a separate explicit confirmation in Operations.",
+                            L"可審閱固定 Winget 套件 ID " + std::wstring(descriptor.winget_id) +
+                                L"；Operations 入面仲要獨立明確確認先會執行。");
+                        break;
+                    case SetupReadiness::RequiresWinget:
+                        body = pick(
+                            L"Windows Package Manager is unavailable, so this safe native review plan cannot be constructed.",
+                            L"Windows Package Manager 未可用，所以唔可以建立呢個安全原生審閱計劃。");
+                        break;
+                    case SetupReadiness::ManualOnly:
+                        body = pick(
+                            L"No native bootstrap command is offered for this engine. Remote scripts and arbitrary commands stay manual by design.",
+                            L"呢個引擎唔會提供原生 bootstrap 指令。遠端 script 同任意指令按設計保持手動。");
+                        break;
+                    case SetupReadiness::UnknownEntry:
+                    default:
+                        body = pick(
+                            L"This setup entry is unavailable.",
+                            L"呢個 setup 項目未可用。");
+                        break;
+                    }
+                }
+
+                auto note = CreateText(body, 12.5);
+                note.TextWrapping(TextWrapping::Wrap);
+                note.IsTextSelectionEnabled(true);
+                AutomationProperties::SetHelpText(heading, ToHString(body));
+                content.Children().Append(note);
+
+                auto const setupPackage = winforge::core::packages::BuildPackageSetupPackage(descriptor.key);
+                if (setupPackage)
+                {
+                    Button review;
+                    review.Content(box_value(ToHString(pick(L"Review safe install", L"審閱安全安裝"))));
+                    review.Padding(Thickness{ 12, 6, 12, 6 });
+                    review.IsEnabled(
+                        m_packageProbeComplete &&
+                        wingetAvailable &&
+                        readiness == SetupReadiness::ReadyToReview &&
+                        !m_packageWorking);
+                    auto const reviewId = std::wstring(L"NativePackageSetupReview_") + AutomationKey(descriptor.key);
+                    AutomationProperties::SetAutomationId(review, ToHString(reviewId));
+                    AutomationProperties::SetName(
+                        review,
+                        ToHString(pick(
+                            L"Review safe Winget install for " + title,
+                            L"審閱 " + title + L" 嘅安全 Winget 安裝")));
+                    AutomationProperties::SetHelpText(
+                        review,
+                        ToHString(pick(
+                            L"Creates a redacted reviewed argv plan only. A separate explicit confirmation is required before normal-integrity execution.",
+                            L"只會建立已遮蔽嘅 argv 審閱計劃；正常 integrity 執行之前仍要獨立明確確認。")));
+                    review.Click([this, package = *setupPackage](
+                        Windows::Foundation::IInspectable const&,
+                        RoutedEventArgs const&)
+                    {
+                        RequestPackageMutation(package, winforge::core::packages::PackageAction::Install);
+                    });
+                    content.Children().Append(review);
+                }
+
+                card.Child(content);
+                m_packageResults.Children().Append(card);
+            };
+
+            appendCard(
+                pick(L"Safe engine bootstrap", L"安全引擎 bootstrap"),
+                pick(
+                    L"Only an immutable Winget allowlist is reviewable. Scoop, App Installer, PowerShell Gallery, and vcpkg retain manual setup because WinForge never downloads or executes bootstrap scripts.",
+                    L"只可以審閱固定 Winget allowlist。Scoop、App Installer、PowerShell Gallery 同 vcpkg 保持手動 setup，因為 WinForge 絕不下載或執行 bootstrap script。"),
+                L"NativePackageSetupPolicy",
+                0.9);
+
+            for (auto const& descriptor : winforge::core::packages::PackageSetupEntries())
+            {
+                if (descriptor.kind != SetupKind::ManagerBootstrap)
+                {
+                    continue;
+                }
+
+                auto targetAvailable = false;
+                if (!descriptor.target_manager_key.empty())
+                {
+                    auto const targetKey = std::wstring(descriptor.target_manager_key);
+                    targetAvailable = m_packageProbeComplete &&
+                        m_packageManagersAvailable.contains(targetKey) &&
+                        m_packageManagersAvailable[targetKey];
+                }
+                appendSetupCard(
+                    descriptor,
+                    winforge::core::packages::EvaluatePackageSetupEntry(
+                        descriptor,
+                        wingetAvailable,
+                        targetAvailable));
+            }
+
+            appendCard(
+                pick(L"Curated common dependencies", L"精選常用依賴"),
+                pick(
+                    L"These 14 managed-parity package IDs are fixed. This view intentionally does not claim they are installed; review an individual plan or the bounded batch, then confirm separately in Operations.",
+                    L"呢 14 個同 managed parity 對齊嘅套件 ID 都係固定。呢個檢視唔會聲稱已安裝；可以審閱單一計劃或有限 batch，然後去 Operations 獨立確認。"),
+                L"NativePackageSetupDependencies",
+                0.9);
+
+            std::vector<std::wstring_view> curatedKeys;
+            curatedKeys.reserve(winforge::core::packages::PackageSetupEntries().size());
+            for (auto const& descriptor : winforge::core::packages::PackageSetupEntries())
+            {
+                if (descriptor.kind != SetupKind::CuratedDependency)
+                {
+                    continue;
+                }
+                curatedKeys.push_back(descriptor.key);
+                appendSetupCard(
+                    descriptor,
+                    winforge::core::packages::EvaluatePackageSetupEntry(descriptor, wingetAvailable, false));
+            }
+
+            auto const curatedPackages = winforge::core::packages::BuildPackageSetupPackages(curatedKeys);
+            Border curatedBatchCard;
+            curatedBatchCard.Padding(Thickness{ 16 });
+            curatedBatchCard.CornerRadius(CornerRadius{ 8 });
+            curatedBatchCard.BorderThickness(Thickness{ 1 });
+            curatedBatchCard.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            curatedBatchCard.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            StackPanel curatedBatchContent;
+            curatedBatchContent.Spacing(7);
+            auto curatedBatchTitle = CreateText(
+                pick(L"Review curated dependency batch", L"審閱精選依賴 batch"),
+                14,
+                true);
+            AutomationProperties::SetAutomationId(curatedBatchTitle, L"NativePackageSetupBatch");
+            curatedBatchContent.Children().Append(curatedBatchTitle);
+            auto curatedBatchNote = CreateText(
+                pick(
+                    L"All fixed curated dependencies fit below the 25-command batch bound. Reviewing remains inert; every redacted argv stays visible before one separate Confirm batch action can queue serial normal-integrity work.",
+                    L"所有固定精選依賴都喺 25 條指令 batch 上限之內。審閱仍然係惰性操作；每條已遮蔽 argv 都會先顯示，之後仲要一個獨立 Confirm batch 先可以排隊做正常 integrity 工作。"),
+                12.5);
+            curatedBatchNote.TextWrapping(TextWrapping::Wrap);
+            curatedBatchContent.Children().Append(curatedBatchNote);
+            Button reviewCuratedBatch;
+            reviewCuratedBatch.Content(box_value(ToHString(pick(
+                L"Review all curated dependencies",
+                L"審閱全部精選依賴"))));
+            reviewCuratedBatch.Padding(Thickness{ 12, 6, 12, 6 });
+            reviewCuratedBatch.IsEnabled(
+                m_packageProbeComplete &&
+                wingetAvailable &&
+                !m_packageWorking &&
+                !curatedPackages.empty());
+            AutomationProperties::SetAutomationId(reviewCuratedBatch, L"NativePackageSetupReviewCuratedBatch");
+            AutomationProperties::SetName(
+                reviewCuratedBatch,
+                ToHString(pick(
+                    L"Review all curated Winget dependency installs without executing them",
+                    L"審閱全部精選 Winget 依賴安裝，但唔會執行")));
+            AutomationProperties::SetHelpText(
+                reviewCuratedBatch,
+                ToHString(pick(
+                    L"Builds one bounded reviewed batch only. It cannot start a package command until a later explicit confirmation.",
+                    L"只會建立一個有限嘅審閱 batch。之後未明確確認之前，唔會開始任何套件指令。")));
+            reviewCuratedBatch.Click([this, curatedPackages](
+                Windows::Foundation::IInspectable const&,
+                RoutedEventArgs const&)
+            {
+                ReviewPackageMutationBatch(
+                    curatedPackages,
+                    winforge::core::packages::PackageAction::Install,
+                    L"curated Winget dependency",
+                    L"精選 Winget 依賴");
+            });
+            curatedBatchContent.Children().Append(reviewCuratedBatch);
+            curatedBatchCard.Child(curatedBatchContent);
+            m_packageResults.Children().Append(curatedBatchCard);
+
+            appendCard(
+                pick(L"UniGetUI source provenance", L"UniGetUI 原始碼來源"),
+                pick(
+                    L"The complete pinned MIT UniGetUI source snapshot is vendored under ThirdParty/UniGetUI for audit and native-porting reference. WinForge never launches or embeds the upstream executable.",
+                    L"完整固定嘅 MIT UniGetUI 原始碼快照已放喺 ThirdParty/UniGetUI，畀審核同原生移植參考。WinForge 絕不啟動或嵌入上游執行檔。"),
+                L"NativePackageSetupUniGetUIProvenance",
+                0.9);
             return;
         }
 

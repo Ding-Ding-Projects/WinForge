@@ -14,6 +14,7 @@
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageMutationCoordinator.h"
 #include "../WinForge.Core/PackageRuntime.h"
+#include "../WinForge.Core/PackageSetup.h"
 #include "../WinForge.Core/RegexSearch.h"
 #include "../WinForge.Core/RegexSearchSurface.h"
 #include "../WinForge.Core/RouteIndex.h"

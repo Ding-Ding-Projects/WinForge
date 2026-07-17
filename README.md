@@ -720,3 +720,11 @@ Made with WinUI 3 · 用 WinUI 3 製作 · `English + 繁體中文／粵語`
 WinForge now supports user-managed, declarative Command Palette extension packs. Import a JSON manifest from `Command Palette`, review it, then explicitly enable it. A pack can only open a registered WinForge module, open an HTTP(S) URL, or copy text. It cannot execute arbitrary code or shell commands, and newly imported packs are disabled by default.
 
 See the bilingual [Command Palette extension guide](docs/wiki/Command-Palette-Extensions.md) for the schema and safe-action contract.
+
+## Native Package Manager Setup review (2026-07-16)
+
+**EN —** Native `package-setup` is no longer probe-only: it exposes 11 manager rows, keeps Winget, Scoop, PowerShell Gallery, and vcpkg manual-only, and permits review of only seven immutable Winget bootstrap IDs (Chocolatey, Python 3.12, Node LTS, .NET SDK 9, PowerShell 7, Rustup, and Bun). It also exposes 14 fixed managed-parity dependency IDs. Review is inert: the validated discrete argv is shown first and a separate explicit confirmation in Operations is still required before normal-integrity serial execution. Remote scripts, arbitrary commands, custom arguments, hooks, local sources, and elevation are refused.
+
+**粵語 —** 原生 `package-setup` 而家唔再只係 probe：佢有 11 個 manager 行，Winget、Scoop、PowerShell Gallery 同 vcpkg 仍然要手動設定，而只會容許檢視七個固定 Winget bootstrap ID（Chocolatey、Python 3.12、Node LTS、.NET SDK 9、PowerShell 7、Rustup 同 Bun）。亦會列出 14 個固定 managed-parity 相依 ID。檢視本身係 inert：先顯示已驗證嘅獨立 argv，之後仍然要喺 Operations 做一次明確確認，先可以喺 normal integrity 串行處理。remote script、任意 command、自訂參數、hooks、local source 同 elevation 一概拒絕。
+
+Debug and Release native tests pass **389/389**; the isolated LowLevel MCP UI Automation sweep passes **216/216**, including Setup accessibility, deferred-consent, no-process-start, provenance, and horizontal-clipping assertions. A fresh 852×880 headless window capture and 836×841 client capture were inspected and blank, so both were discarded; visual evidence remains `capture-blocked` and `docs/screenshot-packages.png` remains a clearly labelled managed-production reference.

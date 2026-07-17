@@ -5493,12 +5493,16 @@
                                       "src/WinForge.App/MainWindow.xaml.cpp",
                                       "src/WinForge.Core/CommandLine.cpp",
                                       "src/WinForge.Core/PackageManager.cpp",
+                                      "src/WinForge.Core/PackageSetup.h",
+                                      "src/WinForge.Core/PackageSetup.cpp",
                                       "src/WinForge.Core/PackageParsers.cpp",
                                       "src/WinForge.Core/PackageRuntime.cpp",
                                       "src/WinForge.Core/ProcessRunner.cpp",
                                       "src/WinForge.Core/PackageMutationCoordinator.h",
                                       "src/WinForge.Core/PackageMutationCoordinator.cpp",
                                       "tests/native/WinForge.Core.Tests/PackageManagerTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/PackageSetupTests.h",
+                                      "tests/native/WinForge.Core.Tests/PackageSetupTests.cpp",
                                       "tests/native/WinForge.Core.Tests/PackageParsers.Tests.cpp",
                                       "tests/native/WinForge.Core.Tests/PackageRuntimeTests.cpp",
                                       "tests/native/WinForge.Core.Tests/ProcessRunnerTests.cpp",
@@ -5565,6 +5569,11 @@
                                         {
                                             "atUtc":  "2026-07-16T16:10:39Z",
                                             "result":  "Native Package Manager batch review now accepts selected cached Discover/Updates/Installed rows and the eligible Review Update all set as one all-or-nothing batch of at most 25 complete redacted argv plans. A single later batch confirmation queues the retained children serially; cancellation stops active/pending work together; retry returns only failed, timed-out, or cancelled children to fresh consent and never replays success. Invalid children, duplicate identities, elevation, hooks, unsafe IDs, custom mutation arguments, oversized previews, and unavailable capacity reject the entire batch without retaining a prefix; capacity cleanup preserves every child of a still-active batch. Debug and Release each passed 387/387 (341 core + 46 parser), including 42/42 focused coordinator checks; catalog parity passed 346 fixed routes, five dynamic families, 319 registry entries, 22 categories, and 346 ledger rows; elevated process-owned UI Automation passed 166/166 with static batch-policy and horizontal-bound assertions. No live external mutation ran because this elevated session fails closed. The required driver rejected package-discover, package-updates, package-installed, and package-operations at WaitMs 16000 because CopyFromScreen was unavailable and PrintWindow was blank/near-uniform. LowLevel MCP separately launched all four routes on an isolated desktop and captured their resolved 1980x1320 HWNDs; inspected full-window and client-only PNGs were blank, so visual evidence remains capture-blocked.",
+                                            "status":  "capture-blocked"
+                                        },
+                                        {
+                                            "atUtc":  "2026-07-16T21:30:00Z",
+                                            "result":  "Native Package Setup now has a fixed review-only descriptor registry: all 11 manager rows, seven immutable Winget engine bootstrap IDs (Chocolatey, Python 3.12, Node LTS, .NET SDK 9, PowerShell 7, Rustup, Bun), manual-only Winget/Scoop/PowerShell Gallery/vcpkg, and 14 immutable managed-parity dependency IDs. PackageSetup core accepts only fixed source-default Winget package references, deduplicates the 21 reviewable descriptors to 18 exact packages, and reuses the validated argv planner. UI review remains inert; a distinct Operations confirmation is mandatory before normal-integrity serial work, while remote scripts, arbitrary commands, custom arguments, hooks, unsafe/local sources, and elevation fail closed. Debug and Release each passed 389/389; catalog parity passed 346 fixed routes, five dynamic families, 319 registry entries, 22 categories, and 346 ledger rows; isolated LowLevel MCP UI Automation passed 216/216 including Setup accessibility, deferred consent, no-process-start, provenance, and horizontal bounds. A fresh 852x880 full-window and 836x841 client-only LowLevel Setup capture were inspected blank and discarded, so visual evidence remains capture-blocked.",
                                             "status":  "capture-blocked"
                                         },
                                         {
