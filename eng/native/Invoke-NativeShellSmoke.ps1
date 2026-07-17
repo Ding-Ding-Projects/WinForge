@@ -2021,6 +2021,34 @@ Invoke-OwnedRoute -Route 'package-setup' -ExpectedTitle 'Package Manager' -Inspe
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Engine setup', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-setup alias selects Setup'
+    $policy = Wait-ForElement -Root $root -AutomationId 'NativePackageSetupPolicy'
+    $manager = Wait-ForElement -Root $root -AutomationId 'NativePackageSetup_manager_choco'
+    $dependency = Wait-ForElement -Root $root -AutomationId 'NativePackageSetup_dependency_ffmpeg'
+    $review = Wait-ForElement -Root $root -AutomationId 'NativePackageSetupReview_manager_choco'
+    $batch = Wait-ForElement -Root $root -AutomationId 'NativePackageSetupReviewCuratedBatch'
+    $provenance = Wait-ForElement -Root $root -AutomationId 'NativePackageSetupUniGetUIProvenance'
+    Assert-True -Condition ($policy.Current.Name.StartsWith('Safe engine bootstrap', [StringComparison]::Ordinal) `
+        -and $manager.Current.Name.StartsWith('Chocolatey', [StringComparison]::Ordinal) `
+        -and $dependency.Current.Name.StartsWith('FFmpeg', [StringComparison]::Ordinal) `
+        -and $batch.Current.Name.StartsWith('Review all curated Winget dependency installs', [StringComparison]::Ordinal) `
+        -and $provenance.Current.Name.StartsWith('UniGetUI source provenance', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager Setup exposes fixed bootstrap, curated dependency, and vendored-UniGetUI provenance surfaces'
+    Assert-True -Condition ($review.Current.HelpText.Contains('separate explicit confirmation') `
+        -and $batch.Current.HelpText.Contains('later explicit confirmation')) `
+        -Name 'Package Manager Setup review controls are deferred and explicitly require later consent'
+    $working = Find-ByAutomationId -Root $root -AutomationId 'NativePackageWorkingState'
+    Assert-True -Condition ($null -eq $working) `
+        -Name 'Package Manager Setup route never starts a package process while proving the review-only surface'
+    $setupControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        $header,
+        $policy,
+        $manager,
+        $dependency,
+        $review,
+        $batch,
+        $provenance)
+    Assert-True -Condition $setupControlsFit `
+        -Name 'Package Manager Setup review and provenance controls are accessible and horizontally unclipped'
 }
 
 Invoke-OwnedRoute -Route 'packages-setup' -ExpectedTitle 'Package Manager' -Inspect {

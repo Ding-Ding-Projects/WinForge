@@ -6,6 +6,10 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
+**EN —** On 2026-07-16, the changed native `package-setup` route was launched only on an isolated LowLevel MCP desktop after the **216/216** UI Automation sweep. The resolved 852×880 WinUI window returned `rendered_ok`, but its inspected full-window capture had only the title bar and a blank client area; the inspected 836×841 client-only capture was also blank. Both temporary PNGs were discarded. No managed image was replaced: `docs/screenshot-packages.png` remains labelled as a managed-production reference, and native Setup is `capture-blocked`.
+
+**粵語 —** 2026-07-16，改過嘅原生 `package-setup` route 只會喺隔離 LowLevel MCP desktop 啟動，而且係 **216/216** UI Automation sweep 之後。已解析 852×880 WinUI 視窗回報 `rendered_ok`，但檢查過嘅 full-window 擷取只得 title bar 同空白 client area；檢查過嘅 836×841 client-only 擷取亦都係空白。兩個臨時 PNG 都已丟棄。冇取代任何 managed 圖：`docs/screenshot-packages.png` 仍然標示為 managed-production reference，而 native Setup 係 `capture-blocked`。
+
 **EN —** On 2026-07-16, the native Password Strength page was launched through the persistent LowLevel MCP headless desktop after the 212/212 native shell smoke passed. Its 852×880 full-window capture returned `rendered_ok`, but inspection found only the title bar and a blank client surface. The invalid `docs/screenshot-passwordstrength.png` was discarded; no stale, synthetic, or managed substitute is shown. Password Strength is `capture-blocked`, not visual-pass.
 
 **粵語 —** 2026-07-16，原生 Password Strength 頁喺 212/212 原生 shell smoke 通過後經持續 LowLevel MCP 無頭 desktop 開啟。852×880 完整視窗擷取回報 `rendered_ok`，但檢查只見到 title bar 同空白 client surface。無效 `docs/screenshot-passwordstrength.png` 已經丟棄；冇展示舊、合成或者受控替代品。Password Strength 係 `capture-blocked`，唔係 visual-pass。

@@ -807,6 +807,8 @@ launching the other app.
 - [x] **Background Clipboard manager + tray** · 背景剪貼簿 + 系統匣 — DONE (text/image/file history, auto-convert, keep-running-when-closed via Shell_NotifyIcon).
 
 ### Package management (covers "clone UniGetUI" + "auto-install common deps")
+> **Native C++ migration correction (2026-07-16):** the checked items below describe the shipping managed product, not completed native parity. Native Package Manager is **in progress**. Its new Setup slice only reviews fixed Winget IDs through explicit later consent; it does not execute remote scripts or claim full UniGetUI/bootstrap parity. · **原生 C++ 遷移更正（2026-07-16）：** 以下剔選項目描述發佈中 managed 產品，唔係完成嘅原生對等。原生 Package Manager 仍然 **in progress**。新 Setup 批次只會經明確延後同意檢視固定 Winget ID；唔會執行 remote script，亦唔會聲稱完成 UniGetUI／bootstrap 對等。
+
 - [x] **Native Package Manager with UniGetUI-informed parity** · 原生套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management.
 - [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies with progress; other modules retain the shared `PackageService.AutoInstall` bootstrap path.
 

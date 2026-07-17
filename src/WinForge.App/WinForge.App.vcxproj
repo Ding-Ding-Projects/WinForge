@@ -149,6 +149,7 @@
     <ClInclude Include="..\WinForge.Core\Localization.h" />
     <ClInclude Include="..\WinForge.Core\ModuleRecord.h" />
     <ClInclude Include="..\WinForge.Core\PackageManager.h" />
+    <ClInclude Include="..\WinForge.Core\PackageSetup.h" />
     <ClInclude Include="..\WinForge.Core\PackageMutationCoordinator.h" />
     <ClInclude Include="..\WinForge.Core\PackageParsers.h" />
     <ClInclude Include="..\WinForge.Core\PackageRuntime.h" />
@@ -203,6 +204,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\PackageManager.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\PackageSetup.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\PackageMutationCoordinator.cpp">
