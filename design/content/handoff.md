@@ -3,9 +3,13 @@
 
 ## Native Symbols Palette record · 原生特殊符號調色盤紀錄
 
-**EN.** The native branch contains the C++ catalog and C++/WinRT Symbols Palette with 226 local glyphs, safe search, explicit Copy, and builder handoff. Debug/Release core tests passed 411/411 and the owned LowLevel MCP UI Automation campaign passed 238/238. Visual evidence is accurately capture-blocked because the isolated driver rejected a blank or near-uniform fallback.
+**EN.** Main now contains the C++ catalog and C++/WinRT Symbols Palette with 226 local glyphs, safe search, explicit Copy, and builder handoff. Debug/Release core tests passed 411/411 and the owned LowLevel MCP UI Automation campaign passed 238/238. Visual evidence is accurately capture-blocked because the isolated driver rejected a blank or near-uniform fallback.
 
-**粵語.** 原生分支有 C++ catalog 同 C++/WinRT 特殊符號調色盤，包含 226 個本機字形、安全搜尋、明確 Copy 同 builder handoff。Debug/Release core tests 411/411，同埋 LowLevel MCP UI Automation 238/238 通過。隔離 driver 拒絕空白／近乎單色 fallback，所以視覺證據正確係 capture-blocked。
+**Integration proof.** Task ba1a6c6192c1a150e35ebf09c0242d4c1d686177 merged as 04a593f8; after fetch, the task, pushed feature tip, and merge commit were proven ancestors of origin/main and the native sources, tests, documentation, Pages mirrors, capture status, and handoff records were present remotely.
+
+**整合證明。** 任務 ba1a6c6192c1a150e35ebf09c0242d4c1d686177 合併為 04a593f8；fetch 後任務、已推送分支 tip 同合併提交都係 origin/main ancestor，原生 source、tests、documentation、Pages mirror、capture status 同 handoff records 都喺 remote main。
+
+**粵語.** Main 而家有 C++ catalog 同 C++/WinRT 特殊符號調色盤，包含 226 個本機字形、安全搜尋、明確 Copy 同 builder handoff。Debug/Release core tests 411/411，同埋 LowLevel MCP UI Automation 238/238 通過。隔離 driver 拒絕空白／近乎單色 fallback，所以視覺證據正確係 capture-blocked。
 
 
 ## Native Regex Tester integration proof · 原生 Regex Tester 整合證明
