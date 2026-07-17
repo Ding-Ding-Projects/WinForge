@@ -1,5 +1,13 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+
+## Native Symbols Palette record · 原生特殊符號調色盤紀錄
+
+**EN.** The native branch contains the C++ catalog and C++/WinRT Symbols Palette with 226 local glyphs, safe search, explicit Copy, and builder handoff. Debug/Release core tests passed 411/411 and the owned LowLevel MCP UI Automation campaign passed 238/238. Visual evidence is accurately capture-blocked because the isolated driver rejected a blank or near-uniform fallback.
+
+**粵語.** 原生分支有 C++ catalog 同 C++/WinRT 特殊符號調色盤，包含 226 個本機字形、安全搜尋、明確 Copy 同 builder handoff。Debug/Release core tests 411/411，同埋 LowLevel MCP UI Automation 238/238 通過。隔離 driver 拒絕空白／近乎單色 fallback，所以視覺證據正確係 capture-blocked。
+
+
 ## Native Regex Tester integration proof · 原生 Regex Tester 整合證明
 
 `module.regextester` now enumerates at most **100** bounded non-overlapping matches, carries named capture metadata, safely advances zero-length matches under one shared deadline, and previews local replacement. The direct tester is case-sensitive by default; the builder carries PCRE2 `(x)`/`(n)` state to Shell, All Apps, cache-only Package Discover, and Regex Cheatsheet. Replacement is intentionally a local subset only: `$$`, existing `$0`–`$99`, and `${name}`; invalid replacement or the 32 KiB cap fails closed. Debug/Release each passed **403/403** and isolated LowLevel MCP headless UI Automation passed **226/226**. Inspected 852×880 full and 836×841 client frames were blank and discarded, so this is `capture-blocked`. Task `72ce549110b3d235b406de397736e89ecbcdb055` (also the remote feature tip) merged as `f7cba1a4694df705cd483868755af079e6250fda`; after fetch, both plus the merge were proven ancestors of `origin/main` and the expected source/test/docs/Pages/parity/handoff paths were confirmed on remote main before cleanup.

@@ -64,6 +64,7 @@
     <ClCompile Include="UuidV7Tests.cpp" />
     <ClCompile Include="RegexSearchTests.cpp" />
     <ClCompile Include="RegexCheatTests.cpp" />
+    <ClCompile Include="SymbolsPaletteTests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
     <ClCompile Include="PackageSetupTests.cpp" />
@@ -83,6 +84,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\UuidV7.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RegexSearch.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RegexCheat.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\SymbolsPalette.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RegexBuilder.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageSetup.cpp" />
@@ -104,6 +106,7 @@
     <ClInclude Include="UuidV7Tests.h" />
     <ClInclude Include="RegexSearchTests.h" />
     <ClInclude Include="RegexCheatTests.h" />
+    <ClInclude Include="SymbolsPaletteTests.h" />
     <ClInclude Include="PackageManagerTests.h" />
     <ClInclude Include="PackageSetupTests.h" />
     <ClInclude Include="PackageMutationCoordinatorTests.h" />
@@ -121,6 +124,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearch.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearchSurface.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexCheat.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\SymbolsPalette.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexBuilder.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />

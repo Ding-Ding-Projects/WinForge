@@ -16,6 +16,7 @@ namespace winforge::core::regex
         AllApps,
         PackageDiscoverCachedResults,
         RegexCheatsheetEntries,
+        SymbolsPalette,
     };
 
     enum class RegexSearchQueryPolicy : std::uint8_t
@@ -54,7 +55,7 @@ namespace winforge::core::regex
         RegexInvalidPatternPolicy invalid_pattern_policy;
     };
 
-    inline constexpr std::array<RegexSearchSurface, 4> kRegexSearchSurfaces{
+    inline constexpr std::array<RegexSearchSurface, 5> kRegexSearchSurfaces{
         RegexSearchSurface{
             RegexSearchSurfaceId::ShellCatalog,
             L"Native catalog search",
@@ -97,6 +98,17 @@ namespace winforge::core::regex
             L"NativeRegexCheatRegexMode",
             L"NativeRegexCheatRegexBuilder",
             L"token, English and Cantonese descriptions, example, and category from the static local reference catalog",
+            RegexSearchQueryPolicy::LocalCatalog,
+            RegexInvalidPatternPolicy::KeepPriorVisibleResults },
+        RegexSearchSurface{
+            RegexSearchSurfaceId::SymbolsPalette,
+            L"Symbols Palette local filter",
+            L"\u7279\u6B8A\u7B26\u865F\u8ABF\u8272\u76E4\u672C\u5730\u7BE9\u9078",
+            L"module.symbols",
+            L"NativeSymbolsSearch",
+            L"NativeSymbolsRegexMode",
+            L"NativeSymbolsRegexBuilder",
+            L"symbol glyph, English and Cantonese name, and category from the static local catalog",
             RegexSearchQueryPolicy::LocalCatalog,
             RegexInvalidPatternPolicy::KeepPriorVisibleResults },
     };

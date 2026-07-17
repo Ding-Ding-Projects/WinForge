@@ -868,6 +868,81 @@ Invoke-OwnedRoute -Route 'regexcheat' -ExpectedTitle 'Regex Cheatsheet' -Inspect
         -Name 'Regex builder applies a verified pattern and flags to the native Cheatsheet local-only target'
 }
 
+Invoke-OwnedRoute -Route 'symbols' -ExpectedTitle 'Symbols Palette' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeSymbolsSafety',
+        'NativeSymbolsSearch',
+        'NativeSymbolsRegexMode',
+        'NativeSymbolsCategory',
+        'NativeSymbolsRegexBuilder',
+        'NativeSymbolsStatus',
+        'NativeSymbolsResultCount',
+        'NativeSymbolsList',
+        'NativeSymbolsCopyStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSymbolsResultCount' -Prefix '226 of 226' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeSymbolsCopy_8592_arrows' | Out-Null
+    Assert-True -Condition $true -Name 'Symbols Palette exposes all 226 static local glyphs and explicit-copy controls'
+
+    $category = Wait-ForElement -Root $root -AutomationId 'NativeSymbolsCategory'
+    Select-ComboIndex -Combo $category -Index 2
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSymbolsResultCount' -Prefix '32 of 226' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeSymbolsSearch' -Value '  nOt EqUaL  ' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeSymbolsEntry_8800_math' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSymbolsResultCount' -Prefix '1 of 226' | Out-Null
+    Assert-True -Condition $true -Name 'Symbols Palette keeps category intersection and trimmed literal filtering local'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeSymbolsRegexMode' -IsOn $true | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeSymbolsSearch' -Value '^Not equal$' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeSymbolsCopy_8800_math' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSymbolsStatus' -Prefix 'PCRE2 local symbol filter is active' | Out-Null
+    Assert-True -Condition $true -Name 'Symbols Palette runs bounded PCRE2 only over static local entries'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeSymbolsSearch' -Value '[' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSymbolsStatus' -Prefix 'Invalid PCRE2 filter' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeSymbolsCopy_8800_math' | Out-Null
+    Assert-True -Condition $true -Name 'Symbols Palette retains prior results while an invalid regex is corrected'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeSymbolsSearch' -Value '^Not equal$' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeSymbolsCopy_8800_math'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSymbolsCopyStatus' -Prefix 'Copied' | Out-Null
+    Assert-True -Condition $true -Name 'Symbols Palette copies only after an explicit action'
+
+    $symbolsControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeSymbolsSearch'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSymbolsRegexMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSymbolsCategory'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSymbolsRegexBuilder'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSymbolsStatus'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSymbolsCopy_8800_math'))
+    Assert-True -Condition $symbolsControlsFit -Name 'Symbols Palette controls and matching row are horizontally unclipped'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeSymbolsRegexBuilder'
+    Wait-ForPageTitle -Root $root -Prefix 'Regex Tester & Builder' | Out-Null
+    $target = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderTarget'
+    Select-ComboIndex -Combo $target -Index 4
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderApply'
+    Wait-ForPageTitle -Root $root -Prefix 'Symbols Palette' | Out-Null
+    $symbolsMode = Wait-ForElement -Root $root -AutomationId 'NativeSymbolsRegexMode'
+    $symbolsToggle = [System.Windows.Automation.TogglePattern]$symbolsMode.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $symbolsValue = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeSymbolsSearch')).Current.Value
+    Assert-True -Condition ($symbolsToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and $symbolsValue -eq '^Not equal$') `
+        -Name 'Regex Builder returns verified Symbols state to its native local-only target'
+}
+
+foreach ($symbolsAlias in @('glyphs', 'module.symbols')) {
+    Invoke-OwnedRoute -Route $symbolsAlias -ExpectedTitle 'Symbols Palette' -Inspect {
+        param($root, $title)
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSymbolsResultCount' -Prefix '226 of 226' | Out-Null
+        Assert-True -Condition $true -Name 'Symbols Palette aliases resolve through the native route index'
+    }
+}
+
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 

@@ -16,6 +16,7 @@
 #include "../WinForge.Core/PackageRuntime.h"
 #include "../WinForge.Core/PackageSetup.h"
 #include "../WinForge.Core/RegexCheat.h"
+#include "../WinForge.Core/SymbolsPalette.h"
 #include "../WinForge.Core/RegexSearch.h"
 #include "../WinForge.Core/RegexSearchSurface.h"
 #include "../WinForge.Core/RouteIndex.h"
@@ -107,6 +108,14 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBlock m_regexCheatResultCount{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_regexCheatRegexStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_regexCheatCopyStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_symbolsSearchBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_symbolsRegexMode{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_symbolsCategoryPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_symbolsRegexBuilder{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_symbolsEntryList{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_symbolsResultCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_symbolsRegexStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_symbolsCopyStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageViewPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageSortPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::AutoSuggestBox m_packageSearchBox{ nullptr };
@@ -333,6 +342,17 @@ namespace winrt::WinForge::implementation
         bool m_regexCheatRegexIgnorePatternWhitespace{ false };
         bool m_regexCheatRegexExplicitCapture{ false };
         std::wstring m_regexCheatRegexDiagnostic{};
+        std::wstring m_symbolsSearchText{};
+        std::wstring m_symbolsCategoryKey{};
+        bool m_symbolsRegexEnabled{ false };
+        bool m_symbolsRegexCaseSensitive{ false };
+        bool m_symbolsRegexMultiline{ false };
+        bool m_symbolsRegexDotMatchesNewline{ false };
+        bool m_symbolsRegexIgnorePatternWhitespace{ false };
+        bool m_symbolsRegexExplicitCapture{ false };
+        std::wstring m_symbolsRegexDiagnostic{};
+        int32_t m_symbolsCopyCount{ 0 };
+        bool m_symbolsRendering{ false };
 
         enum class RegexBuilderTarget : std::uint8_t
         {
@@ -344,6 +364,8 @@ namespace winrt::WinForge::implementation
                 winforge::core::regex::RegexSearchSurfaceId::PackageDiscoverCachedResults),
             RegexCheatsheet = static_cast<std::uint8_t>(
                 winforge::core::regex::RegexSearchSurfaceId::RegexCheatsheetEntries),
+            SymbolsPalette = static_cast<std::uint8_t>(
+                winforge::core::regex::RegexSearchSurfaceId::SymbolsPalette),
             TesterOnly,
         };
 
@@ -396,6 +418,8 @@ namespace winrt::WinForge::implementation
         void PopulateAllApps(std::wstring_view query);
         void RenderRegexCheatsheet();
         void RefreshRegexCheatsheetEntries();
+        void RenderSymbolsPalette();
+        void RefreshSymbolsPaletteEntries();
         void RenderRegexTester();
         void OpenRegexBuilder(RegexBuilderTarget target, std::wstring_view initialPattern = {});
         void ApplyRegexBuilderTarget();
