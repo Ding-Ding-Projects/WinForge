@@ -81,6 +81,7 @@ internal static class Program
         WasteCapScenarios();
         WaterTreatmentScenarios();
         AmmoniaPlantScenarios();
+        GridLoadShedScenarios();
         ReactorDependencyScenarios();
         CakeFactoryScenarios();
 
@@ -1063,6 +1064,64 @@ internal static class Program
                           $"(crossed {AmmoniaPlantService.SynthesisThresholdBar:0} bar at tick {crossedTick}), H2 ok={h2Flowing}, " +
                           $"made {madeTonnes:0.00} t (CO2 match={co2Ok}); power loss: depressurised={depressurised}, " +
                           $"stalled={stalled}, totalKept={totalKept}; reset={resetOk}");
+        });
+    }
+
+    // ====================================================================== GRID LOAD-SHED ====
+    private static void GridLoadShedScenarios()
+    {
+        Scenario("GRID LOAD-SHED DISPATCH (priority cutoff, anti-flap reclose, unserved energy)", () =>
+        {
+            var g = new GridLoadShedService();
+            g.Reset();
+            int tick = 0;
+
+            // 1) Healthy bus: 1100 MW avail, 10% reserve ⇒ 990 MW usable = exactly the 990 MW catalog.
+            for (int i = 0; i < 20; i++) g.Step(++tick, 1100.0, true);
+            bool allServed = g.ServedMW == 990.0 && g.ShedMW == 0.0 && g.ShedEvents == 0;
+
+            // 2) Bus sags to 500 MW ⇒ 450 usable: P1+P2 (60+80+120+90=350) fit; homes (250) trips the
+            //    strict cutoff so homes/commerce/ev/industry ALL shed instantly (no cherry-picking).
+            g.Step(++tick, 500.0, true);
+            bool shedNow = g.ServedMW == 350.0 && g.ShedMW == 640.0 && g.ShedEvents == 4;
+            bool criticalKept = true, lowShed = true;
+            foreach (var f in g.Feeders)
+            {
+                if (f.Priority <= 2) criticalKept &= !f.IsShed && f.ServedMW == f.DemandMW;
+                else lowShed &= f.IsShed && f.ServedMW == 0;
+            }
+
+            // 3) Unserved energy integrates while shed (40 ticks = 20 s of 640 MW ≈ 3.56 MWh).
+            double unservedBefore = g.UnservedMWh;
+            for (int i = 0; i < 40; i++) g.Step(++tick, 500.0, true);
+            double gained = g.UnservedMWh - unservedBefore;
+            bool unservedGrew = gained > 3.4 && gained < 3.8;
+
+            // 4) Bus recovers: shed feeders must WAIT the anti-flap window, then reclose together.
+            for (int i = 0; i < GridLoadShedService.RecloseDelayTicks - 1; i++) g.Step(++tick, 1100.0, true);
+            bool stillShedDuringDelay = g.ShedMW == 640.0;
+            g.Step(++tick, 1100.0, true); // 10th consecutive fitting tick ⇒ reclose
+            bool reclosed = g.ServedMW == 990.0 && g.ShedMW == 0.0;
+
+            // 5) Operator breaker: disabling a feeder is intentional — off, not shed, not unserved.
+            g.SetFeederEnabled("industry", false);
+            g.Step(++tick, 1100.0, true);
+            bool operatorOff = g.ServedMW == 890.0 && g.ShedMW == 0.0;
+
+            // 6) Reactor lost: the whole board goes dark as shed.
+            g.Step(++tick, 0.0, false);
+            bool blackout = !g.BusEnergised && g.ServedMW == 0.0 && g.UsableMW == 0.0;
+
+            // 7) Reset restores every breaker and zeroes the counters.
+            g.Reset();
+            bool resetOk = g.ShedEvents == 0 && g.UnservedMWh == 0 && g.ServedMW == 0
+                           && g.Feeders.All(f => f.Enabled && !f.IsShed);
+
+            bool pass = allServed && shedNow && criticalKept && lowShed && unservedGrew
+                        && stillShedDuringDelay && reclosed && operatorOff && blackout && resetOk;
+            return (pass, $"healthy all-served={allServed}; sag: 350/640 split={shedNow}, critical kept={criticalKept}, " +
+                          $"low shed={lowShed}; unserved +{gained:0.00} MWh ok={unservedGrew}; anti-flap held={stillShedDuringDelay}, " +
+                          $"reclosed={reclosed}; operator-off={operatorOff}; blackout={blackout}; reset={resetOk}");
         });
     }
 
