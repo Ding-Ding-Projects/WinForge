@@ -17,6 +17,7 @@
 #include "../WinForge.Core/PackageSetup.h"
 #include "../WinForge.Core/RegexCheat.h"
 #include "../WinForge.Core/SymbolsPalette.h"
+#include "../WinForge.Core/AppUninstaller.h"
 #include "../WinForge.Core/RegexSearch.h"
 #include "../WinForge.Core/RegexSearchSurface.h"
 #include "../WinForge.Core/RouteIndex.h"
@@ -116,6 +117,14 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBlock m_symbolsResultCount{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_symbolsRegexStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_symbolsCopyStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_appUninstallerSearchBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_appUninstallerRegexMode{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_appUninstallerRegexBuilder{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_appUninstallerRefresh{ nullptr };
+        Microsoft::UI::Xaml::Controls::ProgressRing m_appUninstallerBusy{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_appUninstallerResultCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_appUninstallerStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_appUninstallerEntryList{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageViewPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageSortPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::AutoSuggestBox m_packageSearchBox{ nullptr };
@@ -353,6 +362,23 @@ namespace winrt::WinForge::implementation
         std::wstring m_symbolsRegexDiagnostic{};
         int32_t m_symbolsCopyCount{ 0 };
         bool m_symbolsRendering{ false };
+        std::vector<winforge::core::uninstall::AppPackage> m_appUninstallerPackages;
+        std::vector<winforge::core::uninstall::AppPackage> m_appUninstallerVisiblePackages;
+        std::optional<winforge::core::uninstall::AppPackage> m_appUninstallerReviewPackage;
+        std::wstring m_appUninstallerSearchText{};
+        std::wstring m_appUninstallerRegexDiagnostic{};
+        std::wstring m_appUninstallerStatusMessage{};
+        bool m_appUninstallerRegexEnabled{ false };
+        bool m_appUninstallerRegexCaseSensitive{ false };
+        bool m_appUninstallerRegexMultiline{ false };
+        bool m_appUninstallerRegexDotMatchesNewline{ false };
+        bool m_appUninstallerRegexIgnorePatternWhitespace{ false };
+        bool m_appUninstallerRegexExplicitCapture{ false };
+        bool m_appUninstallerWorking{ false };
+        std::atomic_bool m_appUninstallerCompletionLost{ false };
+        bool m_appUninstallerLoaded{ false };
+        bool m_appUninstallerRendering{ false };
+        std::uint64_t m_appUninstallerGeneration{ 0 };
 
         enum class RegexBuilderTarget : std::uint8_t
         {
@@ -366,6 +392,8 @@ namespace winrt::WinForge::implementation
                 winforge::core::regex::RegexSearchSurfaceId::RegexCheatsheetEntries),
             SymbolsPalette = static_cast<std::uint8_t>(
                 winforge::core::regex::RegexSearchSurfaceId::SymbolsPalette),
+            AppUninstaller = static_cast<std::uint8_t>(
+                winforge::core::regex::RegexSearchSurfaceId::AppUninstallerCachedResults),
             TesterOnly,
         };
 
@@ -420,6 +448,10 @@ namespace winrt::WinForge::implementation
         void RefreshRegexCheatsheetEntries();
         void RenderSymbolsPalette();
         void RefreshSymbolsPaletteEntries();
+        void RenderAppUninstaller();
+        void RefreshAppUninstallerEntries();
+        void StartAppUninstallerRefresh();
+        void StartAppUninstallerRemoval();
         void RenderRegexTester();
         void OpenRegexBuilder(RegexBuilderTarget target, std::wstring_view initialPattern = {});
         void ApplyRegexBuilderTarget();

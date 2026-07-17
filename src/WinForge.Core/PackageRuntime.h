@@ -70,6 +70,10 @@ namespace winforge::core::packages
 
     [[nodiscard]] std::wstring PercentEncodeUtf8(std::wstring_view value);
 
+    // Mutating native package actions must fail closed unless the current
+    // process token is a normal-integrity, non-elevated token.
+    [[nodiscard]] bool IsNormalIntegrityProcess() noexcept;
+
     [[nodiscard]] PackageRuntimeResult ProbePackageManager(
         std::wstring_view manager_key,
         PackageRuntimeOptions const& options = {});

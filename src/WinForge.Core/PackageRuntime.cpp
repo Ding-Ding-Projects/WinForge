@@ -602,6 +602,11 @@ namespace winforge::core::packages
         }
     }
 
+    bool IsNormalIntegrityProcess() noexcept
+    {
+        return !IsUnsafePackageExecutionToken();
+    }
+
     std::optional<ResolvedExecutable> ResolvePackageExecutable(std::wstring_view executable) noexcept
     {
         try

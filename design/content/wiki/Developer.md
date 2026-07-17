@@ -1,5 +1,9 @@
 # Developer · 開發者
 
+Current native correction — 2026-07-17: Debug and Release core each pass **417/417**. The active bounded-PCRE2 set has six surfaces: Shell, All Apps, cached Package Discover, Regex Cheatsheet, Symbols Palette, and cached App Uninstaller. App Uninstaller is builder target **5**; Tester-only is **6**. Older 403/403, 226/226, and four-surface prose below is historical, not current headless-only evidence. LowLevel off-screen WinUI capture remains blocked: the client frame is blank and `NativePageTitle` does not appear after 30 seconds; no visible-desktop fallback is used.
+
+目前原生更正 — 2026-07-17：Debug 與 Release core 各自 **417/417**；bounded-PCRE2 一共有六個 surface：Shell、All Apps、cached Package Discover、Regex Cheatsheet、Symbols Palette 同 cached App Uninstaller。App Uninstaller builder target 是 **5**，Tester-only 是 **6**。下面舊的 403/403、226/226 同四 surface 文字只屬歷史，不能當作 headless-only 目前證據。LowLevel off-screen WinUI client frame 仍然空白，30 秒後都冇 `NativePageTitle`；不會使用可見桌面回退。
+
 Developer tools for coding, debugging, databases, cloud and automation — all driven from inside WinForge. · 喺 WinForge 入面一站式驅動嘅開發者工具，涵蓋編碼、除錯、資料庫、雲端同自動化。
 
 ## VS Code · VS Code 編輯器

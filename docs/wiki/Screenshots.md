@@ -572,7 +572,17 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](images/screenshot-cakefactory.png)
 
 ### App Uninstaller · 應用程式解除安裝
-![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-uninstall.png)
+> Fresh native App Uninstaller capture is capture-blocked: CopyFromScreen was unavailable, and the owned PrintWindow fallback was blank or near-uniform, so it was rejected. The legacy managed screenshot was retired rather than used as native evidence. See [Native App Uninstaller](Native-App-Uninstaller.md).
+>
+> **2026-07-17 retry:** After final normal-integrity/no-local-data safety hardening, the required native driver again reported CopyFromScreen unavailable and rejected a blank/near-uniform PrintWindow frame. No candidate PNG exists; this is behavior-only evidence, not a visual pass.
+>
+> **2026-07-17 LowLevel headless retry:** Cheap LowLevel created an off-screen desktop and launched module.uninstall without touching the visible desktop. PrintWindow returned the native title bar plus a blank client frame; UI Automation saw no NativePageTitle after 30 seconds. The image was inspected and rejected, and the smoke did not fall back to a focus-stealing desktop.
+>
+> **2026-07-17 LowLevel headless 重試：** Cheap LowLevel 用 off-screen desktop 啟動 module.uninstall，完全冇觸碰可見桌面。PrintWindow 只得到 native title bar 加空白 client frame；UI Automation 等 30 秒仍然冇 NativePageTitle。圖片已檢查並拒絕，smoke 絕不回退去會搶焦點的桌面。
+>
+> **2026-07-17 重試：** 最終正常 integrity／不刪本機資料 hardening 後，required native driver 再次報告 CopyFromScreen 不可用，並拒絕 blank/near-uniform PrintWindow frame。冇 candidate PNG；呢個只係行為證據，唔係 visual pass。
+>
+> 新原生 App Uninstaller 擷取係 capture-blocked：CopyFromScreen 唔可用，而擁有嘅 PrintWindow fallback 係空白或者近乎單色，所以已拒絕。舊 managed 截圖已退休，冇當作原生證據。詳情見 [Native App Uninstaller](Native-App-Uninstaller.md)。
 
 ### Android (ADB) · Android（ADB）
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-adb.png)
@@ -800,7 +810,9 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](images/screenshot-taskbar-tweaker.png)
 
 ### App Uninstaller · 應用程式解除安裝
-![](images/screenshot-uninstaller.png)
+> A second legacy managed App Uninstaller image was also retired. No replacement PNG is claimed until a graphics-capable isolated desktop can produce and inspect a real native frame.
+>
+> 第二張舊 managed App Uninstaller 圖同樣已退休；要等 graphics-capable 隔離 desktop 可以產生同檢查真正原生 frame，先會宣稱有 replacement PNG。
 
 ### Winaero · Winaero 調校
 ![](images/screenshot-winaero.png)

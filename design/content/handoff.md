@@ -72,7 +72,7 @@ A complete map of every module/feature: what it does, how to open it, the page +
 | Duplicate Finder · 重複檔案搜尋 | `duplicates` | `Pages/DuplicatesModule` | `Services/DuplicateFinder` | size + hash dedupe | ✅ |
 | Disk Analyser · 磁碟分析 | `disk` | `Pages/DiskAnalyzerModule` | `Services/DiskAnalyzer` | folder-size tree | ✅ |
 | Drives · 磁碟機 | `drives` | `Pages/DrivesModule` | `Services/DriveService` | volumes, mount ISO/VHD | ✅ |
-| App Uninstaller · 應用程式解除安裝 | `uninstall` | `Pages/AppUninstallerModule` | `Services/UninstallManager` | Get/Remove-AppxPackage | ✅ |
+| App Uninstaller / 原生解除安裝器 | `uninstall` | native C++/WinRT `module.uninstall`; managed page remains oracle | `WinForge.Core/AppUninstaller` + Windows PackageManager | current-user Store/UWP cache; local literal/Regex filtering; review/Confirm; normal-integrity gate; no local-data deletion | in progress: headless UI and visual capture blocked |
 | Window Manager · 視窗管理 | `windows` | `Pages/WindowManagerModule` | `Services/WindowManager` | EnumWindows + SetWindowPos (zones) | ✅ |
 | Keyboard Remapper · 鍵盤重新對應 | `keyboard` | `Pages/KeyboardModule` | `Services/KeyboardRemapper` | Scancode Map registry | ✅ |
 | Hosts Editor · hosts 編輯器 | `hosts` | `Pages/HostsEditorModule` | `Services/HostsService` | hosts file IO + flush DNS | ✅ |
@@ -108,6 +108,6 @@ Data-driven: `Catalog/*Tweaks.cs` files build `TweakDefinition`s via the `Servic
 - **Docs:** `Services/DocsExporter` writes per-feature Markdown into **per-module subfolders** under `docs/features/`.
 
 ## Pending queue · 待辦 (see `docs/ROADMAP.md`)
-UX pass (remaining: Devices Actions dropdown, parse tabular command output into tables) → Smart App Uninstaller (icons + size + deep clean) → auto-install everywhere + kill remaining redirects → more 7z/zip features → custom-program runner → full export/import incl. the clipboard git repo → Docker/GitHub config sync → app logo → UniGetUI source port. The 5-min loop builds these one tested+pushed module at a time.
+UX pass (remaining: Devices Actions dropdown, parse tabular command output into tables) → future App Uninstaller work only after a handle-relative, stable-identity local-data deletion primitive; the current native route has no deep-clean path → auto-install everywhere + kill remaining redirects → more 7z/zip features → custom-program runner → full export/import incl. the clipboard git repo → Docker/GitHub config sync → app logo → UniGetUI source port. The 5-min loop builds these one tested+pushed module at a time.
 
 _Auto-maintained alongside the WinForge build loop · 由 WinForge 建置迴圈一齊維護_

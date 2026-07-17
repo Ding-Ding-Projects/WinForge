@@ -10,6 +10,7 @@
 #include "UuidV7Tests.h"
 #include "RegexCheatTests.h"
 #include "SymbolsPaletteTests.h"
+#include "AppUninstallerTests.h"
 #include "RegexSearchTests.h"
 #include "Localization.h"
 #include "PackageManagerTests.h"
@@ -222,6 +223,10 @@ int wmain(int argc, wchar_t** argv)
     auto const symbolsPaletteCounts = RunSymbolsPaletteTests();
     passed += symbolsPaletteCounts.passed;
     failed += symbolsPaletteCounts.failed;
+
+    auto const appUninstallerCounts = RunAppUninstallerTests();
+    passed += appUninstallerCounts.passed;
+    failed += appUninstallerCounts.failed;
 
     auto const package_manager_counts = RunPackageManagerTests();
     passed += package_manager_counts.passed;

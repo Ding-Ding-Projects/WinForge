@@ -2281,13 +2281,85 @@ Invoke-OwnedRoute -Route 'packages-operations' -ExpectedTitle 'Package Manager' 
         -Name 'Package Manager packages-operations exposes mutation-consent policy'
 }
 
+Invoke-OwnedRoute -Route 'uninstall' -ExpectedTitle 'App Uninstaller' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeAppUninstallerSafety',
+        'NativeAppUninstallerSearch',
+        'NativeAppUninstallerRegexMode',
+        'NativeAppUninstallerRegexBuilder',
+        'NativeAppUninstallerRefresh',
+        'NativeAppUninstallerStatus',
+        'NativeAppUninstallerResultCount',
+        'NativeAppUninstallerList'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    $safety = Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerSafety'
+    Assert-True -Condition ($safety.Current.Name -eq 'Native App Uninstaller safety: normal integrity required; local data deletion unavailable.') -Name 'App Uninstaller exposes explicit normal-integrity and no-local-data-deletion safety evidence'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAppUninstallerStatus' -Prefix 'Current-user Store/UWP inventory refreshed.' | Out-Null
+    $deepCleanupStatus = Wait-ForElementByAutomationIdPrefix -Root $root -Prefix 'NativeAppUninstallerDeepCleanupStatus_'
+    Assert-True -Condition ($deepCleanupStatus.Current.Name -eq 'Deep cleanup is intentionally unavailable until handle-relative deletion is implemented. Package removal never deletes local data.') -Name 'App Uninstaller renders explicit deep-cleanup unavailability after inventory completion'
+    Assert-True -Condition (-not (Find-ByAutomationIdPrefix -Root $root -Prefix 'NativeAppUninstallerReviewDeep_')) -Name 'App Uninstaller does not expose an unsafe deep-cleanup review action'
+    $search = Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerSearch'
+    $mode = Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerRegexMode'
+    Assert-True -Condition ($search.Current.Name.StartsWith('App Uninstaller local cached package search', [StringComparison]::Ordinal) -and $mode.Current.Name.StartsWith('Enable bounded Regex filtering', [StringComparison]::Ordinal)) -Name 'App Uninstaller exposes an accessible native Store/UWP cache search surface'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAppUninstallerSearch' -Value '__winforge_native_uninstaller_no_such_package__' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerEmpty' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAppUninstallerResultCount' -Prefix '0 / ' | Out-Null
+    Assert-True -Condition $true -Name 'App Uninstaller literal filtering stays inside the current local package cache'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeAppUninstallerRegexMode' -IsOn $true | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAppUninstallerSearch' -Value '.*' | Out-Null
+    $status = Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerStatus'
+    Assert-True -Condition $status.Current.Name.Contains('Bounded PCRE2 filters only the already-returned local package cache') -Name 'App Uninstaller evaluates bounded PCRE2 only against returned package metadata'
+
+    $countBeforeInvalid = (Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerResultCount').Current.Name
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAppUninstallerSearch' -Value '[' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAppUninstallerStatus' -Prefix 'Invalid PCRE2 filter' | Out-Null
+    $countAfterInvalid = (Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerResultCount').Current.Name
+    Assert-True -Condition ($countBeforeInvalid -eq $countAfterInvalid) -Name 'App Uninstaller retains the prior visible local cache while an invalid regex is corrected'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAppUninstallerSearch' -Value '.*' | Out-Null
+    $uninstallerControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerSearch'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerRegexMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerRegexBuilder'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerRefresh'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerStatus')
+    )
+    Assert-True -Condition $uninstallerControlsFit -Name 'App Uninstaller controls are horizontally unclipped in the native shell'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeAppUninstallerRegexBuilder'
+    Wait-ForPageTitle -Root $root -Prefix 'Regex Tester & Builder' | Out-Null
+    $target = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderTarget'
+    Select-ComboIndex -Combo $target -Index 5
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderApply'
+    Wait-ForPageTitle -Root $root -Prefix 'App Uninstaller' | Out-Null
+    $uninstallerMode = Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerRegexMode'
+    $uninstallerToggle = [System.Windows.Automation.TogglePattern]$uninstallerMode.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $uninstallerValue = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerSearch')).Current.Value
+    Assert-True -Condition ($uninstallerToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and $uninstallerValue -eq '.*') -Name 'Regex Builder returns a verified pattern to the native App Uninstaller cache target'
+}
+
+foreach ($uninstallerAlias in @('apps', 'module.uninstall')) {
+    Invoke-OwnedRoute -Route $uninstallerAlias -ExpectedTitle 'App Uninstaller' -Inspect {
+        param($root, $title)
+        Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerSafety' | Out-Null
+        Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerSearch' | Out-Null
+        Assert-True -Condition $true -Name 'App Uninstaller aliases resolve to the native reviewed-removal surface'
+    }
+}
+
 foreach ($case in @(
     @{ Route = 'about'; Title = 'About WinForge Native' },
     @{ Route = 'settings'; Title = 'Settings' },
     @{ Route = 'search:reactor'; Title = 'Search results' },
     @{ Route = 'manual:reactor-safety'; Title = 'Manual' },
     @{ Route = 'weblogin?url=https://example.test'; Title = 'In-App Login' },
-    @{ Route = 'apps'; Title = 'App Uninstaller' },
     @{ Route = 'launcher'; Title = 'Command Palette' },
     @{ Route = 'taskbar'; Title = 'Taskbar Tweaker' },
     @{ Route = 'vault'; Title = 'WinForge Vault' },

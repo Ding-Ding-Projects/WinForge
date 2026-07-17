@@ -36,7 +36,7 @@ A complete map of every module/feature: what it does, how to open it, the page +
 | Duplicate Finder · 重複檔案搜尋 | `duplicates` | `Pages/DuplicatesModule` | `Services/DuplicateFinder` | size + hash dedupe | ✅ |
 | Disk Analyser · 磁碟分析 | `disk` | `Pages/DiskAnalyzerModule` | `Services/DiskAnalyzer` | folder-size tree | ✅ |
 | Drives · 磁碟機 | `drives` | `Pages/DrivesModule` | `Services/DriveService` | volumes, mount ISO/VHD | ✅ |
-| App Uninstaller · 應用程式解除安裝 | `uninstall` | `Pages/AppUninstallerModule` | `Services/UninstallManager` | Get/Remove-AppxPackage | ✅ |
+| App Uninstaller / 原生解除安裝器 | uninstall | native C++/WinRT module.uninstall; managed page remains oracle | WinForge.Core/AppUninstaller + Windows PackageManager | current-user Store/UWP inventory; local literal/Regex cache search; review/Confirm; normal-integrity gate; no local-data deletion | in progress: LowLevel headless UI and visual capture blocked |
 | Window Manager · 視窗管理 | `windows` | `Pages/WindowManagerModule` | `Services/WindowManager` | EnumWindows + SetWindowPos (zones) | ✅ |
 | Keyboard Remapper · 鍵盤重新對應 | `keyboard` | `Pages/KeyboardModule` | `Services/KeyboardRemapper` | Scancode Map registry | ✅ |
 | Hosts Editor · hosts 編輯器 | `hosts` | `Pages/HostsEditorModule` | `Services/HostsService` | hosts file IO + flush DNS | ✅ |

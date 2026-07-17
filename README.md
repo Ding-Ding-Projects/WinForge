@@ -23,17 +23,23 @@
 
 ## 🧱 Native C++ Rewrite · 原生 C++ 重寫
 
-**EN —** A genuine C++20/C++/WinRT rewrite is now underway beside the shipping managed app. Debug and Release x64 native WinUI 3 builds finish with 0 errors, the inventory covers **346 fixed routes + five dynamic route families**, the current native test executable passes **403/403 in Debug** and **403/403 in Release** (including 14 Password Generator, 11 Password Strength, six Regex Cheatsheet, and eight Regex Tester continuation core checks), and the elevated process-owned UI Automation shell passes **226/226**. Release PE inspection also finds a zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import. This is a migration milestone, not a false full-port claim: unported features display an explicit pending page, and the managed app remains authoritative until every parity row passes.
+**EN · Current 2026-07-17 native checkpoint:** A genuine C++20/C++/WinRT rewrite is underway beside the shipping managed app. Debug and Release x64 native WinUI 3 builds finish with 0 errors; the inventory covers **346 fixed routes + five dynamic route families**; and the current Debug and Release core executables each pass **417/417**. The active regex set has six surfaces (Shell, All Apps, cached Package Discover, Regex Cheatsheet, Symbols Palette, and cached App Uninstaller). The earlier 403/403 and 226/226 visible-shell figures are historical snapshots, not current headless-only verification. Release PE inspection still finds a zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import. This remains a migration milestone, not a full-port claim.
+
+**粵語 · 2026-07-17 目前檢查點：** Debug 與 Release native core 各自是 **417/417**；regex surface 一共有六個；舊的 403/403 與 226/226 可見桌面記錄只屬歷史，不能代替 headless-only 證據。
 
 **粵語 —** 真正嘅 C++20／C++/WinRT 重寫而家會同發佈中受控 app 並行。Debug 同 Release x64 原生 WinUI 3 都以 0 errors 建置，清單涵蓋 **346 條固定路線 + 五組動態路線**，目前原生測試 executable 喺 Debug 係 **403/403**、Release 亦係 **403/403**（包括 14 個 Password Generator、11 個 Password Strength、六個 Regex Cheatsheet 同八個 Regex Tester 延續 core 檢查），而提權、只控制自己 process 嘅 UI Automation shell 亦係 **226/226**。Release PE 審查亦證實 COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import。呢個係遷移里程碑，唔係扮成全功能已移植：未完成功能會顯示明確 pending 頁，而每項對等清單通過之前，受控 app 仍然係權威版本。
 
 ### Native safe regex search & builder · 原生安全正規搜尋同建立器
 
-**EN —** `RegexSearchSurface.h` explicitly registers every current native regex-search control: Shell catalog, All Apps, cached Package Discover, and the static local Regex Cheatsheet. Each routes through bounded PCRE2-16 only when its clearly labelled Regex mode is enabled. The full four-step `module.regextester` wizard provides flags; escaped literal recipes (contains, exact, prefix, suffix, whole word); route/package/version starters; character classes and tokens; groups, alternatives, word-boundary and lookaround assertions, quantifiers, a bounded all-match/capture preview, local replacement preview, and target-aware Apply. The tester supports PCRE2 extended-whitespace `(x)` and named-capture-only `(n)` behavior, displays up to 100 non-overlapping matches and named capture metadata, advances zero-length matches safely, and caps replacement output at 32 KiB. Its local replacement subset is deliberately explicit: `$$`, `$0`–`$99` where that capture exists, and `${name}`; an invalid replacement has no target effect. Invalid patterns cannot be applied. Package Discover remains deliberately local-cache only: its builder target forces Discover, retains only a genuine Discover search cache, never enters a package argv or HTTPS request, disables remote Search, and leaves the monotonic query audit unchanged. PCRE2 uses UTF/UCP semantics with no JIT and strict interactive resource limits; it is not a claim of full .NET regex or replacement parity.
+**EN · Current regex contract (2026-07-17):** `RegexSearchSurface.h` registers six native regex-search surfaces: Shell catalog, All Apps, cached Package Discover, Regex Cheatsheet, Symbols Palette, and cached App Uninstaller. Each uses bounded PCRE2-16 only when its labelled Regex mode is enabled. The builder target indices are App Uninstaller **5** and Tester-only **6**; invalid expressions cannot apply.
+
+**粵語 · 目前 Regex 合約：** 六個 surface 是 Shell、All Apps、cached Package Discover、Regex Cheatsheet、Symbols Palette 同 cached App Uninstaller；builder target App Uninstaller 是 **5**，Tester-only 是 **6**。
 
 **Latest Regex Tester continuation / 最新 Regex Tester 延續**
 
-**EN —** Debug and Release native tests each pass **403/403**, and the isolated LowLevel MCP headless UI Automation campaign passes **226/226**. It covers the `x`/`n` flags, named all-match metadata, valid and invalid replacement preview, the output cap, target application, accessibility, and clipping. The inspected 852×880 full-window and 836×841 client-only captures were blank, so both temporary PNGs were discarded and the route remains `capture-blocked` rather than visually verified.
+**EN · Current verification:** Debug and Release native core each pass **417/417**. The LowLevel off-screen UI campaign is presently `capture-blocked`: the WinUI client frame is blank and `NativePageTitle` does not appear after 30 seconds. It deliberately does not fall back to a focus-stealing visible desktop. The earlier 226/226 visible-shell campaign is historical, not current headless evidence.
+
+**粵語 · 目前驗證：** Debug 與 Release core 各自 **417/417**。LowLevel off-screen UI 目前 `capture-blocked`：WinUI client frame 空白，30 秒後都冇 `NativePageTitle`；刻意不回退去會搶焦點的可見桌面。
 
 **粵語 —** 原生 Regex Tester 而家會顯示最多 100 個非重疊相符項目同命名 capture 資訊，支援 `(x)` 忽略 pattern 空白、`(n)` 只保留命名 capture，同埋只喺本機做替換預覽（`$$`、存在嘅 `$0`–`$99` 同 `${name}`）。Debug 同 Release 都係 **403/403**，headless UI Automation 係 **226/226**。852×880 全視窗同 836×841 client-only 截圖都係空白，已丟棄；冇重用舊圖，所以視覺證據如實標記為 `capture-blocked`。
 
@@ -41,7 +47,9 @@
 
 ### Native Regex Cheatsheet parity · 原生 Regex 速查表對等
 
-**EN —** `module.regexcheat` is now a real C++/WinRT route with a pure-C++ bilingual catalog of 67 reference rows in nine categories and eight explicit Copy-only ready-made patterns. Its search is literal by default; only the clearly labelled Regex mode uses bounded local PCRE2-16 filtering, and an invalid expression retains the prior visible results. It is the fourth registered native regex-search surface and round-trips a verified expression through the full builder. .NET-only syntax is reference data only: it never executes, launches a process, sends a request, or changes a package command. The six focused core checks and the 224/224 native UI Automation smoke cover its catalog, filtering, safe mode, Copy actions, builder handoff, accessibility, and clipping. The inspected 852×880 full frame and 836×841 client frame were blank and discarded, so visual status is honestly `capture-blocked`.
+**EN · Current Regex Cheatsheet status:** `module.regexcheat` is the **fourth of six** registered native regex-search surfaces. Its local bounded-PCRE2 behavior remains real, but earlier 224/224 UI-smoke text is historical. Current core proof is the Debug/Release **417/417** suite; headless visual evidence remains `capture-blocked` because the off-screen WinUI client frame is blank.
+
+**粵語 · Regex Cheatsheet 目前狀態：** 它是六個 native regex-search surface 的第四個；舊 224/224 UI-smoke 只屬歷史，headless 視覺證據仍然 `capture-blocked`。
 
 **粵語 —** `module.regexcheat` 而家係真正嘅 C++/WinRT route，有純 C++ 67 項、九個分類嘅雙語參考目錄，同八個要明確按 Copy 先會複製嘅現成模式。搜尋預設係 literal；只有清楚標示嘅 Regex mode 會用 bounded、本機 PCRE2-16 篩選，而無效表達式會保留原先睇到嘅結果。佢係第四個已註冊嘅原生 regex-search surface，並可經完整 builder round-trip 一個已驗證嘅表達式。.NET 專用語法只係參考資料：唔會執行、啟動 process、發 request 或改 package command。六個 focused core 檢查同 224/224 原生 UI Automation smoke 覆蓋目錄、篩選、安全模式、Copy、builder handoff、accessibility 同 clipping。檢查過嘅 852×880 full frame 同 836×841 client frame 都係空白並已丟棄，所以 visual 狀態如實係 `capture-blocked`。
 
@@ -108,6 +116,8 @@
 Current aggregate evidence after the native Password Generator slice is **368/368 native tests** in Debug and Release (including 14 focused Password Generator checks) and **200/200 native UI Automation checks**; older per-feature counts below are retained as historical slice evidence. · 原生 Password Generator 批次之後目前整體證據係 Debug 同 Release **原生測試 368/368**（包括 14 個 Password Generator 專項檢查）同 **原生 UI Automation 200/200**；下面較舊嘅逐功能數字保留作歷史批次證據。
 
 See the [full native rewrite record](docs/Native-Cpp-Rewrite.md), [wiki overview](docs/wiki/Native-Cpp-Rewrite.md), and [machine-readable parity ledger](docs/cpp-port-parity.json). · 請睇[完整原生重寫記錄](docs/Native-Cpp-Rewrite.md)、[wiki 概覽](docs/wiki/Native-Cpp-Rewrite.md)同[machine-readable 對等清單](docs/cpp-port-parity.json)。
+
+**Native App Uninstaller / 原生應用程式解除安裝.** The native current-user Store/UWP route, bounded local regex search, reviewed-confirmed removal, fail-closed cleanup boundary, test evidence, and capture-blocked visual record are documented in [Native App Uninstaller](docs/Native-App-Uninstaller.md) and its [wiki mirror](docs/wiki/Native-App-Uninstaller.md). 原生目前使用者 Store/UWP route、本機 bounded regex 搜尋、review/Confirm 移除、fail-closed 清理邊界、測試證據同 capture-blocked 視覺記錄都寫喺以上文件。
 
 ### Package Manager migration truth · 套件管理遷移實況
 
@@ -612,7 +622,7 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 | **Native OSS Clones · 開源原生分頁** | Map of open-source app ideas remade as native C# WinForge tabs. <br> 將開源 app 想法重製成 WinForge 原生 C# 分頁嘅索引。 | `ossapps` |
 | **Cake Factory & Farm · 蛋糕工廠與農場** | HTML5 reactor-powered cake factory game with cow milk provenance, laying-hen egg provenance, supplier delivery lead times, mixed dairy ration, parlor/poultry-house hygiene, an operator-run utility plant, audited ingredient lots, QA lab release, warehouse batch kitting, finite supplies/utilities, timed ingredient factories, vanilla extraction, a carton packaging plant, named byproduct/effluent handling, plant maintenance, manual HACCP gates, customer order dispatch and signed `.cake` files. <br> HTML5 反應堆供電蛋糕工廠遊戲，附牛奶來源、蛋來源、供應商送貨等候時間、混合奶牛飼料、擠奶間／禽舍衛生、操作員運行嘅公用工程廠、已審核原料批號、QA 實驗室放行、倉庫批次備料、有限補給／公用工程、計時原料工廠、雲呢拿萃取、紙盒包裝廠、具名副產物／廢水處理、廠房維修、手動 HACCP 放行關卡、客戶訂單出貨同已簽署 `.cake` 檔。 | `cakefactory` |
 | **Feed Reader · RSS 閱讀器** | Native RSS/Atom reader inspired by QuiteRSS and Fluent Reader. <br> 受 QuiteRSS 同 Fluent Reader 啟發嘅原生 RSS／Atom 閱讀器。 | `rss` |
-| **App Uninstaller · 應用程式解除安裝** | Remove apps and Appx packages via winget. <br> 用 winget 移除應用程式同 Appx 套件。 | `uninstall` |
+| **App Uninstaller / 應用程式解除安裝器** | Native current-user Store/UWP inventory with local literal/Regex filtering, review plus explicit Confirm removal, normal-integrity fail-closed gate, and deliberately no local-data deletion. <br> 原生現有使用者 Store/UWP 清單有本機 literal/Regex 篩選、覆核加獨立 Confirm 移除、正常 integrity fail-closed gate，而且刻意唔會刪本機資料。 | uninstall |
 | **Android (ADB) · Android（ADB）** | adb devices, APK install, shell, logcat and scrcpy mirroring. <br> adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像。 | `adb` |
 | **Fastboot / Flasher · Fastboot／刷機** | Unlock bootloaders and flash factory/boot images. <br> 解鎖 bootloader 同刷入原廠／boot 映像。 | `fastboot` |
 | **Android Emulator & SDK · Android 模擬器與 SDK** | Manage AVDs and the Android SDK manager. <br> 管理 AVD 虛擬裝置同 Android SDK 管理員。 | `emulator` |
@@ -736,6 +746,12 @@ Made with WinUI 3 · 用 WinUI 3 製作 · `English + 繁體中文／粵語`
 WinForge now supports user-managed, declarative Command Palette extension packs. Import a JSON manifest from `Command Palette`, review it, then explicitly enable it. A pack can only open a registered WinForge module, open an HTTP(S) URL, or copy text. It cannot execute arbitrary code or shell commands, and newly imported packs are disabled by default.
 
 See the bilingual [Command Palette extension guide](docs/wiki/Command-Palette-Extensions.md) for the schema and safe-action contract.
+
+## Current native App Uninstaller checkpoint (2026-07-17)
+
+**EN · Current 2026-07-17 App Uninstaller correction:** Debug and Release native core both pass **417/417**. The Store/UWP App Uninstaller uses local literal-default or bounded PCRE2 cache filtering, invalid-regex retention, review plus a separate Confirm removal boundary, and a normal-integrity fail-closed gate; it deliberately exposes **no deep-cleanup or local-data deletion path**. Its LowLevel headless UI smoke is presently blocked because the off-screen WinUI client frame is blank and `NativePageTitle` remains absent after 30 seconds. It does not fall back to a visible desktop. Fresh capture remains `capture-blocked`, and stale managed App Uninstaller images were retired.
+
+**粵語 · 2026-07-17 App Uninstaller 更正：** Debug 同 Release native core 都係 **417/417**。Store/UWP App Uninstaller 用本機 literal-default 或 bounded PCRE2 cache filtering、invalid-regex retention、review 加獨立 Confirm removal boundary，同 normal-integrity fail-closed gate；刻意**冇 deep-cleanup 或本機資料刪除路徑**。LowLevel headless UI smoke 目前受阻，因為 off-screen WinUI client frame 空白，30 秒後仍冇 `NativePageTitle`；絕不回退到可見桌面。新 capture 仍然 `capture-blocked`，舊 managed App Uninstaller 圖已退休。
 
 ## Native Package Manager Setup review (2026-07-16)
 

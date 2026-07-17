@@ -147,6 +147,7 @@
     <ClInclude Include="..\WinForge.Core\RegexSearchSurface.h" />
     <ClInclude Include="..\WinForge.Core\RegexCheat.h" />
     <ClInclude Include="..\WinForge.Core\SymbolsPalette.h" />
+    <ClInclude Include="..\WinForge.Core\AppUninstaller.h" />
     <ClInclude Include="..\WinForge.Core\RegexBuilder.h" />
     <ClInclude Include="..\WinForge.Core\Localization.h" />
     <ClInclude Include="..\WinForge.Core\ModuleRecord.h" />
@@ -206,6 +207,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\SymbolsPalette.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\AppUninstaller.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\RegexBuilder.cpp">

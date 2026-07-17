@@ -1,5 +1,29 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+Current native correction — 2026-07-17: Debug and Release core each pass **417/417**. The active bounded-PCRE2 set has six surfaces: Shell, All Apps, cached Package Discover, Regex Cheatsheet, Symbols Palette, and cached App Uninstaller. App Uninstaller is builder target **5**; Tester-only is **6**. Older 403/403, 226/226, and four-surface prose below is historical, not current headless-only evidence. LowLevel off-screen WinUI capture remains blocked: the client frame is blank and `NativePageTitle` does not appear after 30 seconds; no visible-desktop fallback is used.
+
+目前原生更正 — 2026-07-17：Debug 與 Release core 各自 **417/417**；bounded-PCRE2 一共有六個 surface：Shell、All Apps、cached Package Discover、Regex Cheatsheet、Symbols Palette 同 cached App Uninstaller。App Uninstaller builder target 是 **5**，Tester-only 是 **6**。下面舊的 403/403、226/226 同四 surface 文字只屬歷史，不能當作 headless-only 目前證據。LowLevel off-screen WinUI client frame 仍然空白，30 秒後都冇 `NativePageTitle`；不會使用可見桌面回退。
+
+
+## Native App Uninstaller · 原生應用程式解除安裝
+
+## Current 2026-07-17 native checkpoint / 2026-07-17 最新原生檢查點
+
+> This Pages wiki checkpoint supersedes older aggregate-count and deep-cleanup wording below. / 呢個 Pages wiki 檢查點取代下文較舊嘅總數同 deep-cleanup 文字。
+
+- Native module.uninstall uses cache-only literal/bounded-PCRE2 filtering, invalid-result retention, review plus explicit Confirm, and normal-integrity fail-closed removal. No deep-cleanup or local-data deletion path is exposed.
+- There are six current RegexSearchSurface descriptors: Shell catalog, All Apps, cached Package Discover, Regex Cheatsheet, Symbols Palette, and cached App Uninstaller; Regex Builder index 5 returns to App Uninstaller.
+- Debug/Release core is **417/417**. The LowLevel headless App Uninstaller UI Automation path is currently blocked: the off-screen WinUI client is blank and `NativePageTitle` is absent after 30 seconds, with no visible-desktop fallback. The broad post-hardening shell rerun is not current full-suite evidence after its unrelated timeout.
+- Visual proof stays capture-blocked after the 2026-07-17 driver retry and stale managed screenshots are retired.
+
+- 原生 module.uninstall 用只限快取嘅 literal/bounded-PCRE2 篩選、無效結果保留、覆核加顯式 Confirm，同正常 integrity fail-closed 移除。冇開放 deep-cleanup 或本機資料刪除路徑。
+- 最新有六個 RegexSearchSurface descriptor：Shell catalog、All Apps、cached Package Discover、Regex Cheatsheet、Symbols Palette、同 cached App Uninstaller；Regex Builder index 5 會返回 App Uninstaller。
+- Debug/Release core 係 **417/417**。focused LowLevel App Uninstaller UI Automation smoke 通過五個安全／篩選／builder check；因為廣泛 post-hardening shell rerun 喺無關部分 timeout，佢唔係最新完整 suite 證據。
+- 2026-07-17 driver retry 後視覺證據保持 capture-blocked，而舊 managed screenshot 已退休。
+
+> Historical pre-hardening summary, superseded by the checkpoint above: Native module.uninstall is a real C++/WinRT current-user Store/UWP cache with local literal-default and opt-in bounded-PCRE2 filtering, invalid-result retention, review plus explicit Confirm removal, and the earlier optional-cleanup design. The current design deliberately exposes no deep cleanup. See [Native App Uninstaller](Native-App-Uninstaller.md).
+
+> 歷史 hardening 前摘要（由上面 2026-07-17 檢查點取代）：早期 optional-cleanup／248-of-248 記錄只保留作背景；目前設計刻意冇 deep cleanup、冇本機資料刪除，而最新 UI 證據係 focused smoke。
 ## Native installer CI · 原生安裝程式 CI
 
 Native artifacts are gated by a reusable installer verifier at runtime staging, setup compilation, and post-install payload inspection. See [Native Installer CI](Native-Installer-CI.md).

@@ -17,6 +17,7 @@ namespace winforge::core::regex
         PackageDiscoverCachedResults,
         RegexCheatsheetEntries,
         SymbolsPalette,
+        AppUninstallerCachedResults,
     };
 
     enum class RegexSearchQueryPolicy : std::uint8_t
@@ -55,7 +56,7 @@ namespace winforge::core::regex
         RegexInvalidPatternPolicy invalid_pattern_policy;
     };
 
-    inline constexpr std::array<RegexSearchSurface, 5> kRegexSearchSurfaces{
+    inline constexpr std::array<RegexSearchSurface, 6> kRegexSearchSurfaces{
         RegexSearchSurface{
             RegexSearchSurfaceId::ShellCatalog,
             L"Native catalog search",
@@ -110,6 +111,17 @@ namespace winforge::core::regex
             L"NativeSymbolsRegexBuilder",
             L"symbol glyph, English and Cantonese name, and category from the static local catalog",
             RegexSearchQueryPolicy::LocalCatalog,
+            RegexInvalidPatternPolicy::KeepPriorVisibleResults },
+        RegexSearchSurface{
+            RegexSearchSurfaceId::AppUninstallerCachedResults,
+            L"App Uninstaller cached results",
+            L"\u61C9\u7528\u7A0B\u5F0F\u79FB\u9664\u5DE5\u5177\u5DF2\u7DE9\u5B58\u7D50\u679C",
+            L"module.uninstall",
+            L"NativeAppUninstallerSearch",
+            L"NativeAppUninstallerRegexMode",
+            L"NativeAppUninstallerRegexBuilder",
+            L"cached Store/UWP display name, package identity, publisher, and family name",
+            RegexSearchQueryPolicy::LocalCachedResultsOnly,
             RegexInvalidPatternPolicy::KeepPriorVisibleResults },
     };
 

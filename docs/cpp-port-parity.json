@@ -28,7 +28,8 @@
                                       "src/WinForge.App/MainWindow.xaml.cpp",
                                       "tests/native/WinForge.Core.Tests/RegexCheatTests.cpp",
                                       "tests/native/WinForge.Core.Tests/RegexSearchTests.cpp",
-                                      "eng/native/Invoke-NativeShellSmoke.ps1"
+                                       "eng/native/Invoke-NativeShellSmoke.ps1",
+                                       "eng/native/Invoke-NativeAppUninstallerHeadlessSmoke.ps1"
                                   ],
                        "risk":  "safe",
                        "expected":  "About · 關於 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
@@ -6384,7 +6385,7 @@
                                       "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
                        "risk":  "stateful",
-                       "expected":  "Regex Tester & Builder · 正規表示式測試器同建立器 is a bounded native C++ PCRE2-16 wizard, reachable through its registered aliases and able to apply safely to the native Shell, All Apps, cached Package Discover, or tester-only mode.",
+                        "expected":  "Regex Tester & Builder is a bounded native C++ PCRE2-16 wizard, reachable through its registered aliases and able to apply safely to the native Shell, All Apps, cached Package Discover, Regex Cheatsheet, Symbols Palette, cached App Uninstaller, or tester-only mode.",
                        "status":  "in-progress",
                        "evidence":  {
                                         "static":  "pass",
@@ -6413,7 +6414,7 @@
                                             "status":  "capture-blocked"
                                         }
                                        ],
-                        "notes":  "2026-07-17 · IN PROGRESS / 進行中 solely because current visual capture is blocked. The four-target native wizard and bounded PCRE2 core pass build, core, launch, behavior, accessibility, cache-only/no-external-query, all-match, named-capture, replacement-preview, and clipping evidence. It exposes x/n flags, at most 100 non-overlapping matches, zero-length-safe progression, and the explicit local-only replacement subset $$, existing $0-$99, and ${name}; it does not claim full managed .NET regex/replacement parity. Package Discover still cannot retain stale non-Discover rows or send a regex to argv/HTTPS. LowLevel MCP 852x880 full-window and 836x841 client-only captures were blank and discarded. · 四個 target 嘅原生精靈同有界 PCRE2 core 已通過建置、核心、啟動、行為、無障礙、只限快取／無外部查詢、all-match、命名 capture、replacement preview 同 clipping 證據；只因目前視覺擷取受阻而保持進行中。佢提供 x/n 旗標、最多 100 個非重疊相符、零長度安全前進，同明確只限本機嘅 replacement 子集 $$、存在嘅 $0-$99 同 ${name}；唔聲稱完整受控 .NET regex／replacement 對等。Package Discover 仍然唔可以保留舊嘅非 Discover 資料列，亦唔會將 regex 傳去 argv／HTTPS。LowLevel MCP 852x880 full-window 同 836x841 client-only 擷取係空白並已丟棄。"
+                         "notes":  "2026-07-17 IN PROGRESS solely because fresh visual capture is blocked. The current native wizard has six searchable targets (Shell, All Apps, cached Package Discover, Regex Cheatsheet, Symbols Palette, cached App Uninstaller) plus tester-only mode; App Uninstaller is target index 5 and tester-only is 6. Debug and Release core each pass 417/417. Earlier 403/403 and 226/226 visible-shell text is historical, not current headless evidence. The LowLevel off-screen UI smoke is correctly blocked when the WinUI client frame stays blank and NativePageTitle is absent after 30 seconds; it never falls back to the visible desktop. Bounded PCRE2 remains local-only, rejects invalid Apply, and Package Discover never sends regex to argv or HTTPS. / 2026-07-17 目前原生 wizard 有六個 searchable target 加 tester-only；App Uninstaller index 5、tester-only index 6；Debug/Release core 各自 417/417。舊的 403/403 與 226/226 只屬歷史，headless UI 遇到空白 WinUI client frame 與缺少 NativePageTitle 時會如實受阻，絕不回退去可見桌面。"
                    },
                    {
                        "id":  "module.rename",
@@ -7708,29 +7709,39 @@
                        "notes":  "C++ parity evidence has not yet been recorded."
                    },
                    {
-                       "id":  "module.uninstall",
-                       "kind":  "route",
-                       "parentId":  null,
-                       "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
-                                  ],
-                       "risk":  "stateful",
-                       "expected":  "App Uninstaller · 應用程式解除安裝 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
-                       "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
-                                    },
-                       "attempts":  [
-
-                                    ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                     "id": "module.uninstall",
+                     "kind": "route",
+                     "parentId": null,
+                     "source": [
+                       "src/WinForge.App/Resources/modules.json",
+                       "src/WinForge.Core/AppUninstaller.h",
+                       "src/WinForge.Core/AppUninstaller.cpp",
+                       "src/WinForge.App/MainWindow.xaml.cpp",
+                        "eng/native/Invoke-NativeShellSmoke.ps1",
+                                       "eng/native/Invoke-NativeAppUninstallerSmoke.ps1",
+                                       "eng/native/Invoke-NativeAppUninstallerHeadlessSmoke.ps1"
+                     ],
+                     "risk": "stateful",
+                     "expected": "App Uninstaller · 應用程式解除安裝 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
+                     "status": "in-progress",
+                     "evidence": {
+                       "static": "pass",
+                       "build": "pass",
+                       "test": "pass",
+                       "launch": "pass",
+                       "visual": "capture-blocked",
+                       "behavior": "pass",
+                       "sideEffect": "pass",
+                       "docs": "pass"
+                     },
+                     "attempts": [
+                       {
+                          "atUtc": "2026-07-17T05:57:00Z",
+                          "result": "Native C++/WinRT App Uninstaller inventories current-user Store/UWP packages through PackageManager, excludes framework/resource packages, filters only the returned local cache with literal default or bounded PCRE2, retains visible results after invalid regex, supports Regex Builder return, and requires review plus a separate Confirm action before normal-integrity-gated RemovePackageAsync. Deep cleanup and all local-data deletion are intentionally unavailable. Debug and Release core suites each passed 417/417 including six focused App Uninstaller tests; the native Debug solution had zero warnings and zero errors; focused LowLevel UI Automation passed five safety, filtering, invalid-retention, and builder-handoff assertions. The post-hardening broad shell rerun timed out during unrelated checks and is not recorded as full-suite evidence. No focused smoke enumerated or removed a real package. CopyFromScreen was unavailable and PrintWindow was blank or near-uniform, so no PNG was retained.",
+                         "status": "capture-blocked"
+                       }
+                     ],
+                      "notes": "2026-07-17 IN PROGRESS because fresh visual capture is blocked and the migration remains incomplete. Native inventory, cache-only filtering, review/Confirm boundary, and normal-integrity gate are C++/WinRT/C++ only; no PowerShell, managed-process proxy, or external package manager is used. Deep cleanup is deliberately unavailable, so this slice never deletes local data. The focused smoke never mutates a real package. No stale, synthetic, blank, or managed image is used as native evidence."
                    },
                    {
                        "id":  "module.unitconvert",
