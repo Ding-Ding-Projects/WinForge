@@ -1,5 +1,11 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## Pending native Regex Tester integration · 待整合原生 Regex Tester
+
+`module.regextester` now enumerates at most **100** bounded non-overlapping matches, carries named capture metadata, safely advances zero-length matches under one shared deadline, and previews local replacement. The direct tester is case-sensitive by default; the builder carries PCRE2 `(x)`/`(n)` state to Shell, All Apps, cache-only Package Discover, and Regex Cheatsheet. Replacement is intentionally a local subset only: `$$`, existing `$0`–`$99`, and `${name}`; invalid replacement or the 32 KiB cap fails closed. Debug/Release each passed **403/403** and isolated LowLevel MCP headless UI Automation passed **226/226**. Inspected 852×880 full and 836×841 client frames were blank and discarded, so this is `capture-blocked`. The source-task commit and final remote `main` proof are pending; this entry will receive the verified IDs before cleanup.
+
+`module.regextester` 而家列舉最多 **100** 個有界非重疊相符、帶住命名 capture metadata、喺同一個 deadline 下安全處理零長度相符，並預覽本機 replacement。直接 Tester 預設 case-sensitive；builder 會將 PCRE2 `(x)`／`(n)` 狀態帶去 Shell、All Apps、只限快取嘅 Package Discover 同 Regex Cheatsheet。replacement 刻意只係本機子集：`$$`、存在嘅 `$0`–`$99` 同 `${name}`；無效 replacement 或 32 KiB cap 都會 fail closed。Debug／Release 都通過 **403/403**，isolated LowLevel MCP headless UI Automation 通過 **226/226**。檢查過嘅 852×880 full 同 836×841 client frame 係空白並已丟棄，所以係 `capture-blocked`。source-task commit 同最終 remote `main` 證明尚待完成；清理前會喺呢度填入已驗證 ID。
+
 ## Latest native continuation — 2026-07-16
 
 `module.regexcheat` is now a real C++/WinRT route with a pure-C++ 67-row/9-category bilingual reference catalog, eight copy-only ready-made patterns, default literal filtering, and an explicit bounded-PCRE2 local filter. It is the fourth registered native regex search surface and can round-trip a verified pattern through the full builder. .NET-only reference syntax remains documentation and never executes. Debug/Release native tests passed **395/395**, catalog parity passed 346 fixed routes plus five dynamic families, and isolated LowLevel MCP UI Automation passed **224/224**. The inspected 852×880 full and 836×841 client frames were blank, discarded, and recorded as `capture-blocked`; no stale or managed image is used as native evidence.

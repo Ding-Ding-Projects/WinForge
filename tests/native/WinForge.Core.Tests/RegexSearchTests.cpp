@@ -67,6 +67,86 @@ NativeTestCounts RunRegexSearchTests()
             && !expression.expression->FullMatch(L"foo-bar").matched,
         "Regex Search supports named backreferences");
 
+    RegexOptions extendedWhitespace;
+    extendedWhitespace.case_sensitive = true;
+    extendedWhitespace.ignore_pattern_whitespace = true;
+    expression = SafeRegex::Compile(L"Win Forge # trailing comment", extendedWhitespace);
+    suite.Expect(expression.Ok() && expression.expression->FullMatch(L"WinForge").matched,
+        "Regex Search supports bounded extended-whitespace matching");
+
+    RegexOptions noAutoCapture;
+    noAutoCapture.case_sensitive = true;
+    noAutoCapture.explicit_capture = true;
+    expression = SafeRegex::Compile(L"(Win)(?<name>Forge)", noAutoCapture);
+    captures = expression.Ok()
+        ? expression.expression->Search(L"WinForge", true)
+        : RegexMatchResult{};
+    suite.Expect(expression.Ok() && captures.matched && captures.captures.size() == 2
+            && captures.captures[1].name == L"name" && captures.captures[1].matched
+            && captures.captures[1].start == 3 && captures.captures[1].length == 5,
+        "Regex Search preserves named captures with explicit-capture mode");
+
+    RegexOptions matchSetOptions;
+    matchSetOptions.case_sensitive = true;
+    matchSetOptions.max_result_count = 4;
+    expression = SafeRegex::Compile(L"(?<word>[A-Za-z]+)", matchSetOptions);
+    auto matchSet = expression.Ok()
+        ? expression.expression->FindAll(L"one 2 two THREE", true)
+        : RegexFindAllResult{};
+    suite.Expect(expression.Ok() && matchSet.matches.size() == 3
+            && matchSet.matches[0].start == 0 && matchSet.matches[0].length == 3
+            && matchSet.matches[1].start == 6 && matchSet.matches[1].length == 3
+            && matchSet.matches[2].start == 10 && matchSet.matches[2].length == 5
+            && matchSet.matches[0].captures.size() == 2
+            && matchSet.matches[0].captures[1].name == L"word"
+            && !matchSet.result_limit_exceeded,
+        "Regex Search returns bounded all-match sets with named capture metadata");
+
+    expression = SafeRegex::Compile(L"(?=a)", matchSetOptions);
+    auto zeroLengthSet = expression.Ok()
+        ? expression.expression->FindAll(L"aa", true)
+        : RegexFindAllResult{};
+    suite.Expect(expression.Ok() && zeroLengthSet.matches.size() == 2
+            && zeroLengthSet.matches[0].start == 0 && zeroLengthSet.matches[0].length == 0
+            && zeroLengthSet.matches[1].start == 1 && zeroLengthSet.matches[1].length == 0,
+        "Regex Search advances safely after zero-length all-match results");
+
+    matchSetOptions.max_result_count = 2;
+    expression = SafeRegex::Compile(L"\\w", matchSetOptions);
+    auto cappedSet = expression.Ok()
+        ? expression.expression->FindAll(L"abc", false)
+        : RegexFindAllResult{};
+    suite.Expect(expression.Ok() && cappedSet.matches.size() == 2
+            && cappedSet.result_limit_exceeded,
+        "Regex Search stops all-match enumeration at its configured result cap");
+
+    expression = SafeRegex::Compile(L"(?<word>[a-z]+)", matchSetOptions);
+    auto replacement = expression.Ok()
+        ? expression.expression->ReplaceAll(L"ab cd", L"${word}-$0-$$-$1")
+        : RegexReplaceResult{};
+    suite.Expect(expression.Ok() && replacement.substitutions == 2
+            && replacement.output == L"ab-ab-$-ab cd-cd-$-cd"
+            && !replacement.invalid_replacement && !replacement.output_limit_exceeded,
+        "Regex Search previews bounded numbered named and literal-dollar replacements");
+
+    auto invalidReplacement = expression.Ok()
+        ? expression.expression->ReplaceAll(L"ab", L"$&")
+        : RegexReplaceResult{};
+    suite.Expect(expression.Ok() && invalidReplacement.invalid_replacement
+            && invalidReplacement.output.empty(),
+        "Regex Search rejects replacement syntax outside its explicit local subset");
+
+    RegexOptions replacementLimit;
+    replacementLimit.case_sensitive = true;
+    replacementLimit.max_replacement_output_length = 5;
+    expression = SafeRegex::Compile(L"a", replacementLimit);
+    auto outputLimitedReplacement = expression.Ok()
+        ? expression.expression->ReplaceAll(L"aaaa", L"xx")
+        : RegexReplaceResult{};
+    suite.Expect(expression.Ok() && outputLimitedReplacement.output_limit_exceeded
+            && outputLimitedReplacement.output.empty(),
+        "Regex Search rejects replacement previews beyond the output safety cap");
+
     expression = SafeRegex::Compile(L"(?>a|ab)c");
     suite.Expect(expression.Ok() && !expression.expression->FullMatch(L"abc").matched,
         "Regex Search keeps PCRE2 atomic-group semantics");

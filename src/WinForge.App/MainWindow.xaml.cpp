@@ -568,7 +568,9 @@ namespace winrt::WinForge::implementation
                 m_shellRegexCaseSensitive,
                 m_shellRegexMultiline,
                 m_shellRegexDotMatchesNewline,
-                diagnostic);
+                diagnostic,
+                m_shellRegexIgnorePatternWhitespace,
+                m_shellRegexExplicitCapture);
             static_cast<void>(expression);
             m_shellRegexDiagnostic = diagnostic;
             m_shellRegexStatus.Text(ToHString(diagnostic.empty()
@@ -598,7 +600,9 @@ namespace winrt::WinForge::implementation
                     m_shellRegexCaseSensitive,
                     m_shellRegexMultiline,
                     m_shellRegexDotMatchesNewline,
-                    diagnostic);
+                    diagnostic,
+                    m_shellRegexIgnorePatternWhitespace,
+                    m_shellRegexExplicitCapture);
                 static_cast<void>(expression);
             }
             m_shellRegexDiagnostic = diagnostic;
@@ -4466,6 +4470,8 @@ namespace winrt::WinForge::implementation
         m_packageDiscoverRegexEnabled = false;
         m_packageDiscoverRegexMultiline = false;
         m_packageDiscoverRegexDotMatchesNewline = false;
+        m_packageDiscoverRegexIgnorePatternWhitespace = false;
+        m_packageDiscoverRegexExplicitCapture = false;
         m_packageDiscoverRegexPattern.clear();
         m_packageDiscoverRegexDiagnostic.clear();
         ClearPackageSelection();
@@ -4531,6 +4537,12 @@ namespace winrt::WinForge::implementation
                     false);
                 m_packageDiscoverRegexDotMatchesNewline = root.GetNamedBoolean(
                     L"discoverRegexDotMatchesNewline",
+                    false);
+                m_packageDiscoverRegexIgnorePatternWhitespace = root.GetNamedBoolean(
+                    L"discoverRegexIgnorePatternWhitespace",
+                    false);
+                m_packageDiscoverRegexExplicitCapture = root.GetNamedBoolean(
+                    L"discoverRegexExplicitCapture",
                     false);
                 if (root.HasKey(L"discoverRegexPattern"))
                 {
@@ -4798,6 +4810,14 @@ namespace winrt::WinForge::implementation
                 L"discoverRegexDotMatchesNewline",
                 winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageDiscoverRegexDotMatchesNewline));
             root.SetNamedValue(
+                L"discoverRegexIgnorePatternWhitespace",
+                winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(
+                    m_packageDiscoverRegexIgnorePatternWhitespace));
+            root.SetNamedValue(
+                L"discoverRegexExplicitCapture",
+                winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(
+                    m_packageDiscoverRegexExplicitCapture));
+            root.SetNamedValue(
                 L"discoverRegexPattern",
                 winrt::Windows::Data::Json::JsonValue::CreateStringValue(
                     ToHString(m_packageDiscoverRegexPattern.substr(0, 512))));
@@ -4899,6 +4919,8 @@ namespace winrt::WinForge::implementation
             m_packageDiscoverRegexEnabled = false;
             m_packageDiscoverRegexMultiline = false;
             m_packageDiscoverRegexDotMatchesNewline = false;
+            m_packageDiscoverRegexIgnorePatternWhitespace = false;
+            m_packageDiscoverRegexExplicitCapture = false;
             m_packageDiscoverRegexPattern.clear();
             m_packageDiscoverRegexDiagnostic.clear();
             ClearPackageSelection();
@@ -6745,7 +6767,9 @@ namespace winrt::WinForge::implementation
                     m_packageSearchCaseSensitiveValue,
                     m_packageDiscoverRegexMultiline,
                     m_packageDiscoverRegexDotMatchesNewline,
-                    diagnostic);
+                    diagnostic,
+                    m_packageDiscoverRegexIgnorePatternWhitespace,
+                    m_packageDiscoverRegexExplicitCapture);
                 m_packageDiscoverRegexDiagnostic = diagnostic;
                 SavePackageManagerState();
                 if (!expression)
@@ -6789,7 +6813,9 @@ namespace winrt::WinForge::implementation
                     m_packageSearchCaseSensitiveValue,
                     m_packageDiscoverRegexMultiline,
                     m_packageDiscoverRegexDotMatchesNewline,
-                    diagnostic);
+                    diagnostic,
+                    m_packageDiscoverRegexIgnorePatternWhitespace,
+                    m_packageDiscoverRegexExplicitCapture);
                 m_packageDiscoverRegexDiagnostic = diagnostic;
                 SavePackageManagerState();
                 if (!expression)
@@ -6925,7 +6951,9 @@ namespace winrt::WinForge::implementation
                 m_packageSearchCaseSensitiveValue,
                 m_packageDiscoverRegexMultiline,
                 m_packageDiscoverRegexDotMatchesNewline,
-                diagnostic);
+                diagnostic,
+                m_packageDiscoverRegexIgnorePatternWhitespace,
+                m_packageDiscoverRegexExplicitCapture);
             m_packageDiscoverRegexDiagnostic = diagnostic;
             SavePackageManagerState();
             if (!expression)
@@ -7001,7 +7029,9 @@ namespace winrt::WinForge::implementation
                     m_packageSearchCaseSensitiveValue,
                     m_packageDiscoverRegexMultiline,
                     m_packageDiscoverRegexDotMatchesNewline,
-                    diagnostic);
+                    diagnostic,
+                    m_packageDiscoverRegexIgnorePatternWhitespace,
+                    m_packageDiscoverRegexExplicitCapture);
                 m_packageDiscoverRegexDiagnostic = diagnostic;
                 if (!expression)
                 {
@@ -8193,7 +8223,9 @@ namespace winrt::WinForge::implementation
                 m_packageSearchCaseSensitiveValue,
                 m_packageDiscoverRegexMultiline,
                 m_packageDiscoverRegexDotMatchesNewline,
-                diagnostic);
+                diagnostic,
+                m_packageDiscoverRegexIgnorePatternWhitespace,
+                m_packageDiscoverRegexExplicitCapture);
             m_packageDiscoverRegexDiagnostic = diagnostic;
             discoverRegexValid = static_cast<bool>(discoverExpression);
             if (m_packageDiscoverRegexStatus)
@@ -10032,7 +10064,9 @@ namespace winrt::WinForge::implementation
                 m_allAppsRegexCaseSensitive,
                 m_allAppsRegexMultiline,
                 m_allAppsRegexDotMatchesNewline,
-                diagnostic);
+                diagnostic,
+                m_allAppsRegexIgnorePatternWhitespace,
+                m_allAppsRegexExplicitCapture);
             m_allAppsRegexDiagnostic = diagnostic;
             if (!expression)
             {
@@ -10104,7 +10138,9 @@ namespace winrt::WinForge::implementation
                 m_shellRegexCaseSensitive,
                 m_shellRegexMultiline,
                 m_shellRegexDotMatchesNewline,
-                diagnostic);
+                diagnostic,
+                m_shellRegexIgnorePatternWhitespace,
+                m_shellRegexExplicitCapture);
             m_shellRegexDiagnostic = diagnostic;
 
             InfoBar regexStatus;
@@ -10372,7 +10408,9 @@ namespace winrt::WinForge::implementation
                 m_regexCheatRegexCaseSensitive,
                 m_regexCheatRegexMultiline,
                 m_regexCheatRegexDotMatchesNewline,
-                diagnostic);
+                diagnostic,
+                m_regexCheatRegexIgnorePatternWhitespace,
+                m_regexCheatRegexExplicitCapture);
             if (!expression)
             {
                 m_regexCheatRegexDiagnostic = diagnostic;
@@ -10516,21 +10554,29 @@ namespace winrt::WinForge::implementation
             m_regexBuilderCaseSensitive = m_shellRegexCaseSensitive;
             m_regexBuilderMultiline = m_shellRegexMultiline;
             m_regexBuilderDotMatchesNewline = m_shellRegexDotMatchesNewline;
+            m_regexBuilderIgnorePatternWhitespace = m_shellRegexIgnorePatternWhitespace;
+            m_regexBuilderExplicitCapture = m_shellRegexExplicitCapture;
             break;
         case RegexBuilderTarget::AllApps:
             m_regexBuilderCaseSensitive = m_allAppsRegexCaseSensitive;
             m_regexBuilderMultiline = m_allAppsRegexMultiline;
             m_regexBuilderDotMatchesNewline = m_allAppsRegexDotMatchesNewline;
+            m_regexBuilderIgnorePatternWhitespace = m_allAppsRegexIgnorePatternWhitespace;
+            m_regexBuilderExplicitCapture = m_allAppsRegexExplicitCapture;
             break;
         case RegexBuilderTarget::PackageDiscover:
             m_regexBuilderCaseSensitive = m_packageSearchCaseSensitiveValue;
             m_regexBuilderMultiline = m_packageDiscoverRegexMultiline;
             m_regexBuilderDotMatchesNewline = m_packageDiscoverRegexDotMatchesNewline;
+            m_regexBuilderIgnorePatternWhitespace = m_packageDiscoverRegexIgnorePatternWhitespace;
+            m_regexBuilderExplicitCapture = m_packageDiscoverRegexExplicitCapture;
             break;
         case RegexBuilderTarget::RegexCheatsheet:
             m_regexBuilderCaseSensitive = m_regexCheatRegexCaseSensitive;
             m_regexBuilderMultiline = m_regexCheatRegexMultiline;
             m_regexBuilderDotMatchesNewline = m_regexCheatRegexDotMatchesNewline;
+            m_regexBuilderIgnorePatternWhitespace = m_regexCheatRegexIgnorePatternWhitespace;
+            m_regexBuilderExplicitCapture = m_regexCheatRegexExplicitCapture;
             break;
         case RegexBuilderTarget::TesterOnly:
         default:
@@ -10558,15 +10604,65 @@ namespace winrt::WinForge::implementation
             return;
         }
 
+        if (m_regexBuilderPattern.empty())
+        {
+            auto const message = L"Enter a PCRE2 pattern to begin the bounded tester. / 請輸入 PCRE2 pattern 開始受限測試器。";
+            m_regexBuilderStatus.Text(message);
+            m_regexBuilderPreview.Text(L"No pattern: zero matches and no replacement preview. / 未輸入 pattern：0 個相符及沒有 replacement 預覽。");
+            AutomationProperties::SetName(m_regexBuilderStatus, message);
+            AutomationProperties::SetName(m_regexBuilderPreview, m_regexBuilderPreview.Text());
+            if (m_regexBuilderMatchSummary)
+            {
+                m_regexBuilderMatchSummary.Text(L"0 matches / 0 個相符");
+                AutomationProperties::SetName(m_regexBuilderMatchSummary, m_regexBuilderMatchSummary.Text());
+            }
+            if (m_regexBuilderMatchList)
+            {
+                m_regexBuilderMatchList.Children().Clear();
+            }
+            if (m_regexBuilderReplacementStatus)
+            {
+                m_regexBuilderReplacementStatus.Text(L"Replacement preview waits for a pattern. / replacement 預覽等待 pattern。 ");
+            }
+            if (m_regexBuilderReplacementPreview)
+            {
+                m_regexBuilderReplacementPreview.Text(L"");
+            }
+            if (m_regexBuilderApply)
+            {
+                m_regexBuilderApply.IsEnabled(false);
+            }
+            return;
+        }
+
         std::wstring diagnostic;
         auto const expression = CompileSearchRegex(
             m_regexBuilderPattern,
             m_regexBuilderCaseSensitive,
             m_regexBuilderMultiline,
             m_regexBuilderDotMatchesNewline,
-            diagnostic);
+            diagnostic,
+            m_regexBuilderIgnorePatternWhitespace,
+            m_regexBuilderExplicitCapture);
         if (!expression)
         {
+            if (m_regexBuilderMatchSummary)
+            {
+                m_regexBuilderMatchSummary.Text(L"Pattern needs correction before matches can be listed. / 請先修正 pattern 才可列出 match。 ");
+                AutomationProperties::SetName(m_regexBuilderMatchSummary, m_regexBuilderMatchSummary.Text());
+            }
+            if (m_regexBuilderMatchList)
+            {
+                m_regexBuilderMatchList.Children().Clear();
+            }
+            if (m_regexBuilderReplacementStatus)
+            {
+                m_regexBuilderReplacementStatus.Text(L"Replacement preview is paused until the pattern is valid. / pattern 有效前 replacement 預覽會暫停。 ");
+            }
+            if (m_regexBuilderReplacementPreview)
+            {
+                m_regexBuilderReplacementPreview.Text(L"");
+            }
             m_regexBuilderStatus.Text(ToHString(diagnostic));
             m_regexBuilderPreview.Text(L"Preview is paused until the pattern is valid. · 模式有效之前會暫停預覽。");
             AutomationProperties::SetName(m_regexBuilderStatus, ToHString(diagnostic));
@@ -10635,6 +10731,129 @@ namespace winrt::WinForge::implementation
         }
         m_regexBuilderPreview.Text(ToHString(preview.str()));
         AutomationProperties::SetName(m_regexBuilderPreview, ToHString(preview.str()));
+
+        auto const matchSet = expression->FindAll(m_regexBuilderTestText, true);
+        if (m_regexBuilderMatchList)
+        {
+            m_regexBuilderMatchList.Children().Clear();
+        }
+        auto const matchSetStopped = matchSet.resource_limit_exceeded
+            || matchSet.input_limit_exceeded
+            || matchSet.invalid_utf16
+            || matchSet.result_limit_exceeded;
+        if (matchSetStopped)
+        {
+            auto const message = L"Match set stopped safely: "
+                + (matchSet.diagnostic.empty()
+                    ? L"a configured regex safety limit was reached."
+                    : matchSet.diagnostic);
+            m_regexBuilderPreview.Text(ToHString(message));
+            AutomationProperties::SetName(m_regexBuilderPreview, ToHString(message));
+            if (m_regexBuilderMatchSummary)
+            {
+                m_regexBuilderMatchSummary.Text(ToHString(message));
+                AutomationProperties::SetName(m_regexBuilderMatchSummary, ToHString(message));
+            }
+            if (m_regexBuilderReplacementStatus)
+            {
+                m_regexBuilderReplacementStatus.Text(
+                    L"Replacement preview is withheld while the match set is capped or stopped safely. / match set 受限或安全停止時不會產生 replacement 預覽。 ");
+            }
+            if (m_regexBuilderReplacementPreview)
+            {
+                m_regexBuilderReplacementPreview.Text(L"");
+            }
+            return;
+        }
+
+        auto const matchSummary = std::to_wstring(matchSet.matches.size())
+            + L" non-overlapping match(es), bounded to 100. / "
+            + std::to_wstring(matchSet.matches.size()) + L" 個不重疊相符（最多 100 個）。";
+        m_regexBuilderPreview.Text(ToHString(matchSummary));
+        AutomationProperties::SetName(m_regexBuilderPreview, ToHString(matchSummary));
+        if (m_regexBuilderMatchSummary)
+        {
+            m_regexBuilderMatchSummary.Text(ToHString(matchSummary));
+            AutomationProperties::SetName(m_regexBuilderMatchSummary, ToHString(matchSummary));
+        }
+        if (m_regexBuilderMatchList)
+        {
+            for (std::size_t matchIndex = 0; matchIndex < matchSet.matches.size(); ++matchIndex)
+            {
+                auto const& occurrence = matchSet.matches[matchIndex];
+                std::wstringstream row;
+                row << L"Match " << (matchIndex + 1)
+                    << L": index " << occurrence.start
+                    << L", length " << occurrence.length;
+                bool hasCaptures{};
+                for (std::size_t captureIndex = 1;
+                     captureIndex < occurrence.captures.size();
+                     ++captureIndex)
+                {
+                    auto const& capture = occurrence.captures[captureIndex];
+                    if (!capture.matched)
+                    {
+                        continue;
+                    }
+                    row << (hasCaptures ? L"; " : L". Captures: ");
+                    row << (capture.name.empty()
+                        ? L"#" + std::to_wstring(captureIndex)
+                        : L"${" + capture.name + L"}");
+                    row << L" at " << capture.start << L", length " << capture.length;
+                    hasCaptures = true;
+                }
+                if (!hasCaptures && occurrence.captures.size() > 1)
+                {
+                    row << L". Captures: none participated.";
+                }
+                auto detail = CreateText(row.str(), 12);
+                AutomationProperties::SetAutomationId(
+                    detail,
+                    ToHString(L"NativeRegexMatch_" + std::to_wstring(matchIndex + 1)));
+                AutomationProperties::SetName(detail, ToHString(row.str()));
+                m_regexBuilderMatchList.Children().Append(detail);
+            }
+        }
+
+        auto const replacement = expression->ReplaceAll(
+            m_regexBuilderTestText,
+            m_regexBuilderReplacement);
+        if (m_regexBuilderReplacementPreview)
+        {
+            m_regexBuilderReplacementPreview.Text(ToHString(
+                replacement.output_limit_exceeded || replacement.invalid_replacement
+                    || replacement.resource_limit_exceeded || replacement.input_limit_exceeded
+                    || replacement.invalid_utf16 || replacement.result_limit_exceeded
+                    ? L""
+                    : replacement.output));
+            AutomationProperties::SetName(
+                m_regexBuilderReplacementPreview,
+                L"Local bounded replacement preview output / 本機受限 replacement 預覽輸出");
+        }
+        if (m_regexBuilderReplacementStatus)
+        {
+            std::wstring replacementStatus;
+            if (replacement.output_limit_exceeded || replacement.invalid_replacement
+                || replacement.resource_limit_exceeded || replacement.input_limit_exceeded
+                || replacement.invalid_utf16 || replacement.result_limit_exceeded)
+            {
+                replacementStatus = L"Replacement preview was not generated: "
+                    + (replacement.diagnostic.empty()
+                        ? L"a configured local safety or syntax rule was reached."
+                        : replacement.diagnostic);
+            }
+            else
+            {
+                replacementStatus = std::to_wstring(replacement.substitutions)
+                    + L" replacement substitution(s). Supports $$, $0-$99, and ${name}; local preview only. / "
+                    + std::to_wstring(replacement.substitutions)
+                    + L" 個 replacement；支援 $$、$0-$99 及 ${name}，只作本機預覽。";
+            }
+            m_regexBuilderReplacementStatus.Text(ToHString(replacementStatus));
+            AutomationProperties::SetName(
+                m_regexBuilderReplacementStatus,
+                ToHString(replacementStatus));
+        }
     }
 
     void MainWindow::ApplyRegexBuilderTarget()
@@ -10645,7 +10864,9 @@ namespace winrt::WinForge::implementation
             m_regexBuilderCaseSensitive,
             m_regexBuilderMultiline,
             m_regexBuilderDotMatchesNewline,
-            diagnostic);
+            diagnostic,
+            m_regexBuilderIgnorePatternWhitespace,
+            m_regexBuilderExplicitCapture);
         if (!expression)
         {
             // A builder target is stateful navigation. Never let an invalid
@@ -10673,6 +10894,8 @@ namespace winrt::WinForge::implementation
             m_shellRegexCaseSensitive = m_regexBuilderCaseSensitive;
             m_shellRegexMultiline = m_regexBuilderMultiline;
             m_shellRegexDotMatchesNewline = m_regexBuilderDotMatchesNewline;
+            m_shellRegexIgnorePatternWhitespace = m_regexBuilderIgnorePatternWhitespace;
+            m_shellRegexExplicitCapture = m_regexBuilderExplicitCapture;
             if (m_shellRegexMode) m_shellRegexMode.IsOn(true);
             if (m_search) m_search.Text(ToHString(m_regexBuilderPattern));
             Navigate(L"search", m_regexBuilderPattern);
@@ -10682,6 +10905,8 @@ namespace winrt::WinForge::implementation
             m_allAppsRegexCaseSensitive = m_regexBuilderCaseSensitive;
             m_allAppsRegexMultiline = m_regexBuilderMultiline;
             m_allAppsRegexDotMatchesNewline = m_regexBuilderDotMatchesNewline;
+            m_allAppsRegexIgnorePatternWhitespace = m_regexBuilderIgnorePatternWhitespace;
+            m_allAppsRegexExplicitCapture = m_regexBuilderExplicitCapture;
             m_allAppsSearchText = m_regexBuilderPattern;
             Navigate(L"shell.allapps");
             break;
@@ -10696,6 +10921,8 @@ namespace winrt::WinForge::implementation
             m_packageSearchCaseSensitiveValue = m_regexBuilderCaseSensitive;
             m_packageDiscoverRegexMultiline = m_regexBuilderMultiline;
             m_packageDiscoverRegexDotMatchesNewline = m_regexBuilderDotMatchesNewline;
+            m_packageDiscoverRegexIgnorePatternWhitespace = m_regexBuilderIgnorePatternWhitespace;
+            m_packageDiscoverRegexExplicitCapture = m_regexBuilderExplicitCapture;
             m_packageDiscoverRegexPattern = m_regexBuilderPattern;
             m_packageView = static_cast<int32_t>(winforge::core::packages::PackageView::Discover);
             m_packageRetainCachedResultsOnNextRender = retainCachedDiscover;
@@ -10708,6 +10935,8 @@ namespace winrt::WinForge::implementation
             m_regexCheatRegexCaseSensitive = m_regexBuilderCaseSensitive;
             m_regexCheatRegexMultiline = m_regexBuilderMultiline;
             m_regexCheatRegexDotMatchesNewline = m_regexBuilderDotMatchesNewline;
+            m_regexCheatRegexIgnorePatternWhitespace = m_regexBuilderIgnorePatternWhitespace;
+            m_regexCheatRegexExplicitCapture = m_regexBuilderExplicitCapture;
             m_regexCheatSearchText = m_regexBuilderPattern;
             Navigate(L"module.regexcheat");
             break;
@@ -10724,6 +10953,12 @@ namespace winrt::WinForge::implementation
             L"Regex Tester & Builder · 正規表示式測試器同建立器",
             L"A full four-step native PCRE2-16 wizard: choose a registered search target and flags, start from escaped recipes or tokens, compose groups/alternatives/assertions/quantifiers, then test captures and apply only a valid pattern. Advanced pattern editing stays available throughout. No JIT is used; patterns and matches have strict interactive limits. · 完整四步原生 PCRE2-16 精靈：揀已登記搜尋目標同旗標、由已 escape recipe 或 token 開始、建立 group／alternative／assertion／quantifier，之後測試擷取，只會套用有效模式；全程都可以直接編輯進階模式。唔用 JIT，模式同符合有嚴格互動限制。");
         AutomationProperties::SetAutomationId(page, L"NativeRegexTesterPage");
+        m_regexBuilderTestTextBox = nullptr;
+        m_regexBuilderReplacementBox = nullptr;
+        m_regexBuilderMatchSummary = nullptr;
+        m_regexBuilderMatchList = nullptr;
+        m_regexBuilderReplacementPreview = nullptr;
+        m_regexBuilderReplacementStatus = nullptr;
 
         InfoBar safety;
         safety.IsOpen(true);
@@ -10821,6 +11056,16 @@ namespace winrt::WinForge::implementation
                 m_regexBuilderDotMatchesNewline,
                 [this](bool value) { m_regexBuilderDotMatchesNewline = value; RefreshRegexTesterPreview(); },
                 L"NativeRegexBuilderDotAll");
+            addFlag(
+                L"Ignore pattern whitespace (x) / 忽略 pattern 空白 (x)",
+                m_regexBuilderIgnorePatternWhitespace,
+                [this](bool value) { m_regexBuilderIgnorePatternWhitespace = value; RefreshRegexTesterPreview(); },
+                L"NativeRegexBuilderIgnorePatternWhitespace");
+            addFlag(
+                L"Named captures only (n) / 只保留命名 capture (n)",
+                m_regexBuilderExplicitCapture,
+                [this](bool value) { m_regexBuilderExplicitCapture = value; RefreshRegexTesterPreview(); },
+                L"NativeRegexBuilderExplicitCapture");
         }
         else if (m_regexBuilderStep == 1)
         {
@@ -11169,6 +11414,26 @@ namespace winrt::WinForge::implementation
                 RefreshRegexTesterPreview();
             });
             stepContent.Children().Append(m_regexBuilderTestTextBox);
+
+            m_regexBuilderReplacementBox = TextBox();
+            m_regexBuilderReplacementBox.Header(box_value(
+                L"Replacement preview ($$, $0-$99, ${name}) / ??? preview"));
+            m_regexBuilderReplacementBox.PlaceholderText(
+                L"For example: ${name}-$1-$$ (local preview only)");
+            m_regexBuilderReplacementBox.Text(ToHString(m_regexBuilderReplacement));
+            m_regexBuilderReplacementBox.TextWrapping(TextWrapping::Wrap);
+            AutomationProperties::SetAutomationId(
+                m_regexBuilderReplacementBox,
+                L"NativeRegexReplacementInput");
+            AutomationProperties::SetName(
+                m_regexBuilderReplacementBox,
+                L"Local bounded regex replacement preview input / 本機受限 regex replacement 預覽輸入");
+            m_regexBuilderReplacementBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                m_regexBuilderReplacement = ToWide(sender.as<TextBox>().Text());
+                RefreshRegexTesterPreview();
+            });
+            stepContent.Children().Append(m_regexBuilderReplacementBox);
         }
         page.Children().Append(stepContent);
 
@@ -11184,6 +11449,47 @@ namespace winrt::WinForge::implementation
         m_regexBuilderPreview.TextWrapping(TextWrapping::Wrap);
         AutomationProperties::SetAutomationId(m_regexBuilderPreview, L"NativeRegexBuilderPreview");
         page.Children().Append(m_regexBuilderPreview);
+
+        m_regexBuilderMatchSummary = CreateText(L"", 12, true);
+        m_regexBuilderMatchSummary.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(
+            m_regexBuilderMatchSummary,
+            L"NativeRegexMatchSummary");
+        AutomationProperties::SetLiveSetting(
+            m_regexBuilderMatchSummary,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_regexBuilderMatchSummary);
+
+        m_regexBuilderMatchList = StackPanel();
+        m_regexBuilderMatchList.Spacing(4);
+        AutomationProperties::SetAutomationId(m_regexBuilderMatchList, L"NativeRegexMatchList");
+        page.Children().Append(m_regexBuilderMatchList);
+
+        m_regexBuilderReplacementStatus = CreateText(L"", 12, true);
+        m_regexBuilderReplacementStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(
+            m_regexBuilderReplacementStatus,
+            L"NativeRegexReplacementStatus");
+        AutomationProperties::SetLiveSetting(
+            m_regexBuilderReplacementStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_regexBuilderReplacementStatus);
+
+        m_regexBuilderReplacementPreview = TextBox();
+        m_regexBuilderReplacementPreview.Header(box_value(
+            L"Replacement preview output (local only) / replacement 預覽輸出（只限本機）"));
+        m_regexBuilderReplacementPreview.IsReadOnly(true);
+        m_regexBuilderReplacementPreview.AcceptsReturn(true);
+        m_regexBuilderReplacementPreview.TextWrapping(TextWrapping::Wrap);
+        m_regexBuilderReplacementPreview.MinHeight(84);
+        m_regexBuilderReplacementPreview.MaxHeight(180);
+        AutomationProperties::SetAutomationId(
+            m_regexBuilderReplacementPreview,
+            L"NativeRegexReplacementPreview");
+        AutomationProperties::SetName(
+            m_regexBuilderReplacementPreview,
+            L"Local bounded replacement preview output / 本機受限 replacement 預覽輸出");
+        page.Children().Append(m_regexBuilderReplacementPreview);
 
         StackPanel navigation;
         navigation.Orientation(Orientation::Vertical);
@@ -11315,12 +11621,16 @@ namespace winrt::WinForge::implementation
         bool caseSensitive,
         bool multiline,
         bool dotMatchesNewline,
-        std::wstring& diagnostic) const
+        std::wstring& diagnostic,
+        bool ignorePatternWhitespace,
+        bool explicitCapture) const
     {
         winforge::core::regex::RegexOptions options;
         options.case_sensitive = caseSensitive;
         options.multiline = multiline;
         options.dot_matches_newline = dotMatchesNewline;
+        options.ignore_pattern_whitespace = ignorePatternWhitespace;
+        options.explicit_capture = explicitCapture;
         auto compiled = winforge::core::regex::SafeRegex::Compile(pattern, options);
         if (compiled.Ok())
         {

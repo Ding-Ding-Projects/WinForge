@@ -662,16 +662,25 @@ Invoke-OwnedRoute -Route 'regextester' -ExpectedTitle 'Regex Tester & Builder' -
         'NativeRegexPattern',
         'NativeRegexStatus',
         'NativeRegexBuilderPreview',
+        'NativeRegexBuilderCaseSensitive',
+        'NativeRegexBuilderMultiline',
+        'NativeRegexBuilderDotAll',
+        'NativeRegexBuilderIgnorePatternWhitespace',
+        'NativeRegexBuilderExplicitCapture',
         'NativeRegexBuilderBack',
         'NativeRegexBuilderNext',
         'NativeRegexBuilderApply'
     )) {
         Wait-ForElement -Root $root -AutomationId $id | Out-Null
     }
-    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '(?<suite>WinForge)\s+Native' | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeRegexBuilderIgnorePatternWhitespace' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeRegexBuilderExplicitCapture' -IsOn $true | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '(?<suite> WinForge ) \s+ Native # extended whitespace' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexStatus' -Prefix 'PCRE2 pattern is valid' | Out-Null
     $stepOneFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexPattern'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderIgnorePatternWhitespace'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderExplicitCapture'),
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderBack'),
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderNext'),
         (Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderApply'))
@@ -729,10 +738,36 @@ Invoke-OwnedRoute -Route 'regextester' -ExpectedTitle 'Regex Tester & Builder' -
     Assert-True -Condition $stepThreeFits -Name 'Regex builder grouping-assertion-and-quantifier step is horizontally unclipped'
 
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderNext'
-    Wait-ForElement -Root $root -AutomationId 'NativeRegexTestInput' | Out-Null
-    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexTestInput' -Value 'WinForge Native' | Out-Null
-    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexBuilderPreview' -Prefix 'Match at' | Out-Null
-    Assert-True -Condition $true -Name 'Regex tester reports native named-capture match metadata'
+    foreach ($id in @(
+        'NativeRegexTestInput',
+        'NativeRegexReplacementInput',
+        'NativeRegexMatchSummary',
+        'NativeRegexReplacementPreview',
+        'NativeRegexReplacementStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexTestInput' -Value 'WinForge Native WinForge Native' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexMatchSummary' -Prefix '2 non-overlapping' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexMatch_1' -Prefix 'Match 1: index 0' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexReplacementInput' -Value '${suite}-$0-$$-$1' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexReplacementStatus' -Prefix '2 replacement substitution(s)' | Out-Null
+    $replacementPreview = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeRegexReplacementPreview')).Current.Value
+    Assert-True -Condition ($replacementPreview -eq 'WinForge-WinForge Native-$-WinForge WinForge-WinForge Native-$-WinForge') `
+        -Name 'Regex tester lists all named-capture matches and previews bounded replacements'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexReplacementInput' -Value '$&' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexReplacementStatus' -Prefix 'Replacement preview was not generated: Replacement supports only' | Out-Null
+    $invalidReplacementPreview = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeRegexReplacementPreview')).Current.Value
+    Assert-True -Condition ([string]::IsNullOrEmpty($invalidReplacementPreview)) `
+        -Name 'Regex tester rejects unsupported replacement syntax without applying it'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value 'a+' | Out-Null
+    $longRegexInput = ('a' * 8192) -join ''
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexTestInput' -Value $longRegexInput | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexReplacementInput' -Value '$0$0$0$0$0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexReplacementStatus' -Prefix 'Replacement preview was not generated: Replacement preview exceeded' | Out-Null
+    Assert-True -Condition $true -Name 'Regex tester enforces the replacement-output safety cap'
 
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexPattern' -Value '[' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexStatus' -Prefix 'Regex syntax needs correction' | Out-Null

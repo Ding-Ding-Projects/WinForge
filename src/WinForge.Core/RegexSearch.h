@@ -39,6 +39,10 @@ namespace winforge::core::regex
         bool case_sensitive{ false };
         bool multiline{ false };
         bool dot_matches_newline{ false };
+        // PCRE2 equivalents of .NET's IgnorePatternWhitespace and
+        // ExplicitCapture. Named captures remain available with the latter.
+        bool ignore_pattern_whitespace{ false };
+        bool explicit_capture{ false };
         std::size_t max_pattern_length{ 512 };
         std::size_t max_input_length{ 8 * 1024 };
         std::size_t max_parenthesis_nesting{ 64 };
@@ -47,6 +51,8 @@ namespace winforge::core::regex
         std::uint32_t depth_limit{ 1'000 };
         std::uint32_t heap_limit_kib{ 1'024 };
         std::uint32_t match_timeout_ms{ 10 };
+        std::size_t max_result_count{ 100 };
+        std::size_t max_replacement_output_length{ 32 * 1024 };
     };
 
     struct RegexCapture
@@ -54,6 +60,7 @@ namespace winforge::core::regex
         bool matched{ false };
         std::size_t start{};
         std::size_t length{};
+        std::wstring name{};
     };
 
     struct RegexMatchResult
@@ -63,6 +70,42 @@ namespace winforge::core::regex
         bool resource_limit_exceeded{ false };
         bool invalid_utf16{ false };
         std::vector<RegexCapture> captures{};
+        std::wstring diagnostic{};
+    };
+
+    // A bounded all-match result for the native tester. Captures include
+    // group zero so the renderer can report a stable match span, and each
+    // named capture carries its PCRE2 group name without exposing test text.
+    struct RegexOccurrence
+    {
+        std::size_t start{};
+        std::size_t length{};
+        std::vector<RegexCapture> captures{};
+    };
+
+    struct RegexFindAllResult
+    {
+        bool input_limit_exceeded{ false };
+        bool resource_limit_exceeded{ false };
+        bool invalid_utf16{ false };
+        bool result_limit_exceeded{ false };
+        std::vector<RegexOccurrence> matches{};
+        std::wstring diagnostic{};
+    };
+
+    // Replacement previews intentionally support only a small explicit
+    // dialect: $$, $0..$99 (when that numbered group exists), and ${name}
+    // for a known named capture. They never alter a target search surface.
+    struct RegexReplaceResult
+    {
+        bool input_limit_exceeded{ false };
+        bool resource_limit_exceeded{ false };
+        bool invalid_utf16{ false };
+        bool result_limit_exceeded{ false };
+        bool output_limit_exceeded{ false };
+        bool invalid_replacement{ false };
+        std::size_t substitutions{};
+        std::wstring output{};
         std::wstring diagnostic{};
     };
 
@@ -85,6 +128,12 @@ namespace winforge::core::regex
         [[nodiscard]] RegexMatchResult FullMatch(
             std::wstring_view text,
             bool include_captures = false) const;
+        [[nodiscard]] RegexFindAllResult FindAll(
+            std::wstring_view text,
+            bool include_captures = true) const;
+        [[nodiscard]] RegexReplaceResult ReplaceAll(
+            std::wstring_view text,
+            std::wstring_view replacement) const;
 
     private:
         explicit SafeRegex(std::shared_ptr<RegexProgram const> program);
