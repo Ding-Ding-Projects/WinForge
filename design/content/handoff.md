@@ -6,6 +6,12 @@
 
 `module.regexcheat` 而家係真正嘅 C++/WinRT route，有純 C++ 67 項／9 分類雙語參考、八個只可明確複製嘅現成模式、預設 literal 篩選同明確啟用嘅 bounded-PCRE2 本機篩選。佢係第四個已註冊 native regex search surface，亦可以同完整 builder round-trip 已驗證嘅模式。.NET 專用語法只係文件，唔會執行。Debug/Release **395/395**、catalog parity 同隔離 LowLevel MCP UI Automation **224/224** 都通過；852×880 full 同 836×841 client frame 空白、已丟棄，狀態係 `capture-blocked`。
 
+### Git integration proof · Git 整合證明
+
+The native Regex Cheatsheet task commit `24f32ba85eade7244dc839760807ea3ea3d1a5d9` was merged into `main` as `2872b234022188d70f250fdbae3d78a740f68fa8`. After fetching, both that task commit and the remote feature-branch tip were proven ancestors of `origin/main`; `AGENTS.md`, the handoff records, native sources/tests, parity ledger, and wiki/Page mirrors were confirmed in the remote main tree before cleanup.
+
+原生 Regex Cheatsheet task commit `24f32ba85eade7244dc839760807ea3ea3d1a5d9` 已經以 `2872b234022188d70f250fdbae3d78a740f68fa8` 合併入 `main`。fetch 後已證明 task commit 同 remote feature-branch tip 都係 `origin/main` 嘅 ancestor；清理前亦已確認 `AGENTS.md`、handoff records、原生 sources／tests、parity ledger 同 wiki／Pages mirrors 都喺 remote main tree。
+
 A complete map of every module/feature: what it does, how to open it, the page + service files, and the
 **real engine it wraps**. WinForge is a bilingual (English + 粵語) WinUI 3 / .NET 11 suite for Windows 11.
 **No redirects** — every shipping feature runs in-app and wraps a real engine/API. A genuine C++20/C++/WinRT rewrite now lives beside this managed oracle; its foundation is routable and verified, but feature parity remains evidence-gated and is not yet claimed.
