@@ -767,6 +767,72 @@ Invoke-OwnedRoute -Route 'regextester' -ExpectedTitle 'Regex Tester & Builder' -
         -Name 'Regex builder applies its pattern and flags to the selected native All Apps target'
 }
 
+Invoke-OwnedRoute -Route 'regexcheat' -ExpectedTitle 'Regex Cheatsheet' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeRegexCheatSafety',
+        'NativeRegexCheatSearchBox',
+        'NativeRegexCheatRegexMode',
+        'NativeRegexCheatCategory',
+        'NativeRegexCheatRegexBuilder',
+        'NativeRegexCheatRegexStatus',
+        'NativeRegexCheatResultCount',
+        'NativeRegexCheatEntryList',
+        'NativeRegexCheatRecipeList',
+        'NativeRegexCheatCopyRecipe_email',
+        'NativeRegexCheatCopyStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexCheatResultCount' -Prefix '67 of 67' | Out-Null
+    Assert-True -Condition $true -Name 'Regex Cheatsheet exposes the complete local native reference and copy-only recipes'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexCheatSearchBox' -Value 'atomic' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatCopyEntry_atomic' | Out-Null
+    $category = Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatCategory'
+    Select-ComboIndex -Combo $category -Index 3
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexCheatResultCount' -Prefix '1 of 67' | Out-Null
+    Assert-True -Condition $true -Name 'Regex Cheatsheet literal filtering intersects the Quantifiers category without executing a reference token'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeRegexCheatRegexMode' -IsOn $true | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexCheatSearchBox' -Value '^\(\?>a\*\)$' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatCopyEntry_atomic' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexCheatRegexStatus' -Prefix 'PCRE2 local reference filter is active' | Out-Null
+    Assert-True -Condition $true -Name 'Regex Cheatsheet evaluates an explicit PCRE2 filter only against static local reference fields'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexCheatSearchBox' -Value '[' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexCheatRegexStatus' -Prefix 'Invalid PCRE2 filter' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatCopyEntry_atomic' | Out-Null
+    Assert-True -Condition $true -Name 'Regex Cheatsheet retains the previous visible rows while an invalid PCRE2 filter is corrected'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeRegexCheatSearchBox' -Value '^\(\?>a\*\)$' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexCheatCopyEntry_atomic'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRegexCheatCopyStatus' -Prefix 'Reference token copied' | Out-Null
+    Assert-True -Condition $true -Name 'Regex Cheatsheet writes to the clipboard only after an explicit Copy token action'
+
+    $cheatControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatSearchBox'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatRegexMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatCategory'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatRegexBuilder'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatRegexStatus'))
+    Assert-True -Condition $cheatControlsFit -Name 'Regex Cheatsheet search and builder controls are horizontally unclipped'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexCheatRegexBuilder'
+    Wait-ForPageTitle -Root $root -Prefix 'Regex Tester & Builder' | Out-Null
+    $target = Wait-ForElement -Root $root -AutomationId 'NativeRegexBuilderTarget'
+    Select-ComboIndex -Combo $target -Index 3
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRegexBuilderApply'
+    Wait-ForPageTitle -Root $root -Prefix 'Regex Cheatsheet' | Out-Null
+    $cheatMode = Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatRegexMode'
+    $cheatToggle = [System.Windows.Automation.TogglePattern]$cheatMode.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $cheatValue = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativeRegexCheatSearchBox')).Current.Value
+    Assert-True -Condition ($cheatToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and $cheatValue -eq '^\(\?>a\*\)$') `
+        -Name 'Regex builder applies a verified pattern and flags to the native Cheatsheet local-only target'
+}
+
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 

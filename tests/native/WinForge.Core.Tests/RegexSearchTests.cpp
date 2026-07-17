@@ -137,12 +137,16 @@ NativeTestCounts RunRegexSearchTests()
     auto const& shellSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::ShellCatalog);
     auto const& allAppsSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::AllApps);
     auto const& packageSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::PackageDiscoverCachedResults);
-    suite.Expect(surfaces.size() == 3
+    auto const& cheatSurface = RegexSearchSurfaceFor(RegexSearchSurfaceId::RegexCheatsheetEntries);
+    suite.Expect(surfaces.size() == 4
             && shellSurface.search_automation_id == L"NativeShellSearchBox"
             && allAppsSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults
             && packageSurface.query_policy == RegexSearchQueryPolicy::LocalCachedResultsOnly
-            && packageSurface.regex_mode_automation_id == L"NativePackageRegexMode",
-        "Regex search-surface contract covers every native search input and package local-only policy");
+            && packageSurface.regex_mode_automation_id == L"NativePackageRegexMode"
+            && cheatSurface.route == L"module.regexcheat"
+            && cheatSurface.query_policy == RegexSearchQueryPolicy::LocalCatalog
+            && cheatSurface.invalid_pattern_policy == RegexInvalidPatternPolicy::KeepPriorVisibleResults,
+        "Regex search-surface contract covers each implemented native filter and local-only policy");
 
     std::cout << "\nRegex Search tests: " << suite.counts.passed << " passed, "
         << suite.counts.failed << " failed\n";

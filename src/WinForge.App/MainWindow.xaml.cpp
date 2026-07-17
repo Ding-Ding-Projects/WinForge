@@ -8,6 +8,7 @@
 #include "CatalogLoader.h"
 #include "../WinForge.Core/PackageParsers.h"
 #include "../WinForge.Core/RegexBuilder.h"
+#include "../WinForge.Core/RegexCheat.h"
 #include "microsoft.ui.xaml.window.h"
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include <winrt/Windows.Data.Json.h>
@@ -908,6 +909,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.regextester")
         {
             RenderRegexTester();
+        }
+        else if (module->id == L"module.regexcheat")
+        {
+            RenderRegexCheatsheet();
         }
         else if (module->id == L"about")
         {
@@ -10156,6 +10161,345 @@ namespace winrt::WinForge::implementation
         ShowPage(page);
     }
 
+    void MainWindow::RenderRegexCheatsheet()
+    {
+        auto const pick = [this](std::wstring_view en, std::wstring_view zh)
+        {
+            return winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
+        };
+
+        auto page = CreatePage(
+            pick(L"Regex Cheatsheet", L"Regex 速查表"),
+            pick(
+                L"A native, local-only regex reference. Literal matching remains the default; enable Regex mode to filter the static reference catalog through the bounded PCRE2 layer, or hand a verified pattern to the full builder.",
+                L"呢個係原生、只讀本機嘅 regex 參考。預設用文字比對；開啟 Regex 模式先會用有嚴格限制嘅 PCRE2 篩選靜態參考內容，亦可以交畀完整建構精靈。"));
+        AutomationProperties::SetAutomationId(page, L"NativeRegexCheatPage");
+
+        InfoBar safety;
+        safety.IsOpen(true);
+        safety.IsClosable(false);
+        safety.Severity(InfoBarSeverity::Informational);
+        safety.Title(ToHString(pick(L"Reference-only and local", L"只作參考兼只喺本機運作")));
+        safety.Message(ToHString(pick(
+            L"Rows are copied only after an explicit action. Some entries document .NET-only syntax or replacement text; they are never executed here. Regex mode searches static text only and never reaches a command line, package engine, network, or process.",
+            L"只有明確按複製先會寫入剪貼簿。有啲項目係 .NET 專用語法或者取代文字，只作說明、唔會喺呢度執行。Regex 模式只會搜尋靜態文字，唔會交去命令列、套件引擎、網絡或者程序。")));
+        AutomationProperties::SetAutomationId(safety, L"NativeRegexCheatSafety");
+        page.Children().Append(safety);
+
+        m_regexCheatSearchBox = TextBox();
+        m_regexCheatSearchBox.Header(box_value(ToHString(pick(L"Find a token, description, example, or category", L"搵 token、說明、例子或者分類"))));
+        m_regexCheatSearchBox.PlaceholderText(ToHString(pick(L"Literal text by default; enable Regex mode for bounded PCRE2", L"預設文字搜尋；開 Regex 模式先用有嚴格限制嘅 PCRE2")));
+        m_regexCheatSearchBox.Text(ToHString(m_regexCheatSearchText));
+        AutomationProperties::SetAutomationId(m_regexCheatSearchBox, L"NativeRegexCheatSearchBox");
+        AutomationProperties::SetName(m_regexCheatSearchBox, ToHString(pick(L"Regex Cheatsheet local reference search", L"Regex 速查表本機參考搜尋")));
+        m_regexCheatSearchBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            m_regexCheatSearchText = ToWide(sender.as<TextBox>().Text());
+            RefreshRegexCheatsheetEntries();
+        });
+        page.Children().Append(m_regexCheatSearchBox);
+
+        m_regexCheatRegexMode = ToggleSwitch();
+        m_regexCheatRegexMode.Header(box_value(ToHString(pick(L"Regex mode (bounded PCRE2 local filter)", L"Regex 模式（有限制嘅 PCRE2 本機篩選）"))));
+        m_regexCheatRegexMode.IsOn(m_regexCheatRegexEnabled);
+        AutomationProperties::SetAutomationId(m_regexCheatRegexMode, L"NativeRegexCheatRegexMode");
+        m_regexCheatRegexMode.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            m_regexCheatRegexEnabled = sender.as<ToggleSwitch>().IsOn();
+            RefreshRegexCheatsheetEntries();
+        });
+        page.Children().Append(m_regexCheatRegexMode);
+
+        m_regexCheatCategoryPicker = ComboBox();
+        m_regexCheatCategoryPicker.Header(box_value(ToHString(pick(L"Reference category", L"參考分類"))));
+        ComboBoxItem allCategories;
+        allCategories.Content(box_value(ToHString(pick(L"All reference entries", L"全部參考項目"))));
+        m_regexCheatCategoryPicker.Items().Append(allCategories);
+        auto const categories = winforge::core::regex::RegexCheatCategories();
+        int32_t categoryIndex = 0;
+        for (std::size_t index = 0; index < categories.size(); ++index)
+        {
+            auto const& category = categories[index];
+            ComboBoxItem item;
+            item.Content(box_value(ToHString(pick(category.name_en, category.name_zh))));
+            m_regexCheatCategoryPicker.Items().Append(item);
+            if (category.key == m_regexCheatCategoryKey)
+            {
+                categoryIndex = static_cast<int32_t>(index + 1);
+            }
+        }
+        m_regexCheatCategoryPicker.SelectedIndex(categoryIndex);
+        AutomationProperties::SetAutomationId(m_regexCheatCategoryPicker, L"NativeRegexCheatCategory");
+        m_regexCheatCategoryPicker.SelectionChanged([this, categories](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            auto const index = sender.as<ComboBox>().SelectedIndex();
+            if (index <= 0 || static_cast<std::size_t>(index) > categories.size())
+            {
+                m_regexCheatCategoryKey.clear();
+            }
+            else
+            {
+                m_regexCheatCategoryKey = categories[static_cast<std::size_t>(index - 1)].key;
+            }
+            RefreshRegexCheatsheetEntries();
+        });
+        page.Children().Append(m_regexCheatCategoryPicker);
+
+        m_regexCheatRegexBuilder = Button();
+        m_regexCheatRegexBuilder.Content(box_value(ToHString(pick(L"Open full Regex Builder", L"開啟完整 Regex 建構精靈"))));
+        m_regexCheatRegexBuilder.HorizontalAlignment(HorizontalAlignment::Left);
+        m_regexCheatRegexBuilder.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(m_regexCheatRegexBuilder, L"NativeRegexCheatRegexBuilder");
+        AutomationProperties::SetName(m_regexCheatRegexBuilder, ToHString(pick(L"Open the full safe native regex builder for the Cheatsheet filter", L"為速查表篩選開啟完整而安全嘅原生 regex 建構精靈")));
+        m_regexCheatRegexBuilder.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            OpenRegexBuilder(RegexBuilderTarget::RegexCheatsheet, m_regexCheatSearchText);
+        });
+        page.Children().Append(m_regexCheatRegexBuilder);
+
+        m_regexCheatRegexStatus = CreateText(L"", 12);
+        m_regexCheatRegexStatus.TextWrapping(TextWrapping::Wrap);
+        m_regexCheatRegexStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_regexCheatRegexStatus, L"NativeRegexCheatRegexStatus");
+        AutomationProperties::SetLiveSetting(
+            m_regexCheatRegexStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_regexCheatRegexStatus);
+
+        m_regexCheatResultCount = CreateText(L"", 13, true);
+        AutomationProperties::SetAutomationId(m_regexCheatResultCount, L"NativeRegexCheatResultCount");
+        page.Children().Append(m_regexCheatResultCount);
+
+        m_regexCheatCopyStatus = CreateText(L"", 12);
+        m_regexCheatCopyStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_regexCheatCopyStatus, L"NativeRegexCheatCopyStatus");
+        AutomationProperties::SetLiveSetting(
+            m_regexCheatCopyStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_regexCheatCopyStatus);
+
+        auto referenceHeading = CreateText(pick(L"Reference entries", L"參考項目"), 20, true);
+        // StackPanel itself has no dependable UIA peer. Put the region's
+        // stable landmark on its exposed heading while the live rows remain
+        // in the adjacent panel.
+        AutomationProperties::SetAutomationId(referenceHeading, L"NativeRegexCheatEntryList");
+        page.Children().Append(referenceHeading);
+        m_regexCheatEntryList = StackPanel();
+        m_regexCheatEntryList.Spacing(12);
+        page.Children().Append(m_regexCheatEntryList);
+
+        auto recipeHeading = CreateText(pick(L"Ready-made patterns", L"現成配對模式"), 20, true);
+        AutomationProperties::SetAutomationId(recipeHeading, L"NativeRegexCheatRecipeList");
+        page.Children().Append(recipeHeading);
+        auto recipes = StackPanel();
+        recipes.Spacing(10);
+        for (auto const& recipe : winforge::core::regex::RegexCheatRecipes())
+        {
+            Border card;
+            card.Padding(Thickness{ 12, 10, 12, 10 });
+            card.Margin(Thickness{ 0, 0, 0, 2 });
+            StackPanel content;
+            content.Spacing(5);
+            content.Children().Append(CreateText(pick(recipe.name_en, recipe.name_zh), 15, true));
+            auto pattern = CreateText(recipe.pattern, 12);
+            pattern.FontFamily(Microsoft::UI::Xaml::Media::FontFamily(L"Consolas"));
+            content.Children().Append(pattern);
+            Button copy;
+            copy.Content(box_value(ToHString(pick(L"Copy pattern", L"複製模式"))));
+            copy.HorizontalAlignment(HorizontalAlignment::Left);
+            copy.Padding(Thickness{ 12, 6, 12, 6 });
+            AutomationProperties::SetAutomationId(copy, ToHString(L"NativeRegexCheatCopyRecipe_" + std::wstring(recipe.key)));
+            auto const copyName = pick(recipe.name_en, recipe.name_zh);
+            AutomationProperties::SetName(copy, ToHString(pick(L"Copy " + copyName + L" pattern", L"複製 " + copyName + L" 模式")));
+            copy.Click([this, value = std::wstring(recipe.pattern)](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                try
+                {
+                    Windows::ApplicationModel::DataTransfer::DataPackage package;
+                    package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                    package.SetText(ToHString(value));
+                    Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                    auto const message = winforge::core::LocalizedText{
+                        L"Pattern copied to clipboard.", L"模式已複製去剪貼簿。" }.Pick(m_language);
+                    if (m_regexCheatCopyStatus)
+                    {
+                        m_regexCheatCopyStatus.Text(ToHString(message));
+                        AutomationProperties::SetName(m_regexCheatCopyStatus, ToHString(message));
+                    }
+                }
+                catch (hresult_error const&)
+                {
+                    auto const message = winforge::core::LocalizedText{
+                        L"Clipboard is unavailable; nothing was copied.", L"剪貼簿暫時唔可用；未有複製任何內容。" }.Pick(m_language);
+                    if (m_regexCheatCopyStatus)
+                    {
+                        m_regexCheatCopyStatus.Text(ToHString(message));
+                        AutomationProperties::SetName(m_regexCheatCopyStatus, ToHString(message));
+                    }
+                }
+            });
+            content.Children().Append(copy);
+            card.Child(content);
+            recipes.Children().Append(card);
+        }
+        page.Children().Append(recipes);
+
+        ShowPage(page);
+        RefreshRegexCheatsheetEntries();
+    }
+
+    void MainWindow::RefreshRegexCheatsheetEntries()
+    {
+        if (!m_regexCheatEntryList || !m_regexCheatResultCount || !m_regexCheatRegexStatus)
+        {
+            return;
+        }
+
+        auto const pick = [this](std::wstring_view en, std::wstring_view zh)
+        {
+            return winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
+        };
+        auto query = std::wstring_view(m_regexCheatSearchText);
+        while (!query.empty() && std::iswspace(query.front())) query.remove_prefix(1);
+        while (!query.empty() && std::iswspace(query.back())) query.remove_suffix(1);
+
+        std::shared_ptr<winforge::core::regex::SafeRegex const> expression;
+        if (m_regexCheatRegexEnabled && !query.empty())
+        {
+            std::wstring diagnostic;
+            expression = CompileSearchRegex(
+                query,
+                m_regexCheatRegexCaseSensitive,
+                m_regexCheatRegexMultiline,
+                m_regexCheatRegexDotMatchesNewline,
+                diagnostic);
+            if (!expression)
+            {
+                m_regexCheatRegexDiagnostic = diagnostic;
+                auto const status = pick(
+                    L"Invalid PCRE2 filter; previous reference results remain visible. " + diagnostic,
+                    L"PCRE2 篩選式無效；會保留之前嘅參考結果。" + diagnostic);
+                m_regexCheatRegexStatus.Text(ToHString(status));
+                AutomationProperties::SetName(m_regexCheatRegexStatus, ToHString(status));
+                return;
+            }
+        }
+
+        m_regexCheatRegexDiagnostic.clear();
+        auto const status = m_regexCheatRegexEnabled
+            ? pick(
+                L"PCRE2 local reference filter is active with strict interactive safety limits.",
+                L"PCRE2 本機參考篩選已開啟，設有嚴格互動安全限制。")
+            : pick(
+                L"Literal local reference filter is active (case-insensitive).",
+                L"文字本機參考篩選已開啟（唔分大細楷）。");
+        m_regexCheatRegexStatus.Text(ToHString(status));
+        AutomationProperties::SetName(m_regexCheatRegexStatus, ToHString(status));
+
+        auto const matchesRegex = [expression](winforge::core::regex::RegexCheatEntry const& entry)
+        {
+            if (!expression)
+            {
+                return false;
+            }
+            auto const matches = [expression](std::wstring_view field)
+            {
+                return expression->Search(field).matched;
+            };
+            return matches(entry.token) || matches(entry.description_en) ||
+                matches(entry.description_zh) || matches(entry.example) ||
+                matches(entry.category_en) || matches(entry.category_zh);
+        };
+
+        m_regexCheatEntryList.Children().Clear();
+        std::size_t resultCount = 0;
+        for (auto const& entry : winforge::core::regex::RegexCheatEntries())
+        {
+            auto const categoryMatches = m_regexCheatCategoryKey.empty() ||
+                entry.category_key == m_regexCheatCategoryKey;
+            if (!categoryMatches)
+            {
+                continue;
+            }
+            auto const match = m_regexCheatRegexEnabled
+                ? (query.empty() || matchesRegex(entry))
+                : winforge::core::regex::RegexCheatMatchesLiteral(entry, m_regexCheatCategoryKey, query);
+            if (!match)
+            {
+                continue;
+            }
+
+            ++resultCount;
+            Border card;
+            card.Padding(Thickness{ 12, 10, 12, 10 });
+            card.Margin(Thickness{ 0, 0, 0, 2 });
+            StackPanel content;
+            content.Spacing(5);
+            auto token = CreateText(entry.token, 16, true);
+            token.FontFamily(Microsoft::UI::Xaml::Media::FontFamily(L"Consolas"));
+            content.Children().Append(token);
+            auto category = CreateText(pick(entry.category_en, entry.category_zh), 12, true);
+            category.Opacity(0.76);
+            content.Children().Append(category);
+            content.Children().Append(CreateText(pick(entry.description_en, entry.description_zh), 13));
+            auto example = CreateText(pick(L"Example: " + std::wstring(entry.example), L"例子：" + std::wstring(entry.example)), 12);
+            example.Opacity(0.82);
+            example.TextWrapping(TextWrapping::Wrap);
+            content.Children().Append(example);
+            Button copy;
+            copy.Content(box_value(ToHString(pick(L"Copy token", L"複製 token"))));
+            copy.HorizontalAlignment(HorizontalAlignment::Left);
+            copy.Padding(Thickness{ 12, 6, 12, 6 });
+            auto suffix = std::wstring(entry.token == L"(?>a*)" ? L"atomic" : AutomationKey(entry.token));
+            AutomationProperties::SetAutomationId(copy, ToHString(L"NativeRegexCheatCopyEntry_" + suffix));
+            AutomationProperties::SetName(copy, ToHString(pick(L"Copy regex reference token", L"複製 regex 參考 token")));
+            copy.Click([this, value = std::wstring(entry.token)](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                try
+                {
+                    Windows::ApplicationModel::DataTransfer::DataPackage package;
+                    package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                    package.SetText(ToHString(value));
+                    Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                    auto const message = winforge::core::LocalizedText{
+                        L"Reference token copied to clipboard.", L"參考 token 已複製去剪貼簿。" }.Pick(m_language);
+                    if (m_regexCheatCopyStatus)
+                    {
+                        m_regexCheatCopyStatus.Text(ToHString(message));
+                        AutomationProperties::SetName(m_regexCheatCopyStatus, ToHString(message));
+                    }
+                }
+                catch (hresult_error const&)
+                {
+                    auto const message = winforge::core::LocalizedText{
+                        L"Clipboard is unavailable; nothing was copied.", L"剪貼簿暫時唔可用；未有複製任何內容。" }.Pick(m_language);
+                    if (m_regexCheatCopyStatus)
+                    {
+                        m_regexCheatCopyStatus.Text(ToHString(message));
+                        AutomationProperties::SetName(m_regexCheatCopyStatus, ToHString(message));
+                    }
+                }
+            });
+            content.Children().Append(copy);
+            card.Child(content);
+            m_regexCheatEntryList.Children().Append(card);
+        }
+
+        auto const count = pick(
+            std::to_wstring(resultCount) + L" of " +
+                std::to_wstring(winforge::core::regex::RegexCheatEntries().size()) + L" reference rows",
+            L"共 " + std::to_wstring(resultCount) + L" / " +
+                std::to_wstring(winforge::core::regex::RegexCheatEntries().size()) + L" 項參考內容");
+        m_regexCheatResultCount.Text(ToHString(count));
+        AutomationProperties::SetName(m_regexCheatResultCount, ToHString(count));
+        if (resultCount == 0)
+        {
+            auto empty = CreateText(pick(L"No reference entries match the current local filter.", L"而家嘅本機篩選冇配對到參考項目。"), 14, true);
+            AutomationProperties::SetAutomationId(empty, L"NativeRegexCheatEmpty");
+            m_regexCheatEntryList.Children().Append(empty);
+        }
+    }
+
     void MainWindow::OpenRegexBuilder(RegexBuilderTarget target, std::wstring_view initialPattern)
     {
         // Cache retention belongs to a confirmed Package Discover target
@@ -10182,6 +10526,11 @@ namespace winrt::WinForge::implementation
             m_regexBuilderCaseSensitive = m_packageSearchCaseSensitiveValue;
             m_regexBuilderMultiline = m_packageDiscoverRegexMultiline;
             m_regexBuilderDotMatchesNewline = m_packageDiscoverRegexDotMatchesNewline;
+            break;
+        case RegexBuilderTarget::RegexCheatsheet:
+            m_regexBuilderCaseSensitive = m_regexCheatRegexCaseSensitive;
+            m_regexBuilderMultiline = m_regexCheatRegexMultiline;
+            m_regexBuilderDotMatchesNewline = m_regexCheatRegexDotMatchesNewline;
             break;
         case RegexBuilderTarget::TesterOnly:
         default:
@@ -10354,6 +10703,14 @@ namespace winrt::WinForge::implementation
             Navigate(L"module.packages", L"discover");
             break;
         }
+        case RegexBuilderTarget::RegexCheatsheet:
+            m_regexCheatRegexEnabled = true;
+            m_regexCheatRegexCaseSensitive = m_regexBuilderCaseSensitive;
+            m_regexCheatRegexMultiline = m_regexBuilderMultiline;
+            m_regexCheatRegexDotMatchesNewline = m_regexBuilderDotMatchesNewline;
+            m_regexCheatSearchText = m_regexBuilderPattern;
+            Navigate(L"module.regexcheat");
+            break;
         case RegexBuilderTarget::TesterOnly:
         default:
             RefreshRegexTesterPreview();
@@ -10406,7 +10763,10 @@ namespace winrt::WinForge::implementation
         target.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
         {
             m_regexBuilderTarget = static_cast<RegexBuilderTarget>(
-                std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 3));
+                std::clamp(
+                    sender.as<ComboBox>().SelectedIndex(),
+                    0,
+                    static_cast<int32_t>(winforge::core::regex::RegexSearchSurfaces().size())));
         });
         page.Children().Append(target);
 

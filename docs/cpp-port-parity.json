@@ -16,25 +16,41 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.Core/RegexCheat.h",
+                                      "src/WinForge.Core/RegexCheat.cpp",
+                                      "src/WinForge.Core/RegexSearch.h",
+                                      "src/WinForge.Core/RegexSearch.cpp",
+                                      "src/WinForge.Core/RegexSearchSurface.h",
+                                      "src/WinForge.Core/RegexBuilder.h",
+                                      "src/WinForge.Core/RegexBuilder.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "tests/native/WinForge.Core.Tests/RegexCheatTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/RegexSearchTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
                        "risk":  "safe",
                        "expected":  "About · 關於 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-16T00:00:00Z",
+                                           "result":  "Native C++ Regex Cheatsheet implemented as a real C++/WinRT route: immutable 67-row/9-category bilingual catalog, eight explicit Copy-only patterns, literal-default filtering, and opt-in bounded local PCRE2-16. Invalid filtering preserves prior visible results; the full builder round-trips a verified pattern to the fourth native regex surface. Debug and Release native tests each passed 395/395 (six focused Cheatsheet checks); catalog parity passed 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows; isolated LowLevel MCP UI Automation passed 224/224 including filtering, invalid retention, Copy feedback, builder handoff, accessibility, and horizontal bounds. The inspected 852x880 full and 836x841 client frames were blank, so temporary PNGs were discarded.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-16 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native page is pure C++ data and bounded local regex behavior; .NET-only syntax remains inert reference documentation and no process, network, or package-argument path exists. No stale, synthetic, blank, or managed image is used as native evidence."
                    },
                    {
                        "id":  "annoyances",

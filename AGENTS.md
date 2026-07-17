@@ -47,6 +47,11 @@ Read [`AGENT_MEMORY.md`](AGENT_MEMORY.md) before beginning or closing a task. It
 - **Visual changes require fresh evidence.** Launch every changed page with `.agents/skills/run-winforge/driver.ps1`, capture a high-detail current screenshot, inspect it, and replace the old canonical screenshot in `docs/` and any corresponding GitHub Pages/wiki image. Do not retain stale screenshots for a changed page. If capture is blocked, document the exact blocker in the task handoff and do not claim visual verification.
 - **Use a final documentation commit if needed.** If the functional implementation was already committed/pushed before docs or screenshots were refreshed, make and push a second bilingual documentation/screenshot commit; the task is not complete until both code and documentation are on `main`.
 
+## Persistent task memory
+
+- **Record every completed task in repository memory.** Before the task's final merge, update `handoff-summary.md` with the dated scope, validation evidence, exact visual-evidence disposition, and the commit/remote-integration state. Update the GitHub Pages handoff mirror at `design/content/handoff.md` whenever the record is useful to the published continuation handoff.
+- **Memory is part of the same delivery.** Stage, commit, push, merge, remote-verify, and preserve the task-memory update together with the task. A task is not handed off as complete while its repo memory is stale, only local, or not present on `origin/main`.
+
 ## Gotchas
 - `audioeditor`, `lightswitch`, and `timelens` were fixed after the original Omega audit; if one captures blank via the driver, rerun with a longer `-WaitMs`.
 - The current self-contained runtime has thrown `XamlParseException` for typed `NumberBox.Value`, `ToggleSwitch.IsOn`, and a reproduced `CheckBox.IsChecked` default. Move only a **reproduced** failing literal to code-behind after `InitializeComponent`, under the page's suppression/loading guard, then deep-link smoke-test the page; preserve bindings and do not mass-migrate passing numeric or CheckBox literals. `Test-WinForgeXamlLiteralSafety.ps1` protects the 16 migrated ToggleSwitch defaults, Markdown TOC's `IncludeH1Chk`, and the ten reproduced NumberBox defaults across Markdown TOC, Name Generator, Number Formatter, Scientific Notation, Subnet Calculator, and Unit Converter.

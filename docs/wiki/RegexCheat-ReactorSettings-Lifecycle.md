@@ -17,9 +17,15 @@ dotnet run --project tests/ReactorSettingsLifecycle.Tests -c Debug
 
 **粵語 —** 兩個專注 harness 都 3/3 通過。佢哋會證明 catalog／parser 正確同生命週期所屬，而唔會啟動反應堆、Home Assistant、Windows 連動或者真實關機路徑。Debug x64 solution build 以 0 errors 通過，XAML literal-safety guard 都通過。
 
+## Native C++ Regex Cheatsheet evidence · 原生 C++ Regex 速查表證據
+
+**EN —** The native `module.regexcheat` is a separate pure-C++/C++/WinRT slice, not a claim that every managed search field has already migrated. It contains 67 bilingual reference rows in nine categories, eight Copy-only patterns, literal-default filtering, and an explicit bounded-PCRE2 mode. Invalid patterns keep the prior visible results and the full builder can return a verified pattern to the fourth native regex target. .NET-only syntax is inert documentation only; no code, process, network, or package-argument path is exposed. Debug/Release native tests passed **395/395**, catalog parity passed 346 fixed routes plus five dynamic families, and isolated LowLevel MCP UI Automation passed **224/224**.
+
+**粵語 —** 原生 `module.regexcheat` 係一個獨立嘅純 C++／C++/WinRT 批次，唔係聲稱每個受控版搜尋欄都已經遷移。佢有 67 項、九個分類嘅雙語參考、八個 Copy-only 模式、literal 預設篩選，同明確啟用嘅有界 PCRE2 mode。無效模式會保留之前顯示嘅結果，完整 builder 可以將已驗證模式交返第四個原生 regex target。.NET 專用語法只係惰性文件；冇 code、process、network 或 package-argument 路徑。Debug／Release 原生測試係 **395/395**，catalog parity 通過 346 條固定 routes 同五組 dynamic families，而隔離 LowLevel MCP UI Automation 係 **224/224**。
+
 ## Launch and screenshots · 啟動同截圖
 
-**EN —** Fresh 15-second capture attempts for `regexcheat` and `reactorsettings` are `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable. No PNG was created or reused; both routes subsequently passed launch-only checks without a control action. The old Reactor Settings image was removed rather than claimed as current evidence.
+**EN —** The earlier managed 15-second capture attempts for `regexcheat` and `reactorsettings` remain `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable. The fresh 2026-07-16 native Regex Cheatsheet LowLevel MCP capture is also `capture-blocked`: its inspected 852×880 full window and 836×841 client frame were blank and discarded. No PNG was created or reused; UI Automation is behavioral/accessibility evidence, not visual verification. The old Reactor Settings image was removed rather than claimed as current evidence.
 
 **粵語 —** `regexcheat` 同 `reactorsettings` 新鮮 15 秒截圖嘗試都係 `capture-blocked`：`CopyFromScreen` 唔可用、`PrintWindow` fallback 係 uniform，而 graphics capture 亦唔可用。冇 PNG 產生或者重用；兩條 route 之後喺冇操作控制項下都通過 launch-only check。舊 Reactor Settings 圖片已移除，唔會當成最新證據。
 

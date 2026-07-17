@@ -15,6 +15,7 @@ namespace winforge::core::regex
         ShellCatalog = 0,
         AllApps,
         PackageDiscoverCachedResults,
+        RegexCheatsheetEntries,
     };
 
     enum class RegexSearchQueryPolicy : std::uint8_t
@@ -53,7 +54,7 @@ namespace winforge::core::regex
         RegexInvalidPatternPolicy invalid_pattern_policy;
     };
 
-    inline constexpr std::array<RegexSearchSurface, 3> kRegexSearchSurfaces{
+    inline constexpr std::array<RegexSearchSurface, 4> kRegexSearchSurfaces{
         RegexSearchSurface{
             RegexSearchSurfaceId::ShellCatalog,
             L"Native catalog search",
@@ -86,6 +87,17 @@ namespace winforge::core::regex
             L"NativePackageRegexBuilder",
             L"cached package name and id from the Discover result list",
             RegexSearchQueryPolicy::LocalCachedResultsOnly,
+            RegexInvalidPatternPolicy::KeepPriorVisibleResults },
+        RegexSearchSurface{
+            RegexSearchSurfaceId::RegexCheatsheetEntries,
+            L"Regex Cheatsheet reference filter",
+            L"Regex Cheatsheet 本機參考篩選",
+            L"module.regexcheat",
+            L"NativeRegexCheatSearchBox",
+            L"NativeRegexCheatRegexMode",
+            L"NativeRegexCheatRegexBuilder",
+            L"token, English and Cantonese descriptions, example, and category from the static local reference catalog",
+            RegexSearchQueryPolicy::LocalCatalog,
             RegexInvalidPatternPolicy::KeepPriorVisibleResults },
     };
 
