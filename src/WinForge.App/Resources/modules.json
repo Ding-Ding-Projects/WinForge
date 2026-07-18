@@ -1,13 +1,13 @@
 {
     "schemaVersion":  1,
-    "generatedAtUtc":  "2026-07-14T23:46:00.5662106Z",
-    "sourceCommit":  "a587208a04b3e5d4aae7ae9963daee5e4e8c465a",
+    "generatedAtUtc":  "2026-07-18T19:32:36.6611479Z",
+    "sourceCommit":  "af9e040891bea2ef17d51710064edd8f90328d20",
     "counts":  {
                    "routes":  346,
                    "registryEntries":  319,
                    "categories":  22,
                    "dynamicRouteFamilies":  5,
-                   "aliases":  805
+                   "aliases":  817
                },
     "routes":  [
                    {
@@ -3096,11 +3096,23 @@
                        "keywords":  "winget package install uninstall upgrade update scoop choco chocolatey pip python npm node dotnet tool powershell gallery psgallery pwsh pwsh7 psresource cargo rust bun javascript vcpkg dependencies unigetui discover installed bundle ubundle yaml xml export import batch select selected multi operations queue history output cancel retry ignored pin snooze sources buckets feeds repositories scheduler background automatic options per-package security provenance vendored 套件 安裝 更新 解除安裝 相依 清單 批次 多選 匯出 匯入 操作 佇列 歷史 輸出 取消 重試 忽略 釘選 暫停 來源 排程 背景 自動更新 選項 安全 上游 原始碼",
                        "aliases":  [
                                        "install",
+                                       "package-bundles",
                                        "package-discover",
+                                       "package-ignored",
                                        "package-installed",
+                                       "package-operations",
                                        "packages",
+                                       "packages-bundles",
                                        "packages-discover",
+                                       "package-settings",
+                                       "package-setup",
+                                       "packages-ignored",
                                        "packages-installed",
+                                       "packages-operations",
+                                       "package-sources",
+                                       "packages-settings",
+                                       "packages-setup",
+                                       "packages-sources",
                                        "packages-updates",
                                        "package-updates",
                                        "winget",
@@ -4969,7 +4981,7 @@
                               "initialStatus":  "not-started"
                           },
                           {
-                              "id":  "module.packages#(discover|updates|installed)",
+                              "id":  "module.packages#(discover|updates|installed|bundles|sources|ignored|setup|settings|operations)",
                               "kind":  "dynamic-route-family",
                               "expectedSurface":  "PackageManagerModule selected view",
                               "source":  [

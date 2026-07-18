@@ -8,7 +8,7 @@
                            "registryEntries":  319,
                            "categories":  22,
                            "dynamicRouteFamilies":  5,
-                           "aliases":  805
+                           "aliases":  817
                        },
     "routes":  [
                    {
@@ -43,7 +43,7 @@
                        "attempts":  [
                                        {
                                            "atUtc":  "2026-07-18T19:30:00Z",
-                                           "result":  "The dedicated native C++/WinRT About renderer is now represented by the central HasNativeRenderer contract instead of being inferred from catalog resolution. Debug core passed 439/439, catalog parity passed 346 fixed routes and five dynamic families, and the owned shell smoke launched the native About page. Earlier inspected native capture attempts remained blank, so no PNG is accepted.",
+                                           "result":  "The dedicated native C++/WinRT About renderer is now represented by the central HasNativeRenderer contract instead of being inferred from catalog resolution. Debug and Release core each passed 439/439, catalog parity passed 346 fixed routes and five dynamic families, and the 267/267 owned shell smoke launched the native About page. Earlier inspected native capture attempts remained blank, so no PNG is accepted.",
                                            "status":  "capture-blocked"
                                        }
                                     ],
@@ -54,15 +54,7 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json",
-                                      "src/WinForge.App/MainWindow.xaml.cpp",
-                                      "src/WinForge.Core/RouteIndex.h",
-                                      "src/WinForge.Core/RouteIndex.cpp",
-                                      "tests/native/WinForge.Core.Tests/main.cpp",
-                                      "eng/native/Invoke-NativeShellSmoke.ps1",
-                                      "docs/Native-Cpp-Rewrite.md",
-                                      "docs/wiki/Native-Cpp-Rewrite.md",
-                                      "design/content/wiki/Native-Cpp-Rewrite.md"
+                                      "src/WinForge.App/Resources/modules.json"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Debloat \u0026 Annoyances · 去煩擾 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
@@ -91,25 +83,21 @@
                                   ],
                        "risk":  "stateful",
                        "expected":  "Appearance \u0026 Personalisation · 外觀與個人化 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "in-progress",
+                       "status":  "not-started",
                        "evidence":  {
-                                        "static":  "pass",
-                                        "build":  "pass",
-                                        "test":  "pass",
-                                        "launch":  "pass",
-                                        "visual":  "capture-blocked",
-                                        "behavior":  "pass",
-                                        "sideEffect":  "pass",
-                                        "docs":  "pass"
+                                        "static":  "not-started",
+                                        "build":  "not-started",
+                                        "test":  "not-started",
+                                        "launch":  "not-started",
+                                        "visual":  "not-started",
+                                        "behavior":  "not-started",
+                                        "sideEffect":  "not-started",
+                                        "docs":  "not-started"
                                     },
                        "attempts":  [
-                                      {
-                                          "atUtc":  "2026-07-18T19:30:00Z",
-                                          "result":  "Dashboard has a dedicated C++/WinRT renderer and central renderer-contract entry. Debug core passed 439/439; owned UI Automation verified its bilingual title, canonical category routing, language rerender, and native launch. Current isolated native visual capture remains blank and is not accepted.",
-                                          "status":  "capture-blocked"
-                                      }
+
                                     ],
-                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because a trustworthy current native screenshot is unavailable."
+                       "notes":  "C++ parity evidence has not yet been recorded."
                    },
                    {
                        "id":  "apps",
@@ -191,25 +179,37 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "safe",
                        "expected":  "Dashboard · 概覽 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-18T19:30:00Z",
+                                          "result":  "Dashboard has a dedicated C++/WinRT renderer and central renderer-contract entry. Debug and Release core each passed 439/439; the 267/267 owned UI Automation campaign verified its bilingual title, canonical category routing, language rerender, and native launch. Current isolated native visual capture remains blank and is not accepted.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because a trustworthy current native screenshot is unavailable."
                    },
                    {
                        "id":  "devterminal",
@@ -6396,7 +6396,7 @@
                                       },
                                       {
                                           "atUtc":  "2026-07-18T19:30:00Z",
-                                          "result":  "Renderer accounting was repaired: module.regexcheat is now explicitly listed by HasNativeRenderer and All Apps distinguishes it from pending catalog routes. Debug core passed 439/439 and the broad owned shell rerun retained every Cheatsheet behavior check.",
+                                          "result":  "Renderer accounting was repaired: module.regexcheat is now explicitly listed by HasNativeRenderer and All Apps distinguishes it from pending catalog routes. Debug and Release core each passed 439/439 and the 267/267 broad owned shell rerun retained every Cheatsheet behavior check.",
                                           "status":  "capture-blocked"
                                       }
                                     ],
@@ -7870,7 +7870,7 @@
                        "attempts":  [
                                       {
                                           "atUtc":  "2026-07-18T19:30:00Z",
-                                          "result":  "A genuine standard-C++ chmod core and dedicated C++/WinRT renderer now preserve the managed 12-bit permission contract. Twenty focused tests cover formatting, managed Unicode trimming, strict octal/symbolic parsing, s/S/t/T semantics, and exhaustive round trips across all 4,096 modes; the aggregate Debug core passed 439/439. Fourteen owned UI Automation checks passed for the 0644 default, 6755 special bits, atomic invalid-input retention, explicit Copy, language-state retention, aliases, accessibility, and horizontal bounds. The requested LowLevel MCP launched an immutable 294-file runtime snapshot on a unique isolated desktop and resolved the exact 1320x880 WinUI window, but PrintWindow produced a uniform-white client and SwitchDesktop failed at High integrity with Win32 error 5. No visible-desktop fallback or input was used, and no rejected PNG was promoted.",
+                                          "result":  "A genuine standard-C++ chmod core and dedicated C++/WinRT renderer now preserve the managed 12-bit permission contract. Twenty focused tests cover formatting, managed Unicode trimming, strict octal/symbolic parsing, s/S/t/T semantics, and exhaustive round trips across all 4,096 modes; the aggregate Debug and Release core executables each passed 439/439. Fourteen chmod assertions passed inside the 267/267 owned UI Automation campaign for the 0644 default, 6755 special bits, atomic invalid-input retention, explicit Copy, language-state retention, aliases, accessibility, and horizontal bounds. The requested LowLevel MCP launched an immutable 294-file runtime snapshot on a unique isolated desktop and resolved the exact 1320x880 WinUI window, but PrintWindow produced a uniform-white client and SwitchDesktop failed at High integrity with Win32 error 5. No visible-desktop fallback or input was used, and no rejected PNG was promoted.",
                                           "status":  "capture-blocked"
                                       }
                                     ],
@@ -9068,7 +9068,7 @@
                                                  "status":  "pass"
                                              }
                                            ],
-                              "notes":  "2026-07-18 · IN PROGRESS / 進行中. The native shell and core register all nine selected views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations, including their singular/plural deep-link aliases. Debug core passed 439/439 and the broad owned UI Automation shell exercised deterministic selection and the guarded native surfaces for every view. Normal-integrity live external-query evidence remains blocked because this session is elevated, so no live-query pass is claimed. Fresh native visual evidence remains capture-blocked because hidden WinUI composition is blank and the requested LowLevel MCP cannot SwitchDesktop (Win32 error 5). Query results are read-only until explicit reviewed consent; unsafe or elevated mutations fail closed. · 原生 shell 同 core 已登記全部九個 view 及單數／複數 deep link；Debug core 439/439，同完整自有 UI Automation shell 都覆蓋確定 view 選擇同受保護控制。由於目前 session 已提升，唔會聲稱正常 integrity live query；無頭 WinUI composition 空白而 LowLevel MCP 亦因錯誤 5 未能 SwitchDesktop，所以視覺證據仍受阻。"
+                              "notes":  "2026-07-18 · IN PROGRESS / 進行中. The managed oracle, generated native catalog, native shell, and core register all nine selected views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations, including singular/plural deep links; the catalog now contains 817 aliases. Debug and Release core each passed 439/439, the managed package-manager routing suite passed 27/27, and the 267/267 owned UI Automation shell exercised deterministic selection and guarded surfaces for every view. Normal-integrity live external-query evidence remains blocked because this session is elevated, so no live-query pass is claimed. Fresh native visual evidence remains capture-blocked because hidden WinUI composition is blank and the requested LowLevel MCP cannot SwitchDesktop (Win32 error 5). Query results are read-only until explicit reviewed consent; unsafe or elevated mutations fail closed. · 受控基準、生成原生目錄、原生 shell 同 core 已登記全部九個 view、單數／複數 deep link 同 817 個 alias；Debug／Release core 各 439/439、受控 routing 27/27、自有 UI Automation 267/267。由於目前 session 已提升，唔會聲稱正常 integrity live query；無頭 WinUI composition 空白而 LowLevel MCP 亦因錯誤 5 未能 SwitchDesktop，所以視覺證據仍受阻。"
                           },
                           {
                               "id":  "search:\u003cquery\u003e",

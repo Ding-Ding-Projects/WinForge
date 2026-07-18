@@ -1460,6 +1460,30 @@ public sealed partial class MainWindow : Window
             case "packages-installed":
                 Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Installed));
                 break;
+            case "package-bundles":
+            case "packages-bundles":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Bundles));
+                break;
+            case "package-sources":
+            case "packages-sources":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Sources));
+                break;
+            case "package-ignored":
+            case "packages-ignored":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Ignored));
+                break;
+            case "package-setup":
+            case "packages-setup":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Setup));
+                break;
+            case "package-settings":
+            case "packages-settings":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Settings));
+                break;
+            case "package-operations":
+            case "packages-operations":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Operations));
+                break;
             case "adb":
             case "android":
                 Navigator.GoToModule?.Invoke("module.adb");
