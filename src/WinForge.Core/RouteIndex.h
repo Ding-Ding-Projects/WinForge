@@ -11,6 +11,10 @@
 
 namespace winforge::core
 {
+    // Central evidence-gated list of fixed routes with a dedicated native
+    // renderer. A route resolving through the catalog is not enough.
+    [[nodiscard]] bool HasNativeRenderer(std::wstring_view canonicalRoute);
+
     class RouteIndex
     {
     public:

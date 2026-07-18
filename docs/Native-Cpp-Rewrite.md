@@ -1,5 +1,13 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Current 2026-07-18 checkpoint / 2026-07-18 最新檢查點
+
+`module.unixperm` now has a dedicated genuine C++/WinRT renderer backed by `src/WinForge.Core/UnixPerm.*`. It preserves the managed 12-bit chmod model: `0644` default, owner/group/other read-write-execute bits, setuid/setgid/sticky, two-way octal and symbolic input, `s/S/t/T`, atomic invalid-input retention, and a preview-only `chmod` command. The command is never executed and clipboard access requires one of three explicit Copy actions. The 20 focused tests exhaustively round-trip all 4,096 modes; Debug and Release core each pass **439/439** and the owned UI Automation shell passes **267/267**, including 14 chmod checks. · `module.unixperm` 而家有專用真正 C++/WinRT renderer，由 `src/WinForge.Core/UnixPerm.*` 支援；完整保留受控 12-bit chmod 模型、`0644` 預設、全部權限／特殊位、雙向輸入、`s/S/t/T`、無效輸入原子保留同只預覽唔執行嘅指令。20 個專項測試窮舉全部 4,096 個模式；Debug 同 Release core 各 **439/439**，自有 UI Automation shell **267/267**，包括 14 個 chmod 檢查。
+
+Renderer accounting is now evidence-gated through `HasNativeRenderer`: exactly 18 fixed routes have dedicated native renderers. All Apps labels those routes “native implementation available” and leaves every other catalog route explicitly pending. The repaired ledger has **18 in-progress + 328 not-started** fixed routes; it restores About evidence, moves the misplaced Regex Cheatsheet evidence to `module.regexcheat`, and expands the Package Manager dynamic family to all nine native views. A resolved catalog route or pending page is never counted as ported. · renderer 計數而家由 `HasNativeRenderer` 證據 gate 控制：準確 18 條固定 route 有專用原生 renderer。All Apps 只對呢啲 route 顯示可用，其他仍明確待完成；修正後 ledger 係 **18 in-progress + 328 not-started**，亦修復 About／Regex Cheatsheet 證據位置同九個 Package Manager view。
+
+Required headless capture used the repo-local LowLevel MCP over a real stdio MCP 2025-11-25 handshake. It staged an immutable 294-file runtime, launched `unixperm` on a unique isolated desktop, and resolved the exact owned 1320×880 WinUI HWND. Independent inspection rejected the returned frame: its 22,657 sampled client pixels were all white with zero variance. `show_headless_desktop` then failed at already-High integrity with `SwitchDesktop` Win32 error 5; hidden XAML/UIA remained dormant. The visible Default desktop was never touched, no input was sent, and no canonical/wiki PNG was created or replaced. Visual evidence is therefore `capture-blocked`. · 必需無頭擷取已經用 repo 本機 LowLevel MCP 真正執行；準確視窗成功開啟同識別，但 client 全白，而 High integrity 下 `SwitchDesktop` 因 Win32 錯誤 5 失敗。冇使用可見 desktop，亦冇將空白圖當視覺證據，所以保持 `capture-blocked`。
+
 Current native correction — 2026-07-17: Debug and Release core each pass **417/417**. The active bounded-PCRE2 set has six surfaces: Shell, All Apps, cached Package Discover, Regex Cheatsheet, Symbols Palette, and cached App Uninstaller. App Uninstaller is builder target **5**; Tester-only is **6**. Older 403/403, 226/226, and four-surface prose below is historical, not current headless-only evidence. LowLevel off-screen WinUI capture remains blocked: the client frame is blank and `NativePageTitle` does not appear after 30 seconds; no visible-desktop fallback is used.
 
 目前原生更正 — 2026-07-17：Debug 與 Release core 各自 **417/417**；bounded-PCRE2 一共有六個 surface：Shell、All Apps、cached Package Discover、Regex Cheatsheet、Symbols Palette 同 cached App Uninstaller。App Uninstaller builder target 是 **5**，Tester-only 是 **6**。下面舊的 403/403、226/226 同四 surface 文字只屬歷史，不能當作 headless-only 目前證據。LowLevel off-screen WinUI client frame 仍然空白，30 秒後都冇 `NativePageTitle`；不會使用可見桌面回退。
@@ -79,11 +87,11 @@ The old 323-route smoke manifest omitted runtime-built category routes and Setti
 | Additional shell routes · 額外 shell 路線 | 5 |
 | Fixed routes · 固定路線 | **346** |
 | Dynamic route families · 動態路線組 | **5** |
-| Deep-link aliases · 深層連結別名 | **805** |
+| Deep-link aliases · 深層連結別名 | **817** |
 
-The dynamic families are `search:<query>`, `manual:<fragment>`, `module.<id>#<fragment>`, `module.packages#(discover|updates|installed)`, and `weblogin?url=<uri>`.
+The dynamic families are `search:<query>`, `manual:<fragment>`, `module.<id>#<fragment>`, `module.packages#(discover|updates|installed|bundles|sources|ignored|setup|settings|operations)`, and `weblogin?url=<uri>`.
 
-動態組係 `search:<query>`、`manual:<fragment>`、`module.<id>#<fragment>`、`module.packages#(discover|updates|installed)` 同 `weblogin?url=<uri>`。
+動態組係 `search:<query>`、`manual:<fragment>`、`module.<id>#<fragment>`、`module.packages#(discover|updates|installed|bundles|sources|ignored|setup|settings|operations)` 同 `weblogin?url=<uri>`。
 
 Four legacy process-launch aliases intentionally collide with canonical category ids. In-app `apps`, `launcher`, `taskbar`, and `vault` open their categories; `--page` preserves the managed mappings to App Uninstaller, Command Palette, Taskbar Tweaker, and WinForge Vault. Native core regressions lock both contexts down.
 

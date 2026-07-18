@@ -53,6 +53,12 @@ static void TrayViewDeepLinkRouting()
         (PackageManagerViewTarget.Discover, "discover", 0),
         (PackageManagerViewTarget.Updates, "updates", 1),
         (PackageManagerViewTarget.Installed, "installed", 2),
+        (PackageManagerViewTarget.Bundles, "bundles", 3),
+        (PackageManagerViewTarget.Sources, "sources", 4),
+        (PackageManagerViewTarget.Ignored, "ignored", 5),
+        (PackageManagerViewTarget.Setup, "setup", 6),
+        (PackageManagerViewTarget.Settings, "settings", 7),
+        (PackageManagerViewTarget.Operations, "operations", 8),
     };
 
     foreach (var (target, fragment, index) in cases)
@@ -62,7 +68,7 @@ static void TrayViewDeepLinkRouting()
         Equal(index, actual, "view index");
     }
 
-    Assert(!PackageManagerViewRouting.TryGetViewIndex("operations", out _), "unsupported view was accepted");
+    Assert(!PackageManagerViewRouting.TryGetViewIndex("unsupported", out _), "unsupported view was accepted");
     Assert(!PackageManagerViewRouting.TryGetViewIndex(null, out _), "empty view was accepted");
 }
 

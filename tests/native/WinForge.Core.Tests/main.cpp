@@ -160,6 +160,13 @@ int wmain(int argc, wchar_t** argv)
     Expect(resolvesTo(routeIndex.FindLaunch(L"taskbar"), L"module.taskbar-tweaker"), "deep-link taskbar preserves managed target");
     Expect(resolvesTo(routeIndex.FindLaunch(L"vault"), L"module.vault-volumes"), "deep-link vault preserves managed target");
     Expect(!routeIndex.FindLaunch(L"missing-route"), "unknown route stays unresolved");
+    Expect(winforge::core::HasNativeRenderer(L" module.unixperm ") &&
+        winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
+        winforge::core::HasNativeRenderer(L"shell.allapps"),
+        "native renderer contract identifies implemented fixed routes");
+    Expect(!winforge::core::HasNativeRenderer(L"module.slugify") &&
+        !winforge::core::HasNativeRenderer(L"settings"),
+        "native renderer contract keeps pending routes explicit");
 
     bool rejectedDuplicate = false;
     try

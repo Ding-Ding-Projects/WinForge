@@ -1,14 +1,14 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-16T18:10:58Z",
+    "generatedAtUtc":  "2026-07-18T19:30:00Z",
     "baselineCommit":  "16b9f9da779b67731eec587737b592d6ec8aa625",
     "baselineCounts":  {
                            "routes":  346,
                            "registryEntries":  319,
                            "categories":  22,
                            "dynamicRouteFamilies":  5,
-                           "aliases":  805
+                           "aliases":  817
                        },
     "routes":  [
                    {
@@ -17,19 +17,15 @@
                        "parentId":  null,
                        "source":  [
                                       "src/WinForge.App/Resources/modules.json",
-                                      "src/WinForge.Core/RegexCheat.h",
-                                      "src/WinForge.Core/RegexCheat.cpp",
-                                      "src/WinForge.Core/RegexSearch.h",
-                                      "src/WinForge.Core/RegexSearch.cpp",
-                                      "src/WinForge.Core/RegexSearchSurface.h",
-                                      "src/WinForge.Core/RegexBuilder.h",
-                                      "src/WinForge.Core/RegexBuilder.cpp",
                                       "src/WinForge.App/MainWindow.xaml.h",
                                       "src/WinForge.App/MainWindow.xaml.cpp",
-                                      "tests/native/WinForge.Core.Tests/RegexCheatTests.cpp",
-                                      "tests/native/WinForge.Core.Tests/RegexSearchTests.cpp",
-                                       "eng/native/Invoke-NativeShellSmoke.ps1",
-                                       "eng/native/Invoke-NativeAppUninstallerHeadlessSmoke.ps1"
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "safe",
                        "expected":  "About · 關於 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
@@ -46,12 +42,12 @@
                                     },
                        "attempts":  [
                                        {
-                                           "atUtc":  "2026-07-16T00:00:00Z",
-                                           "result":  "Native C++ Regex Cheatsheet implemented as a real C++/WinRT route: immutable 67-row/9-category bilingual catalog, eight explicit Copy-only patterns, literal-default filtering, and opt-in bounded local PCRE2-16. Invalid filtering preserves prior visible results; the full builder round-trips a verified pattern to the fourth native regex surface. Debug and Release native tests each passed 395/395 (six focused Cheatsheet checks); catalog parity passed 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows; isolated LowLevel MCP UI Automation passed 224/224 including filtering, invalid retention, Copy feedback, builder handoff, accessibility, and horizontal bounds. The inspected 852x880 full and 836x841 client frames were blank, so temporary PNGs were discarded.",
+                                           "atUtc":  "2026-07-18T19:30:00Z",
+                                           "result":  "The dedicated native C++/WinRT About renderer is now represented by the central HasNativeRenderer contract instead of being inferred from catalog resolution. Debug and Release core each passed 439/439, catalog parity passed 346 fixed routes and five dynamic families, and the 267/267 owned shell smoke launched the native About page. Earlier inspected native capture attempts remained blank, so no PNG is accepted.",
                                            "status":  "capture-blocked"
                                        }
                                     ],
-                       "notes":  "2026-07-16 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native page is pure C++ data and bounded local regex behavior; .NET-only syntax remains inert reference documentation and no process, network, or package-argument path exists. No stale, synthetic, blank, or managed image is used as native evidence."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. About is a dedicated bilingual native renderer with no mutation path. The Regex Cheatsheet evidence previously stored in this row was corrected into module.regexcheat. No stale, synthetic, blank, or managed image is used as native evidence."
                    },
                    {
                         "id":  "annoyances",
@@ -183,25 +179,37 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "safe",
                        "expected":  "Dashboard · 概覽 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-18T19:30:00Z",
+                                          "result":  "Dashboard has a dedicated C++/WinRT renderer and central renderer-contract entry. Debug and Release core each passed 439/439; the 267/267 owned UI Automation campaign verified its bilingual title, canonical category routing, language rerender, and native launch. Current isolated native visual capture remains blank and is not accepted.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because a trustworthy current native screenshot is unavailable."
                    },
                    {
                        "id":  "devterminal",
@@ -6348,25 +6356,51 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.Core/RegexCheat.h",
+                                      "src/WinForge.Core/RegexCheat.cpp",
+                                      "src/WinForge.Core/RegexSearch.h",
+                                      "src/WinForge.Core/RegexSearch.cpp",
+                                      "src/WinForge.Core/RegexSearchSurface.h",
+                                      "src/WinForge.Core/RegexBuilder.h",
+                                      "src/WinForge.Core/RegexBuilder.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "tests/native/WinForge.Core.Tests/RegexCheatTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/RegexSearchTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Regex Cheatsheet · 正則速查 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-16T00:00:00Z",
+                                          "result":  "Native C++ Regex Cheatsheet implemented as a real C++/WinRT route: immutable 67-row/9-category bilingual catalog, eight explicit Copy-only patterns, literal-default filtering, and opt-in bounded local PCRE2-16. Invalid filtering preserves prior visible results; the full builder round-trips a verified pattern to the fourth native regex surface. Debug and Release native tests each passed 395/395 (six focused Cheatsheet checks); catalog parity passed 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows; isolated LowLevel MCP UI Automation passed 224/224 including filtering, invalid retention, Copy feedback, builder handoff, accessibility, and horizontal bounds. The inspected 852x880 full and 836x841 client frames were blank, so temporary PNGs were discarded.",
+                                          "status":  "capture-blocked"
+                                      },
+                                      {
+                                          "atUtc":  "2026-07-18T19:30:00Z",
+                                          "result":  "Renderer accounting was repaired: module.regexcheat is now explicitly listed by HasNativeRenderer and All Apps distinguishes it from pending catalog routes. Debug and Release core each passed 439/439 and the 267/267 broad owned shell rerun retained every Cheatsheet behavior check.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. This evidence was moved from the accidentally overwritten About row. The native page is pure C++ data and bounded local regex behavior; .NET-only syntax remains inert reference documentation and no process, network, or package-argument path exists."
                    },
                    {
                        "id":  "module.regextester",
@@ -7798,25 +7832,49 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/UnixPermModule.xaml",
+                                      "Pages/UnixPermModule.xaml.cs",
+                                      "Services/UnixPermService.cs",
+                                      "src/WinForge.Core/UnixPerm.h",
+                                      "src/WinForge.Core/UnixPerm.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "tests/native/WinForge.Core.Tests/UnixPermTests.h",
+                                      "tests/native/WinForge.Core.Tests/UnixPermTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "README.md",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/features/crypto-passwords/unixperm.md",
+                                      "docs/wiki/Screenshots.md",
+                                      "design/content/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "chmod Calculator · chmod 計算機 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-18T19:30:00Z",
+                                          "result":  "A genuine standard-C++ chmod core and dedicated C++/WinRT renderer now preserve the managed 12-bit permission contract. Twenty focused tests cover formatting, managed Unicode trimming, strict octal/symbolic parsing, s/S/t/T semantics, and exhaustive round trips across all 4,096 modes; the aggregate Debug and Release core executables each passed 439/439. Fourteen chmod assertions passed inside the 267/267 owned UI Automation campaign for the 0644 default, 6755 special bits, atomic invalid-input retention, explicit Copy, language-state retention, aliases, accessibility, and horizontal bounds. The requested LowLevel MCP launched an immutable 294-file runtime snapshot on a unique isolated desktop and resolved the exact 1320x880 WinUI window, but PrintWindow produced a uniform-white client and SwitchDesktop failed at High integrity with Win32 error 5. No visible-desktop fallback or input was used, and no rejected PNG was promoted.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because a trustworthy native screenshot could not be captured headlessly. The page previews but never executes chmod; its only side effect is an operator-selected clipboard Copy. The rejected frame had 22,657 sampled client pixels, one color, zero standard deviation, and a zero non-white fraction."
                    },
                    {
                        "id":  "module.urltools",
@@ -8759,25 +8817,41 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.Core/RegexSearch.h",
+                                      "src/WinForge.Core/RegexSearch.cpp",
+                                      "src/WinForge.Core/RegexSearchSurface.h",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "safe",
                        "expected":  "All Apps · 所有 app is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-18T19:30:00Z",
+                                          "result":  "All Apps is explicitly covered by HasNativeRenderer and now labels every one of the 346 fixed catalog routes as either native implementation available or native implementation pending. Focused UI Automation confirmed module.unixperm is available and module.slugify remains pending; literal and bounded-PCRE2 filtering, invalid-regex retention, builder handoff, accessibility, clipping, and English rerender also pass. Current isolated native visual capture remains blank and is not accepted.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because a trustworthy current native screenshot is unavailable. Catalog resolution is no longer presented as implementation parity."
                    },
                    {
                        "id":  "system",
@@ -8959,7 +9033,7 @@
                               "notes":  "C++ parity evidence has not yet been recorded."
                           },
                           {
-                              "id":  "module.packages#(discover|updates|installed)",
+                              "id":  "module.packages#(discover|updates|installed|bundles|sources|ignored|setup|settings|operations)",
                               "kind":  "dynamic-route",
                               "parentId":  null,
                               "source":  [
@@ -8994,7 +9068,7 @@
                                                  "status":  "pass"
                                              }
                                            ],
-                              "notes":  "2026-07-13 · IN PROGRESS / 進行中. The native shell resolves package-discover, package-updates, and package-installed to the exact Discover, Updates, and Installed views; plural compatibility aliases are covered in the core suite. The expanded Debug and Release regression aggregates each pass 208/208 and retain every package alias assertion; the elevated process-owned UI Automation shell passes 46/46 and retains end-to-end deterministic selection for all three singular aliases plus fail-closed elevation behavior. Added checks belong to Check Digit and do not replace Package Manager evidence. Normal-integrity live external-query evidence remains blocked because Windows returned an elevated token for an interactive RunLevel=Limited task (`candidate smoke token is still elevated`), so no live-query pass is claimed. Fresh native visual evidence remains capture-blocked because CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI frame. Query results are read-only; install, update, uninstall, bulk actions, and operation coordination remain gated. · 三條套件 deep link 已準確開到 Discover／Updates／Installed；擴充後 Debug／Release 208/208 同提權 UI 46/46 通過，原有套件 alias 證據全部保留，新增檢查只屬檢查碼；但正常 integrity 外部查詢同視覺證據仍受阻，所有修改操作仍然鎖住。"
+                              "notes":  "2026-07-18 · IN PROGRESS / 進行中. The managed oracle, generated native catalog, native shell, and core register all nine selected views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations, including singular/plural deep links; the catalog now contains 817 aliases. Debug and Release core each passed 439/439, the managed package-manager routing suite passed 27/27, and the 267/267 owned UI Automation shell exercised deterministic selection and guarded surfaces for every view. Normal-integrity live external-query evidence remains blocked because this session is elevated, so no live-query pass is claimed. Fresh native visual evidence remains capture-blocked because hidden WinUI composition is blank and the requested LowLevel MCP cannot SwitchDesktop (Win32 error 5). Query results are read-only until explicit reviewed consent; unsafe or elevated mutations fail closed. · 受控基準、生成原生目錄、原生 shell 同 core 已登記全部九個 view、單數／複數 deep link 同 817 個 alias；Debug／Release core 各 439/439、受控 routing 27/27、自有 UI Automation 267/267。由於目前 session 已提升，唔會聲稱正常 integrity live query；無頭 WinUI composition 空白而 LowLevel MCP 亦因錯誤 5 未能 SwitchDesktop，所以視覺證據仍受阻。"
                           },
                           {
                               "id":  "search:\u003cquery\u003e",

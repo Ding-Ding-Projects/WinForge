@@ -2,10 +2,41 @@
 
 #include "CommandLine.h"
 
+#include <array>
 #include <stdexcept>
 
 namespace winforge::core
 {
+    bool HasNativeRenderer(std::wstring_view canonicalRoute)
+    {
+        constexpr std::array<std::wstring_view, 18> implemented{
+            L"dashboard",
+            L"shell.allapps",
+            L"about",
+            L"module.packages",
+            L"module.uninstall",
+            L"module.checkdigit",
+            L"module.binarytext",
+            L"module.base32",
+            L"module.caseconvert",
+            L"module.guidgen",
+            L"module.passgen",
+            L"module.passwordstrength",
+            L"module.uuidv7",
+            L"module.romannum",
+            L"module.unixperm",
+            L"module.regextester",
+            L"module.regexcheat",
+            L"module.symbols",
+        };
+        auto const normalized = NormalizeRouteKey(canonicalRoute);
+        for (auto const route : implemented)
+        {
+            if (normalized == route) return true;
+        }
+        return false;
+    }
+
     void RouteIndex::Rebuild(std::vector<ModuleRecord> const& records)
     {
         m_canonical.clear();

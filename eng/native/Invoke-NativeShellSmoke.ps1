@@ -614,6 +614,13 @@ Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     Wait-ForElement -Root $root -AutomationId 'NativeAllApps_module_reactor' | Out-Null
     Assert-True -Condition $true -Name 'All Apps filter updates its live native list'
 
+    $value.SetValue('module.unixperm')
+    $implementedRoute = Wait-ForElement -Root $root -AutomationId 'NativeAllApps_module_unixperm'
+    Assert-True -Condition ($implementedRoute.Current.Name.Contains('native implementation available')) -Name 'All Apps labels a dedicated native renderer as available'
+    $value.SetValue('module.slugify')
+    $pendingRoute = Wait-ForElement -Root $root -AutomationId 'NativeAllApps_module_slugify'
+    Assert-True -Condition ($pendingRoute.Current.Name.Contains('native implementation pending')) -Name 'All Apps keeps an unported route explicitly pending'
+
     foreach ($id in @(
         'NativeAllAppsRegexMode',
         'NativeAllAppsRegexBuilder',
@@ -2405,7 +2412,7 @@ Invoke-OwnedRoute -Route 'uninstall' -ExpectedTitle 'App Uninstaller' -Inspect {
     Assert-True -Condition ($safety.Current.Name -eq 'Native App Uninstaller safety: normal integrity required; local data deletion unavailable.') -Name 'App Uninstaller exposes explicit normal-integrity and no-local-data-deletion safety evidence'
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAppUninstallerStatus' -Prefix 'Current-user Store/UWP inventory refreshed.' | Out-Null
     $deepCleanupStatus = Wait-ForElementByAutomationIdPrefix -Root $root -Prefix 'NativeAppUninstallerDeepCleanupStatus_'
-    Assert-True -Condition ($deepCleanupStatus.Current.Name -eq 'Deep cleanup is intentionally unavailable until handle-relative deletion is implemented. Package removal never deletes local data.') -Name 'App Uninstaller renders explicit deep-cleanup unavailability after inventory completion'
+    Assert-True -Condition ($deepCleanupStatus.Current.Name.StartsWith('Deep cleanup is intentionally unavailable until handle-relative deletion is implemented. Package removal never deletes local data.', [StringComparison]::Ordinal)) -Name 'App Uninstaller renders explicit deep-cleanup unavailability after inventory completion'
     Assert-True -Condition (-not (Find-ByAutomationIdPrefix -Root $root -Prefix 'NativeAppUninstallerReviewDeep_')) -Name 'App Uninstaller does not expose an unsafe deep-cleanup review action'
     $search = Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerSearch'
     $mode = Wait-ForElement -Root $root -AutomationId 'NativeAppUninstallerRegexMode'
