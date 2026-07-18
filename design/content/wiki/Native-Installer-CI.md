@@ -11,4 +11,6 @@ Every branch push and every pull request into `main` runs the full native gate. 
 - Payload: app, uninstaller, notices; no .pdb or .ilk.
 - Policy: per-user, x64, deterministic name, static-PCRE2 notice.
 
+**Immutable release provenance · 不可變版本來源：** The prerelease tag explicitly targets the workflow SHA, so a concurrent `main` update cannot relabel artifacts from the completed run. · Prerelease 標籤會明確指向 workflow SHA，所以 `main` 同時更新都唔會改標完成咗嘅 run 所產生嘅 artifacts。
+
 **Hosted proof · Hosted 證明：** The 2026-07-18 [non-`main` push run](https://github.com/codingmachineedge/WinForge/actions/runs/29655932405) passed C++ Release, 417 core route/package-manager tests, 46 parser tests, catalog parity, three contract checks, silent install/uninstall, and the 89,642,539-byte artifact upload. Release creation was correctly skipped for unmerged code. · 2026-07-18 嘅[非 `main` 推送執行](https://github.com/codingmachineedge/WinForge/actions/runs/29655932405)已通過 C++ Release、417 個 core route／package-manager 測試、46 個 parser 測試、目錄對等、三次合約檢查、靜默安裝／解除安裝，同 89,642,539-byte artifact 上載。未合併程式碼已正確略過版本建立。

@@ -8,6 +8,8 @@ Every branch push and every pull request into `main` runs the complete native ga
 
 ## Contract boundaries · 合約邊界
 
+**Immutable release provenance · 不可變版本來源：** Release creation passes the workflow SHA as the explicit tag target. A concurrent `main` update therefore cannot make a finished run tag binaries as though they came from the newer commit. · 建立版本時會將 workflow SHA 明確傳入做標籤目標；所以就算 `main` 同時更新，完成咗嘅 run 都唔會將 binary 錯標成來自較新 commit。
+
 - **Staged runtime / 已 stage runtime：** requires a non-empty PE WinForge.exe before Inno Setup runs.
 - **Installer binary / 安裝程式 binary：** requires exactly one WinForge-Native-Setup.exe and validates its PE header after compilation.
 - **Installed payload / 已安裝 payload：** requires WinForge.exe, unins000.exe, and THIRD-PARTY-NOTICES.txt; rejects packaged .pdb or .ilk files.
@@ -21,7 +23,7 @@ Every branch push and every pull request into `main` runs the complete native ga
 4. Compile exactly one Inno Setup executable and validate it.
 5. Silent-install, validate the installed payload, silent-uninstall, and prove the guarded install root is gone.
 6. Upload the portable ZIP and installer only after all gates pass.
-7. On a successful `main` push, publish those two files in a unique `native-v1.0.<run>` GitHub prerelease without replacing the managed stable channel.
+7. On a successful `main` push, publish those two files in a unique `native-v1.0.<run>` GitHub prerelease, pin its tag to the workflow SHA, and preserve the managed stable channel.
 
 ## Local check · 本機檢查
 
