@@ -1,12 +1,22 @@
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)),
+    [string]$RepoRoot,
     [string]$PublishDir,
     [string]$InstallerPath,
     [string]$InstallDir
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Windows PowerShell 5.1 can evaluate parameter defaults before $PSScriptRoot
+# is populated. Resolve the repository only after parameter binding so the
+# same contract command works locally and on the Windows 2022 hosted runner.
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+}
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    throw 'Could not resolve the repository root from the installer contract script path.'
+}
 
 function Require-File {
     param(

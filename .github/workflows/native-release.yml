@@ -2,35 +2,8 @@ name: Native C++ CI & Installer · 原生 C++ CI 同安裝程式
 
 on:
   push:
-    branches: [ main ]
-    tags:
-      - 'native-v*'
-    paths:
-      - 'src/WinForge.App/**'
-      - 'src/WinForge.Core/**'
-      - 'tests/native/**'
-      - 'eng/native/**'
-      - 'WinForge.Native.sln'
-      - 'installer/WinForge.Native.iss'
-      - 'packages.config'
-      - 'vcpkg.json'
-      - 'eng/native/NativeRegex.props'
-      - 'THIRD-PARTY-NOTICES.txt'
-      - '.github/workflows/native-release.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'src/WinForge.App/**'
-      - 'src/WinForge.Core/**'
-      - 'tests/native/**'
-      - 'eng/native/**'
-      - 'WinForge.Native.sln'
-      - 'installer/WinForge.Native.iss'
-      - 'packages.config'
-      - 'vcpkg.json'
-      - 'eng/native/NativeRegex.props'
-      - 'THIRD-PARTY-NOTICES.txt'
-      - '.github/workflows/native-release.yml'
   workflow_dispatch:
     inputs:
       publish_release:
@@ -41,10 +14,6 @@ on:
 
 permissions:
   contents: write
-
-concurrency:
-  group: native-release-${{ github.ref }}
-  cancel-in-progress: false
 
 jobs:
   build-test-package:
@@ -235,8 +204,8 @@ jobs:
             installer/out-native/WinForge-Native-Setup.exe
           if-no-files-found: error
 
-      - name: Create tagged native GitHub release · 建立標籤原生 GitHub 版本
-        if: startsWith(github.ref, 'refs/tags/native-v') || inputs.publish_release == true
+      - name: Create native GitHub release · 建立原生 GitHub 版本
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/native-v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
