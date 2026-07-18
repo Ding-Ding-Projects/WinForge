@@ -1,6 +1,12 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
-## Current 2026-07-18 checkpoint / 2026-07-18 最新檢查點
+## Current 2026-07-18 utility checkpoint / 2026-07-18 最新工具檢查點
+
+Text Diff, Aspect Ratio, and CSS Unit Converter are now dedicated genuine C++/WinRT routes with testable standard-C++ cores. `HasNativeRenderer` covers **21/346 fixed routes** and leaves **325 fixed routes** explicitly pending; the inventory also retains five dynamic route families. Debug and Release core each pass **560/560**; Design Tools passes **94/94**, focused utility UI Automation shell passes **39/39**, and the full owned shell remains **300/300**. Text Diff passes **27/27** focused contracts, including the exact 6,000,000-cell LCS guard and invariant Unicode casing. These local-only tools do not mutate Windows; explicit Copy is their only clipboard side effect. · 文字差異比對、長寬比計算同 CSS 單位換算而家係專用真正 C++/WinRT route，背後有可測試嘅標準 C++ core。`HasNativeRenderer` 涵蓋 **21/346 條固定 route**，另外 **325 條固定 route** 仍明確待完成；清單亦繼續涵蓋五組動態 route 家族。Debug 同 Release core 各自 **560/560**；Design Tools 通過 **94/94**，工具專項 UI Automation shell 通過 **39/39**，完整自有 shell 亦保持 **300/300**。文字差異比對有 **27/27** 個專項合約，包括準確 6,000,000-cell LCS 上限同 invariant Unicode 大小寫。呢三項本機工具唔會改 Windows，唯一剪貼簿副作用係明確 Copy。
+
+LowLevel Computer Use MCP 1.28.1 and the repository driver separately launched all three pages, but every inspected client capture was uniformly white because WinUI composition is unavailable in this desktop session. Blank images were discarded and no canonical screenshot was replaced; see [Screenshots](Screenshots.md) for the exact bilingual evidence. All three routes are honestly `capture-blocked`. · LowLevel Computer Use MCP 1.28.1 同 repository driver 都分別開過三頁，但呢個 desktop session 冇 WinUI composition，所以每張檢查過嘅 client 擷取都係一致白色。空白圖已丟棄，冇替換 canonical 截圖；準確雙語證據見 [截圖集](Screenshots.md)。三條 route 如實係 `capture-blocked`。
+
+## Earlier 2026-07-18 chmod checkpoint / 2026-07-18 早前 chmod 檢查點
 
 The chmod Calculator is now a genuine C++/WinRT page backed by a standard-C++ `UnixPerm` core. `unixperm`, `chmod`, and `module.unixperm` preserve the managed `0644` default, all 12 permission bits, two-way octal/symbolic editing, `s/S/t/T`, atomic invalid-input retention, language state, and explicit-only clipboard Copy; the shown `chmod` command is never executed. Twenty focused contracts exhaust all 4,096 modes. Debug and Release core each pass **439/439** and the owned shell campaign passes **267/267**, including 14 live chmod checks. · chmod 計算機而家係真正 C++/WinRT 頁，由標準 C++ `UnixPerm` core 支援；三個 alias 完整保留 `0644`、12 個權限位、雙向輸入、`s/S/t/T`、錯誤保留、語言狀態同只限明確 Copy，亦絕不執行顯示嘅指令。20 個專項合約窮舉 4,096 個模式；Debug 同 Release 各 **439/439**，自有 shell **267/267**，包括 14 個即時 chmod 檢查。
 

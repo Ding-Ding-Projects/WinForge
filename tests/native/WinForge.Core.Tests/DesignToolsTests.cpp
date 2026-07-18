@@ -100,6 +100,29 @@ NativeTestCounts RunDesignToolsTests()
         "Aspect Ratio scaling rejects non-positive inputs");
     suite.Expect(std::isinf(HeightForWidth(1.0, std::numeric_limits<double>::max(), 2.0)),
         "Aspect Ratio preserves managed arithmetic overflow after valid guards");
+    suite.Expect(FormatDisplayNumber(1.0049999999999997, 2) == L"1.01" &&
+        FormatDisplayNumber(1.00499999999999, 2) == L"1",
+        "Aspect Ratio matches CoreLib's fifteen-digit custom-format boundary");
+    suite.Expect(FormatDisplayNumber(57.0 / 800.0, 4) == L"0.0713" &&
+        FormatDisplayNumber(1.005, 2) == L"1.01",
+        "Aspect Ratio rounds managed decimal and megapixel midpoint displays");
+    suite.Expect(FormatDisplayNumber(-0.00005, 4) == L"-0.0001" &&
+        FormatDisplayNumber(-0.001, 2) == L"-0",
+        "Aspect Ratio preserves managed negative-zero and away-from-zero formatting");
+    suite.Expect(FormatDisplayNumber(999'999'999'999'999.5, 4) == L"1000000000000000",
+        "Aspect Ratio carries a fifteen-digit display round into a larger magnitude");
+    suite.Expect(FormatDisplayNumber(1.25, 4, L",") == L"1,25",
+        "Aspect Ratio applies the current decimal separator after exact rounding");
+    auto nonFiniteFormatRejected = false;
+    try
+    {
+        static_cast<void>(FormatDisplayNumber(std::numeric_limits<double>::infinity(), 2));
+    }
+    catch (std::invalid_argument const&)
+    {
+        nonFiniteFormatRejected = true;
+    }
+    suite.Expect(nonFiniteFormatRejected, "Aspect Ratio finite display formatter rejects non-finite values");
 
     using namespace winforge::core::cssunits;
     constexpr std::array<std::wstring_view, 11> expectedUnits{

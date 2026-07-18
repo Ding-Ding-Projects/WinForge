@@ -56,6 +56,35 @@ namespace
         return std::wstring(value.c_str(), value.size());
     }
 
+    std::wstring FormatAspectNumber(double value, int digits)
+    {
+        if (std::isnan(value)) return L"NaN";
+        if (std::isinf(value))
+        {
+            wchar_t symbol[16]{};
+            auto const localeField = std::signbit(value) ? LOCALE_SNEGINFINITY : LOCALE_SPOSINFINITY;
+            if (GetLocaleInfoEx(
+                LOCALE_NAME_USER_DEFAULT,
+                localeField,
+                symbol,
+                static_cast<int>(std::size(symbol))) > 1)
+            {
+                return symbol;
+            }
+            return std::signbit(value) ? L"-∞" : L"∞";
+        }
+        wchar_t separator[8]{};
+        auto const separatorLength = GetLocaleInfoEx(
+            LOCALE_NAME_USER_DEFAULT,
+            LOCALE_SDECIMAL,
+            separator,
+            static_cast<int>(std::size(separator)));
+        auto const decimalSeparator = separatorLength > 1
+            ? std::wstring_view{ separator, static_cast<std::size_t>(separatorLength - 1) }
+            : std::wstring_view{ L"." };
+        return winforge::core::aspectratio::FormatDisplayNumber(value, digits, decimalSeparator);
+    }
+
     std::string ToUtf8(std::wstring_view value)
     {
         if (value.empty())
@@ -805,6 +834,34 @@ namespace winrt::WinForge::implementation
             m_currentArgument = std::wstring(argument);
             RenderUnknown(normalized);
             return;
+        }
+
+        // Managed navigation constructs a fresh Page for these stateless local
+        // tools. Reset only on an actual navigation; language rerenders call
+        // RenderCurrent directly and intentionally retain the active edits.
+        if (module->id == L"module.textdiff")
+        {
+            m_textDiffA.clear();
+            m_textDiffB.clear();
+            m_textDiffUnified = L"--- A\n+++ B\n";
+            m_textDiffIgnoreWhitespace = false;
+            m_textDiffIgnoreCase = false;
+        }
+        else if (module->id == L"module.aspectratio")
+        {
+            m_aspectWidthValue = 1920.0;
+            m_aspectHeightValue = 1080.0;
+            m_aspectRatioWidth = 16.0;
+            m_aspectRatioHeight = 9.0;
+            m_aspectTargetWidthValue = 1280.0;
+            m_aspectTargetHeightValue = 720.0;
+            m_aspectPresetIndex = 0;
+        }
+        else if (module->id == L"module.cssunits")
+        {
+            m_cssInputValue = L"16";
+            m_cssUnitIndex = 0;
+            m_cssContextValues = { 16.0, 16.0, 1920.0, 1080.0, 1000.0 };
         }
 
         cancelMutationIfLeavingPackages(module->id);
@@ -2851,6 +2908,35 @@ namespace winrt::WinForge::implementation
         using namespace winforge::core::textdiff;
         m_textDiffRendering = true;
 
+        // UI Automation supplies multiline TextBox values with lone CR
+        // separators. WinUI accepts them during an edit, but a newly rendered
+        // TextBox expects LF separators for programmatic assignment. Normalize
+        // only the presentation value; the diff engine retains its exact
+        // managed CR/LF splitting contract.
+        auto textBoxText = [](std::wstring_view value)
+        {
+            std::wstring normalized;
+            normalized.reserve(value.size() + 8);
+            for (std::size_t index = 0; index < value.size(); ++index)
+            {
+                auto const ch = value[index];
+                if (ch == L'\r')
+                {
+                    normalized.push_back(L'\n');
+                    if (index + 1 < value.size() && value[index + 1] == L'\n') ++index;
+                }
+                else if (ch == L'\n')
+                {
+                    normalized.push_back(L'\n');
+                }
+                else
+                {
+                    normalized.push_back(ch);
+                }
+            }
+            return normalized;
+        };
+
         auto page = CreatePage(
             winforge::core::LocalizedText{ L"Text Diff", L"文字差異比對" }.Pick(m_language),
             winforge::core::LocalizedText{
@@ -2895,10 +2981,12 @@ namespace winrt::WinForge::implementation
             winforge::core::LocalizedText{ L"A (original)", L"A（原本）" }.Pick(m_language), 13.5, true);
         inputs.Children().Append(labelA);
         m_textDiffInputA = TextBox();
-        m_textDiffInputA.Text(ToHString(m_textDiffA));
         m_textDiffInputA.AcceptsReturn(true);
-        m_textDiffInputA.TextWrapping(TextWrapping::NoWrap);
-        m_textDiffInputA.MinHeight(150);
+        m_textDiffInputA.Text(ToHString(textBoxText(m_textDiffA)));
+        m_textDiffInputA.TextWrapping(TextWrapping::Wrap);
+        m_textDiffInputA.MinHeight(180);
+        m_textDiffInputA.MaxHeight(320);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textDiffInputA, ScrollBarVisibility::Auto);
         m_textDiffInputA.FontFamily(Media::FontFamily(L"Consolas"));
         m_textDiffInputA.IsSpellCheckEnabled(false);
         AutomationProperties::SetAutomationId(m_textDiffInputA, L"NativeTextDiffInputA");
@@ -2917,10 +3005,12 @@ namespace winrt::WinForge::implementation
             winforge::core::LocalizedText{ L"B (changed)", L"B（改咗）" }.Pick(m_language), 13.5, true);
         inputs.Children().Append(labelB);
         m_textDiffInputB = TextBox();
-        m_textDiffInputB.Text(ToHString(m_textDiffB));
         m_textDiffInputB.AcceptsReturn(true);
-        m_textDiffInputB.TextWrapping(TextWrapping::NoWrap);
-        m_textDiffInputB.MinHeight(150);
+        m_textDiffInputB.Text(ToHString(textBoxText(m_textDiffB)));
+        m_textDiffInputB.TextWrapping(TextWrapping::Wrap);
+        m_textDiffInputB.MinHeight(180);
+        m_textDiffInputB.MaxHeight(320);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textDiffInputB, ScrollBarVisibility::Auto);
         m_textDiffInputB.FontFamily(Media::FontFamily(L"Consolas"));
         m_textDiffInputB.IsSpellCheckEnabled(false);
         AutomationProperties::SetAutomationId(m_textDiffInputB, L"NativeTextDiffInputB");
@@ -3008,9 +3098,45 @@ namespace winrt::WinForge::implementation
         m_textDiffCounts = CreateText(L"", 13, true);
         AutomationProperties::SetAutomationId(m_textDiffCounts, L"NativeTextDiffCounts");
         result.Children().Append(m_textDiffCounts);
-        m_textDiffRows = StackPanel();
-        m_textDiffRows.Spacing(2);
+        m_textDiffRows = ListView();
+        m_textDiffRows.SelectionMode(ListViewSelectionMode::None);
+        m_textDiffRows.MaxHeight(420);
+        m_textDiffRows.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textDiffRows, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollBarVisibility(m_textDiffRows, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollMode(m_textDiffRows, ScrollMode::Enabled);
         AutomationProperties::SetAutomationId(m_textDiffRows, L"NativeTextDiffRows");
+        m_textDiffRows.ContainerContentChanging([](
+            ListViewBase const&,
+            ContainerContentChangingEventArgs const& args)
+        {
+            if (args.InRecycleQueue()) return;
+            auto const container = args.ItemContainer();
+            if (!container || !args.Item()) return;
+            auto const value = unbox_value_or<hstring>(args.Item(), L"");
+            auto const text = ToWide(value);
+            container.Padding(Thickness{ 8, 1, 8, 1 });
+            container.MinHeight(0);
+            container.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+            container.FontFamily(Media::FontFamily(L"Consolas"));
+            if (!text.empty() && text.front() == L'+')
+            {
+                container.Foreground(Media::SolidColorBrush(Windows::UI::Color{ 0xFF, 0x3F, 0xB9, 0x50 }));
+            }
+            else if (!text.empty() && text.front() == L'-')
+            {
+                container.Foreground(Media::SolidColorBrush(Windows::UI::Color{ 0xFF, 0xE0, 0x4B, 0x4B }));
+            }
+            else
+            {
+                container.Foreground(Application::Current().Resources().Lookup(
+                    box_value(L"TextFillColorPrimaryBrush")).as<Media::Brush>());
+            }
+            AutomationProperties::SetAutomationId(
+                container,
+                ToHString(L"NativeTextDiffLine" + std::to_wstring(args.ItemIndex())));
+            AutomationProperties::SetName(container, value);
+        });
         result.Children().Append(m_textDiffRows);
         resultCard.Child(result);
         page.Children().Append(resultCard);
@@ -3042,24 +3168,12 @@ namespace winrt::WinForge::implementation
                 m_textDiffIgnoreWhitespace,
                 m_textDiffIgnoreCase);
             m_textDiffUnified = ToUnifiedDiff(diff);
-            m_textDiffRows.Children().Clear();
+            m_textDiffRows.Items().Clear();
 
             for (auto const& line : diff.lines)
             {
-                auto row = CreateText(std::wstring(1, line.prefix) + L" " + line.text, 12.5);
-                row.FontFamily(Media::FontFamily(L"Consolas"));
-                row.TextWrapping(TextWrapping::Wrap);
-                row.Padding(Thickness{ 8, 4, 8, 4 });
-                if (line.kind == ChangeKind::Added)
-                {
-                    row.Foreground(Media::SolidColorBrush(Windows::UI::Color{ 0xFF, 0x3F, 0xB9, 0x50 }));
-                }
-                else if (line.kind == ChangeKind::Removed)
-                {
-                    row.Foreground(Media::SolidColorBrush(Windows::UI::Color{ 0xFF, 0xE0, 0x4B, 0x4B }));
-                }
-                AutomationProperties::SetName(row, ToHString(std::wstring(1, line.prefix) + L" " + line.text));
-                m_textDiffRows.Children().Append(row);
+                m_textDiffRows.Items().Append(box_value(ToHString(
+                    std::wstring(1, line.prefix) + L" " + line.text)));
             }
 
             auto const counts = winforge::core::LocalizedText{
@@ -3177,7 +3291,7 @@ namespace winrt::WinForge::implementation
         {
             if (m_aspectRendering) return;
             auto const value = sender.Value();
-            m_aspectWidthValue = std::isnan(value) ? 0.0 : value;
+            m_aspectWidthValue = value;
             RefreshAspectRatio(true);
         });
         dimensions.Children().Append(m_aspectWidth);
@@ -3201,7 +3315,7 @@ namespace winrt::WinForge::implementation
         {
             if (m_aspectRendering) return;
             auto const value = sender.Value();
-            m_aspectHeightValue = std::isnan(value) ? 0.0 : value;
+            m_aspectHeightValue = value;
             RefreshAspectRatio(true);
         });
         dimensions.Children().Append(m_aspectHeight);
@@ -3235,20 +3349,12 @@ namespace winrt::WinForge::implementation
             }
             try
             {
-                auto whole = [](double value)
-                {
-                    std::wostringstream stream;
-                    stream.setf(std::ios::fixed);
-                    stream.precision(0);
-                    stream << value;
-                    return stream.str();
-                };
-                auto const decimal = winforge::core::cssunits::Format(
-                    winforge::core::aspectratio::DecimalRatio(m_aspectWidthValue, m_aspectHeightValue));
-                auto const megapixels = winforge::core::cssunits::Format(
-                    std::round(winforge::core::aspectratio::Megapixels(
-                        m_aspectWidthValue, m_aspectHeightValue) * 100.0) / 100.0);
-                auto const text = whole(m_aspectWidthValue) + L"×" + whole(m_aspectHeightValue) +
+                auto const decimal = FormatAspectNumber(
+                    winforge::core::aspectratio::DecimalRatio(m_aspectWidthValue, m_aspectHeightValue), 4);
+                auto const megapixels = FormatAspectNumber(
+                    winforge::core::aspectratio::Megapixels(m_aspectWidthValue, m_aspectHeightValue), 2);
+                auto const text = FormatAspectNumber(m_aspectWidthValue, 0) + L"×" +
+                    FormatAspectNumber(m_aspectHeightValue, 0) +
                     L"  =  " + std::to_wstring(width) + L":" + std::to_wstring(height) +
                     L"  (" + decimal + L", " + megapixels + L" MP)";
                 Windows::ApplicationModel::DataTransfer::DataPackage package;
@@ -3349,8 +3455,8 @@ namespace winrt::WinForge::implementation
             {
                 if (m_aspectRendering) return;
                 auto const value = sender.Value();
-                if (widthInput) m_aspectTargetWidthValue = std::isnan(value) ? 0.0 : value;
-                else m_aspectTargetHeightValue = std::isnan(value) ? 0.0 : value;
+                if (widthInput) m_aspectTargetWidthValue = value;
+                else m_aspectTargetHeightValue = value;
                 RefreshAspectScale();
             });
             row.Children().Append(box);
@@ -3401,15 +3507,11 @@ namespace winrt::WinForge::implementation
         if (!Simplify(m_aspectWidthValue, m_aspectHeightValue, width, height))
         {
             m_aspectRatio.Text(L"—");
-            m_aspectDetail.Text(ToHString(winforge::core::LocalizedText{
-                L"Enter a positive width and height.", L"請輸入正數嘅闊度同高度。" }.Pick(m_language)));
-            if (m_aspectPreset)
-            {
-                auto const previous = m_aspectRendering;
-                m_aspectRendering = true;
-                m_aspectPreset.SelectedIndex(-1);
-                m_aspectRendering = previous;
-            }
+            auto const detail = winforge::core::LocalizedText{
+                L"Enter a positive width and height.", L"請輸入正數嘅闊度同高度。" }.Pick(m_language);
+            m_aspectDetail.Text(ToHString(detail));
+            AutomationProperties::SetName(m_aspectRatio, L"—");
+            AutomationProperties::SetName(m_aspectDetail, ToHString(detail));
             AnnounceAspectStatus(winforge::core::LocalizedText{
                 L"Waiting for a valid width and height.", L"等緊有效嘅闊度同高度。" }.Pick(m_language), true);
             RefreshAspectScale();
@@ -3446,23 +3548,17 @@ namespace winrt::WinForge::implementation
         m_aspectRatio.Text(ToHString(ratio));
         AutomationProperties::SetName(m_aspectRatio, ToHString(ratio));
 
-        auto const decimal = winforge::core::cssunits::Format(DecimalRatio(
-            m_aspectWidthValue, m_aspectHeightValue));
-        auto const megapixels = winforge::core::cssunits::Format(
-            std::round(Megapixels(m_aspectWidthValue, m_aspectHeightValue) * 100.0) / 100.0);
-        auto whole = [](double value)
-        {
-            std::wostringstream stream;
-            stream.setf(std::ios::fixed);
-            stream.precision(0);
-            stream << value;
-            return stream.str();
-        };
+        auto const decimal = FormatAspectNumber(
+            DecimalRatio(m_aspectWidthValue, m_aspectHeightValue), 4);
+        auto const megapixels = FormatAspectNumber(
+            Megapixels(m_aspectWidthValue, m_aspectHeightValue), 2);
         auto const detail = winforge::core::LocalizedText{
-            L"Decimal " + decimal + L" · " + megapixels + L" MP (" + whole(m_aspectWidthValue) +
-                L"×" + whole(m_aspectHeightValue) + L")",
-            L"小數 " + decimal + L" · " + megapixels + L" 百萬像素（" + whole(m_aspectWidthValue) +
-                L"×" + whole(m_aspectHeightValue) + L"）" }.Pick(m_language);
+            L"Decimal " + decimal + L" · " + megapixels + L" MP (" +
+                FormatAspectNumber(m_aspectWidthValue, 0) + L"×" +
+                FormatAspectNumber(m_aspectHeightValue, 0) + L")",
+            L"小數 " + decimal + L" · " + megapixels + L" 百萬像素（" +
+                FormatAspectNumber(m_aspectWidthValue, 0) + L"×" +
+                FormatAspectNumber(m_aspectHeightValue, 0) + L"）" }.Pick(m_language);
         m_aspectDetail.Text(ToHString(detail));
         AutomationProperties::SetName(m_aspectDetail, ToHString(detail));
         AnnounceAspectStatus(winforge::core::LocalizedText{
@@ -3474,10 +3570,6 @@ namespace winrt::WinForge::implementation
     {
         using namespace winforge::core::aspectratio;
         if (!m_aspectScaledHeight || !m_aspectScaledWidth) return;
-        auto format = [](double value)
-        {
-            return winforge::core::cssunits::Format(std::round(value * 100.0) / 100.0);
-        };
         auto const height = HeightForWidth(
             m_aspectRatioWidth, m_aspectRatioHeight, m_aspectTargetWidthValue);
         auto const width = WidthForHeight(
@@ -3485,11 +3577,13 @@ namespace winrt::WinForge::implementation
         auto const heightText = std::isnan(height)
             ? std::wstring{ L"—" }
             : winforge::core::LocalizedText{
-                L"→ height " + format(height), L"→ 高度 " + format(height) }.Pick(m_language);
+                L"→ height " + FormatAspectNumber(height, 2),
+                L"→ 高度 " + FormatAspectNumber(height, 2) }.Pick(m_language);
         auto const widthText = std::isnan(width)
             ? std::wstring{ L"—" }
             : winforge::core::LocalizedText{
-                L"→ width " + format(width), L"→ 闊度 " + format(width) }.Pick(m_language);
+                L"→ width " + FormatAspectNumber(width, 2),
+                L"→ 闊度 " + FormatAspectNumber(width, 2) }.Pick(m_language);
         m_aspectScaledHeight.Text(ToHString(heightText));
         m_aspectScaledWidth.Text(ToHString(widthText));
         AutomationProperties::SetName(m_aspectScaledHeight, ToHString(heightText));
@@ -3503,6 +3597,25 @@ namespace winrt::WinForge::implementation
         m_aspectStatus.Foreground(Application::Current().Resources().Lookup(
             box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
         AutomationProperties::SetName(m_aspectStatus, ToHString(message));
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_aspectStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_aspectStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility reporting must not interrupt local ratio math.
+        }
     }
 
     void MainWindow::RenderCssUnits()
@@ -3633,9 +3746,8 @@ namespace winrt::WinForge::implementation
             box.ValueChanged([this, index](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
             {
                 if (m_cssRendering) return;
-                static constexpr std::array<double, 5> defaults{ 16.0, 16.0, 1920.0, 1080.0, 1000.0 };
                 auto const value = sender.Value();
-                m_cssContextValues[index] = std::isfinite(value) ? value : defaults[index];
+                m_cssContextValues[index] = value;
                 RefreshCssUnits();
             });
             field.Children().Append(box);
@@ -3682,11 +3794,16 @@ namespace winrt::WinForge::implementation
         if (!m_cssResults || !m_cssStatus) return;
 
         Context context;
-        context.rootFontPx = m_cssContextValues[0];
-        context.elementFontPx = m_cssContextValues[1];
-        context.viewportWidthPx = m_cssContextValues[2];
-        context.viewportHeightPx = m_cssContextValues[3];
-        context.containerPx = m_cssContextValues[4];
+        auto const contextValue = [this](std::size_t index, double fallback)
+        {
+            auto const value = m_cssContextValues[index];
+            return std::isfinite(value) ? value : fallback;
+        };
+        context.rootFontPx = contextValue(0, 16.0);
+        context.elementFontPx = contextValue(1, 16.0);
+        context.viewportWidthPx = contextValue(2, 1920.0);
+        context.viewportHeightPx = contextValue(3, 1080.0);
+        context.containerPx = contextValue(4, 1000.0);
         auto const unitIndex = std::clamp<int32_t>(
             m_cssUnitIndex, 0, static_cast<int32_t>(Units.size() - 1));
         auto const unit = Units[static_cast<std::size_t>(unitIndex)];
@@ -3722,7 +3839,9 @@ namespace winrt::WinForge::implementation
                 row,
                 ToHString(L"NativeCssUnitsResult" + automationSuffix(converted.unit)));
             AutomationProperties::SetName(row, ToHString(converted.combined.empty()
-                ? converted.unit + L" unavailable"
+                ? winforge::core::LocalizedText{
+                    converted.unit + L" unavailable",
+                    converted.unit + L" 無法換算" }.Pick(m_language)
                 : winforge::core::LocalizedText{
                     L"Copy " + converted.combined,
                     L"複製 " + converted.combined }.Pick(m_language)));
@@ -3747,12 +3866,12 @@ namespace winrt::WinForge::implementation
             m_cssResults.Children().Append(row);
         }
 
-        AnnounceCssStatus(std::isnan(value)
+        AnnounceCssStatus(!std::isfinite(value)
             ? winforge::core::LocalizedText{
                 L"Enter a valid invariant number to convert.", L"請輸入有效嘅不變文化數字嚟換算。" }.Pick(m_language)
             : winforge::core::LocalizedText{
                 L"Select a result row to copy it.", L"揀一行結果就可以複製。" }.Pick(m_language),
-            std::isnan(value));
+            !std::isfinite(value));
     }
 
     void MainWindow::AnnounceCssStatus(std::wstring_view message, bool warning)
@@ -3762,6 +3881,25 @@ namespace winrt::WinForge::implementation
         m_cssStatus.Foreground(Application::Current().Resources().Lookup(
             box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
         AutomationProperties::SetName(m_cssStatus, ToHString(message));
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_cssStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_cssStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility reporting must not interrupt local CSS conversion.
+        }
     }
 
     void MainWindow::RenderGuidGen()

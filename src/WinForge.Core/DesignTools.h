@@ -24,6 +24,15 @@ namespace winforge::core::aspectratio
     [[nodiscard]] double Megapixels(double width, double height) noexcept;
     [[nodiscard]] double HeightForWidth(double ratioWidth, double ratioHeight, double width) noexcept;
     [[nodiscard]] double WidthForHeight(double ratioWidth, double ratioHeight, double height) noexcept;
+
+    // Mirrors the finite-number portion of current .NET custom formats `0`,
+    // `0.##`, and `0.####`: binary64 is first reduced through CoreLib's
+    // fifteen-significant-digit number buffer, then decimal midpoint rounding
+    // is applied away from zero. Optional fractional zeros are removed.
+    [[nodiscard]] std::wstring FormatDisplayNumber(
+        double value,
+        int fractionalDigits,
+        std::wstring_view decimalSeparator = L".");
 }
 
 namespace winforge::core::cssunits

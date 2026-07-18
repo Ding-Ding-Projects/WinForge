@@ -1,5 +1,6 @@
 #include "DesignTools.h"
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <iomanip>
@@ -245,6 +246,122 @@ namespace winforge::core::aspectratio
         return !IsPositiveFinite(ratioWidth) || !IsPositiveFinite(ratioHeight) || !IsPositiveFinite(height)
             ? NaN()
             : height * ratioWidth / ratioHeight;
+    }
+
+    std::wstring FormatDisplayNumber(
+        double value,
+        int fractionalDigits,
+        std::wstring_view decimalSeparator)
+    {
+        if (!std::isfinite(value)) throw std::invalid_argument("Aspect display value must be finite");
+        fractionalDigits = std::clamp(fractionalDigits, 0, 8);
+
+        std::array<char, 64> buffer{};
+        auto const magnitude = std::abs(value);
+        auto const converted = std::to_chars(
+            buffer.data(),
+            buffer.data() + buffer.size(),
+            magnitude,
+            std::chars_format::scientific,
+            14);
+        if (converted.ec != std::errc{}) throw std::runtime_error("Aspect display formatting failed");
+
+        std::string significant;
+        significant.reserve(15);
+        auto exponentMarker = converted.ptr;
+        for (auto cursor = buffer.data(); cursor != converted.ptr; ++cursor)
+        {
+            if (*cursor == 'e' || *cursor == 'E')
+            {
+                exponentMarker = cursor;
+                break;
+            }
+            if (*cursor >= '0' && *cursor <= '9') significant.push_back(*cursor);
+        }
+        if (significant.empty() || exponentMarker == converted.ptr)
+        {
+            throw std::runtime_error("Aspect display formatter produced an invalid decimal buffer");
+        }
+
+        auto exponentCursor = exponentMarker + 1;
+        auto exponentNegative = false;
+        if (exponentCursor != converted.ptr && (*exponentCursor == '+' || *exponentCursor == '-'))
+        {
+            exponentNegative = *exponentCursor == '-';
+            ++exponentCursor;
+        }
+        int exponentMagnitude{};
+        auto const parsedExponent = std::from_chars(exponentCursor, converted.ptr, exponentMagnitude);
+        if (parsedExponent.ec != std::errc{} || parsedExponent.ptr != converted.ptr)
+        {
+            throw std::runtime_error("Aspect display formatter produced an invalid exponent");
+        }
+        auto const exponent = exponentNegative ? -exponentMagnitude : exponentMagnitude;
+
+        // The integer below is abs(value) * 10^fractionalDigits after decimal
+        // rounding. `keep` is how many significant digits lie at or left of
+        // the custom format's rounding boundary.
+        auto const keep = exponent + 1 + fractionalDigits;
+        std::string scaled;
+        if (keep > 0)
+        {
+            auto const retained = std::min<std::size_t>(
+                static_cast<std::size_t>(keep), significant.size());
+            scaled.assign(significant.data(), retained);
+            if (static_cast<std::size_t>(keep) > significant.size())
+            {
+                scaled.append(static_cast<std::size_t>(keep) - significant.size(), '0');
+            }
+        }
+        else
+        {
+            scaled = "0";
+        }
+
+        auto const roundUp = keep >= 0 &&
+            static_cast<std::size_t>(keep) < significant.size() &&
+            significant[static_cast<std::size_t>(keep)] >= '5';
+        if (roundUp)
+        {
+            auto cursor = scaled.size();
+            while (cursor > 0 && scaled[cursor - 1] == '9')
+            {
+                scaled[cursor - 1] = '0';
+                --cursor;
+            }
+            if (cursor == 0) scaled.insert(scaled.begin(), '1');
+            else ++scaled[cursor - 1];
+        }
+
+        auto const firstNonZero = scaled.find_first_not_of('0');
+        if (firstNonZero == std::string::npos) scaled = "0";
+        else if (firstNonZero > 0) scaled.erase(0, firstNonZero);
+
+        if (fractionalDigits > 0 && scaled.size() <= static_cast<std::size_t>(fractionalDigits))
+        {
+            scaled.insert(0, static_cast<std::size_t>(fractionalDigits) + 1 - scaled.size(), '0');
+        }
+
+        std::wstring output;
+        if (std::signbit(value)) output.push_back(L'-');
+        if (fractionalDigits == 0)
+        {
+            output.append(scaled.begin(), scaled.end());
+            return output;
+        }
+
+        auto const decimalIndex = scaled.size() - static_cast<std::size_t>(fractionalDigits);
+        output.append(scaled.begin(), scaled.begin() + static_cast<std::ptrdiff_t>(decimalIndex));
+        output.append(decimalSeparator);
+        output.append(scaled.begin() + static_cast<std::ptrdiff_t>(decimalIndex), scaled.end());
+
+        while (!output.empty() && output.back() == L'0') output.pop_back();
+        if (!decimalSeparator.empty() && output.size() >= decimalSeparator.size() &&
+            output.compare(output.size() - decimalSeparator.size(), decimalSeparator.size(), decimalSeparator) == 0)
+        {
+            output.erase(output.size() - decimalSeparator.size());
+        }
+        return output;
     }
 }
 

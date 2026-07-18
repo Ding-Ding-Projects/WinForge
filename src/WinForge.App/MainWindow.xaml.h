@@ -239,7 +239,7 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_textDiffInputB{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_textDiffWhitespace{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_textDiffCase{ nullptr };
-        Microsoft::UI::Xaml::Controls::StackPanel m_textDiffRows{ nullptr };
+        Microsoft::UI::Xaml::Controls::ListView m_textDiffRows{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_textDiffCounts{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_textDiffStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };

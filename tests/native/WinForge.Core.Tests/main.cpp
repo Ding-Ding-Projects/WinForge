@@ -3,6 +3,7 @@
 #include "CommandLine.h"
 #include "CheckDigitTests.h"
 #include "CodecTests.h"
+#include "DesignTools.h"
 #include "DesignToolsTests.h"
 #include "GuidGenTests.h"
 #include "PassGenTests.h"
@@ -25,6 +26,11 @@
 #include "RouteIndex.h"
 
 #include <chrono>
+#include <bit>
+#include <cerrno>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -77,6 +83,48 @@ int wmain(int argc, wchar_t** argv)
             << L" elapsed_ms=" << elapsed.count()
             << L" diagnostic=" << result.diagnostic << L'\n';
         return result.success ? 0 : 2;
+    }
+
+    if (argc == 3 && std::wstring_view(argv[1]) == L"--aspect-format-sample")
+    {
+        errno = 0;
+        wchar_t* end{};
+        auto const requested = std::wcstoull(argv[2], &end, 10);
+        if (errno != 0 || end == argv[2] || *end != L'\0' || requested == 0 || requested > 2'000'000)
+        {
+            std::cerr << "aspect format sample count must be between 1 and 2000000\n";
+            return 2;
+        }
+
+        auto narrowAscii = [](std::wstring const& value)
+        {
+            std::string result;
+            result.reserve(value.size());
+            for (auto const ch : value)
+            {
+                if (ch < 0 || ch > 0x7F) throw std::runtime_error("aspect format probe emitted non-ASCII text");
+                result.push_back(static_cast<char>(ch));
+            }
+            return result;
+        };
+        std::uint64_t state{ 0x9E3779B97F4A7C15ull };
+        std::uint64_t emitted{};
+        while (emitted < requested)
+        {
+            state ^= state >> 12;
+            state ^= state << 25;
+            state ^= state >> 27;
+            auto const bits = state * 0x2545F4914F6CDD1Dull;
+            auto const value = std::bit_cast<double>(bits);
+            if (!std::isfinite(value)) continue;
+
+            std::cout << bits << '\t'
+                << narrowAscii(winforge::core::aspectratio::FormatDisplayNumber(value, 0)) << '\t'
+                << narrowAscii(winforge::core::aspectratio::FormatDisplayNumber(value, 2)) << '\t'
+                << narrowAscii(winforge::core::aspectratio::FormatDisplayNumber(value, 4)) << '\n';
+            ++emitted;
+        }
+        return 0;
     }
 
     using winforge::core::LanguageMode;

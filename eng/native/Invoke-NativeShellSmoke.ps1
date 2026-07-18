@@ -2,7 +2,8 @@
 param(
     [string]$RepoRoot,
     [string]$ExecutablePath,
-    [int]$TimeoutMs = 10000
+    [int]$TimeoutMs = 10000,
+    [switch]$UtilityRoutesOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,6 +18,22 @@ $exe = (Resolve-Path -LiteralPath $ExecutablePath).Path
 
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
+$uiaReferences = @(
+    [System.Windows.Automation.Automation].Assembly.Location,
+    [System.Windows.Automation.AutomationElement].Assembly.Location,
+    [System.Windows.Automation.AutomationEventArgs].Assembly.Location
+) | Select-Object -Unique
+Add-Type -TypeDefinition @'
+using System.Threading;
+using System.Windows.Automation;
+
+public sealed class WinForgeAutomationEventLatch
+{
+    private readonly AutoResetEvent signal = new AutoResetEvent(false);
+    public WaitHandle Signal { get { return signal; } }
+    public void OnEvent(object sender, AutomationEventArgs args) { signal.Set(); }
+}
+'@ -ReferencedAssemblies $uiaReferences
 
 $script:Passed = 0
 $script:Failed = 0
@@ -496,6 +513,13 @@ function Invoke-OwnedRoute {
         [Parameter(Mandatory)][string]$ExpectedTitle,
         [scriptblock]$Inspect
     )
+
+    if ($UtilityRoutesOnly -and (@(
+        'textdiff', 'module.textdiff',
+        'aspect', 'aspectratio', 'module.aspectratio',
+        'cssunits', 'module.cssunits') -notcontains $Route)) {
+        return
+    }
 
     $process = $null
     $root = $null
@@ -1838,6 +1862,75 @@ foreach ($alias in @('romannum', 'module.romannum')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Roman Numerals'
 }
 
+function Invoke-AndWaitForLiveRegionChanged {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$AutomationId,
+        [Parameter(Mandatory)][scriptblock]$Action
+    )
+
+    $element = Wait-ForElement -Root $Root -AutomationId $AutomationId
+    $latch = New-Object WinForgeAutomationEventLatch
+    $handler = [System.Delegate]::CreateDelegate(
+        [System.Windows.Automation.AutomationEventHandler],
+        $latch,
+        'OnEvent')
+    $eventId = [System.Windows.Automation.AutomationElementIdentifiers]::LiveRegionChangedEvent
+    [System.Windows.Automation.Automation]::AddAutomationEventHandler(
+        $eventId,
+        $element,
+        [System.Windows.Automation.TreeScope]::Element,
+        $handler)
+    try {
+        & $Action
+        return $latch.Signal.WaitOne($TimeoutMs)
+    }
+    finally {
+        [System.Windows.Automation.Automation]::RemoveAutomationEventHandler(
+            $eventId,
+            $element,
+            $handler)
+    }
+}
+
+function Navigate-InProcessToRoute {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$Route,
+        [Parameter(Mandatory)][string]$ExpectedTitle
+    )
+
+    $dashboard = Wait-ForElement -Root $Root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $Root -Prefix 'WinForge Native' | Out-Null
+
+    $shellSearch = Wait-ForElement -Root $Root -AutomationId 'NativeShellSearchBox'
+    if ($shellSearch.Current.IsOffscreen) {
+        Invoke-ElementByAutomationId -Root $Root -AutomationId 'TogglePaneButton'
+    }
+    Set-EditableValueAndWait -Root $Root -AutomationId 'NativeShellSearchBox' -Value $Route | Out-Null
+    Invoke-ElementByAutomationId -Root $Root -AutomationId 'NativeShellSearchExecute'
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        $pageTitle = Find-ByAutomationId -Root $Root -AutomationId 'NativePageTitle'
+        if ($pageTitle -and $pageTitle.Current.Name.StartsWith($ExpectedTitle, [StringComparison]::Ordinal)) {
+            return
+        }
+        if ($pageTitle -and $pageTitle.Current.Name.StartsWith('Search results', [StringComparison]::Ordinal)) {
+            $routeAutomationId = 'NativeRoute_' + ($Route -replace '[^A-Za-z0-9_]', '_')
+            Invoke-ElementByAutomationId -Root $Root -AutomationId $routeAutomationId
+            Wait-ForPageTitle -Root $Root -Prefix $ExpectedTitle | Out-Null
+            return
+        }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    $actualTitle = if ($pageTitle) { $pageTitle.Current.Name } else { '(missing)' }
+    throw "Expected direct '$ExpectedTitle' or a Search results page, got '$actualTitle'."
+}
+
 Invoke-OwnedRoute -Route 'unixperm' -ExpectedTitle 'chmod Calculator' -Inspect {
     param($root, $title)
 
@@ -1981,7 +2074,9 @@ Invoke-OwnedRoute -Route 'textdiff' -ExpectedTitle 'Text Diff' -Inspect {
         -Prefix '+0 added   -0 removed   0 unchanged' | Out-Null
     Assert-True -Condition $true -Name 'Text Diff starts with an empty live comparison'
 
-    $newLine = [Environment]::NewLine
+    # WinUI TextBox's UI Automation provider canonicalizes multiline values to
+    # lone CR separators even though the native diff accepts CR, LF, and CRLF.
+    $newLine = "`r"
     $leftText = @('Header', 'spaced value', 'Same') -join $newLine
     $rightText = @('header', 'spaced  value', 'Same', 'Added') -join $newLine
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextDiffInputA' -Value $leftText | Out-Null
@@ -1989,12 +2084,57 @@ Invoke-OwnedRoute -Route 'textdiff' -ExpectedTitle 'Text Diff' -Inspect {
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
         -Prefix '+3 added   -2 removed   1 unchanged' | Out-Null
 
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffLine0' -Prefix '- Header' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffLine5' -Prefix '+ Added' | Out-Null
+    Assert-True -Condition $true -Name 'Text Diff renders live removed and added line rows from both editors'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextDiffInputA' -ExpectedValue $leftText | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextDiffInputB' -ExpectedValue $rightText | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
+        -Prefix '+3 added   -2 removed   1 unchanged' | Out-Null
+    Assert-True -Condition $true -Name 'Text Diff preserves both editors and live output across language rerender'
+
+    $manyLeftLines = 1..2000 | ForEach-Object { "line-$_" }
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextDiffInputA' `
+        -Value ($manyLeftLines -join $newLine) | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextDiffInputB' -Value '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
+        -Prefix '+0 added   -2000 removed   0 unchanged' | Out-Null
     $rows = Wait-ForElement -Root $root -AutomationId 'NativeTextDiffRows'
-    $rowNames = @($rows.FindAll(
+    try {
+        $outerScrollItem = [System.Windows.Automation.ScrollItemPattern]$rows.GetCurrentPattern(
+            [System.Windows.Automation.ScrollItemPattern]::Pattern)
+        $outerScrollItem.ScrollIntoView()
+        Start-Sleep -Milliseconds 100
+    }
+    catch { }
+    $firstLargeRow = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffLine0' -Prefix '- line-1'
+    $listItemCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::ListItem)
+    $realizedRows = $rows.FindAll(
         [System.Windows.Automation.TreeScope]::Descendants,
-        [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name })
-    Assert-True -Condition ($rowNames -contains '- Header' -and $rowNames -contains '+ Added') `
-        -Name 'Text Diff renders live removed and added line rows from both editors'
+        $listItemCondition).Count
+    $rowsBounds = $rows.Current.BoundingRectangle
+    $innerScroll = [System.Windows.Automation.ScrollPattern]$rows.GetCurrentPattern(
+        [System.Windows.Automation.ScrollPattern]::Pattern)
+    $innerScroll.SetScrollPercent([System.Windows.Automation.ScrollPattern]::NoScroll, 100.0)
+    $lastLargeRow = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffLine1999' -Prefix '- line-2000'
+    Assert-True -Condition (
+        -not $rows.Current.IsOffscreen -and
+        $rowsBounds.Height -gt 0 -and $rowsBounds.Height -le 422 -and
+        $firstLargeRow -and $lastLargeRow -and
+        $realizedRows -gt 0 -and $realizedRows -lt 200) `
+        -Name 'Text Diff virtualizes and bounds a large one-sided comparison'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextDiffInputA' -Value $leftText | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextDiffInputB' -Value $rightText | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
+        -Prefix '+3 added   -2 removed   1 unchanged' | Out-Null
 
     Set-ToggleState -Root $root -AutomationId 'NativeTextDiffIgnoreWhitespace' -IsOn $true | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
@@ -2010,6 +2150,22 @@ Invoke-OwnedRoute -Route 'textdiff' -ExpectedTitle 'Text Diff' -Inspect {
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffStatus' `
         -Prefix 'Unified diff copied to the clipboard.' | Out-Null
     Assert-True -Condition $true -Name 'Text Diff copies unified output only after explicit Copy'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.textdiff' -ExpectedTitle 'Text Diff'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextDiffInputA' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextDiffInputB' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
+        -Prefix '+0 added   -0 removed   0 unchanged' | Out-Null
+    $whitespace = Wait-ForElement -Root $root -AutomationId 'NativeTextDiffIgnoreWhitespace'
+    $case = Wait-ForElement -Root $root -AutomationId 'NativeTextDiffIgnoreCase'
+    $whitespaceToggle = [System.Windows.Automation.TogglePattern]$whitespace.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $caseToggle = [System.Windows.Automation.TogglePattern]$case.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $whitespaceToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off -and
+        $caseToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'Text Diff resets managed page state after in-process route re-entry'
 }
 
 Invoke-OwnedRoute -Route 'module.textdiff' -ExpectedTitle 'Text Diff'
@@ -2050,20 +2206,41 @@ Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {
     Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioWidth' -ExpectedValue '1920' | Out-Null
     Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioHeight' -ExpectedValue '1080' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix '16:9' | Out-Null
+    $middleDot = [char]0x00B7
+    $multiply = [char]0x00D7
+    $decimalSeparator = [Globalization.CultureInfo]::CurrentCulture.NumberFormat.NumberDecimalSeparator
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioDetail' `
-        -Prefix 'Decimal 1.7778 · 2.07 MP (1920×1080)' | Out-Null
+        -Prefix ("Decimal 1$($decimalSeparator)7778 $middleDot 2$($decimalSeparator)07 MP (1920$($multiply)1080)") | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetWidthResult' `
         -Prefix (([char]0x2192).ToString() + ' height 720') | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetHeightResult' `
         -Prefix (([char]0x2192).ToString() + ' width 1280') | Out-Null
     Assert-True -Condition $true -Name 'Aspect Ratio starts at the managed 1920x1080 ratio, detail, and scale defaults'
 
-    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '3440' | Out-Null
+    $aspectLiveChanged = Invoke-AndWaitForLiveRegionChanged `
+        -Root $root -AutomationId 'NativeAspectRatioStatus' -Action {
+            Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '3440' | Out-Null
+            (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioCopy').SetFocus()
+        }
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioHeight' -Value '1440' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioCopy').SetFocus()
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix '43:18' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioDetail' `
-        -Prefix 'Decimal 2.3889 · 4.95 MP (3440×1440)' | Out-Null
-    Assert-True -Condition $true -Name 'Aspect Ratio editors recompute GCD ratio, decimal detail, and megapixels live'
+        -Prefix ("Decimal 2$($decimalSeparator)3889 $middleDot 4$($decimalSeparator)95 MP (3440$($multiply)1440)") | Out-Null
+    Assert-True -Condition $aspectLiveChanged `
+        -Name 'Aspect Ratio recomputes live and raises the polite accessibility event'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '57' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioHeight' -Value '800' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioCopy').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioDetail' `
+        -Prefix ("Decimal 0$($decimalSeparator)0713 $middleDot 0$($decimalSeparator)05 MP (57$($multiply)800)") | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '1005' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioHeight' -Value '1000' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioCopy').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioDetail' `
+        -Prefix ("Decimal 1$($decimalSeparator)005 $middleDot 1$($decimalSeparator)01 MP (1005$($multiply)1000)") | Out-Null
+    Assert-True -Condition $true -Name 'Aspect Ratio uses managed midpoint formatting for decimal and megapixel values'
 
     $preset = Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioPreset'
     Select-ComboIndex -Combo $preset -Index 5
@@ -2073,26 +2250,69 @@ Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {
         -Prefix (([char]0x2192).ToString() + ' height 1280') | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetHeightResult' `
         -Prefix (([char]0x2192).ToString() + ' width 720') | Out-Null
-    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioTargetWidth' -Value '900' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioTargetWidth' `
+        -Value ("1$($decimalSeparator)015") | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioPreset').SetFocus()
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetWidthResult' `
-        -Prefix (([char]0x2192).ToString() + ' height 900') | Out-Null
-    Assert-True -Condition $true -Name 'Aspect Ratio presets lock subsequent width and height scaling'
+        -Prefix (([char]0x2192).ToString() + " height 1$($decimalSeparator)02") | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioTargetWidth' `
+        -Value ("1$($decimalSeparator)0049999999999997") | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioPreset').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetWidthResult' `
+        -Prefix (([char]0x2192).ToString() + " height 1$($decimalSeparator)01") | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Aspect Ratio presets retain CoreLib custom-format parity at adjacent midpoint values'
 
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '0' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioCopy').SetFocus()
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioStatus' `
         -Prefix 'Waiting for a valid width and height.' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix ([char]0x2014) | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioDetail' `
+        -Prefix 'Enter a positive width and height.' | Out-Null
+    $presetSelection = [System.Windows.Automation.SelectionPattern]$preset.GetCurrentPattern(
+        [System.Windows.Automation.SelectionPattern]::Pattern)
+    $selectedPreset = @($presetSelection.Current.GetSelection())
+    Assert-True -Condition ($selectedPreset.Count -eq 1 -and $selectedPreset[0].Current.Name -eq '1:1') `
+        -Name 'Aspect Ratio invalid input preserves the locked preset and refreshes accessible output names'
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeAspectRatioCopy'
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioStatus' `
         -Prefix 'Nothing to copy' | Out-Null
     Assert-True -Condition $true -Name 'Aspect Ratio invalid input clears copy eligibility and reports the guarded state'
 
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioTargetWidth' -Value '' | Out-Null
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioWidth' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioTargetWidth' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix ([char]0x2014) | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioWidth' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioTargetWidth' -ExpectedValue '' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Aspect Ratio preserves blank dimension and target fields across language rerender'
+
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '1920' | Out-Null
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioHeight' -Value '1080' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioTargetWidth' -Value '1280' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioCopy').SetFocus()
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix '16:9' | Out-Null
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeAspectRatioCopy'
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioStatus' `
         -Prefix 'Copied to clipboard.' | Out-Null
     Assert-True -Condition $true -Name 'Aspect Ratio copies a valid native result only after explicit Copy'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '3440' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioTargetHeight' -Value '999' | Out-Null
+    Navigate-InProcessToRoute -Root $root -Route 'module.aspectratio' -ExpectedTitle 'Aspect Ratio'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioWidth' -ExpectedValue '1920' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioHeight' -ExpectedValue '1080' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioTargetWidth' -ExpectedValue '1280' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioTargetHeight' -ExpectedValue '720' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix '16:9' | Out-Null
+    Assert-True -Condition $true -Name 'Aspect Ratio resets managed page state after in-process route re-entry'
 }
 
 foreach ($alias in @('aspectratio', 'module.aspectratio')) {
@@ -2111,7 +2331,6 @@ Invoke-OwnedRoute -Route 'cssunits' -ExpectedTitle 'CSS Unit Converter' -Inspect
         'NativeCssUnitsViewportWidth',
         'NativeCssUnitsViewportHeight',
         'NativeCssUnitsContainer',
-        'NativeCssUnitsResults',
         'NativeCssUnitsResultEm',
         'NativeCssUnitsResultRem',
         'NativeCssUnitsResultPt',
@@ -2163,33 +2382,88 @@ Invoke-OwnedRoute -Route 'cssunits' -ExpectedTitle 'CSS Unit Converter' -Inspect
     Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeCssUnitsResultPt')) `
         -Name 'CSS Unit Converter changes source unit and excludes it from live results'
 
+    $cssLiveChanged = Invoke-AndWaitForLiveRegionChanged `
+        -Root $root -AutomationId 'NativeCssUnitsStatus' -Action {
+            Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsValueInput' -Value '1e309' | Out-Null
+        }
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsStatus' `
+        -Prefix 'Enter a valid invariant number to convert.' | Out-Null
+    $invalidPx = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPx' -Prefix 'px unavailable'
+    $unavailableCantonese = ([char]0x7121).ToString() + [char]0x6CD5 + [char]0x63DB + [char]0x7B97
+    $middleDot = [char]0x00B7
+    Assert-True -Condition (
+        $cssLiveChanged -and
+        -not $invalidPx.Current.IsEnabled -and
+        $invalidPx.Current.Name -eq "px unavailable $middleDot px $unavailableCantonese") `
+        -Name 'CSS Unit Converter disables non-finite results, raises its live event, and exposes the bilingual state'
+
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsValueInput' -Value 'not-a-number' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsStatus' `
         -Prefix 'Enter a valid invariant number to convert.' | Out-Null
     $invalidPx = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPx' -Prefix 'px unavailable'
     Assert-True -Condition (-not $invalidPx.Current.IsEnabled) `
-        -Name 'CSS Unit Converter disables unavailable rows after invalid invariant input'
+        -Name 'CSS Unit Converter also rejects ordinary malformed invariant input'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    $copyCantonese = ([char]0x8907).ToString() + [char]0x88FD
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPx' `
+        -Prefix ("px $unavailableCantonese") | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPx' -Prefix 'px unavailable' | Out-Null
+    Assert-True -Condition $true -Name 'CSS Unit Converter localizes unavailable result accessibility names'
 
     $cssPicker = Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsUnitPicker'
     Select-ComboIndex -Combo $cssPicker -Index 0
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsValueInput' -Value '16' | Out-Null
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsElement' -Value '0' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsValueInput').SetFocus()
     $zeroEm = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultEm' -Prefix 'em unavailable'
     Assert-True -Condition (-not $zeroEm.Current.IsEnabled) `
         -Name 'CSS Unit Converter rejects a zero em denominator without stale output'
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsElement' -Value '16' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsValueInput').SetFocus()
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultEm' -Prefix 'Copy 1em' | Out-Null
 
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsElement' -Value '' | Out-Null
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsElement' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultEm' `
+        -Prefix ("$copyCantonese 1em") | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsElement' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultEm' -Prefix 'Copy 1em' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsElement' -Value '16' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsValueInput').SetFocus()
+    Assert-True -Condition $true -Name 'CSS Unit Converter preserves a blank context across language rerender while using its calculation fallback'
+
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsContainer' -Value '0' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsValueInput').SetFocus()
     $zeroPercent = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPercent' -Prefix '% unavailable'
     Assert-True -Condition (-not $zeroPercent.Current.IsEnabled) `
         -Name 'CSS Unit Converter rejects a zero percentage context without stale output'
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsContainer' -Value '1000' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsValueInput').SetFocus()
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPercent' -Prefix 'Copy 1.6%' | Out-Null
 
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeCssUnitsResultEm'
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsStatus' -Prefix 'Copied 1em' | Out-Null
     Assert-True -Condition $true -Name 'CSS Unit Converter copies a complete CSS value only after explicit row selection'
+
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsUnitPicker') -Index 3
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsValueInput' -Value '72' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsElement' -Value '20' | Out-Null
+    Navigate-InProcessToRoute -Root $root -Route 'module.cssunits' -ExpectedTitle 'CSS Unit Converter'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsValueInput' -ExpectedValue '16' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsRoot' -ExpectedValue '16' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsElement' -ExpectedValue '16' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsViewportWidth' -ExpectedValue '1920' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsViewportHeight' -ExpectedValue '1080' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsContainer' -ExpectedValue '1000' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultEm' -Prefix 'Copy 1em' | Out-Null
+    Assert-True -Condition $true -Name 'CSS Unit Converter resets managed page state after in-process route re-entry'
 }
 
 Invoke-OwnedRoute -Route 'module.cssunits' -ExpectedTitle 'CSS Unit Converter'

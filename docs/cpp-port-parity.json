@@ -1,8 +1,8 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-18T19:30:00Z",
-    "baselineCommit":  "16b9f9da779b67731eec587737b592d6ec8aa625",
+    "generatedAtUtc":  "2026-07-18T22:23:19Z",
+    "baselineCommit":  "828c32791e1f135d2a46848e9283087ef8ec9156",
     "baselineCounts":  {
                            "routes":  346,
                            "registryEntries":  319,
@@ -741,25 +741,52 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/AspectRatioModule.xaml",
+                                      "Pages/AspectRatioModule.xaml.cs",
+                                      "Services/AspectRatioService.cs",
+                                      "src/WinForge.Core/DesignTools.h",
+                                      "src/WinForge.Core/DesignTools.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/DesignToolsTests.h",
+                                      "tests/native/WinForge.Core.Tests/DesignToolsTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "tools/Generate-WikiFeatureDocs.ps1",
+                                      "README.md",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/features/calculators-numbers/aspectratio.md",
+                                      "docs/wiki/Screenshots.md",
+                                      "design/content/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Aspect Ratio · 長寬比計算 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-18T22:23:19Z",
+                                          "result":  "A genuine C++/WinRT Aspect Ratio page backed by standard-C++ design logic preserves managed presets, locked-dimension recomputation, blank and invalid input behavior, reset, explicit Copy, accessibility, language-state retention, and CoreLib-compatible 0/0.##/0.#### display formatting. Debug and Release core each passed 560/560, including Design Tools 94/94; a deterministic one-million-finite-double differential against .NET 11 produced zero formatting mismatches. The focused utility shell passed 39/39 and the full owned shell remained 300/300. LowLevel Computer Use MCP 1.28.1 launched the route from the immutable 294-file runtime on its own named desktop, confirmed launch PID 4360, resolved one 1320x880 WinUI frame, captured a 1304x841 client with one color, zero standard deviation, and zero non-white fraction, then killed the exact PID and closed the desktop. The repository driver separately launched the page but CopyFromScreen was unavailable and its blank PrintWindow fallback was rejected. No invalid image was promoted.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because a trustworthy native screenshot could not be captured in this desktop session. Aspect Ratio is local-only and its sole side effect is operator-selected clipboard Copy."
                    },
                    {
                        "id":  "module.audioeditor",
@@ -2022,25 +2049,52 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/CssUnitsModule.xaml",
+                                      "Pages/CssUnitsModule.xaml.cs",
+                                      "Services/CssUnitsService.cs",
+                                      "src/WinForge.Core/DesignTools.h",
+                                      "src/WinForge.Core/DesignTools.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/DesignToolsTests.h",
+                                      "tests/native/WinForge.Core.Tests/DesignToolsTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "tools/Generate-WikiFeatureDocs.ps1",
+                                      "README.md",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/features/colors-design/cssunits.md",
+                                      "docs/wiki/Screenshots.md",
+                                      "design/content/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "CSS Unit Converter · CSS 單位換算 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-18T22:23:19Z",
+                                          "result":  "A genuine C++/WinRT CSS Unit Converter backed by standard-C++ design logic now matches the managed px/em/rem/pt/vw/vh/% contract, source-unit exclusion, blank-context fallbacks, zero-denominator and non-finite rejection, localized unavailable accessibility names, live-region updates, reset, and explicit row Copy. Debug and Release core each passed 560/560, including Design Tools 94/94; the focused utility shell passed 39/39 and the full owned shell remained 300/300. LowLevel Computer Use MCP 1.28.1 launched the route from the immutable 294-file runtime on its own named desktop, confirmed launch PID 28088, resolved one 1320x880 WinUI frame, captured a 1304x841 client with one color, zero standard deviation, and zero non-white fraction, then killed the exact PID and closed the desktop. The repository driver separately launched the page but CopyFromScreen was unavailable and its blank PrintWindow fallback was rejected. No invalid image was promoted.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because a trustworthy native screenshot could not be captured in this desktop session. CSS Unit Converter is local-only and its sole side effect is operator-selected clipboard Copy."
                    },
                    {
                        "id":  "module.csvjson",
@@ -7272,25 +7326,52 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/TextDiffModule.xaml",
+                                      "Pages/TextDiffModule.xaml.cs",
+                                      "Services/TextDiffService.cs",
+                                      "src/WinForge.Core/TextDiff.h",
+                                      "src/WinForge.Core/TextDiff.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/TextDiffTests.h",
+                                      "tests/native/WinForge.Core.Tests/TextDiffTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "tools/Generate-WikiFeatureDocs.ps1",
+                                      "README.md",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/features/text-tools/textdiff.md",
+                                      "docs/wiki/Screenshots.md",
+                                      "design/content/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Text Diff · 文字差異比對 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-18T22:23:19Z",
+                                          "result":  "A genuine C++/WinRT Text Diff page backed by a bounded standard-C++ LCS core now matches managed line splitting, added/removed/unchanged rows, ignore-case and ignore-whitespace modes, unified output, reset, and explicit Copy. Its bounded virtualized ListView exposes realized-row automation IDs, retains multiline state across language rerender, and resets on real route re-entry. Text Diff passed 27/27 focused core contracts, including the exact 6,000,000-cell guard and invariant Unicode case folding; aggregate Debug and Release core each passed 560/560. The focused utility shell passed 39/39, including a 2,000-line virtualization/scroll check, and the full owned shell remained 300/300. LowLevel Computer Use MCP 1.28.1 launched the route from the immutable 294-file runtime on its own named desktop, confirmed launch PID 32596, resolved one 1320x880 WinUI frame, captured a 1304x841 client with one color, zero standard deviation, and zero non-white fraction, then killed the exact PID and closed the desktop. The repository driver separately launched the page but CopyFromScreen was unavailable and its blank PrintWindow fallback was rejected. No invalid image was promoted.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because a trustworthy native screenshot could not be captured in this desktop session. Text Diff is local-only and its sole side effect is operator-selected clipboard Copy."
                    },
                    {
                        "id":  "module.textescape",
