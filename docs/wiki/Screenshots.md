@@ -6,9 +6,13 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
+**EN —** On 2026-07-18, the requested repo-local LowLevel MCP launched `module.unixperm` from an immutable 294-file native runtime snapshot on a uniquely named isolated desktop and resolved the exact owned WinUI window (PID 10344, class `WinUIDesktopWin32WindowClass`, 1320×880). `PrintWindow` returned `rendered_ok`, but independent inspection found an entirely white client: 22,657 sampled pixels, one color, zero standard deviation, and a zero non-white fraction. The already-high-integrity server then failed `SwitchDesktop` with Win32 error 5, so XAML composition and UI Automation remained dormant. The visible desktop was never touched, no input was sent, and the rejected PNG remains only in the smoke artifacts. No canonical or wiki screenshot was created or replaced; chmod Calculator is honestly `capture-blocked`.
+
+**粵語 —** 2026-07-18，指定嘅 repo 本機 LowLevel MCP 用一份不可變、294 個檔案嘅原生 runtime snapshot，喺獨立命名隔離 desktop 開啟 `module.unixperm`，並準確解析自有 WinUI 視窗（PID 10344、class `WinUIDesktopWin32WindowClass`、1320×880）。`PrintWindow` 雖然回報 `rendered_ok`，但獨立檢查發現 client 完全白色：抽樣 22,657 個像素、只有一種顏色、標準差係零、非白色比例亦係零。已經係 High integrity 嘅 server 再以 Win32 錯誤 5 拒絕 `SwitchDesktop`，所以 XAML composition 同 UI Automation 保持休眠。可見 desktop 從未被觸碰，亦冇送出輸入；拒絕咗嘅 PNG 只留喺 smoke artifacts。冇建立或替換 canonical／wiki 截圖；chmod 計算機如實係 `capture-blocked`。
+
 **EN ·** On 2026-07-16, native Symbols Palette passed the owned LowLevel MCP 238/238 UI Automation campaign. The isolated driver could not use CopyFromScreen and rejected its blank/near-uniform PrintWindow fallback; no PNG was retained. The route is honestly capture-blocked.
 
-**?? ·** 2026-07-16，native Symbols Palette 通過 LowLevel MCP 238/238 UI Automation；CopyFromScreen 唔可用，PrintWindow fallback 空白／近乎單色所以被拒絕，冇保留 PNG。呢個 route 正確係 capture-blocked。
+**粵語 ·** 2026-07-16，native Symbols Palette 通過 LowLevel MCP 238/238 UI Automation；CopyFromScreen 唔可用，PrintWindow fallback 空白／近乎單色所以被拒絕，冇保留 PNG。呢個 route 正確係 capture-blocked。
 
 **EN —** On 2026-07-16, the changed native `regextester` page was launched only through an isolated LowLevel MCP headless desktop after the **226/226** native UI Automation campaign. The resolved 852×880 full-window capture and independently inspected 836×841 client-only capture were both blank. Both temporary PNGs were discarded. The **403/403** Debug/Release tests and **226/226** UI Automation checks are behavioral/accessibility evidence only; no stale, synthetic, blank, or managed screenshot was reused. Native Regex Tester is honestly `capture-blocked`.
 

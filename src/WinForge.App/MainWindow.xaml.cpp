@@ -941,6 +941,10 @@ namespace winrt::WinForge::implementation
         {
             RenderAbout();
         }
+        else if (winforge::core::HasNativeRenderer(module->id))
+        {
+            RenderCatalogError("The route is marked as implemented but has no native renderer dispatch.");
+        }
         else
         {
             RenderPending(*module);
@@ -10557,7 +10561,10 @@ namespace winrt::WinForge::implementation
             StackPanel row;
             row.Spacing(2);
             row.Children().Append(CreateText(Label(module), 15, true));
-            auto metadata = module.id + L"  ·  " + module.kind + L"  ·  native implementation pending / 原生實作待完成";
+            auto const implementation = winforge::core::HasNativeRenderer(module.id)
+                ? L"native implementation available / 原生實作可用"
+                : L"native implementation pending / 原生實作待完成";
+            auto metadata = module.id + L"  ·  " + module.kind + L"  ·  " + implementation;
             auto metadataText = CreateText(metadata, 11);
             metadataText.Opacity(0.68);
             row.Children().Append(metadataText);
@@ -10567,6 +10574,9 @@ namespace winrt::WinForge::implementation
             item.Tag(box_value(ToHString(module.id)));
             item.Padding(Thickness{ 12, 9, 12, 9 });
             AutomationProperties::SetAutomationId(item, ToHString(L"NativeAllApps_" + AutomationKey(module.id)));
+            AutomationProperties::SetName(
+                item,
+                ToHString(Label(module) + L" · " + metadata));
             m_allAppsList.Items().Append(item);
             ++visible;
         }
@@ -11367,14 +11377,16 @@ namespace winrt::WinForge::implementation
             });
             content.Children().Append(review_remove);
 
-            auto deep_cleanup_note = CreateText(pick(
+            auto const deep_cleanup_message = pick(
                 L"Deep cleanup is intentionally unavailable until handle-relative deletion is implemented. Package removal never deletes local data.",
-                L"\u6df1\u5c64\u6e05\u7406\u8981\u7b49 handle-relative deletion \u5b8c\u6210\u624d\u6703\u958b\u653e\u3002\u5957\u4ef6\u79fb\u9664\u7d55\u4e0d\u6703\u522a\u9664\u672c\u6a5f\u8cc7\u6599\u3002"), 12);
+                L"\u6df1\u5c64\u6e05\u7406\u8981\u7b49 handle-relative deletion \u5b8c\u6210\u624d\u6703\u958b\u653e\u3002\u5957\u4ef6\u79fb\u9664\u7d55\u4e0d\u6703\u522a\u9664\u672c\u6a5f\u8cc7\u6599\u3002");
+            auto deep_cleanup_note = CreateText(deep_cleanup_message, 12);
             deep_cleanup_note.TextWrapping(TextWrapping::Wrap);
             deep_cleanup_note.Opacity(0.72);
             AutomationProperties::SetAutomationId(
                 deep_cleanup_note,
                 ToHString(L"NativeAppUninstallerDeepCleanupStatus_" + suffix));
+            AutomationProperties::SetName(deep_cleanup_note, ToHString(deep_cleanup_message));
             content.Children().Append(deep_cleanup_note);
 
             card.Child(content);
