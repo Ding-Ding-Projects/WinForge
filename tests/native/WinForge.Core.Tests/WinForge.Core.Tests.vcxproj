@@ -61,6 +61,7 @@
     <ClCompile Include="PassGenTests.cpp" />
     <ClCompile Include="PasswordStrengthTests.cpp" />
     <ClCompile Include="RomanNumTests.cpp" />
+    <ClCompile Include="UnixPermTests.cpp" />
     <ClCompile Include="UuidV7Tests.cpp" />
     <ClCompile Include="RegexSearchTests.cpp" />
     <ClCompile Include="RegexCheatTests.cpp" />
@@ -82,6 +83,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\PassGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PasswordStrength.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RomanNum.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\UnixPerm.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\UuidV7.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RegexSearch.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RegexCheat.cpp" />
@@ -105,6 +107,7 @@
     <ClInclude Include="PassGenTests.h" />
     <ClInclude Include="PasswordStrengthTests.h" />
     <ClInclude Include="RomanNumTests.h" />
+    <ClInclude Include="UnixPermTests.h" />
     <ClInclude Include="UuidV7Tests.h" />
     <ClInclude Include="RegexSearchTests.h" />
     <ClInclude Include="RegexCheatTests.h" />
@@ -123,6 +126,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\PassGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PasswordStrength.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RomanNum.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\UnixPerm.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\UuidV7.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearch.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearchSurface.h" />

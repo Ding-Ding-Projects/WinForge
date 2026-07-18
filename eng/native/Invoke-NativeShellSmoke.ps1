@@ -1831,6 +1831,111 @@ foreach ($alias in @('romannum', 'module.romannum')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Roman Numerals'
 }
 
+Invoke-OwnedRoute -Route 'unixperm' -ExpectedTitle 'chmod Calculator' -Inspect {
+    param($root, $title)
+
+    $ids = @(
+        'NativeUnixPermImplementationStatus',
+        'NativeUnixPermOwnerRead',
+        'NativeUnixPermOwnerWrite',
+        'NativeUnixPermOwnerExecute',
+        'NativeUnixPermGroupRead',
+        'NativeUnixPermGroupWrite',
+        'NativeUnixPermGroupExecute',
+        'NativeUnixPermOtherRead',
+        'NativeUnixPermOtherWrite',
+        'NativeUnixPermOtherExecute',
+        'NativeUnixPermSetUid',
+        'NativeUnixPermSetGid',
+        'NativeUnixPermSticky',
+        'NativeUnixPermOctalInput',
+        'NativeUnixPermSymbolicInput',
+        'NativeUnixPermCommandOutput',
+        'NativeUnixPermCopyOctal',
+        'NativeUnixPermCopySymbolic',
+        'NativeUnixPermCopyCommand',
+        'NativeUnixPermStatus'
+    )
+    foreach ($id in $ids) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $controlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermOwnerRead'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermOwnerWrite'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermOwnerExecute'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermOctalInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermCopyOctal'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermSymbolicInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermCopySymbolic'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermCommandOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnixPermCopyCommand'))
+    Assert-True -Condition $controlsFit -Name 'chmod Calculator exposes native controls and horizontal clipping safety'
+
+    $octal = Wait-ForElement -Root $root -AutomationId 'NativeUnixPermOctalInput'
+    $symbolic = Wait-ForElement -Root $root -AutomationId 'NativeUnixPermSymbolicInput'
+    Assert-True -Condition ($octal.Current.Name.StartsWith('Octal permission mode', [StringComparison]::Ordinal)) -Name 'chmod octal editor has a localized accessible name'
+    Assert-True -Condition ($symbolic.Current.Name.StartsWith('Symbolic permission mode', [StringComparison]::Ordinal)) -Name 'chmod symbolic editor has a localized accessible name'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermOctalInput' -ExpectedValue '0644' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermSymbolicInput' -ExpectedValue 'rw-r--r--' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermCommandOutput' -ExpectedValue 'chmod 644 file' | Out-Null
+    Assert-True -Condition $true -Name 'chmod Calculator starts at managed-parity mode 0644'
+
+    $octal = Set-ElementValueAndWait -Root $root -AutomationId 'NativeUnixPermOctalInput' -Value '6755'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermSymbolicInput' -ExpectedValue 'rwsr-sr-x' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermCommandOutput' -ExpectedValue 'chmod 6755 file' | Out-Null
+    Assert-True -Condition $true -Name 'chmod octal editor updates special bits, symbolic mode, and command preview'
+
+    foreach ($toggleExpectation in @(
+        @{ Id = 'NativeUnixPermSetUid'; State = [System.Windows.Automation.ToggleState]::On },
+        @{ Id = 'NativeUnixPermSetGid'; State = [System.Windows.Automation.ToggleState]::On },
+        @{ Id = 'NativeUnixPermSticky'; State = [System.Windows.Automation.ToggleState]::Off }
+    )) {
+        $toggleElement = Wait-ForElement -Root $root -AutomationId $toggleExpectation.Id
+        $toggle = [System.Windows.Automation.TogglePattern]$toggleElement.GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+        if ($toggle.Current.ToggleState -ne $toggleExpectation.State) {
+            throw "$($toggleExpectation.Id) did not reflect mode 6755."
+        }
+    }
+    Assert-True -Condition $true -Name 'chmod permission matrix reflects parsed setuid and setgid state'
+
+    $octal = Set-ElementValueAndWait -Root $root -AutomationId 'NativeUnixPermOctalInput' -Value '6888'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermSymbolicInput' -ExpectedValue 'rwsr-sr-x' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermCommandOutput' -ExpectedValue 'chmod 6755 file' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnixPermStatus' -Prefix 'Invalid octal' | Out-Null
+    Assert-True -Condition $true -Name 'chmod invalid octal retains the last valid mode atomically'
+
+    $symbolic = Set-ElementValueAndWait -Root $root -AutomationId 'NativeUnixPermSymbolicInput' -Value '--S--S--T'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermOctalInput' -ExpectedValue '7000' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermCommandOutput' -ExpectedValue 'chmod 7000 file' | Out-Null
+    Assert-True -Condition $true -Name 'chmod symbolic editor preserves uppercase special-bit semantics'
+
+    $symbolic = Set-ElementValueAndWait -Root $root -AutomationId 'NativeUnixPermSymbolicInput' -Value 'rwxr-xr-z'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermOctalInput' -ExpectedValue '7000' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermCommandOutput' -ExpectedValue 'chmod 7000 file' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnixPermStatus' -Prefix 'Invalid symbolic mode' | Out-Null
+    Assert-True -Condition $true -Name 'chmod invalid symbolic input retains the last valid permission matrix'
+
+    $octal = Set-ElementValueAndWait -Root $root -AutomationId 'NativeUnixPermOctalInput' -Value '6755'
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUnixPermCopyCommand'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnixPermStatus' -Prefix 'Copied: chmod 6755 file' | Out-Null
+    Assert-True -Condition $true -Name 'chmod writes a command to the clipboard only after explicit Copy'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'chmod Calculator' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermOctalInput' -ExpectedValue '6755' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermSymbolicInput' -ExpectedValue 'rwsr-sr-x' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnixPermCommandOutput' -ExpectedValue 'chmod 6755 file' | Out-Null
+    Assert-True -Condition $true -Name 'chmod preserves its complete valid mode across language rerender'
+}
+
+foreach ($alias in @('chmod', 'module.unixperm')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'chmod Calculator'
+}
+
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 

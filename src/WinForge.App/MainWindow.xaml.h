@@ -10,6 +10,7 @@
 #include "../WinForge.Core/PassGen.h"
 #include "../WinForge.Core/PasswordStrength.h"
 #include "../WinForge.Core/RomanNum.h"
+#include "../WinForge.Core/UnixPerm.h"
 #include "../WinForge.Core/UuidV7.h"
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageMutationCoordinator.h"
@@ -23,6 +24,7 @@
 #include "../WinForge.Core/RouteIndex.h"
 
 #include <atomic>
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -226,6 +228,11 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBlock m_romanNumNumberBreakdown{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_romanNumCopyNumber{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_romanNumStatus{ nullptr };
+        std::array<Microsoft::UI::Xaml::Controls::CheckBox, 12> m_unixPermChecks{};
+        Microsoft::UI::Xaml::Controls::TextBox m_unixPermOctalInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_unixPermSymbolicInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_unixPermCommandOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_unixPermStatus{ nullptr };
         std::unordered_map<std::wstring, bool> m_packageManagersSelected;
         std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
         std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
@@ -327,6 +334,15 @@ namespace winrt::WinForge::implementation
         std::wstring m_romanNumRomanOutputValue{};
         std::wstring m_romanNumNumberOutputValue{};
         bool m_romanNumRendering{ false };
+        winforge::core::unixperm::Mode m_unixPermMode{
+            static_cast<winforge::core::unixperm::Mode>(
+                winforge::core::unixperm::OwnerR |
+                winforge::core::unixperm::OwnerW |
+                winforge::core::unixperm::GroupR |
+                winforge::core::unixperm::OtherR) };
+        std::wstring m_unixPermOctalInputValue{ L"0644" };
+        std::wstring m_unixPermSymbolicInputValue{ L"rw-r--r--" };
+        bool m_unixPermRendering{ false };
         bool m_shellRegexEnabled{ false };
         bool m_shellRegexCaseSensitive{ false };
         bool m_shellRegexMultiline{ false };
@@ -597,6 +613,15 @@ namespace winrt::WinForge::implementation
         void RenderRomanNum();
         void RefreshRomanNum(bool refreshNumber = true, bool refreshRoman = true);
         void AnnounceRomanNumStatus(std::wstring_view message, bool warning = false);
+        void RenderUnixPerm();
+        void RefreshUnixPerm(
+            bool refreshOctal = true,
+            bool refreshSymbolic = true,
+            bool refreshChecks = true,
+            bool announceMode = true);
+        [[nodiscard]] winforge::core::unixperm::Mode ReadUnixPermMode() const;
+        void CopyUnixPermValue(std::wstring_view value);
+        void AnnounceUnixPermStatus(std::wstring_view message, bool warning = false);
         void RenderSearch(std::wstring_view query);
         void RenderAbout();
         void RenderPending(winforge::core::ModuleRecord const& module);

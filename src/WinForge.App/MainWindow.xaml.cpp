@@ -921,6 +921,10 @@ namespace winrt::WinForge::implementation
         {
             RenderRomanNum();
         }
+        else if (module->id == L"module.unixperm")
+        {
+            RenderUnixPerm();
+        }
         else if (module->id == L"module.regextester")
         {
             RenderRegexTester();
@@ -2383,6 +2387,446 @@ namespace winrt::WinForge::implementation
         catch (...)
         {
             // Accessibility reporting must never interrupt local conversion.
+        }
+    }
+
+    void MainWindow::RenderUnixPerm()
+    {
+        using namespace winforge::core::unixperm;
+        m_unixPermRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"chmod Calculator", L"chmod 計算機" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Build a Unix file mode from owner, group, and other permissions, or type octal and symbolic modes directly. The command is a local preview and is never executed.",
+                L"用擁有者、群組同其他人權限砌 Unix 檔案模式，亦可以直接輸入八進位或者符號模式。指令只係本機預覽，絕對唔會執行。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeUnixPermPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native permission calculator", L"全原生權限計算機" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"All 4,096 modes, special s/S/t/T semantics, two-way parsing, and command previews run in standard C++. Only an explicit Copy button writes to the clipboard.",
+            L"全部 4,096 個模式、特殊 s/S/t/T 語義、雙向解析同指令預覽都喺標準 C++ 執行；只有明確撳 Copy 先會寫入剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeUnixPermImplementationStatus");
+        page.Children().Append(implementation);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        Border matrixCard = makeCard();
+        StackPanel matrix;
+        matrix.Spacing(10);
+        matrix.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Permission bits", L"權限位" }.Pick(m_language), 15, true));
+
+        struct PermissionColumn
+        {
+            std::wstring_view en;
+            std::wstring_view zh;
+            std::wstring_view automation;
+        };
+        constexpr std::array<PermissionColumn, 3> columns{{
+            { L"Read", L"讀", L"Read" },
+            { L"Write", L"寫", L"Write" },
+            { L"Execute", L"執行", L"Execute" },
+        }};
+        constexpr std::array<Mode, 9> permissionBits{
+            OwnerR, OwnerW, OwnerX,
+            GroupR, GroupW, GroupX,
+            OtherR, OtherW, OtherX,
+        };
+        struct PermissionRow
+        {
+            std::wstring_view en;
+            std::wstring_view zh;
+            std::wstring_view automation;
+        };
+        constexpr std::array<PermissionRow, 3> rows{{
+            { L"Owner", L"擁有者", L"Owner" },
+            { L"Group", L"群組", L"Group" },
+            { L"Other", L"其他", L"Other" },
+        }};
+
+        for (std::size_t rowIndex{}; rowIndex < rows.size(); ++rowIndex)
+        {
+            StackPanel row;
+            row.Orientation(Orientation::Horizontal);
+            row.Spacing(10);
+            row.HorizontalAlignment(HorizontalAlignment::Left);
+            auto rowLabel = CreateText(
+                winforge::core::LocalizedText{
+                    std::wstring(rows[rowIndex].en), std::wstring(rows[rowIndex].zh) }.Pick(m_language),
+                13.5,
+                true);
+            rowLabel.Width(105);
+            rowLabel.VerticalAlignment(VerticalAlignment::Center);
+            AutomationProperties::SetAutomationId(
+                rowLabel,
+                ToHString(L"NativeUnixPerm" + std::wstring(rows[rowIndex].automation) + L"Label"));
+            row.Children().Append(rowLabel);
+
+            for (std::size_t columnIndex{}; columnIndex < columns.size(); ++columnIndex)
+            {
+                auto const index = rowIndex * columns.size() + columnIndex;
+                auto& check = m_unixPermChecks[index];
+                check = CheckBox();
+                check.Content(box_value(ToHString(winforge::core::LocalizedText{
+                    std::wstring(columns[columnIndex].en), std::wstring(columns[columnIndex].zh) }.Pick(m_language))));
+                check.IsChecked((m_unixPermMode & permissionBits[index]) != 0);
+                check.MinWidth(135);
+                check.VerticalAlignment(VerticalAlignment::Center);
+                auto const accessible = winforge::core::LocalizedText{
+                    std::wstring(rows[rowIndex].en) + L" " + std::wstring(columns[columnIndex].en),
+                    std::wstring(rows[rowIndex].zh) + std::wstring(columns[columnIndex].zh) }.Pick(m_language);
+                AutomationProperties::SetAutomationId(
+                    check,
+                    ToHString(L"NativeUnixPerm" + std::wstring(rows[rowIndex].automation) +
+                        std::wstring(columns[columnIndex].automation)));
+                AutomationProperties::SetName(check, ToHString(accessible));
+                row.Children().Append(check);
+            }
+            matrix.Children().Append(row);
+        }
+
+        auto specialTitle = CreateText(
+            winforge::core::LocalizedText{ L"Special bits", L"特殊權限位" }.Pick(m_language), 13.5, true);
+        specialTitle.Margin(Thickness{ 0, 4, 0, 0 });
+        matrix.Children().Append(specialTitle);
+        struct SpecialRow
+        {
+            Mode bit;
+            std::wstring_view en;
+            std::wstring_view zh;
+            std::wstring_view automation;
+        };
+        constexpr std::array<SpecialRow, 3> specials{{
+            { SetUid, L"setuid (4000)", L"setuid（4000）", L"SetUid" },
+            { SetGid, L"setgid (2000)", L"setgid（2000）", L"SetGid" },
+            { Sticky, L"sticky (1000)", L"sticky 黏著位（1000）", L"Sticky" },
+        }};
+        for (std::size_t index{}; index < specials.size(); ++index)
+        {
+            auto& check = m_unixPermChecks[9 + index];
+            check = CheckBox();
+            check.Content(box_value(ToHString(winforge::core::LocalizedText{
+                std::wstring(specials[index].en), std::wstring(specials[index].zh) }.Pick(m_language))));
+            check.IsChecked((m_unixPermMode & specials[index].bit) != 0);
+            AutomationProperties::SetAutomationId(
+                check,
+                ToHString(L"NativeUnixPerm" + std::wstring(specials[index].automation)));
+            AutomationProperties::SetName(
+                check,
+                ToHString(winforge::core::LocalizedText{
+                    std::wstring(specials[index].en), std::wstring(specials[index].zh) }.Pick(m_language)));
+            matrix.Children().Append(check);
+        }
+
+        auto permissionChanged = [this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_unixPermRendering) return;
+            m_unixPermMode = ReadUnixPermMode();
+            RefreshUnixPerm(true, true, false, true);
+        };
+        for (auto const& check : m_unixPermChecks)
+        {
+            check.Checked(permissionChanged);
+            check.Unchecked(permissionChanged);
+        }
+        matrixCard.Child(matrix);
+        page.Children().Append(matrixCard);
+
+        Border valueCard = makeCard();
+        StackPanel values;
+        values.Spacing(10);
+        values.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Representations", L"表示方式" }.Pick(m_language), 15, true));
+
+        auto octalLabel = CreateText(
+            winforge::core::LocalizedText{ L"Octal mode", L"八進位模式" }.Pick(m_language), 13.5, true);
+        values.Children().Append(octalLabel);
+        StackPanel octalRow;
+        octalRow.Orientation(Orientation::Horizontal);
+        octalRow.Spacing(10);
+        m_unixPermOctalInput = TextBox();
+        m_unixPermOctalInput.Text(ToHString(m_unixPermOctalInputValue));
+        m_unixPermOctalInput.MinWidth(220);
+        m_unixPermOctalInput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_unixPermOctalInput.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_unixPermOctalInput, L"NativeUnixPermOctalInput");
+        AutomationProperties::SetName(m_unixPermOctalInput, ToHString(winforge::core::LocalizedText{
+            L"Octal permission mode", L"八進位權限模式" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_unixPermOctalInput, octalLabel);
+        m_unixPermOctalInput.TextChanged([this](
+            Windows::Foundation::IInspectable const& sender,
+            TextChangedEventArgs const&)
+        {
+            if (m_unixPermRendering) return;
+            m_unixPermOctalInputValue = ToWide(sender.as<TextBox>().Text());
+            Mode parsed{};
+            if (TryParseOctal(m_unixPermOctalInputValue, parsed))
+            {
+                m_unixPermMode = parsed;
+                RefreshUnixPerm(false, true, true, true);
+            }
+            else
+            {
+                AnnounceUnixPermStatus(winforge::core::LocalizedText{
+                    L"Invalid octal — use one to four digits from 0–7 (for example 755 or 4755).",
+                    L"八進位唔啱 — 請用一至四個 0–7 數字（例如 755 或 4755）。" }.Pick(m_language), true);
+            }
+        });
+        octalRow.Children().Append(m_unixPermOctalInput);
+        Button copyOctal;
+        copyOctal.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(copyOctal, L"NativeUnixPermCopyOctal");
+        AutomationProperties::SetName(copyOctal, ToHString(winforge::core::LocalizedText{
+            L"Copy octal mode", L"複製八進位模式" }.Pick(m_language)));
+        copyOctal.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyUnixPermValue(ToOctal(m_unixPermMode));
+        });
+        octalRow.Children().Append(copyOctal);
+        values.Children().Append(octalRow);
+
+        auto symbolicLabel = CreateText(
+            winforge::core::LocalizedText{ L"Symbolic mode", L"符號模式" }.Pick(m_language), 13.5, true);
+        values.Children().Append(symbolicLabel);
+        StackPanel symbolicRow;
+        symbolicRow.Orientation(Orientation::Horizontal);
+        symbolicRow.Spacing(10);
+        m_unixPermSymbolicInput = TextBox();
+        m_unixPermSymbolicInput.Text(ToHString(m_unixPermSymbolicInputValue));
+        m_unixPermSymbolicInput.MinWidth(220);
+        m_unixPermSymbolicInput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_unixPermSymbolicInput.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_unixPermSymbolicInput, L"NativeUnixPermSymbolicInput");
+        AutomationProperties::SetName(m_unixPermSymbolicInput, ToHString(winforge::core::LocalizedText{
+            L"Symbolic permission mode", L"符號權限模式" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_unixPermSymbolicInput, symbolicLabel);
+        m_unixPermSymbolicInput.TextChanged([this](
+            Windows::Foundation::IInspectable const& sender,
+            TextChangedEventArgs const&)
+        {
+            if (m_unixPermRendering) return;
+            m_unixPermSymbolicInputValue = ToWide(sender.as<TextBox>().Text());
+            Mode parsed{};
+            if (TryParseSymbolic(m_unixPermSymbolicInputValue, parsed))
+            {
+                m_unixPermMode = parsed;
+                RefreshUnixPerm(true, false, true, true);
+            }
+            else
+            {
+                AnnounceUnixPermStatus(winforge::core::LocalizedText{
+                    L"Invalid symbolic mode — use nine characters like rwxr-xr-x (s/S/t/T are allowed).",
+                    L"符號模式唔啱 — 請用九個字元，例如 rwxr-xr-x（可以用 s/S/t/T）。" }.Pick(m_language), true);
+            }
+        });
+        symbolicRow.Children().Append(m_unixPermSymbolicInput);
+        Button copySymbolic;
+        copySymbolic.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(copySymbolic, L"NativeUnixPermCopySymbolic");
+        AutomationProperties::SetName(copySymbolic, ToHString(winforge::core::LocalizedText{
+            L"Copy symbolic mode", L"複製符號模式" }.Pick(m_language)));
+        copySymbolic.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyUnixPermValue(ToSymbolic(m_unixPermMode));
+        });
+        symbolicRow.Children().Append(copySymbolic);
+        values.Children().Append(symbolicRow);
+
+        auto commandLabel = CreateText(
+            winforge::core::LocalizedText{ L"Command preview (not executed)", L"指令預覽（唔會執行）" }.Pick(m_language),
+            13.5,
+            true);
+        values.Children().Append(commandLabel);
+        StackPanel commandRow;
+        commandRow.Orientation(Orientation::Horizontal);
+        commandRow.Spacing(10);
+        m_unixPermCommandOutput = TextBox();
+        m_unixPermCommandOutput.IsReadOnly(true);
+        m_unixPermCommandOutput.IsSpellCheckEnabled(false);
+        m_unixPermCommandOutput.MinWidth(320);
+        m_unixPermCommandOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        AutomationProperties::SetAutomationId(m_unixPermCommandOutput, L"NativeUnixPermCommandOutput");
+        AutomationProperties::SetName(m_unixPermCommandOutput, ToHString(winforge::core::LocalizedText{
+            L"chmod command preview", L"chmod 指令預覽" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_unixPermCommandOutput, commandLabel);
+        commandRow.Children().Append(m_unixPermCommandOutput);
+        Button copyCommand;
+        copyCommand.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(copyCommand, L"NativeUnixPermCopyCommand");
+        AutomationProperties::SetName(copyCommand, ToHString(winforge::core::LocalizedText{
+            L"Copy chmod command", L"複製 chmod 指令" }.Pick(m_language)));
+        copyCommand.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyUnixPermValue(L"chmod " + ToChmodOctal(m_unixPermMode) + L" file");
+        });
+        commandRow.Children().Append(copyCommand);
+        values.Children().Append(commandRow);
+
+        valueCard.Child(values);
+        page.Children().Append(valueCard);
+
+        m_unixPermStatus = CreateText(L"", 12.5);
+        m_unixPermStatus.Opacity(0.84);
+        m_unixPermStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_unixPermStatus, L"NativeUnixPermStatus");
+        AutomationProperties::SetLiveSetting(
+            m_unixPermStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_unixPermStatus);
+
+        ShowPage(page);
+        m_unixPermRendering = false;
+        RefreshUnixPerm(false, false, false, true);
+    }
+
+    winforge::core::unixperm::Mode MainWindow::ReadUnixPermMode() const
+    {
+        using namespace winforge::core::unixperm;
+        constexpr std::array<Mode, 12> bits{
+            OwnerR, OwnerW, OwnerX,
+            GroupR, GroupW, GroupX,
+            OtherR, OtherW, OtherX,
+            SetUid, SetGid, Sticky,
+        };
+        Mode mode{};
+        for (std::size_t index{}; index < bits.size(); ++index)
+        {
+            auto const value = m_unixPermChecks[index].IsChecked();
+            if (value && value.Value())
+            {
+                mode = static_cast<Mode>(mode | bits[index]);
+            }
+        }
+        return mode;
+    }
+
+    void MainWindow::RefreshUnixPerm(
+        bool refreshOctal,
+        bool refreshSymbolic,
+        bool refreshChecks,
+        bool announceMode)
+    {
+        using namespace winforge::core::unixperm;
+        auto const previousRendering = m_unixPermRendering;
+        m_unixPermRendering = true;
+
+        if (refreshOctal)
+        {
+            m_unixPermOctalInputValue = ToOctal(m_unixPermMode);
+            if (m_unixPermOctalInput)
+            {
+                m_unixPermOctalInput.Text(ToHString(m_unixPermOctalInputValue));
+            }
+        }
+        if (refreshSymbolic)
+        {
+            m_unixPermSymbolicInputValue = ToSymbolic(m_unixPermMode);
+            if (m_unixPermSymbolicInput)
+            {
+                m_unixPermSymbolicInput.Text(ToHString(m_unixPermSymbolicInputValue));
+            }
+        }
+        if (refreshChecks)
+        {
+            constexpr std::array<Mode, 12> bits{
+                OwnerR, OwnerW, OwnerX,
+                GroupR, GroupW, GroupX,
+                OtherR, OtherW, OtherX,
+                SetUid, SetGid, Sticky,
+            };
+            for (std::size_t index{}; index < bits.size(); ++index)
+            {
+                if (m_unixPermChecks[index])
+                {
+                    m_unixPermChecks[index].IsChecked((m_unixPermMode & bits[index]) != 0);
+                }
+            }
+        }
+
+        auto const command = L"chmod " + ToChmodOctal(m_unixPermMode) + L" file";
+        if (m_unixPermCommandOutput)
+        {
+            m_unixPermCommandOutput.Text(ToHString(command));
+            AutomationProperties::SetHelpText(m_unixPermCommandOutput, ToHString(command));
+        }
+        m_unixPermRendering = previousRendering;
+
+        if (announceMode)
+        {
+            auto const octal = ToOctal(m_unixPermMode);
+            auto const symbolic = ToSymbolic(m_unixPermMode);
+            AnnounceUnixPermStatus(winforge::core::LocalizedText{
+                L"Mode " + octal + L" — " + symbolic,
+                L"模式 " + octal + L" — " + symbolic }.Pick(m_language));
+        }
+    }
+
+    void MainWindow::CopyUnixPermValue(std::wstring_view value)
+    {
+        try
+        {
+            Windows::ApplicationModel::DataTransfer::DataPackage package;
+            package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+            package.SetText(ToHString(value));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+            AnnounceUnixPermStatus(winforge::core::LocalizedText{
+                L"Copied: " + std::wstring(value),
+                L"已複製：" + std::wstring(value) }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceUnixPermStatus(winforge::core::LocalizedText{
+                L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::AnnounceUnixPermStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_unixPermStatus) return;
+        m_unixPermStatus.Text(ToHString(message));
+        m_unixPermStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_unixPermStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_unixPermStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_unixPermStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_unixPermStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility reporting must not interrupt a local calculation.
         }
     }
 
