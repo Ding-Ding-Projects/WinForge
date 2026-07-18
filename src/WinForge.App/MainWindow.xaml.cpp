@@ -925,6 +925,18 @@ namespace winrt::WinForge::implementation
         {
             RenderUnixPerm();
         }
+        else if (module->id == L"module.textdiff")
+        {
+            RenderTextDiff();
+        }
+        else if (module->id == L"module.aspectratio")
+        {
+            RenderAspectRatio();
+        }
+        else if (module->id == L"module.cssunits")
+        {
+            RenderCssUnits();
+        }
         else if (module->id == L"module.regextester")
         {
             RenderRegexTester();
@@ -2832,6 +2844,924 @@ namespace winrt::WinForge::implementation
         {
             // Accessibility reporting must not interrupt a local calculation.
         }
+    }
+
+    void MainWindow::RenderTextDiff()
+    {
+        using namespace winforge::core::textdiff;
+        m_textDiffRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Text Diff", L"文字差異比對" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Paste two blocks of text and compare them line by line. Added lines are green, removed lines are red, and the comparison updates as you type.",
+                L"貼兩段文字，逐行睇差異。加咗嘅係綠色、刪咗嘅係紅色，打字嗰陣會即時比對。" }.Pick(m_language));
+        page.MaxWidth(980);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeTextDiffPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native bounded text diff", L"全原生受限制文字差異比對" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Line splitting, normalization, bounded LCS, counts, and unified-diff output run locally in standard C++. Clipboard access only happens after the explicit Copy button.",
+            L"分行、正規化、受限制 LCS、統計同統一差異輸出全部喺本機標準 C++ 執行；只有明確撳 Copy 先會存取剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeTextDiffImplementationStatus");
+        page.Children().Append(implementation);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        Border inputsCard = makeCard();
+        StackPanel inputs;
+        inputs.Spacing(10);
+        inputs.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Compare text", L"比對文字" }.Pick(m_language), 15, true));
+
+        auto labelA = CreateText(
+            winforge::core::LocalizedText{ L"A (original)", L"A（原本）" }.Pick(m_language), 13.5, true);
+        inputs.Children().Append(labelA);
+        m_textDiffInputA = TextBox();
+        m_textDiffInputA.Text(ToHString(m_textDiffA));
+        m_textDiffInputA.AcceptsReturn(true);
+        m_textDiffInputA.TextWrapping(TextWrapping::NoWrap);
+        m_textDiffInputA.MinHeight(150);
+        m_textDiffInputA.FontFamily(Media::FontFamily(L"Consolas"));
+        m_textDiffInputA.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_textDiffInputA, L"NativeTextDiffInputA");
+        AutomationProperties::SetName(m_textDiffInputA, ToHString(winforge::core::LocalizedText{
+            L"Original text A", L"原本文字 A" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textDiffInputA, labelA);
+        m_textDiffInputA.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_textDiffRendering) return;
+            m_textDiffA = ToWide(sender.as<TextBox>().Text());
+            RefreshTextDiff();
+        });
+        inputs.Children().Append(m_textDiffInputA);
+
+        auto labelB = CreateText(
+            winforge::core::LocalizedText{ L"B (changed)", L"B（改咗）" }.Pick(m_language), 13.5, true);
+        inputs.Children().Append(labelB);
+        m_textDiffInputB = TextBox();
+        m_textDiffInputB.Text(ToHString(m_textDiffB));
+        m_textDiffInputB.AcceptsReturn(true);
+        m_textDiffInputB.TextWrapping(TextWrapping::NoWrap);
+        m_textDiffInputB.MinHeight(150);
+        m_textDiffInputB.FontFamily(Media::FontFamily(L"Consolas"));
+        m_textDiffInputB.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_textDiffInputB, L"NativeTextDiffInputB");
+        AutomationProperties::SetName(m_textDiffInputB, ToHString(winforge::core::LocalizedText{
+            L"Changed text B", L"改咗嘅文字 B" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textDiffInputB, labelB);
+        m_textDiffInputB.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_textDiffRendering) return;
+            m_textDiffB = ToWide(sender.as<TextBox>().Text());
+            RefreshTextDiff();
+        });
+        inputs.Children().Append(m_textDiffInputB);
+
+        StackPanel options;
+        options.Orientation(Orientation::Horizontal);
+        options.Spacing(22);
+        m_textDiffWhitespace = ToggleSwitch();
+        m_textDiffWhitespace.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"Ignore whitespace", L"忽略空白" }.Pick(m_language))));
+        m_textDiffWhitespace.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+        m_textDiffWhitespace.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+        m_textDiffWhitespace.IsOn(m_textDiffIgnoreWhitespace);
+        AutomationProperties::SetAutomationId(m_textDiffWhitespace, L"NativeTextDiffIgnoreWhitespace");
+        m_textDiffWhitespace.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_textDiffRendering) return;
+            m_textDiffIgnoreWhitespace = sender.as<ToggleSwitch>().IsOn();
+            RefreshTextDiff();
+        });
+        options.Children().Append(m_textDiffWhitespace);
+
+        m_textDiffCase = ToggleSwitch();
+        m_textDiffCase.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"Ignore case", L"忽略大小寫" }.Pick(m_language))));
+        m_textDiffCase.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+        m_textDiffCase.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+        m_textDiffCase.IsOn(m_textDiffIgnoreCase);
+        AutomationProperties::SetAutomationId(m_textDiffCase, L"NativeTextDiffIgnoreCase");
+        m_textDiffCase.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_textDiffRendering) return;
+            m_textDiffIgnoreCase = sender.as<ToggleSwitch>().IsOn();
+            RefreshTextDiff();
+        });
+        options.Children().Append(m_textDiffCase);
+        inputs.Children().Append(options);
+        inputsCard.Child(inputs);
+        page.Children().Append(inputsCard);
+
+        Border resultCard = makeCard();
+        StackPanel result;
+        result.Spacing(10);
+        StackPanel heading;
+        heading.Orientation(Orientation::Horizontal);
+        heading.Spacing(16);
+        heading.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Line-level diff", L"逐行差異" }.Pick(m_language), 15, true));
+        Button copy;
+        copy.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Copy unified diff", L"複製統一差異" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(copy, L"NativeTextDiffCopy");
+        AutomationProperties::SetName(copy, ToHString(winforge::core::LocalizedText{
+            L"Copy unified diff", L"複製統一差異" }.Pick(m_language)));
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_textDiffUnified));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceTextDiffStatus(winforge::core::LocalizedText{
+                    L"Unified diff copied to the clipboard.", L"統一差異已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceTextDiffStatus(winforge::core::LocalizedText{
+                    L"Could not copy to the clipboard.", L"複製唔到去剪貼簿。" }.Pick(m_language), true);
+            }
+        });
+        heading.Children().Append(copy);
+        result.Children().Append(heading);
+
+        m_textDiffCounts = CreateText(L"", 13, true);
+        AutomationProperties::SetAutomationId(m_textDiffCounts, L"NativeTextDiffCounts");
+        result.Children().Append(m_textDiffCounts);
+        m_textDiffRows = StackPanel();
+        m_textDiffRows.Spacing(2);
+        AutomationProperties::SetAutomationId(m_textDiffRows, L"NativeTextDiffRows");
+        result.Children().Append(m_textDiffRows);
+        resultCard.Child(result);
+        page.Children().Append(resultCard);
+
+        m_textDiffStatus = CreateText(L"", 12.5);
+        m_textDiffStatus.Opacity(0.84);
+        m_textDiffStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_textDiffStatus, L"NativeTextDiffStatus");
+        AutomationProperties::SetLiveSetting(
+            m_textDiffStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_textDiffStatus);
+
+        ShowPage(page);
+        m_textDiffRendering = false;
+        RefreshTextDiff();
+    }
+
+    void MainWindow::RefreshTextDiff()
+    {
+        using namespace winforge::core::textdiff;
+        if (!m_textDiffRows || !m_textDiffCounts || !m_textDiffStatus) return;
+
+        try
+        {
+            auto const diff = Compute(
+                m_textDiffA,
+                m_textDiffB,
+                m_textDiffIgnoreWhitespace,
+                m_textDiffIgnoreCase);
+            m_textDiffUnified = ToUnifiedDiff(diff);
+            m_textDiffRows.Children().Clear();
+
+            for (auto const& line : diff.lines)
+            {
+                auto row = CreateText(std::wstring(1, line.prefix) + L" " + line.text, 12.5);
+                row.FontFamily(Media::FontFamily(L"Consolas"));
+                row.TextWrapping(TextWrapping::Wrap);
+                row.Padding(Thickness{ 8, 4, 8, 4 });
+                if (line.kind == ChangeKind::Added)
+                {
+                    row.Foreground(Media::SolidColorBrush(Windows::UI::Color{ 0xFF, 0x3F, 0xB9, 0x50 }));
+                }
+                else if (line.kind == ChangeKind::Removed)
+                {
+                    row.Foreground(Media::SolidColorBrush(Windows::UI::Color{ 0xFF, 0xE0, 0x4B, 0x4B }));
+                }
+                AutomationProperties::SetName(row, ToHString(std::wstring(1, line.prefix) + L" " + line.text));
+                m_textDiffRows.Children().Append(row);
+            }
+
+            auto const counts = winforge::core::LocalizedText{
+                L"+" + std::to_wstring(diff.added) + L" added   -" + std::to_wstring(diff.removed) +
+                    L" removed   " + std::to_wstring(diff.unchanged) + L" unchanged",
+                L"+" + std::to_wstring(diff.added) + L" 加   -" + std::to_wstring(diff.removed) +
+                    L" 減   " + std::to_wstring(diff.unchanged) + L" 無變" }.Pick(m_language);
+            m_textDiffCounts.Text(ToHString(counts));
+            AutomationProperties::SetName(m_textDiffCounts, ToHString(counts));
+
+            AnnounceTextDiffStatus(diff.truncated
+                ? winforge::core::LocalizedText{
+                    L"Input very large — showing a simplified diff.", L"輸入好大 — 顯示咗簡化版差異。" }.Pick(m_language)
+                : L"");
+        }
+        catch (...)
+        {
+            AnnounceTextDiffStatus(winforge::core::LocalizedText{
+                L"Could not compute the diff.", L"計唔到差異。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::AnnounceTextDiffStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_textDiffStatus) return;
+        m_textDiffStatus.Text(ToHString(message));
+        m_textDiffStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_textDiffStatus, ToHString(message));
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_textDiffStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_textDiffStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility reporting must not interrupt the local comparison.
+        }
+    }
+
+    void MainWindow::RenderAspectRatio()
+    {
+        using namespace winforge::core::aspectratio;
+        m_aspectRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Aspect Ratio", L"長寬比計算" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Simplify a resolution to its aspect ratio, or scale a size while keeping the ratio locked. Decimal ratio and megapixels are shown live.",
+                L"將解析度化簡做長寬比，或者鎖住比例嚟縮放尺寸；小數比同百萬像素會即時顯示。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeAspectRatioPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native aspect-ratio math", L"全原生長寬比運算" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Midpoint-to-even simplification, GCD reduction, nine presets, scaling, megapixels, and copy formatting run locally in standard C++.",
+            L"中點取偶數化簡、最大公因數約簡、九個預設、縮放、百萬像素同複製格式全部喺本機標準 C++ 執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeAspectRatioImplementationStatus");
+        page.Children().Append(implementation);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        Border simplifyCard = makeCard();
+        StackPanel simplify;
+        simplify.Spacing(10);
+        simplify.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Simplify a resolution", L"化簡解析度" }.Pick(m_language), 15, true));
+
+        StackPanel dimensions;
+        dimensions.Orientation(Orientation::Horizontal);
+        dimensions.Spacing(10);
+        auto widthLabel = CreateText(
+            winforge::core::LocalizedText{ L"Width", L"闊度" }.Pick(m_language), 13.5, true);
+        widthLabel.MinWidth(70);
+        widthLabel.VerticalAlignment(VerticalAlignment::Center);
+        dimensions.Children().Append(widthLabel);
+        m_aspectWidth = NumberBox();
+        m_aspectWidth.Minimum(0);
+        m_aspectWidth.Maximum(100000);
+        m_aspectWidth.Value(m_aspectWidthValue);
+        m_aspectWidth.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_aspectWidth.MinWidth(150);
+        AutomationProperties::SetAutomationId(m_aspectWidth, L"NativeAspectRatioWidth");
+        AutomationProperties::SetName(m_aspectWidth, ToHString(winforge::core::LocalizedText{
+            L"Resolution width", L"解析度闊度" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_aspectWidth, widthLabel);
+        m_aspectWidth.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_aspectRendering) return;
+            auto const value = sender.Value();
+            m_aspectWidthValue = std::isnan(value) ? 0.0 : value;
+            RefreshAspectRatio(true);
+        });
+        dimensions.Children().Append(m_aspectWidth);
+
+        auto heightLabel = CreateText(
+            winforge::core::LocalizedText{ L"Height", L"高度" }.Pick(m_language), 13.5, true);
+        heightLabel.MinWidth(70);
+        heightLabel.VerticalAlignment(VerticalAlignment::Center);
+        dimensions.Children().Append(heightLabel);
+        m_aspectHeight = NumberBox();
+        m_aspectHeight.Minimum(0);
+        m_aspectHeight.Maximum(100000);
+        m_aspectHeight.Value(m_aspectHeightValue);
+        m_aspectHeight.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_aspectHeight.MinWidth(150);
+        AutomationProperties::SetAutomationId(m_aspectHeight, L"NativeAspectRatioHeight");
+        AutomationProperties::SetName(m_aspectHeight, ToHString(winforge::core::LocalizedText{
+            L"Resolution height", L"解析度高度" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_aspectHeight, heightLabel);
+        m_aspectHeight.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_aspectRendering) return;
+            auto const value = sender.Value();
+            m_aspectHeightValue = std::isnan(value) ? 0.0 : value;
+            RefreshAspectRatio(true);
+        });
+        dimensions.Children().Append(m_aspectHeight);
+        simplify.Children().Append(dimensions);
+
+        m_aspectRatio = CreateText(L"—", 22, true);
+        AutomationProperties::SetAutomationId(m_aspectRatio, L"NativeAspectRatioRatio");
+        simplify.Children().Append(m_aspectRatio);
+        m_aspectDetail = CreateText(L"", 12.5);
+        m_aspectDetail.Opacity(0.82);
+        m_aspectDetail.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_aspectDetail, L"NativeAspectRatioDetail");
+        simplify.Children().Append(m_aspectDetail);
+        Button copy;
+        copy.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Copy result", L"複製結果" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(copy, L"NativeAspectRatioCopy");
+        AutomationProperties::SetName(copy, ToHString(winforge::core::LocalizedText{
+            L"Copy aspect-ratio result", L"複製長寬比結果" }.Pick(m_language)));
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            std::int64_t width{};
+            std::int64_t height{};
+            if (!winforge::core::aspectratio::Simplify(
+                m_aspectWidthValue, m_aspectHeightValue, width, height))
+            {
+                AnnounceAspectStatus(winforge::core::LocalizedText{
+                    L"Nothing to copy — enter a valid resolution.",
+                    L"冇嘢可以複製 — 請輸入有效解析度。" }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                auto whole = [](double value)
+                {
+                    std::wostringstream stream;
+                    stream.setf(std::ios::fixed);
+                    stream.precision(0);
+                    stream << value;
+                    return stream.str();
+                };
+                auto const decimal = winforge::core::cssunits::Format(
+                    winforge::core::aspectratio::DecimalRatio(m_aspectWidthValue, m_aspectHeightValue));
+                auto const megapixels = winforge::core::cssunits::Format(
+                    std::round(winforge::core::aspectratio::Megapixels(
+                        m_aspectWidthValue, m_aspectHeightValue) * 100.0) / 100.0);
+                auto const text = whole(m_aspectWidthValue) + L"×" + whole(m_aspectHeightValue) +
+                    L"  =  " + std::to_wstring(width) + L":" + std::to_wstring(height) +
+                    L"  (" + decimal + L", " + megapixels + L" MP)";
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(text));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceAspectStatus(winforge::core::LocalizedText{
+                    L"Copied to clipboard.", L"已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceAspectStatus(winforge::core::LocalizedText{
+                    L"Could not copy to the clipboard.", L"複製到剪貼簿失敗。" }.Pick(m_language), true);
+            }
+        });
+        simplify.Children().Append(copy);
+        simplifyCard.Child(simplify);
+        page.Children().Append(simplifyCard);
+
+        Border presetCard = makeCard();
+        StackPanel preset;
+        preset.Spacing(10);
+        preset.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Common presets", L"常用預設" }.Pick(m_language), 15, true));
+        auto presetLabel = CreateText(
+            winforge::core::LocalizedText{ L"Seed a ratio", L"載入比例" }.Pick(m_language), 13.5, true);
+        preset.Children().Append(presetLabel);
+        m_aspectPreset = ComboBox();
+        static constexpr std::array<std::wstring_view, 9> labels{
+            L"16:9", L"16:10", L"4:3", L"21:9", L"32:9", L"1:1", L"3:2", L"2:3", L"9:16" };
+        for (auto const label : labels) m_aspectPreset.Items().Append(box_value(ToHString(label)));
+        m_aspectPreset.SelectedIndex(m_aspectPresetIndex);
+        m_aspectPreset.MinWidth(180);
+        m_aspectPreset.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(m_aspectPreset, L"NativeAspectRatioPreset");
+        AutomationProperties::SetName(m_aspectPreset, ToHString(winforge::core::LocalizedText{
+            L"Common aspect-ratio preset", L"常用長寬比預設" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_aspectPreset, presetLabel);
+        m_aspectPreset.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_aspectRendering) return;
+            static constexpr std::array<std::pair<double, double>, 9> ratios{
+                std::pair{ 16.0, 9.0 }, std::pair{ 16.0, 10.0 }, std::pair{ 4.0, 3.0 },
+                std::pair{ 21.0, 9.0 }, std::pair{ 32.0, 9.0 }, std::pair{ 1.0, 1.0 },
+                std::pair{ 3.0, 2.0 }, std::pair{ 2.0, 3.0 }, std::pair{ 9.0, 16.0 } };
+            auto const index = sender.as<ComboBox>().SelectedIndex();
+            if (index < 0 || static_cast<std::size_t>(index) >= ratios.size()) return;
+            m_aspectPresetIndex = index;
+            m_aspectRatioWidth = ratios[index].first;
+            m_aspectRatioHeight = ratios[index].second;
+            RefreshAspectScale();
+            auto const label = std::to_wstring(static_cast<int>(ratios[index].first)) + L":" +
+                std::to_wstring(static_cast<int>(ratios[index].second));
+            AnnounceAspectStatus(winforge::core::LocalizedText{
+                L"Ratio seeded to " + label + L".", L"已載入比例 " + label + L"。" }.Pick(m_language));
+        });
+        preset.Children().Append(m_aspectPreset);
+        presetCard.Child(preset);
+        page.Children().Append(presetCard);
+
+        Border scaleCard = makeCard();
+        StackPanel scale;
+        scale.Spacing(10);
+        scale.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Scale (ratio locked)", L"縮放（鎖定比例）" }.Pick(m_language), 15, true));
+        auto scaleNote = CreateText(winforge::core::LocalizedText{
+            L"Type a target width to get the matching height, or a target height to get the width — using the locked ratio above.",
+            L"輸入目標闊度會計出對應高度，輸入目標高度就會計出闊度 — 用上面鎖定嘅比例。" }.Pick(m_language), 12);
+        scaleNote.Opacity(0.82);
+        scaleNote.TextWrapping(TextWrapping::Wrap);
+        scale.Children().Append(scaleNote);
+
+        auto addScaleRow = [this, &scale](
+            NumberBox& box,
+            TextBlock& output,
+            double value,
+            std::wstring_view label,
+            std::wstring_view automation,
+            bool widthInput)
+        {
+            StackPanel row;
+            row.Orientation(Orientation::Horizontal);
+            row.Spacing(10);
+            auto caption = CreateText(label, 13.5, true);
+            caption.MinWidth(130);
+            caption.VerticalAlignment(VerticalAlignment::Center);
+            row.Children().Append(caption);
+            box = NumberBox();
+            box.Minimum(0);
+            box.Maximum(100000);
+            box.Value(value);
+            box.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+            box.MinWidth(150);
+            AutomationProperties::SetAutomationId(box, ToHString(automation));
+            AutomationProperties::SetName(box, ToHString(label));
+            AutomationProperties::SetLabeledBy(box, caption);
+            box.ValueChanged([this, widthInput](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+            {
+                if (m_aspectRendering) return;
+                auto const value = sender.Value();
+                if (widthInput) m_aspectTargetWidthValue = std::isnan(value) ? 0.0 : value;
+                else m_aspectTargetHeightValue = std::isnan(value) ? 0.0 : value;
+                RefreshAspectScale();
+            });
+            row.Children().Append(box);
+            output = CreateText(L"—", 13.5, true);
+            output.VerticalAlignment(VerticalAlignment::Center);
+            AutomationProperties::SetAutomationId(output, ToHString(std::wstring(automation) + L"Result"));
+            row.Children().Append(output);
+            scale.Children().Append(row);
+        };
+        addScaleRow(
+            m_aspectTargetWidth,
+            m_aspectScaledHeight,
+            m_aspectTargetWidthValue,
+            winforge::core::LocalizedText{ L"Target width", L"目標闊度" }.Pick(m_language),
+            L"NativeAspectRatioTargetWidth",
+            true);
+        addScaleRow(
+            m_aspectTargetHeight,
+            m_aspectScaledWidth,
+            m_aspectTargetHeightValue,
+            winforge::core::LocalizedText{ L"Target height", L"目標高度" }.Pick(m_language),
+            L"NativeAspectRatioTargetHeight",
+            false);
+        scaleCard.Child(scale);
+        page.Children().Append(scaleCard);
+
+        m_aspectStatus = CreateText(L"", 12.5);
+        m_aspectStatus.Opacity(0.84);
+        m_aspectStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_aspectStatus, L"NativeAspectRatioStatus");
+        AutomationProperties::SetLiveSetting(
+            m_aspectStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_aspectStatus);
+
+        ShowPage(page);
+        m_aspectRendering = false;
+        RefreshAspectRatio(true);
+    }
+
+    void MainWindow::RefreshAspectRatio(bool adoptSimplifiedRatio)
+    {
+        using namespace winforge::core::aspectratio;
+        if (!m_aspectRatio || !m_aspectDetail || !m_aspectStatus) return;
+
+        std::int64_t width{};
+        std::int64_t height{};
+        if (!Simplify(m_aspectWidthValue, m_aspectHeightValue, width, height))
+        {
+            m_aspectRatio.Text(L"—");
+            m_aspectDetail.Text(ToHString(winforge::core::LocalizedText{
+                L"Enter a positive width and height.", L"請輸入正數嘅闊度同高度。" }.Pick(m_language)));
+            if (m_aspectPreset)
+            {
+                auto const previous = m_aspectRendering;
+                m_aspectRendering = true;
+                m_aspectPreset.SelectedIndex(-1);
+                m_aspectRendering = previous;
+            }
+            AnnounceAspectStatus(winforge::core::LocalizedText{
+                L"Waiting for a valid width and height.", L"等緊有效嘅闊度同高度。" }.Pick(m_language), true);
+            RefreshAspectScale();
+            return;
+        }
+
+        if (adoptSimplifiedRatio)
+        {
+            m_aspectRatioWidth = static_cast<double>(width);
+            m_aspectRatioHeight = static_cast<double>(height);
+            static constexpr std::array<std::pair<std::int64_t, std::int64_t>, 9> ratios{
+                std::pair<std::int64_t, std::int64_t>{ 16, 9 }, { 16, 10 }, { 4, 3 },
+                { 21, 9 }, { 32, 9 }, { 1, 1 }, { 3, 2 }, { 2, 3 }, { 9, 16 } };
+            auto match = -1;
+            for (std::size_t index{}; index < ratios.size(); ++index)
+            {
+                if (ratios[index].first == width && ratios[index].second == height)
+                {
+                    match = static_cast<int32_t>(index);
+                    break;
+                }
+            }
+            m_aspectPresetIndex = match;
+            if (m_aspectPreset)
+            {
+                auto const previous = m_aspectRendering;
+                m_aspectRendering = true;
+                m_aspectPreset.SelectedIndex(match);
+                m_aspectRendering = previous;
+            }
+        }
+
+        auto const ratio = std::to_wstring(width) + L":" + std::to_wstring(height);
+        m_aspectRatio.Text(ToHString(ratio));
+        AutomationProperties::SetName(m_aspectRatio, ToHString(ratio));
+
+        auto const decimal = winforge::core::cssunits::Format(DecimalRatio(
+            m_aspectWidthValue, m_aspectHeightValue));
+        auto const megapixels = winforge::core::cssunits::Format(
+            std::round(Megapixels(m_aspectWidthValue, m_aspectHeightValue) * 100.0) / 100.0);
+        auto whole = [](double value)
+        {
+            std::wostringstream stream;
+            stream.setf(std::ios::fixed);
+            stream.precision(0);
+            stream << value;
+            return stream.str();
+        };
+        auto const detail = winforge::core::LocalizedText{
+            L"Decimal " + decimal + L" · " + megapixels + L" MP (" + whole(m_aspectWidthValue) +
+                L"×" + whole(m_aspectHeightValue) + L")",
+            L"小數 " + decimal + L" · " + megapixels + L" 百萬像素（" + whole(m_aspectWidthValue) +
+                L"×" + whole(m_aspectHeightValue) + L"）" }.Pick(m_language);
+        m_aspectDetail.Text(ToHString(detail));
+        AutomationProperties::SetName(m_aspectDetail, ToHString(detail));
+        AnnounceAspectStatus(winforge::core::LocalizedText{
+            L"Ratio simplified.", L"比例已化簡。" }.Pick(m_language));
+        RefreshAspectScale();
+    }
+
+    void MainWindow::RefreshAspectScale()
+    {
+        using namespace winforge::core::aspectratio;
+        if (!m_aspectScaledHeight || !m_aspectScaledWidth) return;
+        auto format = [](double value)
+        {
+            return winforge::core::cssunits::Format(std::round(value * 100.0) / 100.0);
+        };
+        auto const height = HeightForWidth(
+            m_aspectRatioWidth, m_aspectRatioHeight, m_aspectTargetWidthValue);
+        auto const width = WidthForHeight(
+            m_aspectRatioWidth, m_aspectRatioHeight, m_aspectTargetHeightValue);
+        auto const heightText = std::isnan(height)
+            ? std::wstring{ L"—" }
+            : winforge::core::LocalizedText{
+                L"→ height " + format(height), L"→ 高度 " + format(height) }.Pick(m_language);
+        auto const widthText = std::isnan(width)
+            ? std::wstring{ L"—" }
+            : winforge::core::LocalizedText{
+                L"→ width " + format(width), L"→ 闊度 " + format(width) }.Pick(m_language);
+        m_aspectScaledHeight.Text(ToHString(heightText));
+        m_aspectScaledWidth.Text(ToHString(widthText));
+        AutomationProperties::SetName(m_aspectScaledHeight, ToHString(heightText));
+        AutomationProperties::SetName(m_aspectScaledWidth, ToHString(widthText));
+    }
+
+    void MainWindow::AnnounceAspectStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_aspectStatus) return;
+        m_aspectStatus.Text(ToHString(message));
+        m_aspectStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_aspectStatus, ToHString(message));
+    }
+
+    void MainWindow::RenderCssUnits()
+    {
+        using namespace winforge::core::cssunits;
+        m_cssRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{
+                L"CSS Unit Converter", L"CSS 單位換算" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Convert one CSS length to every other supported unit. Absolute units use the CSS 96-DPI reference; relative units resolve against the local context below.",
+                L"一次過將一個 CSS 長度換算成其他支援單位。絕對單位用 CSS 96-DPI 標準；相對單位就跟下面嘅本機內容脈絡計。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeCssUnitsPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native CSS conversion", L"全原生 CSS 換算" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Invariant parsing, all eleven CSS units, 96-DPI constants, five relative contexts, four-decimal formatting, and explicit copy actions run locally in standard C++.",
+            L"不變文化剖析、全部十一個 CSS 單位、96-DPI 常數、五個相對內容脈絡、四位小數格式同明確複製動作全部喺本機標準 C++ 執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeCssUnitsImplementationStatus");
+        page.Children().Append(implementation);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        Border inputCard = makeCard();
+        StackPanel input;
+        input.Spacing(10);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Value to convert", L"要換算嘅數值" }.Pick(m_language), 15, true);
+        input.Children().Append(inputLabel);
+        StackPanel inputRow;
+        inputRow.Orientation(Orientation::Horizontal);
+        inputRow.Spacing(10);
+        m_cssValue = TextBox();
+        m_cssValue.Text(ToHString(m_cssInputValue));
+        m_cssValue.MinWidth(220);
+        m_cssValue.IsSpellCheckEnabled(false);
+        m_cssValue.FontFamily(Media::FontFamily(L"Consolas"));
+        AutomationProperties::SetAutomationId(m_cssValue, L"NativeCssUnitsValueInput");
+        AutomationProperties::SetName(m_cssValue, ToHString(winforge::core::LocalizedText{
+            L"CSS numeric value", L"CSS 數值" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_cssValue, inputLabel);
+        m_cssValue.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_cssRendering) return;
+            m_cssInputValue = ToWide(sender.as<TextBox>().Text());
+            RefreshCssUnits();
+        });
+        inputRow.Children().Append(m_cssValue);
+
+        m_cssUnit = ComboBox();
+        for (auto const unit : Units) m_cssUnit.Items().Append(box_value(ToHString(unit)));
+        m_cssUnit.SelectedIndex(m_cssUnitIndex);
+        m_cssUnit.MinWidth(120);
+        AutomationProperties::SetAutomationId(m_cssUnit, L"NativeCssUnitsUnitPicker");
+        AutomationProperties::SetName(m_cssUnit, ToHString(winforge::core::LocalizedText{
+            L"Source CSS unit", L"來源 CSS 單位" }.Pick(m_language)));
+        m_cssUnit.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_cssRendering) return;
+            auto const index = sender.as<ComboBox>().SelectedIndex();
+            if (index < 0 || static_cast<std::size_t>(index) >= winforge::core::cssunits::Units.size()) return;
+            m_cssUnitIndex = index;
+            RefreshCssUnits();
+        });
+        inputRow.Children().Append(m_cssUnit);
+        input.Children().Append(inputRow);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border contextCard = makeCard();
+        StackPanel context;
+        context.Spacing(10);
+        context.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Context", L"內容脈絡" }.Pick(m_language), 15, true));
+        auto contextNote = CreateText(winforge::core::LocalizedText{
+            L"em uses the element font-size; rem the root; % the container; vw and vh the viewport.",
+            L"em 用元素字級；rem 用根字級；% 用容器；vw 同 vh 用視窗大細。" }.Pick(m_language), 12);
+        contextNote.Opacity(0.82);
+        contextNote.TextWrapping(TextWrapping::Wrap);
+        context.Children().Append(contextNote);
+
+        static const std::array<winforge::core::LocalizedText, 5> labels{
+            winforge::core::LocalizedText{ L"Root font-size (px) — rem", L"根字級（px）— rem" },
+            winforge::core::LocalizedText{ L"Element font-size (px) — em", L"元素字級（px）— em" },
+            winforge::core::LocalizedText{ L"Viewport width (px) — vw", L"視窗闊度（px）— vw" },
+            winforge::core::LocalizedText{ L"Viewport height (px) — vh", L"視窗高度（px）— vh" },
+            winforge::core::LocalizedText{ L"Container size (px) — %", L"容器大細（px）— %" },
+        };
+        static constexpr std::array<std::wstring_view, 5> automation{
+            L"NativeCssUnitsRoot", L"NativeCssUnitsElement", L"NativeCssUnitsViewportWidth",
+            L"NativeCssUnitsViewportHeight", L"NativeCssUnitsContainer" };
+        for (std::size_t index{}; index < m_cssContextBoxes.size(); ++index)
+        {
+            StackPanel field;
+            field.Spacing(3);
+            auto label = CreateText(labels[index].Pick(m_language), 12.5, true);
+            field.Children().Append(label);
+            auto& box = m_cssContextBoxes[index];
+            box = NumberBox();
+            box.Minimum(0);
+            box.Value(m_cssContextValues[index]);
+            box.SmallChange(index < 2 ? 1.0 : 10.0);
+            box.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Compact);
+            box.MinWidth(230);
+            box.HorizontalAlignment(HorizontalAlignment::Left);
+            AutomationProperties::SetAutomationId(box, ToHString(automation[index]));
+            AutomationProperties::SetName(box, ToHString(labels[index].Pick(m_language)));
+            AutomationProperties::SetLabeledBy(box, label);
+            box.ValueChanged([this, index](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+            {
+                if (m_cssRendering) return;
+                static constexpr std::array<double, 5> defaults{ 16.0, 16.0, 1920.0, 1080.0, 1000.0 };
+                auto const value = sender.Value();
+                m_cssContextValues[index] = std::isfinite(value) ? value : defaults[index];
+                RefreshCssUnits();
+            });
+            field.Children().Append(box);
+            context.Children().Append(field);
+        }
+        contextCard.Child(context);
+        page.Children().Append(contextCard);
+
+        Border resultsCard = makeCard();
+        StackPanel results;
+        results.Spacing(8);
+        results.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Converted", L"換算結果" }.Pick(m_language), 15, true));
+        auto hint = CreateText(winforge::core::LocalizedText{
+            L"Select a result row to copy its complete CSS value.",
+            L"揀一行結果就可以複製完整 CSS 數值。" }.Pick(m_language), 12);
+        hint.Opacity(0.82);
+        hint.TextWrapping(TextWrapping::Wrap);
+        results.Children().Append(hint);
+        m_cssResults = StackPanel();
+        m_cssResults.Spacing(5);
+        AutomationProperties::SetAutomationId(m_cssResults, L"NativeCssUnitsResults");
+        results.Children().Append(m_cssResults);
+        resultsCard.Child(results);
+        page.Children().Append(resultsCard);
+
+        m_cssStatus = CreateText(L"", 12.5);
+        m_cssStatus.Opacity(0.84);
+        m_cssStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_cssStatus, L"NativeCssUnitsStatus");
+        AutomationProperties::SetLiveSetting(
+            m_cssStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_cssStatus);
+
+        ShowPage(page);
+        m_cssRendering = false;
+        RefreshCssUnits();
+    }
+
+    void MainWindow::RefreshCssUnits()
+    {
+        using namespace winforge::core::cssunits;
+        if (!m_cssResults || !m_cssStatus) return;
+
+        Context context;
+        context.rootFontPx = m_cssContextValues[0];
+        context.elementFontPx = m_cssContextValues[1];
+        context.viewportWidthPx = m_cssContextValues[2];
+        context.viewportHeightPx = m_cssContextValues[3];
+        context.containerPx = m_cssContextValues[4];
+        auto const unitIndex = std::clamp<int32_t>(
+            m_cssUnitIndex, 0, static_cast<int32_t>(Units.size() - 1));
+        auto const unit = Units[static_cast<std::size_t>(unitIndex)];
+        auto const value = Parse(m_cssInputValue);
+        auto const rows = ConvertAll(value, unit, &context);
+        m_cssResults.Children().Clear();
+
+        auto automationSuffix = [](std::wstring_view unitValue)
+        {
+            if (unitValue == L"%") return std::wstring{ L"Percent" };
+            auto result = std::wstring(unitValue);
+            if (!result.empty()) result[0] = static_cast<wchar_t>(std::towupper(result[0]));
+            return result;
+        };
+        for (auto const& converted : rows)
+        {
+            Button row;
+            row.HorizontalAlignment(HorizontalAlignment::Stretch);
+            row.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+            row.Padding(Thickness{ 12, 8, 12, 8 });
+            StackPanel content;
+            content.Orientation(Orientation::Horizontal);
+            content.Spacing(18);
+            auto unitText = CreateText(converted.unit, 13.5, true);
+            unitText.MinWidth(72);
+            content.Children().Append(unitText);
+            auto valueText = CreateText(converted.value, 13.5);
+            valueText.FontFamily(Media::FontFamily(L"Consolas"));
+            content.Children().Append(valueText);
+            row.Content(content);
+            row.IsEnabled(!converted.combined.empty());
+            AutomationProperties::SetAutomationId(
+                row,
+                ToHString(L"NativeCssUnitsResult" + automationSuffix(converted.unit)));
+            AutomationProperties::SetName(row, ToHString(converted.combined.empty()
+                ? converted.unit + L" unavailable"
+                : winforge::core::LocalizedText{
+                    L"Copy " + converted.combined,
+                    L"複製 " + converted.combined }.Pick(m_language)));
+            row.Click([this, copyValue = converted.combined](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                if (copyValue.empty()) return;
+                try
+                {
+                    Windows::ApplicationModel::DataTransfer::DataPackage package;
+                    package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                    package.SetText(ToHString(copyValue));
+                    Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                    AnnounceCssStatus(winforge::core::LocalizedText{
+                        L"Copied " + copyValue, L"已複製 " + copyValue }.Pick(m_language));
+                }
+                catch (...)
+                {
+                    AnnounceCssStatus(winforge::core::LocalizedText{
+                        L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+                }
+            });
+            m_cssResults.Children().Append(row);
+        }
+
+        AnnounceCssStatus(std::isnan(value)
+            ? winforge::core::LocalizedText{
+                L"Enter a valid invariant number to convert.", L"請輸入有效嘅不變文化數字嚟換算。" }.Pick(m_language)
+            : winforge::core::LocalizedText{
+                L"Select a result row to copy it.", L"揀一行結果就可以複製。" }.Pick(m_language),
+            std::isnan(value));
+    }
+
+    void MainWindow::AnnounceCssStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_cssStatus) return;
+        m_cssStatus.Text(ToHString(message));
+        m_cssStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_cssStatus, ToHString(message));
     }
 
     void MainWindow::RenderGuidGen()

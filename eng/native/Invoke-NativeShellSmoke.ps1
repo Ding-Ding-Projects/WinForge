@@ -1943,6 +1943,257 @@ foreach ($alias in @('chmod', 'module.unixperm')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'chmod Calculator'
 }
 
+Invoke-OwnedRoute -Route 'textdiff' -ExpectedTitle 'Text Diff' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeTextDiffImplementationStatus',
+        'NativeTextDiffInputA',
+        'NativeTextDiffInputB',
+        'NativeTextDiffIgnoreWhitespace',
+        'NativeTextDiffIgnoreCase',
+        'NativeTextDiffCopy',
+        'NativeTextDiffCounts',
+        'NativeTextDiffRows',
+        'NativeTextDiffStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $textDiffControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextDiffInputA'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextDiffInputB'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextDiffIgnoreWhitespace'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextDiffIgnoreCase'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextDiffCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextDiffCounts'))
+    Assert-True -Condition $textDiffControlsFit `
+        -Name 'Text Diff exposes native controls, accessibility, and horizontal clipping safety'
+
+    $inputA = Wait-ForElement -Root $root -AutomationId 'NativeTextDiffInputA'
+    $inputB = Wait-ForElement -Root $root -AutomationId 'NativeTextDiffInputB'
+    Assert-True -Condition (
+        $inputA.Current.Name.StartsWith('Original text A', [StringComparison]::Ordinal) -and
+        $inputB.Current.Name.StartsWith('Changed text B', [StringComparison]::Ordinal)) `
+        -Name 'Text Diff editors expose localized accessible names'
+
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
+        -Prefix '+0 added   -0 removed   0 unchanged' | Out-Null
+    Assert-True -Condition $true -Name 'Text Diff starts with an empty live comparison'
+
+    $newLine = [Environment]::NewLine
+    $leftText = @('Header', 'spaced value', 'Same') -join $newLine
+    $rightText = @('header', 'spaced  value', 'Same', 'Added') -join $newLine
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextDiffInputA' -Value $leftText | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextDiffInputB' -Value $rightText | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
+        -Prefix '+3 added   -2 removed   1 unchanged' | Out-Null
+
+    $rows = Wait-ForElement -Root $root -AutomationId 'NativeTextDiffRows'
+    $rowNames = @($rows.FindAll(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name })
+    Assert-True -Condition ($rowNames -contains '- Header' -and $rowNames -contains '+ Added') `
+        -Name 'Text Diff renders live removed and added line rows from both editors'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeTextDiffIgnoreWhitespace' -IsOn $true | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
+        -Prefix '+2 added   -1 removed   2 unchanged' | Out-Null
+    Assert-True -Condition $true -Name 'Text Diff ignore-whitespace mode recomputes the live LCS'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeTextDiffIgnoreCase' -IsOn $true | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffCounts' `
+        -Prefix '+1 added   -0 removed   3 unchanged' | Out-Null
+    Assert-True -Condition $true -Name 'Text Diff ignore-case mode composes with whitespace normalization'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextDiffCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffStatus' `
+        -Prefix 'Unified diff copied to the clipboard.' | Out-Null
+    Assert-True -Condition $true -Name 'Text Diff copies unified output only after explicit Copy'
+}
+
+Invoke-OwnedRoute -Route 'module.textdiff' -ExpectedTitle 'Text Diff'
+
+Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeAspectRatioImplementationStatus',
+        'NativeAspectRatioWidth',
+        'NativeAspectRatioHeight',
+        'NativeAspectRatioRatio',
+        'NativeAspectRatioDetail',
+        'NativeAspectRatioCopy',
+        'NativeAspectRatioPreset',
+        'NativeAspectRatioTargetWidth',
+        'NativeAspectRatioTargetWidthResult',
+        'NativeAspectRatioTargetHeight',
+        'NativeAspectRatioTargetHeightResult',
+        'NativeAspectRatioStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $aspectControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioWidth'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioHeight'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioRatio'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioPreset'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioTargetWidth'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioTargetWidthResult'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioTargetHeight'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioTargetHeightResult'))
+    Assert-True -Condition $aspectControlsFit `
+        -Name 'Aspect Ratio exposes native controls, accessibility, and horizontal clipping safety'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioWidth' -ExpectedValue '1920' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAspectRatioHeight' -ExpectedValue '1080' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix '16:9' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioDetail' `
+        -Prefix 'Decimal 1.7778 · 2.07 MP (1920×1080)' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetWidthResult' `
+        -Prefix (([char]0x2192).ToString() + ' height 720') | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetHeightResult' `
+        -Prefix (([char]0x2192).ToString() + ' width 1280') | Out-Null
+    Assert-True -Condition $true -Name 'Aspect Ratio starts at the managed 1920x1080 ratio, detail, and scale defaults'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '3440' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioHeight' -Value '1440' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix '43:18' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioDetail' `
+        -Prefix 'Decimal 2.3889 · 4.95 MP (3440×1440)' | Out-Null
+    Assert-True -Condition $true -Name 'Aspect Ratio editors recompute GCD ratio, decimal detail, and megapixels live'
+
+    $preset = Wait-ForElement -Root $root -AutomationId 'NativeAspectRatioPreset'
+    Select-ComboIndex -Combo $preset -Index 5
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioStatus' `
+        -Prefix 'Ratio seeded to 1:1.' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetWidthResult' `
+        -Prefix (([char]0x2192).ToString() + ' height 1280') | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetHeightResult' `
+        -Prefix (([char]0x2192).ToString() + ' width 720') | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioTargetWidth' -Value '900' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioTargetWidthResult' `
+        -Prefix (([char]0x2192).ToString() + ' height 900') | Out-Null
+    Assert-True -Condition $true -Name 'Aspect Ratio presets lock subsequent width and height scaling'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioStatus' `
+        -Prefix 'Waiting for a valid width and height.' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeAspectRatioCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioStatus' `
+        -Prefix 'Nothing to copy' | Out-Null
+    Assert-True -Condition $true -Name 'Aspect Ratio invalid input clears copy eligibility and reports the guarded state'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioWidth' -Value '1920' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAspectRatioHeight' -Value '1080' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioRatio' -Prefix '16:9' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeAspectRatioCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAspectRatioStatus' `
+        -Prefix 'Copied to clipboard.' | Out-Null
+    Assert-True -Condition $true -Name 'Aspect Ratio copies a valid native result only after explicit Copy'
+}
+
+foreach ($alias in @('aspectratio', 'module.aspectratio')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Aspect Ratio'
+}
+
+Invoke-OwnedRoute -Route 'cssunits' -ExpectedTitle 'CSS Unit Converter' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeCssUnitsImplementationStatus',
+        'NativeCssUnitsValueInput',
+        'NativeCssUnitsUnitPicker',
+        'NativeCssUnitsRoot',
+        'NativeCssUnitsElement',
+        'NativeCssUnitsViewportWidth',
+        'NativeCssUnitsViewportHeight',
+        'NativeCssUnitsContainer',
+        'NativeCssUnitsResults',
+        'NativeCssUnitsResultEm',
+        'NativeCssUnitsResultRem',
+        'NativeCssUnitsResultPt',
+        'NativeCssUnitsResultPc',
+        'NativeCssUnitsResultPercent',
+        'NativeCssUnitsResultVw',
+        'NativeCssUnitsResultVh',
+        'NativeCssUnitsResultCm',
+        'NativeCssUnitsResultMm',
+        'NativeCssUnitsResultIn',
+        'NativeCssUnitsStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $cssControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsValueInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsUnitPicker'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsRoot'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsElement'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsViewportWidth'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsViewportHeight'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsContainer'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsResultEm'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsResultIn'))
+    Assert-True -Condition $cssControlsFit `
+        -Name 'CSS Unit Converter exposes native controls, accessibility, and horizontal clipping safety'
+
+    $cssInput = Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsValueInput'
+    $cssPicker = Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsUnitPicker'
+    Assert-True -Condition (
+        $cssInput.Current.Name.StartsWith('CSS numeric value', [StringComparison]::Ordinal) -and
+        $cssPicker.Current.Name.StartsWith('Source CSS unit', [StringComparison]::Ordinal)) `
+        -Name 'CSS Unit Converter input and unit picker expose localized accessible names'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCssUnitsValueInput' -ExpectedValue '16' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultEm' -Prefix 'Copy 1em' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultRem' -Prefix 'Copy 1rem' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPt' -Prefix 'Copy 12pt' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPercent' -Prefix 'Copy 1.6%' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultIn' -Prefix 'Copy 0.1667in' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsStatus' `
+        -Prefix 'Select a result row to copy it.' | Out-Null
+    Assert-True -Condition $true -Name 'CSS Unit Converter renders managed-parity default px conversions'
+
+    Select-ComboIndex -Combo $cssPicker -Index 3
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsValueInput' -Value '72' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPx' -Prefix 'Copy 96px' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeCssUnitsResultPt')) `
+        -Name 'CSS Unit Converter changes source unit and excludes it from live results'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsValueInput' -Value 'not-a-number' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsStatus' `
+        -Prefix 'Enter a valid invariant number to convert.' | Out-Null
+    $invalidPx = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPx' -Prefix 'px unavailable'
+    Assert-True -Condition (-not $invalidPx.Current.IsEnabled) `
+        -Name 'CSS Unit Converter disables unavailable rows after invalid invariant input'
+
+    $cssPicker = Wait-ForElement -Root $root -AutomationId 'NativeCssUnitsUnitPicker'
+    Select-ComboIndex -Combo $cssPicker -Index 0
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsValueInput' -Value '16' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsElement' -Value '0' | Out-Null
+    $zeroEm = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultEm' -Prefix 'em unavailable'
+    Assert-True -Condition (-not $zeroEm.Current.IsEnabled) `
+        -Name 'CSS Unit Converter rejects a zero em denominator without stale output'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsElement' -Value '16' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultEm' -Prefix 'Copy 1em' | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsContainer' -Value '0' | Out-Null
+    $zeroPercent = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPercent' -Prefix '% unavailable'
+    Assert-True -Condition (-not $zeroPercent.Current.IsEnabled) `
+        -Name 'CSS Unit Converter rejects a zero percentage context without stale output'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeCssUnitsContainer' -Value '1000' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsResultPercent' -Prefix 'Copy 1.6%' | Out-Null
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeCssUnitsResultEm'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCssUnitsStatus' -Prefix 'Copied 1em' | Out-Null
+    Assert-True -Condition $true -Name 'CSS Unit Converter copies a complete CSS value only after explicit row selection'
+}
+
+Invoke-OwnedRoute -Route 'module.cssunits' -ExpectedTitle 'CSS Unit Converter'
+
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 

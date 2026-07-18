@@ -3,11 +3,13 @@
 #include "CommandLine.h"
 #include "CheckDigitTests.h"
 #include "CodecTests.h"
+#include "DesignToolsTests.h"
 #include "GuidGenTests.h"
 #include "PassGenTests.h"
 #include "PasswordStrengthTests.h"
 #include "RomanNumTests.h"
 #include "UnixPermTests.h"
+#include "TextDiffTests.h"
 #include "UuidV7Tests.h"
 #include "RegexCheatTests.h"
 #include "SymbolsPaletteTests.h"
@@ -161,6 +163,9 @@ int wmain(int argc, wchar_t** argv)
     Expect(resolvesTo(routeIndex.FindLaunch(L"vault"), L"module.vault-volumes"), "deep-link vault preserves managed target");
     Expect(!routeIndex.FindLaunch(L"missing-route"), "unknown route stays unresolved");
     Expect(winforge::core::HasNativeRenderer(L" module.unixperm ") &&
+        winforge::core::HasNativeRenderer(L"MODULE.TEXTDIFF") &&
+        winforge::core::HasNativeRenderer(L"module.aspectratio") &&
+        winforge::core::HasNativeRenderer(L"module.cssunits") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
@@ -219,6 +224,14 @@ int wmain(int argc, wchar_t** argv)
     auto const unixPermCounts = RunUnixPermTests();
     passed += unixPermCounts.passed;
     failed += unixPermCounts.failed;
+
+    auto const textDiffCounts = RunTextDiffTests();
+    passed += textDiffCounts.passed;
+    failed += textDiffCounts.failed;
+
+    auto const designToolsCounts = RunDesignToolsTests();
+    passed += designToolsCounts.passed;
+    failed += designToolsCounts.failed;
 
     auto const uuidV7Counts = RunUuidV7Tests();
     passed += uuidV7Counts.passed;

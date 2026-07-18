@@ -6,6 +6,7 @@
 #include "../WinForge.Core/CheckDigit.h"
 #include "../WinForge.Core/Codec.h"
 #include "../WinForge.Core/CommandLine.h"
+#include "../WinForge.Core/DesignTools.h"
 #include "../WinForge.Core/GuidGen.h"
 #include "../WinForge.Core/PassGen.h"
 #include "../WinForge.Core/PasswordStrength.h"
@@ -18,6 +19,7 @@
 #include "../WinForge.Core/PackageSetup.h"
 #include "../WinForge.Core/RegexCheat.h"
 #include "../WinForge.Core/SymbolsPalette.h"
+#include "../WinForge.Core/TextDiff.h"
 #include "../WinForge.Core/AppUninstaller.h"
 #include "../WinForge.Core/RegexSearch.h"
 #include "../WinForge.Core/RegexSearchSurface.h"
@@ -233,6 +235,28 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_unixPermSymbolicInput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_unixPermCommandOutput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_unixPermStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_textDiffInputA{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_textDiffInputB{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_textDiffWhitespace{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_textDiffCase{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_textDiffRows{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_textDiffCounts{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_textDiffStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_aspectTargetWidth{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_aspectTargetHeight{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_aspectRatio{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_aspectDetail{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_aspectScaledHeight{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_aspectScaledWidth{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_aspectStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_cssValue{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_cssUnit{ nullptr };
+        std::array<Microsoft::UI::Xaml::Controls::NumberBox, 5> m_cssContextBoxes{};
+        Microsoft::UI::Xaml::Controls::StackPanel m_cssResults{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_cssStatus{ nullptr };
         std::unordered_map<std::wstring, bool> m_packageManagersSelected;
         std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
         std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
@@ -343,6 +367,24 @@ namespace winrt::WinForge::implementation
         std::wstring m_unixPermOctalInputValue{ L"0644" };
         std::wstring m_unixPermSymbolicInputValue{ L"rw-r--r--" };
         bool m_unixPermRendering{ false };
+        std::wstring m_textDiffA{};
+        std::wstring m_textDiffB{};
+        std::wstring m_textDiffUnified{ L"--- A\n+++ B\n" };
+        bool m_textDiffIgnoreWhitespace{ false };
+        bool m_textDiffIgnoreCase{ false };
+        bool m_textDiffRendering{ false };
+        double m_aspectWidthValue{ 1920.0 };
+        double m_aspectHeightValue{ 1080.0 };
+        double m_aspectRatioWidth{ 16.0 };
+        double m_aspectRatioHeight{ 9.0 };
+        double m_aspectTargetWidthValue{ 1280.0 };
+        double m_aspectTargetHeightValue{ 720.0 };
+        int32_t m_aspectPresetIndex{ 0 };
+        bool m_aspectRendering{ false };
+        std::wstring m_cssInputValue{ L"16" };
+        int32_t m_cssUnitIndex{ 0 };
+        std::array<double, 5> m_cssContextValues{ 16.0, 16.0, 1920.0, 1080.0, 1000.0 };
+        bool m_cssRendering{ false };
         bool m_shellRegexEnabled{ false };
         bool m_shellRegexCaseSensitive{ false };
         bool m_shellRegexMultiline{ false };
@@ -622,6 +664,16 @@ namespace winrt::WinForge::implementation
         [[nodiscard]] winforge::core::unixperm::Mode ReadUnixPermMode() const;
         void CopyUnixPermValue(std::wstring_view value);
         void AnnounceUnixPermStatus(std::wstring_view message, bool warning = false);
+        void RenderTextDiff();
+        void RefreshTextDiff();
+        void AnnounceTextDiffStatus(std::wstring_view message, bool warning = false);
+        void RenderAspectRatio();
+        void RefreshAspectRatio(bool adoptSimplifiedRatio = true);
+        void RefreshAspectScale();
+        void AnnounceAspectStatus(std::wstring_view message, bool warning = false);
+        void RenderCssUnits();
+        void RefreshCssUnits();
+        void AnnounceCssStatus(std::wstring_view message, bool warning = false);
         void RenderSearch(std::wstring_view query);
         void RenderAbout();
         void RenderPending(winforge::core::ModuleRecord const& module);
