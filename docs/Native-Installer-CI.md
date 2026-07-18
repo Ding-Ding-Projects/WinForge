@@ -4,7 +4,7 @@
 
 **粵語.** Windows 2022 上嘅 native release workflow 會 build C++20/WinUI 3 runtime、封裝 installer/WinForge.Native.iss、喺受保護嘅每用戶 LocalAppData 路徑靜默安裝，之後再靜默解除安裝。可重用嘅 eng/native/Test-NativeInstallerContract.ps1 gate 而家會明確驗證呢啲保證。
 
-Every branch push and every pull request into `main` runs the complete native gate, without path filtering. Every successful push to `main` also creates a uniquely tagged GitHub Release containing the native portable ZIP and installer; branch and pull-request builds upload Actions artifacts but cannot publish unmerged binaries as releases. The site-data workflow explicitly dispatches this gate after its own generated `main` commit because GitHub intentionally suppresses recursive push events created with `GITHUB_TOKEN`. · 每次推送任何 branch 同每個合併去 `main` 嘅 pull request 都會執行完整原生 gate，唔會再按路徑略過。每次成功推送去 `main` 亦會建立獨立標籤 GitHub Release，包含原生可攜 ZIP 同安裝程式；branch 同 pull-request 建置只會上載 Actions artifacts，唔可以將未合併 binary 發佈成版本。Site-data workflow 用自己嘅 generated commit 推送 `main` 後會明確 dispatch 呢個 gate，因為 GitHub 會刻意抑制由 `GITHUB_TOKEN` 建立嘅遞迴 push event。
+Every branch push and every pull request into `main` runs the complete native gate, without path filtering. Every successful push to `main` also creates a uniquely tagged GitHub prerelease containing the native portable ZIP and installer; prerelease status keeps the incomplete migration from replacing the managed app consumed through `/releases/latest`. Branch and pull-request builds upload Actions artifacts but cannot publish unmerged binaries as releases. The site-data workflow explicitly dispatches this gate after its own generated `main` commit because GitHub intentionally suppresses recursive push events created with `GITHUB_TOKEN`. · 每次推送任何 branch 同每個合併去 `main` 嘅 pull request 都會執行完整原生 gate，唔會再按路徑略過。每次成功推送去 `main` 亦會建立獨立標籤 GitHub prerelease，包含原生可攜 ZIP 同安裝程式；prerelease 狀態會避免未完成嘅遷移取代由 `/releases/latest` 提供畀受控 app 嘅版本。Branch 同 pull-request 建置只會上載 Actions artifacts，唔可以將未合併 binary 發佈成版本。Site-data workflow 用自己嘅 generated commit 推送 `main` 後會明確 dispatch 呢個 gate，因為 GitHub 會刻意抑制由 `GITHUB_TOKEN` 建立嘅遞迴 push event。
 
 ## Contract boundaries · 合約邊界
 
@@ -21,7 +21,7 @@ Every branch push and every pull request into `main` runs the complete native ga
 4. Compile exactly one Inno Setup executable and validate it.
 5. Silent-install, validate the installed payload, silent-uninstall, and prove the guarded install root is gone.
 6. Upload the portable ZIP and installer only after all gates pass.
-7. On a successful `main` push, publish those two files in a unique `native-v1.0.<run>` GitHub Release.
+7. On a successful `main` push, publish those two files in a unique `native-v1.0.<run>` GitHub prerelease without replacing the managed stable channel.
 
 ## Local check · 本機檢查
 

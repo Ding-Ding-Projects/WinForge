@@ -212,4 +212,7 @@ jobs:
         run: |
           $tag = if ('${{ github.ref_type }}' -eq 'tag') { '${{ github.ref_name }}' } else { "native-v1.0.${{ github.run_number }}" }
           $notes = "Native C++20/WinUI 3 build from commit ${{ github.sha }}.`n原生 C++20/WinUI 3 建置，來自 commit ${{ github.sha }}。"
-          gh release create $tag "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" 'installer/out-native/WinForge-Native-Setup.exe' --title "WinForge Native $tag" --notes $notes
+          # Native remains a migration preview until the parity ledger is complete.
+          # A prerelease publishes every successful main build without replacing
+          # the managed shipping release consumed by /releases/latest.
+          gh release create $tag "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" 'installer/out-native/WinForge-Native-Setup.exe' --title "WinForge Native Preview $tag" --notes $notes --prerelease
