@@ -33,6 +33,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File eng\native\Test-NativeInstal
 
 After a Release build, pass -PublishDir; after Inno Setup, pass -InstallerPath; after a disposable silent-install test, pass -InstallDir.
 
+## Hosted proof · Hosted 證明
+
+The 2026-07-18 [non-`main` push run](https://github.com/codingmachineedge/WinForge/actions/runs/29655932405) proves the unrestricted push trigger and branch safety gate: C++ Release, 417 core route/package-manager tests, 46 parser tests, catalog parity, all three contract invocations, silent install/uninstall, and the 89,642,539-byte artifact upload passed; public release creation was skipped for the unmerged branch. · 2026-07-18 嘅[非 `main` 推送執行](https://github.com/codingmachineedge/WinForge/actions/runs/29655932405)證明無路徑限制嘅推送觸發同 branch 安全 gate：C++ Release、417 個 core route／package-manager 測試、46 個 parser 測試、目錄對等、三次合約調用、靜默安裝／解除安裝，同 89,642,539-byte artifact 上載全部通過；未合併 branch 已略過公開版本建立。
+
 ## Visual evidence · 視覺證據
 
 This is packaging and CI work, not a changed app page. No UI screenshot is claimed or replaced; the installer’s silent lifecycle is covered by executable contract and cleanup checks.
