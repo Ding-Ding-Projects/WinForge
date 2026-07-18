@@ -71,6 +71,11 @@ $issPath = Join-Path $root 'installer\WinForge.Native.iss'
 Require-File -Path $issPath -Label 'Native Inno Setup script'
 $iss = [System.IO.File]::ReadAllText($issPath, [System.Text.Encoding]::UTF8)
 
+$releaseWorkflowPath = Join-Path $root '.github\workflows\native-release.yml'
+Require-File -Path $releaseWorkflowPath -Label 'Native release workflow'
+$releaseWorkflow = [System.IO.File]::ReadAllText($releaseWorkflowPath, [System.Text.Encoding]::UTF8)
+Require-Literal -Content $releaseWorkflow -Literal '--target "${{ github.sha }}"' -Label 'immutable release tag target'
+
 $requiredLiterals = @(
     '#define MyAppName "WinForge Native"',
     'AppId={{B87F4D8B-7F9E-4DB9-9E7A-5C6C8D02C9D0}',

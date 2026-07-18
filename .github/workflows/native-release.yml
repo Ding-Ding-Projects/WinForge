@@ -215,4 +215,7 @@ jobs:
           # Native remains a migration preview until the parity ledger is complete.
           # A prerelease publishes every successful main build without replacing
           # the managed shipping release consumed by /releases/latest.
-          gh release create $tag "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" 'installer/out-native/WinForge-Native-Setup.exe' --title "WinForge Native Preview $tag" --notes $notes --prerelease
+          # Pin the release tag to the immutable commit that produced these artifacts.
+          # Otherwise a concurrent main update can move the default target away
+          # from github.sha even though the release notes identify this run.
+          gh release create $tag "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" 'installer/out-native/WinForge-Native-Setup.exe' --target "${{ github.sha }}" --title "WinForge Native Preview $tag" --notes $notes --prerelease
