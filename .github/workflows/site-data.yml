@@ -7,8 +7,9 @@ name: Regenerate real site data from the app
 # actual capabilities (no hand-written numbers). Simulators are untouched.
 #
 # Loop-safe: triggers ONLY on app-source paths (not design/**), and the data commit it
-# pushes only touches design/** — so it never re-triggers itself, and release.yml
-# ignores design/** so a data commit doesn't cut a release.
+# pushes only touches design/**, so it never re-triggers itself. GitHub suppresses
+# push workflows for GITHUB_TOKEN commits, so this workflow explicitly dispatches
+# native-release.yml after a generated-data push to preserve per-push native delivery.
 
 on:
   push:
@@ -27,6 +28,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
 
 concurrency:
@@ -75,6 +77,8 @@ jobs:
           catch { Write-Warning "Regen failed; keeping committed data. $_" }
 
       - name: Commit refreshed data if it changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           git config user.name  "winforge-bot"
@@ -88,3 +92,9 @@ jobs:
           # Rebase onto any commits that landed while we were building, then push.
           git pull --rebase origin main
           git push
+          if ($LASTEXITCODE -ne 0) { throw 'site-data push failed' }
+          # GITHUB_TOKEN pushes do not emit another push workflow. workflow_dispatch
+          # is the supported recursion-safe exception, and this runs only after a
+          # real generated-data commit reaches main.
+          gh workflow run native-release.yml --ref main -f publish_release=true
+          if ($LASTEXITCODE -ne 0) { throw 'native release dispatch failed after site-data push' }
