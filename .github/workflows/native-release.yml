@@ -11,6 +11,11 @@ on:
         required: false
         default: false
         type: boolean
+      source_sha:
+        description: 'Optional exact main commit to build / 可選：要建置嘅確切 main commit'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
@@ -24,8 +29,52 @@ jobs:
     runs-on: windows-2022
 
     steps:
+      - name: Resolve immutable source commit · 解析不可變來源提交
+        id: source
+        shell: pwsh
+        env:
+          EVENT_SOURCE_SHA: ${{ github.sha }}
+          REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          $requestedSha = ([string]$env:REQUESTED_SOURCE_SHA).Trim()
+          $expectedSha = if ($requestedSha) { $requestedSha } else { ([string]$env:EVENT_SOURCE_SHA).Trim() }
+          if ($expectedSha -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "source SHA must be a complete 40-character commit ID: $expectedSha"
+          }
+          $expectedSha = $expectedSha.ToLowerInvariant()
+          "sha=$expectedSha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
       - name: Checkout · 取出原始碼
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.source.outputs.sha }}
+
+      - name: Verify immutable source commit · 驗證不可變來源提交
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EXPECTED_SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          $expectedSha = ([string]$env:EXPECTED_SOURCE_SHA).Trim().ToLowerInvariant()
+          $actualSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0) { throw 'could not resolve checked-out native source commit' }
+          if ($actualSha -ne $expectedSha) {
+            throw "native checkout mismatch: expected $expectedSha, got $actualSha"
+          }
+          git cat-file -e "$expectedSha^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw "native source is not a commit: $expectedSha" }
+
+          $requestedSha = ([string]$env:REQUESTED_SOURCE_SHA).Trim()
+          if ($env:EVENT_NAME -eq 'workflow_dispatch' -and $requestedSha) {
+            git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+            if ($LASTEXITCODE -ne 0) { throw 'could not fetch origin/main for dispatched source validation' }
+            git merge-base --is-ancestor $expectedSha refs/remotes/origin/main
+            if ($LASTEXITCODE -ne 0) {
+              throw "dispatched source commit is not reachable from origin/main: $expectedSha"
+            }
+          }
 
       - name: Provision C++ v143 UWP toolset · 準備 C++ v143 UWP 工具組
         shell: pwsh
@@ -205,17 +254,42 @@ jobs:
           if-no-files-found: error
 
       - name: Create native GitHub release · 建立原生 GitHub 版本
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/native-v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+        if: (github.event_name == 'push' && github.ref_type == 'branch') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/native-v')) || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
         shell: pwsh
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF_NAME: ${{ github.ref_name }}
+          EVENT_REF_TYPE: ${{ github.ref_type }}
+          EXPECTED_SOURCE_SHA: ${{ steps.source.outputs.sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = if ('${{ github.ref_type }}' -eq 'tag') { '${{ github.ref_name }}' } else { "native-v1.0.${{ github.run_number }}" }
-          $notes = "Native C++20/WinUI 3 build from commit ${{ github.sha }}.`n原生 C++20/WinUI 3 建置，來自 commit ${{ github.sha }}。"
+          $expectedSha = ([string]$env:EXPECTED_SOURCE_SHA).Trim().ToLowerInvariant()
+          $usePushedNativeTag = $env:EVENT_NAME -eq 'push' -and
+            $env:EVENT_REF_TYPE -eq 'tag' -and
+            ([string]$env:EVENT_REF_NAME).StartsWith('native-v', [StringComparison]::Ordinal)
+          $tag = if ($usePushedNativeTag) { $env:EVENT_REF_NAME } else { "native-v1.0.${{ github.run_number }}" }
+          $notes = "Native C++20/WinUI 3 build from commit $expectedSha.`n原生 C++20/WinUI 3 建置，來自 commit $expectedSha。"
           # Native remains a migration preview until the parity ledger is complete.
-          # A prerelease publishes every successful main build without replacing
+          # A prerelease publishes every successful branch build without replacing
           # the managed shipping release consumed by /releases/latest.
           # Pin the release tag to the immutable commit that produced these artifacts.
           # Otherwise a concurrent main update can move the default target away
-          # from github.sha even though the release notes identify this run.
-          gh release create $tag "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" 'installer/out-native/WinForge-Native-Setup.exe' --target "${{ github.sha }}" --title "WinForge Native Preview $tag" --notes $notes --prerelease
+          # from the source SHA even though the release notes identify this run.
+          gh release create $tag "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" 'installer/out-native/WinForge-Native-Setup.exe' --target "$expectedSha" --title "WinForge Native Preview $tag" --notes $notes --prerelease
+          if ($LASTEXITCODE -ne 0) { throw "native release creation failed: $tag" }
+
+          $refJson = (& gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw "could not resolve native release tag: $tag" }
+          $object = ($refJson | ConvertFrom-Json).object
+          for ($depth = 0; $object.type -eq 'tag'; $depth++) {
+            if ($depth -ge 8) { throw "native release tag dereference exceeded eight levels: $tag" }
+            $tagJson = (& gh api $object.url | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw "could not dereference annotated native tag: $tag" }
+            $object = ($tagJson | ConvertFrom-Json).object
+          }
+          if ($object.type -ne 'commit') { throw "native release tag does not resolve to a commit: $tag ($($object.type))" }
+          $actualSha = ([string]$object.sha).Trim().ToLowerInvariant()
+          if ($actualSha -ne $expectedSha) {
+            throw "native release provenance mismatch for ${tag}: expected $expectedSha, got $actualSha"
+          }
+          Write-Host "Verified native release $tag -> $actualSha"

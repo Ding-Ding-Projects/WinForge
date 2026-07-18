@@ -20,7 +20,6 @@ on:
       - 'WinForge.Native.sln'
       - '.github/workflows/pages.yml'
       - '.github/workflows/site-data.yml'
-      - '.github/workflows/release.yml'
       - 'tools/regen-site-data.ps1'
       - '**/*.md'
   workflow_dispatch:
@@ -117,14 +116,33 @@ jobs:
       - name: Create GitHub Release · 建立 GitHub 版本
         shell: pwsh
         env:
+          EXPECTED_SOURCE_SHA: ${{ github.sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          $expectedSha = ([string]$env:EXPECTED_SOURCE_SHA).Trim().ToLowerInvariant()
           $ver = "v1.0.${{ github.run_number }}"
-          $notes = "Automated build from commit ${{ github.sha }}.`n由 commit ${{ github.sha }} 自動建置。`n`n- WinForge-Setup.exe — installer / 安裝程式`n- WinForge-portable-x64-*.zip — portable / 免安裝可攜版"
+          $notes = "Automated build from commit $expectedSha.`n由 commit $expectedSha 自動建置。`n`n- WinForge-Setup.exe — installer / 安裝程式`n- WinForge-portable-x64-*.zip — portable / 免安裝可攜版"
           $setup = Get-ChildItem -Recurse -Filter WinForge-Setup.exe | Select-Object -First 1 -ExpandProperty FullName
           $zip   = Get-ChildItem -Recurse -Filter "WinForge-portable-x64-*.zip" | Select-Object -First 1 -ExpandProperty FullName
           if (-not $setup) { throw "WinForge-Setup.exe not found" }
           if (-not $zip)   { throw "portable zip not found" }
           Write-Host "setup = $setup"
           Write-Host "zip   = $zip"
-          gh release create $ver $setup $zip --title "WinForge $ver" --notes $notes
+          gh release create $ver $setup $zip --target "$expectedSha" --title "WinForge $ver" --notes $notes
+          if ($LASTEXITCODE -ne 0) { throw "managed release creation failed: $ver" }
+
+          $refJson = (& gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$ver" | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw "could not resolve managed release tag: $ver" }
+          $object = ($refJson | ConvertFrom-Json).object
+          for ($depth = 0; $object.type -eq 'tag'; $depth++) {
+            if ($depth -ge 8) { throw "managed release tag dereference exceeded eight levels: $ver" }
+            $tagJson = (& gh api $object.url | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw "could not dereference annotated managed tag: $ver" }
+            $object = ($tagJson | ConvertFrom-Json).object
+          }
+          if ($object.type -ne 'commit') { throw "managed release tag does not resolve to a commit: $ver ($($object.type))" }
+          $actualSha = ([string]$object.sha).Trim().ToLowerInvariant()
+          if ($actualSha -ne $expectedSha) {
+            throw "managed release provenance mismatch for ${ver}: expected $expectedSha, got $actualSha"
+          }
+          Write-Host "Verified managed release $ver -> $actualSha"

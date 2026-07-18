@@ -89,12 +89,18 @@ jobs:
           }
           git add design/winforge-data.js
           git commit -m "chore: regenerate real site data from the app [auto]"
+          if ($LASTEXITCODE -ne 0) { throw 'site-data commit failed' }
           # Rebase onto any commits that landed while we were building, then push.
           git pull --rebase origin main
-          git push
+          if ($LASTEXITCODE -ne 0) { throw 'site-data rebase failed' }
+          $pushedSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $pushedSha -notmatch '^[0-9a-f]{40}$') {
+            throw "could not resolve exact site-data commit: $pushedSha"
+          }
+          git push origin HEAD:main
           if ($LASTEXITCODE -ne 0) { throw 'site-data push failed' }
           # GITHUB_TOKEN pushes do not emit another push workflow. workflow_dispatch
           # is the supported recursion-safe exception, and this runs only after a
           # real generated-data commit reaches main.
-          gh workflow run native-release.yml --ref main -f publish_release=true
+          gh workflow run native-release.yml --ref main -f publish_release=true -f source_sha=$pushedSha
           if ($LASTEXITCODE -ne 0) { throw 'native release dispatch failed after site-data push' }
