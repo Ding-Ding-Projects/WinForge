@@ -1,8 +1,8 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-18T22:23:19Z",
-    "baselineCommit":  "828c32791e1f135d2a46848e9283087ef8ec9156",
+    "generatedAtUtc":  "2026-07-18T22:49:49Z",
+    "baselineCommit":  "ce879cc6626eae328ec72e0143761c0edfbae340",
     "baselineCounts":  {
                            "routes":  346,
                            "registryEntries":  319,
@@ -764,7 +764,10 @@
                                       "docs/wiki/features/calculators-numbers/aspectratio.md",
                                       "docs/wiki/Screenshots.md",
                                       "design/content/Native-Cpp-Rewrite.md",
-                                      "design/content/wiki/Native-Cpp-Rewrite.md"
+                                      "design/content/wiki/Native-Cpp-Rewrite.md",
+                                      "handoff-summary.md",
+                                      "design/content/handoff.md",
+                                      "AGENT_MEMORY.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Aspect Ratio · 長寬比計算 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
@@ -2072,7 +2075,10 @@
                                       "docs/wiki/features/colors-design/cssunits.md",
                                       "docs/wiki/Screenshots.md",
                                       "design/content/Native-Cpp-Rewrite.md",
-                                      "design/content/wiki/Native-Cpp-Rewrite.md"
+                                      "design/content/wiki/Native-Cpp-Rewrite.md",
+                                      "handoff-summary.md",
+                                      "design/content/handoff.md",
+                                      "AGENT_MEMORY.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "CSS Unit Converter · CSS 單位換算 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
@@ -7349,7 +7355,10 @@
                                       "docs/wiki/features/text-tools/textdiff.md",
                                       "docs/wiki/Screenshots.md",
                                       "design/content/Native-Cpp-Rewrite.md",
-                                      "design/content/wiki/Native-Cpp-Rewrite.md"
+                                      "design/content/wiki/Native-Cpp-Rewrite.md",
+                                      "handoff-summary.md",
+                                      "design/content/handoff.md",
+                                      "AGENT_MEMORY.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Text Diff · 文字差異比對 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",

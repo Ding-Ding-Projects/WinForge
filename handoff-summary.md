@@ -1,5 +1,18 @@
 # WinForge Full Development Handoff
 
+## Native design-utility wave integration record · 原生設計工具批次整合紀錄
+
+- **Feature commit / 功能提交：** `828c32791e1f135d2a46848e9283087ef8ec9156`.
+- **Hardened integration tip / 加固整合 tip：** `ce879cc6626eae328ec72e0143761c0edfbae340` from `codex/native-utility-four`; local `main` was fast-forwarded through this exact tip before this record.
+- **Scope / 範圍：** genuine C++/WinRT Text Diff, Aspect Ratio, and CSS Unit Converter routes backed by standard-C++ cores; native aliases, managed-parity reset/language state, bounded virtualization, accessibility live regions, explicit-only clipboard Copy, durable generated feature references, and release-per-push workflow provenance.
+- **Inventory / 清單：** `HasNativeRenderer` and the parity ledger agree on **21/346 fixed native renderers**, leaving **325 fixed routes** pending plus five dynamic route families. This is a completed integration wave, not completion of the continuing 100% port goal.
+- **Evidence / 證據：** native Debug and Release builds completed with 0 warnings/0 errors under Visual Studio MSBuild; both core executables passed **560/560** (Design Tools **94/94**, Text Diff **27/27**); managed Debug build passed with 0 warnings/0 errors; XAML literal safety passed; full owned shell **300/300**, strengthened utility shell **39/39**, and catalog parity **346 + five families** passed. A deterministic one-million-finite-double .NET 11 differential found zero Aspect Ratio display-format mismatches.
+- **Headless visual status / 無頭視覺狀態：** LowLevel Computer Use MCP 1.28.1 launched all three routes from one immutable 294-file runtime snapshot on separate named desktops, confirmed each exact launch PID, resolved one 1320×880 WinUI frame per route, captured and inspected full/client frames, killed each PID, and closed each desktop. Every 1304×841 client frame was one white color with zero standard deviation/non-white fraction. The repository driver separately launched each route and rejected the same blank `PrintWindow` fallback when `CopyFromScreen` was unavailable. The six invalid PNGs and immutable stage were deleted; no canonical image was replaced, so all three rows are honestly `capture-blocked`.
+- **Branch release proof / 分支版本證明：** hosted native run [29663954724](https://github.com/codingmachineedge/WinForge/actions/runs/29663954724) passed every build/test/parity/package/installer-smoke gate and published [native-v1.0.37](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.37). Its tag ref and `target_commitish` both resolve exactly to `ce879cc6626eae328ec72e0143761c0edfbae340`; `WinForge-Native-Setup.exe` and `WinForge-native-x64-1.0.37.zip` are present with recorded SHA-256 digests.
+- **Remote integration proof / 遙距整合證明：** after the final main push and fetch, verify `828c3279` and `ce879cc6` as ancestors of `origin/main`, confirm the expected core/app/tests/smoke/generator/docs/parity/handoff paths from the remote main tree, and only then delete `codex/native-utility-four` locally/remotely.
+
+**粵語摘要：** 文字差異比對、長寬比計算同 CSS 單位換算已經真正原生化，功能／測試／文件／分支版本證據完成；三頁喺指定 LowLevel MCP 同 repository driver 都成功開啟，但呢個 desktop session 冇 WinUI composition，client frame 全白，所以視覺如實係 `capture-blocked`。今批完成後仍有 **325 條固定 route** 加五組動態家族要繼續移植。
+
 
 ## Native App Uninstaller integration record / 原生 App 解除安裝器整合記錄
 

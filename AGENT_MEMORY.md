@@ -2,6 +2,14 @@
 
 This file is the durable execution contract for every agent working in this repository. It supplements, and never weakens, `AGENTS.md`.
 
+## Latest native utility checkpoint / 最新原生工具檢查點
+
+- Commits `828c32791e1f135d2a46848e9283087ef8ec9156` and `ce879cc6626eae328ec72e0143761c0edfbae340` deliver genuine native Text Diff, Aspect Ratio, and CSS Unit Converter routes. Local `main` was fast-forwarded through the hardened tip before the final handoff record.
+- Native Debug/Release core is **560/560** each; Design Tools is **94/94**, Text Diff is **27/27**, focused utility UI Automation is **39/39**, full owned shell is **300/300**, and catalog parity covers 346 fixed routes plus five dynamic families. The renderer ledger is **21 in-progress / 325 not-started** because compositor capture remains the only incomplete evidence dimension.
+- LowLevel Computer Use MCP 1.28.1 launched all three pages on separate named headless desktops from an immutable 294-file stage, confirmed launch PIDs, resolved 1320×880 WinUI frames, captured/inspected 1304×841 clients, and performed exact cleanup. Each client was uniformly white; the repository driver independently rejected the same blank fallback. No blank image was promoted.
+- Hosted run 29663954724 published exact-SHA prerelease `native-v1.0.37` with installer and portable zip assets for `ce879cc6626eae328ec72e0143761c0edfbae340`.
+- 呢批真正原生化文字差異比對、長寬比計算同 CSS 單位換算；功能證據全綠，視覺只因 compositor 無法擷取而保持 `capture-blocked`。完成後仍有 325 條固定 route 加五組動態家族要繼續。
+
 ## Completion and Git / 完成與 Git
 
 - Treat every bounded task as incomplete until its intentional bilingual commit has been pushed.

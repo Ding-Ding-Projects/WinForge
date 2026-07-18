@@ -1,5 +1,13 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## Native design utilities · 原生設計工具
+
+**EN.** Text Diff, Aspect Ratio, and CSS Unit Converter are now genuine C++/WinRT routes backed by standard-C++ cores. The integrated feature/hardening commits are `828c32791e1f135d2a46848e9283087ef8ec9156` and `ce879cc6626eae328ec72e0143761c0edfbae340`; local `main` was fast-forwarded through the latter before this record. Renderer accounting is **21/346 fixed routes**, with **325 fixed routes** pending plus five dynamic families. Debug and Release core each pass **560/560** (Design Tools **94/94**, Text Diff **27/27**), the strengthened utility UI Automation shell passes **39/39**, the full owned shell remains **300/300**, catalog parity passes, and a one-million-finite-double .NET 11 differential found zero Aspect Ratio formatting mismatches. Hosted run [29663954724](https://github.com/codingmachineedge/WinForge/actions/runs/29663954724) published exact-SHA prerelease [native-v1.0.37](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.37) with installer and portable zip assets.
+
+**Visual evidence.** LowLevel Computer Use MCP 1.28.1 and the repository driver separately launched all three pages. Every inspected 1304×841 client capture was uniformly white because WinUI composition is unavailable in this desktop session; exact processes/desktops were closed, the immutable stage and invalid frames were deleted, and no canonical image was replaced. The routes are functionally/accessibly verified but honestly `capture-blocked`.
+
+**粵語.** 文字差異比對、長寬比計算同 CSS 單位換算而家係真正 C++/WinRT route，由標準 C++ core 支援。Debug／Release 各 **560/560**、Design Tools **94/94**、文字差異比對 **27/27**、工具專項 UI Automation **39/39**、完整自有 shell **300/300** 同 catalog parity 全部通過；一百萬個有限 double 對 .NET 11 比對係零個格式差異。Hosted run 29663954724 已為準確 SHA 發佈 native-v1.0.37。指定 LowLevel MCP 同 driver 都開過三頁，但 client 因 session 冇 WinUI composition 而全白；無效圖已刪除，視覺如實係 `capture-blocked`。今批係 **21/346**，仲有 **325 條固定 route** 同五組動態家族要繼續。
+
 ## Native installer CI verified integration · 原生安裝程式 CI 已驗證整合
 
 **EN.** The native installer contract task b5cae63dd53e1892aca61e039597d1f3b9a6b73c merged as 1c3c9a1a. After fetch, the task commit, pushed feature tip, and merge commit were proven ancestors of origin/main; the workflow, verifier, docs, Pages mirrors, generated site data, and handoff records were present remotely.
