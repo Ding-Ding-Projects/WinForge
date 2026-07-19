@@ -746,6 +746,28 @@ foreach ($fixture in $latestRecoveryFixtures) {
     }
 }
 
+$candidateDiscoveryAttemptsFixture = 90
+$candidateDiscoveryDelaySecondsFixture = 10
+$candidateDiscoveryWindowSeconds = ($candidateDiscoveryAttemptsFixture - 1) * $candidateDiscoveryDelaySecondsFixture
+if ($candidateDiscoveryWindowSeconds -lt (6 * 60)) {
+    throw "Native Latest candidate discovery window does not cover a full hosted native build: $candidateDiscoveryWindowSeconds seconds"
+}
+if ($candidateDiscoveryWindowSeconds -gt (15 * 60)) {
+    throw "Native Latest candidate discovery window is not bounded to fifteen minutes: $candidateDiscoveryWindowSeconds seconds"
+}
+$candidateDiscoveryTimingFixtures = @(
+    [pscustomobject]@{ Name = 'concurrent full native build candidate is observed'; AvailableAfterSeconds = 6 * 60; ShouldRestore = $true }
+    [pscustomobject]@{ Name = 'candidate beyond bounded discovery window fails'; AvailableAfterSeconds = $candidateDiscoveryWindowSeconds + 1; ShouldRestore = $false }
+    [pscustomobject]@{ Name = 'no candidate at bounded discovery window fails'; AvailableAfterSeconds = $null; ShouldRestore = $false }
+)
+foreach ($fixture in $candidateDiscoveryTimingFixtures) {
+    $candidateObserved = $null -ne $fixture.AvailableAfterSeconds -and
+        $fixture.AvailableAfterSeconds -le $candidateDiscoveryWindowSeconds
+    if ($candidateObserved -ne $fixture.ShouldRestore) {
+        throw "Native Latest candidate discovery timing self-test failed for $($fixture.Name): expected $($fixture.ShouldRestore), got $candidateObserved"
+    }
+}
+
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          EXPECTED_SOURCE_SHA: \$\{\{ needs\.build-test-package\.outputs\.source_sha \}\}[ \t]*$' -Label 'native release expected SHA environment'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          NATIVE_VERSION: \$\{\{ needs\.build-test-package\.outputs\.version \}\}[ \t]*$' -Label 'native release version environment'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$usePushedNativeTag = \$env:EVENT_NAME -eq ''push'' -and[ \t]*$' -Label 'native-tag event discrimination'
@@ -782,11 +804,14 @@ Require-Regex -Content $nativeReleaseStep -Pattern '(?ms)^          \$latestExpe
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                \$latestErrors = @\(Get-NativeLatestPostconditionErrors `[ \t]*$' -Label 'Latest endpoint native invariant validation'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          if \(\$isCurrentMainTip -and -not \$latestVerified\) \{[ \t]*$' -Label 'current-main Latest fail-closed postcondition'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          if \(-not \$isCurrentMainTip -and -not \$latestVerified\) \{[ \t]*$' -Label 'non-current invalid-Latest recovery gate'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            for \(\$attempt = 1; \$attempt -le 30; \$attempt\+\+\) \{[ \t]*$' -Label 'bounded concurrent native candidate discovery'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            \$candidateDiscoveryAttempts = 90[ \t]*$' -Label 'named bounded candidate discovery attempts'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            \$candidateDiscoveryDelaySeconds = 10[ \t]*$' -Label 'named bounded candidate discovery delay'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            for \(\$attempt = 1; \$attempt -le \$candidateDiscoveryAttempts; \$attempt\+\+\) \{[ \t]*$' -Label 'bounded concurrent native candidate discovery covers full native build'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              \$releasesJson = \(& gh api "repos/\$env:GITHUB_REPOSITORY/releases\?per_page=100" \| Out-String\)[ \t]*$' -Label 'bounded native release candidate listing'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                    if \(\[string\]\$candidateRelease\.tag_name -ceq \$tag\) \{ continue \}[ \t]*$' -Label 'never recover with the non-current run release'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                    \$candidateErrors = @\(Get-NativeLatestPostconditionErrors `[ \t]*$' -Label 'stable native current-main recovery candidate validation'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              throw "native Latest recovery found no safe candidate after 30 attempts: \$candidateFailure"[ \t]*$' -Label 'no-candidate fail-closed recovery'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?ms)^              if \(\$attempt -lt \$candidateDiscoveryAttempts\) \{\r?\n                Start-Sleep -Seconds \$candidateDiscoveryDelaySeconds\r?\n              \}[ \t]*$' -Label 'guarded bounded native candidate discovery delay'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              throw "native Latest recovery found no safe candidate after \$candidateDiscoveryAttempts attempts: \$candidateFailure"[ \t]*$' -Label 'recovery failure reports named attempt bound'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            & gh release edit \$candidateTag --latest --prerelease=false --draft=false[ \t]*$' -Label 'exact stable native Latest recovery mutation'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                  \$recoveryErrors = @\(Get-NativeLatestPostconditionErrors `[ \t]*$' -Label 'recovered Latest exact API postcondition'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              throw "native Latest recovery postcondition failed for \$\{candidateTag\}: \$recoveryFailure"[ \t]*$' -Label 'recovery endpoint fail-closed postcondition'

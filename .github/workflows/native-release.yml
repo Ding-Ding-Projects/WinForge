@@ -598,9 +598,11 @@ jobs:
           if (-not $isCurrentMainTip -and -not $latestVerified) {
             # A branch/tag/older-main run may repair a bad or managed Latest only
             # by selecting a separate, stable native release for the pinned main SHA.
+            $candidateDiscoveryAttempts = 90
+            $candidateDiscoveryDelaySeconds = 10
             $recoveryCandidate = $null
             $candidateFailure = $latestFailure
-            for ($attempt = 1; $attempt -le 30; $attempt++) {
+            for ($attempt = 1; $attempt -le $candidateDiscoveryAttempts; $attempt++) {
               git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
               if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main while discovering native Latest candidate' }
               $candidateMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
@@ -635,10 +637,12 @@ jobs:
                   $candidateFailure = "release list returned invalid JSON: $($_.Exception.Message)"
                 }
               }
-              if ($attempt -lt 30) { Start-Sleep -Seconds 10 }
+              if ($attempt -lt $candidateDiscoveryAttempts) {
+                Start-Sleep -Seconds $candidateDiscoveryDelaySeconds
+              }
             }
             if ($null -eq $recoveryCandidate) {
-              throw "native Latest recovery found no safe candidate after 30 attempts: $candidateFailure"
+              throw "native Latest recovery found no safe candidate after $candidateDiscoveryAttempts attempts: $candidateFailure"
             }
 
             $candidateTag = [string]$recoveryCandidate.tag_name
