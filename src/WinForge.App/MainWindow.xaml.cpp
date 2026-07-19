@@ -652,6 +652,8 @@ namespace winrt::WinForge::implementation
         Title(L"WinForge Native · 視窗調校原生版");
         Closed([this](Windows::Foundation::IInspectable const&, WindowEventArgs const&)
         {
+            StopMorseFlash();
+            m_morseTimer = nullptr;
             CancelPackageWork();
             static_cast<void>(m_packageMutationCoordinator.CancelAll());
         });
@@ -1064,6 +1066,42 @@ namespace winrt::WinForge::implementation
         }
     }
 
+    void MainWindow::ReleaseMorseRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute == L"module.morse" && nextRoute != L"module.morse")
+        {
+            ResetMorseRouteState();
+        }
+    }
+
+    void MainWindow::ResetMorseRouteState()
+    {
+        StopMorseFlash();
+        m_morseTimer = nullptr;
+        m_morseInputBox = nullptr;
+        m_morseDirectionSwitch = nullptr;
+        m_morseSeparatorPanel = nullptr;
+        m_morseSeparatorBox = nullptr;
+        m_morseOutputBox = nullptr;
+        m_morseCopyButton = nullptr;
+        m_morseUnknown = nullptr;
+        m_morseLamp = nullptr;
+        m_morseWpmBox = nullptr;
+        m_morsePlayButton = nullptr;
+        m_morseStopButton = nullptr;
+        m_morseStatus = nullptr;
+        std::wstring{}.swap(m_morseInputValue);
+        std::wstring{}.swap(m_morseOutputValue);
+        decltype(m_morseTimeline){}.swap(m_morseTimeline);
+        m_morseDecode = false;
+        m_morseSeparatorIndex = 0;
+        m_morseWpm = 15.0;
+        m_morseUnitMs = 80.0;
+        m_morseFlashIndex = -1;
+        m_morsePlaying = false;
+        m_morseRendering = false;
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -1082,6 +1120,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(L"search");
             ReleaseReferenceTextRouteState(L"search");
+            ReleaseMorseRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -1092,6 +1131,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(L"manual");
             ReleaseReferenceTextRouteState(L"manual");
+            ReleaseMorseRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -1104,6 +1144,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(normalized);
             ReleaseReferenceTextRouteState(normalized);
+            ReleaseMorseRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
@@ -1113,11 +1154,16 @@ namespace winrt::WinForge::implementation
 
         ReleaseTextAnalysisRouteState(module->id);
         ReleaseReferenceTextRouteState(module->id);
+        ReleaseMorseRouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
         // RenderCurrent directly and intentionally retain the active edits.
-        if (module->id == L"module.textdiff")
+        if (module->id == L"module.morse")
+        {
+            ResetMorseRouteState();
+        }
+        else if (module->id == L"module.textdiff")
         {
             m_textDiffA.clear();
             m_textDiffB.clear();
@@ -1336,6 +1382,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.uuidv7")
         {
             RenderUuidV7();
+        }
+        else if (module->id == L"module.morse")
+        {
+            RenderMorse();
         }
         else if (module->id == L"module.romannum")
         {
@@ -2482,6 +2532,502 @@ namespace winrt::WinForge::implementation
         {
             // Accessibility notification failure must not break local conversion.
         }
+    }
+
+    void MainWindow::RenderMorse()
+    {
+        // The native shell rerenders the active page when language changes.
+        // Stop the old dispatcher timer before replacing its controls so a
+        // queued tick can never touch a detached lamp or button surface.
+        StopMorseFlash();
+        m_morseTimer = nullptr;
+        m_morseRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Morse Code", L"摩斯電碼" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Translate text and International Morse code locally, then play the result as a timing-correct signal lamp.",
+                L"喺文字同國際摩斯電碼之間本機互換，再用準確節奏嘅訊號燈播放結果。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeMorsePage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native International Morse", L"全原生國際摩斯電碼" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Encoding, tolerant decoding, UTF-16 invariant casing, unknown-character reporting, and the local flash timeline run in standard C++. Clipboard access requires an explicit Copy button.",
+            L"編碼、寬鬆解碼、UTF-16 不變大小寫、未知字元提示同本機閃燈時間線全部喺標準 C++ 運行；一定要明確撳 Copy 先會用剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeMorseImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(10);
+        input.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Input", L"輸入" }.Pick(m_language), 15, true));
+
+        m_morseDirectionSwitch = ToggleSwitch();
+        m_morseDirectionSwitch.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"Direction", L"方向" }.Pick(m_language))));
+        m_morseDirectionSwitch.OnContent(box_value(ToHString(winforge::core::LocalizedText{
+            L"Morse → Text", L"摩斯 → 文字" }.Pick(m_language))));
+        m_morseDirectionSwitch.OffContent(box_value(ToHString(winforge::core::LocalizedText{
+            L"Text → Morse", L"文字 → 摩斯" }.Pick(m_language))));
+        m_morseDirectionSwitch.IsOn(m_morseDecode);
+        AutomationProperties::SetAutomationId(m_morseDirectionSwitch, L"NativeMorseDirection");
+        AutomationProperties::SetName(m_morseDirectionSwitch, ToHString(winforge::core::LocalizedText{
+            L"Morse conversion direction", L"摩斯轉換方向" }.Pick(m_language)));
+        m_morseDirectionSwitch.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_morseRendering) return;
+            m_morseDecode = sender.as<ToggleSwitch>().IsOn();
+            UpdateMorseDirection();
+            RefreshMorse();
+        });
+        input.Children().Append(m_morseDirectionSwitch);
+
+        auto inputHint = CreateText(
+            m_morseDecode
+                ? winforge::core::LocalizedText{
+                    L"Paste dots and dashes. Space or tab separates letters; slash or | separates words.",
+                    L"貼上點同劃。空格或者 tab 分字母；斜線或者 | 分字詞。" }.Pick(m_language)
+                : winforge::core::LocalizedText{
+                    L"Type a message. ASCII whitespace separates words; unsupported UTF-16 units show as #.",
+                    L"打訊息。ASCII 空白會分字詞；唔支援嘅 UTF-16 單位會顯示做 #。" }.Pick(m_language),
+            12);
+        inputHint.Opacity(0.82);
+        inputHint.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(inputHint, L"NativeMorseInputHint");
+        input.Children().Append(inputHint);
+
+        m_morseInputBox = TextBox();
+        m_morseInputBox.Text(ToHString(TextBoxPresentation(m_morseInputValue)));
+        m_morseInputBox.AcceptsReturn(true);
+        m_morseInputBox.TextWrapping(TextWrapping::Wrap);
+        m_morseInputBox.MinHeight(96);
+        m_morseInputBox.MaxHeight(180);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_morseInputBox, ScrollBarVisibility::Auto);
+        m_morseInputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        AutomationProperties::SetAutomationId(m_morseInputBox, L"NativeMorseInput");
+        AutomationProperties::SetName(m_morseInputBox, ToHString(winforge::core::LocalizedText{
+            L"Morse Code input", L"摩斯電碼輸入" }.Pick(m_language)));
+        m_morseInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_morseRendering) return;
+            m_morseInputValue = ToWide(sender.as<TextBox>().Text());
+            RefreshMorse();
+        });
+        input.Children().Append(m_morseInputBox);
+
+        m_morseSeparatorPanel = StackPanel();
+        m_morseSeparatorPanel.Orientation(Orientation::Horizontal);
+        m_morseSeparatorPanel.Spacing(10);
+        m_morseSeparatorPanel.VerticalAlignment(VerticalAlignment::Center);
+        auto separatorLabel = CreateText(
+            winforge::core::LocalizedText{ L"Separators", L"分隔符" }.Pick(m_language), 13.5, true);
+        separatorLabel.VerticalAlignment(VerticalAlignment::Center);
+        m_morseSeparatorPanel.Children().Append(separatorLabel);
+        m_morseSeparatorBox = ComboBox();
+        m_morseSeparatorBox.MinWidth(300);
+        m_morseSeparatorBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Space / \" / \" (standard)", L"空格 / 「 / 」（標準）" }.Pick(m_language))));
+        m_morseSeparatorBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Space / triple-space", L"空格 / 三個空格" }.Pick(m_language))));
+        m_morseSeparatorBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Double-space / \" / \"", L"雙空格 / 「 / 」" }.Pick(m_language))));
+        m_morseSeparatorBox.SelectedIndex((std::clamp)(m_morseSeparatorIndex, 0, 2));
+        AutomationProperties::SetAutomationId(m_morseSeparatorBox, L"NativeMorseSeparator");
+        AutomationProperties::SetName(m_morseSeparatorBox, ToHString(winforge::core::LocalizedText{
+            L"Morse encoding separators", L"摩斯編碼分隔符" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_morseSeparatorBox, separatorLabel);
+        m_morseSeparatorBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_morseRendering) return;
+            auto const selected = sender.as<ComboBox>().SelectedIndex();
+            m_morseSeparatorIndex = (std::clamp)(selected, 0, 2);
+            RefreshMorse();
+        });
+        m_morseSeparatorPanel.Children().Append(m_morseSeparatorBox);
+        input.Children().Append(m_morseSeparatorPanel);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border outputCard = MakeNativeCard();
+        StackPanel output;
+        output.Spacing(10);
+        StackPanel outputHeader;
+        outputHeader.Orientation(Orientation::Horizontal);
+        outputHeader.Spacing(16);
+        outputHeader.VerticalAlignment(VerticalAlignment::Center);
+        outputHeader.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Output", L"輸出" }.Pick(m_language), 15, true));
+        m_morseCopyButton = Button();
+        m_morseCopyButton.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Copy", L"複製" }.Pick(m_language))));
+        m_morseCopyButton.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(m_morseCopyButton, L"NativeMorseCopy");
+        AutomationProperties::SetName(m_morseCopyButton, ToHString(winforge::core::LocalizedText{
+            L"Copy Morse output", L"複製摩斯輸出" }.Pick(m_language)));
+        m_morseCopyButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyMorseOutput();
+        });
+        outputHeader.Children().Append(m_morseCopyButton);
+        output.Children().Append(outputHeader);
+
+        m_morseOutputBox = TextBox();
+        m_morseOutputBox.Text(ToHString(TextBoxPresentation(m_morseOutputValue)));
+        m_morseOutputBox.IsReadOnly(true);
+        m_morseOutputBox.AcceptsReturn(true);
+        m_morseOutputBox.TextWrapping(TextWrapping::Wrap);
+        m_morseOutputBox.MinHeight(80);
+        m_morseOutputBox.MaxHeight(180);
+        m_morseOutputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        ScrollViewer::SetVerticalScrollBarVisibility(m_morseOutputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_morseOutputBox, L"NativeMorseOutput");
+        AutomationProperties::SetName(m_morseOutputBox, ToHString(winforge::core::LocalizedText{
+            L"Morse Code output", L"摩斯電碼輸出" }.Pick(m_language)));
+        output.Children().Append(m_morseOutputBox);
+
+        m_morseUnknown = CreateText(L"", 12);
+        m_morseUnknown.TextWrapping(TextWrapping::Wrap);
+        m_morseUnknown.Foreground(Application::Current().Resources().Lookup(
+            box_value(L"SystemFillColorCautionBrush")).as<Media::Brush>());
+        m_morseUnknown.Visibility(Visibility::Collapsed);
+        AutomationProperties::SetAutomationId(m_morseUnknown, L"NativeMorseUnknown");
+        output.Children().Append(m_morseUnknown);
+        outputCard.Child(output);
+        page.Children().Append(outputCard);
+
+        Border flashCard = MakeNativeCard();
+        StackPanel flash;
+        flash.Spacing(10);
+        flash.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Flash preview", L"閃燈預覽" }.Pick(m_language), 15, true));
+        m_morseLamp = Border();
+        m_morseLamp.Height(72);
+        m_morseLamp.CornerRadius(CornerRadius{ 8 });
+        m_morseLamp.BorderThickness(Thickness{ 1 });
+        AutomationProperties::SetAutomationId(m_morseLamp, L"NativeMorseLamp");
+        flash.Children().Append(m_morseLamp);
+
+        StackPanel flashControls;
+        flashControls.Orientation(Orientation::Horizontal);
+        flashControls.Spacing(12);
+        flashControls.VerticalAlignment(VerticalAlignment::Center);
+        m_morsePlayButton = Button();
+        m_morsePlayButton.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Play", L"播放" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(m_morsePlayButton, L"NativeMorsePlay");
+        AutomationProperties::SetName(m_morsePlayButton, ToHString(winforge::core::LocalizedText{
+            L"Play flash preview", L"播放閃燈預覽" }.Pick(m_language)));
+        m_morsePlayButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            PlayMorseFlash();
+        });
+        flashControls.Children().Append(m_morsePlayButton);
+        m_morseStopButton = Button();
+        m_morseStopButton.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Stop", L"停止" }.Pick(m_language))));
+        m_morseStopButton.IsEnabled(false);
+        AutomationProperties::SetAutomationId(m_morseStopButton, L"NativeMorseStop");
+        AutomationProperties::SetName(m_morseStopButton, ToHString(winforge::core::LocalizedText{
+            L"Stop flash preview", L"停止閃燈預覽" }.Pick(m_language)));
+        m_morseStopButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            StopMorseFlash();
+            AnnounceMorseStatus(winforge::core::LocalizedText{
+                L"Stopped.", L"已停止。" }.Pick(m_language));
+        });
+        flashControls.Children().Append(m_morseStopButton);
+        auto wpmLabel = CreateText(
+            winforge::core::LocalizedText{ L"Speed (WPM)", L"速度 (WPM)" }.Pick(m_language), 13.5, true);
+        wpmLabel.VerticalAlignment(VerticalAlignment::Center);
+        flashControls.Children().Append(wpmLabel);
+        m_morseWpmBox = NumberBox();
+        m_morseWpmBox.Value(m_morseWpm);
+        m_morseWpmBox.Minimum(1);
+        m_morseWpmBox.Maximum(60);
+        m_morseWpmBox.MinWidth(130);
+        m_morseWpmBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        AutomationProperties::SetAutomationId(m_morseWpmBox, L"NativeMorseWpm");
+        AutomationProperties::SetName(m_morseWpmBox, ToHString(winforge::core::LocalizedText{
+            L"Morse speed in words per minute", L"摩斯每分鐘字數速度" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_morseWpmBox, wpmLabel);
+        m_morseWpmBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_morseRendering) return;
+            m_morseWpm = sender.Value();
+        });
+        flashControls.Children().Append(m_morseWpmBox);
+        flash.Children().Append(flashControls);
+        flashCard.Child(flash);
+        page.Children().Append(flashCard);
+
+        m_morseStatus = CreateText(L"", 12.5);
+        m_morseStatus.Opacity(0.84);
+        m_morseStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_morseStatus, L"NativeMorseStatus");
+        AutomationProperties::SetLiveSetting(
+            m_morseStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_morseStatus);
+
+        ShowPage(page);
+        m_morseRendering = false;
+        UpdateMorseDirection();
+        RefreshMorse();
+        SetMorseLamp(false);
+        AnnounceMorseStatus(winforge::core::LocalizedText{
+            L"Idle.", L"閒置中。" }.Pick(m_language));
+    }
+
+    void MainWindow::UpdateMorseDirection()
+    {
+        if (m_morseSeparatorPanel)
+        {
+            m_morseSeparatorPanel.Opacity(m_morseDecode ? 0.4 : 1.0);
+        }
+        if (m_morseSeparatorBox)
+        {
+            m_morseSeparatorBox.IsEnabled(!m_morseDecode);
+        }
+    }
+
+    void MainWindow::RefreshMorse()
+    {
+        if (!m_morseOutputBox || !m_morseUnknown) return;
+
+        try
+        {
+            if (m_morseDecode)
+            {
+                m_morseOutputValue = winforge::core::morse::FromMorse(m_morseInputValue);
+                m_morseTimeline = winforge::core::morse::BuildTimeline(m_morseOutputValue);
+                auto const hasUnknown = m_morseOutputValue.find(L'\xFFFD') != std::wstring::npos ||
+                    m_morseOutputValue.find(L'#') != std::wstring::npos;
+                if (hasUnknown)
+                {
+                    auto const warning = winforge::core::LocalizedText{
+                        L"Some symbols could not be decoded (shown as �).",
+                        L"有啲符號解唔到（顯示做 �）。" }.Pick(m_language);
+                    m_morseUnknown.Text(ToHString(warning));
+                    m_morseUnknown.Visibility(Visibility::Visible);
+                    AutomationProperties::SetName(m_morseUnknown, ToHString(warning));
+                }
+                else
+                {
+                    m_morseUnknown.Text(L"");
+                    m_morseUnknown.Visibility(Visibility::Collapsed);
+                    AutomationProperties::SetName(m_morseUnknown, L"");
+                }
+            }
+            else
+            {
+                static constexpr std::array<std::pair<std::wstring_view, std::wstring_view>, 3> separators{{
+                    { L" ", L" / " },
+                    { L" ", L"   " },
+                    { L"  ", L" / " },
+                }};
+                auto const selected = static_cast<std::size_t>((std::clamp)(m_morseSeparatorIndex, 0, 2));
+                auto const encoded = winforge::core::morse::ToMorse(
+                    m_morseInputValue,
+                    separators[selected].first,
+                    separators[selected].second);
+                m_morseOutputValue = encoded.text;
+                m_morseTimeline = winforge::core::morse::BuildTimeline(m_morseInputValue);
+                if (!encoded.unknown.empty())
+                {
+                    std::wstring list;
+                    for (auto const character : encoded.unknown)
+                    {
+                        if (!list.empty()) list.push_back(L' ');
+                        if (character == L' ')
+                        {
+                            list += L"␠";
+                        }
+                        else
+                        {
+                            list.push_back(character);
+                        }
+                    }
+                    auto const warning = winforge::core::LocalizedText{
+                        L"Unsupported characters (marked #): " + list,
+                        L"唔支援嘅字元（標記 #）：" + list }.Pick(m_language);
+                    m_morseUnknown.Text(ToHString(warning));
+                    m_morseUnknown.Visibility(Visibility::Visible);
+                    AutomationProperties::SetName(m_morseUnknown, ToHString(warning));
+                }
+                else
+                {
+                    m_morseUnknown.Text(L"");
+                    m_morseUnknown.Visibility(Visibility::Collapsed);
+                    AutomationProperties::SetName(m_morseUnknown, L"");
+                }
+            }
+
+            m_morseOutputBox.Text(ToHString(TextBoxPresentation(m_morseOutputValue)));
+            AutomationProperties::SetHelpText(m_morseOutputBox, ToHString(m_morseOutputValue));
+        }
+        catch (...)
+        {
+            m_morseOutputValue.clear();
+            m_morseTimeline.clear();
+            m_morseOutputBox.Text(L"");
+            auto const warning = winforge::core::LocalizedText{
+                L"Could not translate this input.", L"轉換唔到呢段輸入。" }.Pick(m_language);
+            m_morseUnknown.Text(ToHString(warning));
+            m_morseUnknown.Visibility(Visibility::Visible);
+            AutomationProperties::SetName(m_morseUnknown, ToHString(warning));
+        }
+    }
+
+    void MainWindow::CopyMorseOutput()
+    {
+        if (m_morseOutputValue.empty())
+        {
+            AnnounceMorseStatus(winforge::core::LocalizedText{
+                L"Nothing to copy yet.", L"暫時無嘢可以複製。" }.Pick(m_language), true);
+            return;
+        }
+        try
+        {
+            Windows::ApplicationModel::DataTransfer::DataPackage package;
+            package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+            package.SetText(ToHString(m_morseOutputValue));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+            AnnounceMorseStatus(winforge::core::LocalizedText{
+                L"Copied output to the clipboard.", L"已複製輸出到剪貼簿。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceMorseStatus(winforge::core::LocalizedText{
+                L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::PlayMorseFlash()
+    {
+        StopMorseFlash();
+        if (m_morseTimeline.empty())
+        {
+            SetMorseLamp(false);
+            AnnounceMorseStatus(winforge::core::LocalizedText{
+                L"Nothing to flash — enter a message first.", L"無嘢可以閃 — 先輸入訊息。" }.Pick(m_language), true);
+            return;
+        }
+
+        try
+        {
+            m_morseUnitMs = winforge::core::morse::UnitMsForWpm(m_morseWpm);
+            m_morseFlashIndex = -1;
+            m_morsePlaying = true;
+            m_morseTimer = DispatcherTimer();
+            m_morseTimer.Tick([this](Windows::Foundation::IInspectable const&, Windows::Foundation::IInspectable const&)
+            {
+                AdvanceMorseFlash();
+            });
+            m_morseTimer.Interval(std::chrono::milliseconds(1));
+            m_morseTimer.Start();
+            if (m_morsePlayButton) m_morsePlayButton.IsEnabled(false);
+            if (m_morseStopButton) m_morseStopButton.IsEnabled(true);
+            AnnounceMorseStatus(winforge::core::LocalizedText{
+                L"Flashing…", L"閃緊…" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            StopMorseFlash();
+            AnnounceMorseStatus(winforge::core::LocalizedText{
+                L"Could not start the flash preview.", L"開唔到閃燈預覽。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::StopMorseFlash()
+    {
+        try
+        {
+            if (m_morseTimer) m_morseTimer.Stop();
+            m_morsePlaying = false;
+            m_morseFlashIndex = -1;
+            SetMorseLamp(false);
+            if (m_morsePlayButton) m_morsePlayButton.IsEnabled(true);
+            if (m_morseStopButton) m_morseStopButton.IsEnabled(false);
+        }
+        catch (...)
+        {
+            // Route/window cleanup must remain best-effort and never block
+            // navigation when a WinUI control is already being detached.
+            m_morsePlaying = false;
+            m_morseFlashIndex = -1;
+        }
+    }
+
+    void MainWindow::AdvanceMorseFlash()
+    {
+        if (!m_morsePlaying || m_currentRoute != L"module.morse" || !m_morseTimer) return;
+        try
+        {
+            ++m_morseFlashIndex;
+            if (m_morseFlashIndex < 0 || static_cast<std::size_t>(m_morseFlashIndex) >= m_morseTimeline.size())
+            {
+                StopMorseFlash();
+                AnnounceMorseStatus(winforge::core::LocalizedText{
+                    L"Done.", L"完成。" }.Pick(m_language));
+                return;
+            }
+
+            auto const& segment = m_morseTimeline[static_cast<std::size_t>(m_morseFlashIndex)];
+            SetMorseLamp(segment.on);
+            auto const duration = (std::max)(1.0, static_cast<double>(segment.units) * m_morseUnitMs);
+            m_morseTimer.Interval(std::chrono::milliseconds(
+                static_cast<std::int64_t>(std::llround(duration))));
+        }
+        catch (...)
+        {
+            StopMorseFlash();
+            AnnounceMorseStatus(winforge::core::LocalizedText{
+                L"Flash preview stopped after a timing error.", L"閃燈預覽因時間錯誤而停止。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::SetMorseLamp(bool on)
+    {
+        if (!m_morseLamp) return;
+        try
+        {
+            auto const color = on
+                ? Windows::UI::Color{ 0xFF, 0x50, 0xFF, 0x8C }
+                : Windows::UI::Color{ 0xFF, 0x18, 0x20, 0x1C };
+            auto const brush = Media::SolidColorBrush(color);
+            m_morseLamp.Background(brush);
+            m_morseLamp.BorderBrush(brush);
+            auto const name = on
+                ? winforge::core::LocalizedText{ L"Signal lamp on", L"訊號燈已亮" }.Pick(m_language)
+                : winforge::core::LocalizedText{ L"Signal lamp off", L"訊號燈已熄" }.Pick(m_language);
+            AutomationProperties::SetName(m_morseLamp, ToHString(name));
+            AutomationProperties::SetHelpText(m_morseLamp, ToHString(name));
+        }
+        catch (...)
+        {
+            // A detached lamp during route teardown is not a functional error.
+        }
+    }
+
+    void MainWindow::AnnounceMorseStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_morseStatus) return;
+        m_morseStatus.Text(ToHString(message));
+        m_morseStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_morseStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_morseStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        RaisePoliteLiveRegion(m_morseStatus);
     }
 
     void MainWindow::RenderRomanNum()

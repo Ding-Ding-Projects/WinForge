@@ -1,6 +1,24 @@
 # WinForge Full Development Handoff
 
-## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
+## Current 2026-07-19 native Reference Text + Morse integration — local validation complete, hosted release pending · 2026-07-19 原生參考文字及摩斯整合 — 本機驗證完成，hosted 發佈待處理
+
+- **Scope / 範圍：** the controlled main merge combines native Phonetic Speller, Box & Banner Text, HTML Entities, and Morse Code. All four have genuine C++/WinRT renderers over testable standard-C++ cores, local processing, explicit-only clipboard writes, route reset/lifecycle handling, localization, and accessible control surfaces.
+- **Current evidence / 目前證據：** native Debug and Release x64 solution builds each exit 0 with 0 errors; Debug and Release core each pass **783/783**; catalog parity passes **346 fixed routes + five dynamic route families**; `-ReferenceTextRoutesOnly` passes **29/29**; `-MorseRoutesOnly` passes **13/13**; and the exhaustive native shell passes **430/430 (430 passed, 0 failed)**. `HasNativeRenderer` and the ledger are **31/346 fixed routes**, **31 `in-progress` / 315 `not-started`**; capture-blocked is never presented as port complete.
+- **Visual evidence / 視覺證據：** the local LowLevel MCP checkout exists but is not callable in this Codex session, so no MCP evidence is claimed. The fresh native `morse` driver launch rejected its blank/near-uniform `PrintWindow` fallback because `CopyFromScreen` is unavailable. No PNG was retained or promoted and no canonical screenshot changed; all four routes remain honestly `capture-blocked`.
+- **Integration state / 整合狀態：** source tip `6d9c4ae8f25726cf7d17549310f34b33194d669f` is resolved in the controlled main merge. Commit, push, remote CI, native-only release, exact-SHA asset, and remote-ancestry proof remain the parent-owned final steps.
+
+**粵語摘要：** 合併後有四個真正原生 renderer；Debug／Release 0 errors、core 各 **783/783**、catalog parity、Reference Text UIA **29/29**、Morse UIA **13/13** 同完整 shell **430/430** 已通過。計數係 **31/346**，仲有 **315** 條固定 route 同五組動態家族。LowLevel MCP 今個 session 不可呼叫，最新 `morse` driver 因 `CopyFromScreen`／空白 fallback 受阻，冇 PNG 或 canonical 圖變更，所以四條 route 保持 `capture-blocked`；提交、push、hosted native-only release 同 remote proof 仍待完成。
+
+## Historical pre-integration Reference Text and Morse record · 歷史整合前參考文字及摩斯紀錄
+
+### Morse Code feature / 摩斯電碼功能
+
+- **Scope / 範圍：** module.morse plus morse alias is a genuine C++/WinRT renderer over the new standard-C++ Morse core. It covers managed-compatible UTF-16 encode/decode aliases, unique unknown-symbol reporting, bounded WPM/timing timeline, explicit Copy, and lifecycle-safe dispatcher-timer cleanup when playback finishes or the route/window closes.
+- **Branch evidence / 分支證據：** native Debug and Release solution builds exit 0; Debug and Release core executables each pass **741/741**, including focused Morse **24/24**; -MorseRoutesOnly native UI Automation passes **13/13**; and native catalog parity covers 346 fixed routes plus five dynamic families. This branch's ledger is **28/346 fixed routes**, **28 in-progress / 318 not-started**.
+- **Headless visual disposition / 無頭視覺處置：** LowLevel Computer Use MCP exists locally but is not callable in this Codex session, so no LowLevel evidence is claimed. The required native driver successfully launched --page morse, then rejected capture because CopyFromScreen was unavailable and the PrintWindow fallback was blank or near-uniform. No invalid image was retained, no canonical screenshot changed, and visual evidence is capture-blocked.
+- **Integration state / 整合狀態：** feature commit 66bb415e5f1730bb128f4d649e493150da222d06 is in a controlled merge with current main. Fresh native build, core, UIA, parity, capture disposition, hosted CI, and native-only release evidence will replace the branch-only aggregate after integration.
+
+### Reference Text routes / 參考文字 route
 
 - **Scope / 範圍：** dedicated C++/WinRT renderers for Phonetic Speller, Box & Banner Text, and HTML Entities, backed by the shared standard-C++ `ReferenceText` core. The wave preserves three phonetic alphabets, digits, uppercase/punctuation options, managed UTF-16 code-unit rows and spoken output; eight box/comment styles, three alignments, bounded padding, optional titles, multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local; clipboard writes require explicit Copy.
 - **Inventory / 清單：** `HasNativeRenderer` and the provisional ledger now account for **30/346 fixed routes**, leaving **316 fixed routes** plus five dynamic route families. The ledger is exactly **30 `in-progress` / 316 `not-started`**; no pending or uninspected page is called complete.

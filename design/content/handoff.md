@@ -1,6 +1,12 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
-## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
+## Current 2026-07-19 native Reference Text + Morse integration — local validation complete, hosted release pending · 2026-07-19 原生參考文字及摩斯整合 — 本機驗證完成，hosted 發佈待處理
+
+**EN.** The controlled main merge combines Phonetic Speller, Box & Banner Text, HTML Entities, and Morse Code as genuine C++/WinRT renderers over standard-C++ cores. Debug and Release x64 solution builds have 0 errors; both core suites pass **783/783**; catalog parity passes **346 fixed routes + five dynamic families**; focused Reference Text UI Automation passes **29/29**; focused Morse UI Automation passes **13/13**; and the exhaustive native shell passes **430/430**. Renderer accounting is **31/346 fixed routes**, leaving **315** plus five dynamic families, with **31 `in-progress` / 315 `not-started`**. The local LowLevel MCP checkout is not callable in this session; the fresh `morse` driver rejected a blank/near-uniform fallback after `CopyFromScreen` was unavailable, so no image was promoted and all four routes remain `capture-blocked`. The resolved source tip is `6d9c4ae8f25726cf7d17549310f34b33194d669f`; commit, push, hosted native-only release, and remote proof remain pending.
+
+**粵語.** 受控 main merge 合併咗拼讀字母表、文字方框／橫幅、HTML 實體同 Morse Code 四個真正 C++/WinRT renderer。Debug／Release 0 errors、core 各 **783/783**、catalog parity、Reference Text UIA **29/29**、Morse UIA **13/13** 同完整 shell **430/430** 都通過。計數係 **31/346**，仲有 **315** 條固定 route 同五組動態家族，ledger 係 **31 `in-progress` / 315 `not-started`**。LowLevel MCP 今個 session 不可呼叫，`morse` driver 因 `CopyFromScreen`／空白 fallback 受阻，冇提升圖，所以四條 route 保持 `capture-blocked`；提交、push、hosted 原生 release 同 remote proof 待完成。
+
+## Historical pre-Morse Reference Text wave · 歷史整合前原生參考文字批次
 
 **EN.** Phonetic Speller, Box & Banner Text, and HTML Entities now have dedicated C++/WinRT renderers over the shared standard-C++ `ReferenceText` core. They preserve three phonetic alphabets and managed UTF-16 code-unit row, digit, and option behavior; eight box/comment styles, three alignments, bounded padding, titles and multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local, and clipboard writes require explicit Copy.
 
@@ -9,6 +15,14 @@ Renderer accounting is **30/346 fixed routes**, with **316 fixed routes** plus f
 The handoff is feature-only: it changes no workflow or release policy, and controlled integration preserves that boundary while the native release gate supplies remote verification.
 
 **粵語.** 三項參考文字工具已有專用 C++/WinRT renderer 同 `ReferenceText` core；Renderer 計 **30/346**，仲有 **316** 條固定 route 同五組動態家族。最新 Debug／Release build 各 0 errors、兩個 core 各 **759/759**、catalog parity、八個 alias UIA **29/29** 同完整 native shell **417/417（417 passed、0 failed）** 已通過。今次 session 冇 LowLevel MCP；整合後最新 HTML driver 重試拒絕空白 fallback，冇建立或保留 PNG、冇殘留 process、冇改 canonical 截圖，所以 visual 係 `capture-blocked`。呢個 handoff 只改功能，唔改 workflow／release policy；受控整合會守住界線，再由 native release gate 做遙距驗證。
+
+## Historical isolated Native Morse Code branch · 歷史獨立原生摩斯電碼功能分支
+
+**EN.** module.morse and alias morse now have a genuine C++/WinRT renderer backed by standard-C++ Morse logic. It preserves managed-compatible UTF-16 encode/decode aliases, unique unknown-symbol reporting, bounded WPM and flash timing, explicit Copy, and lifecycle-safe dispatcher-timer cleanup. The feature commit is being merged with the current native shell so its final aggregate evidence is recorded only after fresh controlled validation.
+
+**Visual evidence.** LowLevel MCP is present locally but not callable in this Codex session, so none is claimed. The required driver successfully launched the native page but rejected its blank/near-uniform fallback because CopyFromScreen is unavailable. No invalid image was retained or promoted; visual evidence remains capture-blocked.
+
+**粵語.** module.morse 同 morse 而家有真正 C++/WinRT renderer 同標準 C++ Morse 邏輯，保留 managed 相容 UTF-16 編碼／解碼別名、唯一未知符號報告、有界 WPM 同閃燈計時、明確 Copy 同 lifecycle-safe dispatcher-timer cleanup。功能提交正同目前 native shell 受控整合；最後總驗證數字只會喺最新受控驗證後記錄。LowLevel MCP 雖然喺本機但呢個 session 唔可呼叫；driver 開到原生頁但因 CopyFromScreen 唔可用而拒絕空白／近乎單色 fallback。無效圖冇保留或提升，visual 保持 capture-blocked。
 
 ## Historical native text-analysis collation wave — exhaustive shell green; visual capture blocked · 歷史原生文字分析排序批次 — 完整 shell 通過；視覺擷取受阻
 

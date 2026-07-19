@@ -4,6 +4,8 @@
 
 > Native update · Symbols Palette is now a tested C++/WinRT page: 226 local glyphs in nine bilingual categories, literal-default and opt-in bounded-PCRE2 filtering, explicit clipboard Copy, and aliases symbols/glyphs/module.symbols. See [Native Symbols Palette](docs/Native-Symbols-Palette.md).
 
+> Native update · Morse Code is now a tested C++/WinRT page with managed-compatible encode/decode, timing flash playback, explicit Copy, and aliases morse/module.morse. See [Native Morse Code](docs/Native-Morse-Code.md). · 原生更新 · Morse Code 而家係已測試嘅 C++/WinRT 頁面，有 managed 相容嘅編碼／解碼、計時閃燈播放、明確 Copy 同 morse/module.morse 別名。見 [Native Morse Code](docs/Native-Morse-Code.md)。
+
 # WinForge · 視窗鑄造
 
 **An all-in-one, fully bilingual Windows 11 control center — every module is real and working — crowned by a hyper-realistic flagship nuclear-reactor simulator.**

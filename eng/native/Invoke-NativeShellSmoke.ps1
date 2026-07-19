@@ -7,6 +7,7 @@ param(
     [switch]$LineRoutesOnly,
     [switch]$TextAnalysisRoutesOnly,
     [switch]$ReferenceTextRoutesOnly,
+    [switch]$MorseRoutesOnly,
     [switch]$AllowClipboardMutation
 )
 
@@ -614,11 +615,13 @@ function Invoke-OwnedRoute {
         'nato', 'phonetic', 'module.phonetic',
         'boxtext', 'module.boxtext',
         'entities', 'htmlentities', 'module.htmlentities') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly) -and -not (
+    $isMorseRoute = @('morse', 'module.morse') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
         ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
-        ($ReferenceTextRoutesOnly -and $isReferenceTextRoute))) {
+        ($ReferenceTextRoutesOnly -and $isReferenceTextRoute) -or
+        ($MorseRoutesOnly -and $isMorseRoute))) {
         return
     }
 
@@ -2137,6 +2140,119 @@ Invoke-OwnedRoute -Route 'unixperm' -ExpectedTitle 'chmod Calculator' -Inspect {
 foreach ($alias in @('chmod', 'module.unixperm')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'chmod Calculator'
 }
+
+Invoke-OwnedRoute -Route 'morse' -ExpectedTitle 'Morse Code' -Inspect {
+    param($root, $title)
+
+    # Individual smoke processes can inherit the persisted language choice.
+    # Set a deterministic baseline before asserting localized accessible text.
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Morse Code' | Out-Null
+
+    foreach ($id in @(
+        'NativeMorseImplementationStatus',
+        'NativeMorseDirection',
+        'NativeMorseInputHint',
+        'NativeMorseInput',
+        'NativeMorseSeparator',
+        'NativeMorseCopy',
+        'NativeMorseOutput',
+        'NativeMorseLamp',
+        'NativeMorsePlay',
+        'NativeMorseStop',
+        'NativeMorseWpm',
+        'NativeMorseStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $morseControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeMorseDirection'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeMorseInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeMorseSeparator'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeMorseCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeMorseOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeMorseLamp'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeMorseWpm'))
+    Assert-True -Condition $morseControlsFit `
+        -Name 'Morse Code exposes native controls, accessibility, and horizontal clipping safety'
+
+    $input = Wait-ForElement -Root $root -AutomationId 'NativeMorseInput'
+    $output = Wait-ForElement -Root $root -AutomationId 'NativeMorseOutput'
+    Assert-True -Condition (
+        $input.Current.Name.StartsWith('Morse Code input', [StringComparison]::Ordinal) -and
+        $output.Current.Name.StartsWith('Morse Code output', [StringComparison]::Ordinal)) `
+        -Name 'Morse Code editors expose localized accessible names'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeMorseInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeMorseOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeMorseWpm' -ExpectedValue '15' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeMorseStatus' -Prefix 'Idle.' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeMorseLamp' -Prefix 'Signal lamp off' | Out-Null
+    $direction = [System.Windows.Automation.TogglePattern](
+        (Wait-ForElement -Root $root -AutomationId 'NativeMorseDirection').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern))
+    $separator = Wait-ForElement -Root $root -AutomationId 'NativeMorseSeparator'
+    $stop = Wait-ForElement -Root $root -AutomationId 'NativeMorseStop'
+    Assert-True -Condition (
+        $direction.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off -and
+        $separator.Current.IsEnabled -and -not $stop.Current.IsEnabled) `
+        -Name 'Morse Code starts in text-to-Morse mode with default speed and no active flash'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeMorseCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeMorseStatus' -Prefix 'Nothing to copy yet.' | Out-Null
+    Assert-True -Condition $true -Name 'Morse Code protects the clipboard when output is empty'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeMorseInput' -Value 'SOS' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeMorseOutput' -ExpectedValue '... --- ...' | Out-Null
+    Assert-True -Condition $true -Name 'Morse Code encodes a canonical SOS message live in native C++'
+
+    $separator = Wait-ForElement -Root $root -AutomationId 'NativeMorseSeparator'
+    Select-ComboIndex -Combo $separator -Index 1
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeMorseInput' -Value 'A B' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeMorseOutput' -ExpectedValue '.-   -...' | Out-Null
+    Assert-True -Condition $true -Name 'Morse Code applies the triple-space word-separator preset'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeMorseDirection' -IsOn $true | Out-Null
+    $separator = Wait-ForElement -Root $root -AutomationId 'NativeMorseSeparator'
+    Assert-True -Condition (-not $separator.Current.IsEnabled) `
+        -Name 'Morse Code disables encoding separators while decoding'
+    $middleDot = [char]0x00B7
+    $enDash = [char]0x2013
+    $bullet = [char]0x2022
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeMorseInput' -Value "$middleDot | $enDash$bullet$bullet" | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeMorseOutput' -ExpectedValue 'E D' | Out-Null
+    Assert-True -Condition $true -Name 'Morse Code decodes dot dash and vertical-bar aliases locally'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeMorseDirection' -IsOn $false | Out-Null
+    $snowman = [char]0x2603
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeMorseInput' -Value "A$snowman A" | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeMorseOutput' -ExpectedValue '.- #   .-' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeMorseUnknown' `
+        -Prefix 'Unsupported characters (marked #):' | Out-Null
+    Assert-True -Condition $true -Name 'Morse Code marks unsupported UTF-16 units without losing conversion output'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeMorseCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeMorseStatus' `
+            -Prefix 'Copied output to the clipboard.' | Out-Null
+        Assert-True -Condition $true -Name 'Morse Code copies populated output only through its explicit Copy action'
+    }
+
+    $flashText = 'T'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeMorseInput' -Value $flashText | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeMorsePlay'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeMorseStatus' -Prefix 'Flashing' | Out-Null
+    Assert-True -Condition (Wait-ForElement -Root $root -AutomationId 'NativeMorseStop').Current.IsEnabled `
+        -Name 'Morse Code enables Stop while a native flash timeline is active'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeMorseStatus' -Prefix 'Done.' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeMorseLamp' -Prefix 'Signal lamp off' | Out-Null
+    Assert-True -Condition (-not (Wait-ForElement -Root $root -AutomationId 'NativeMorseStop').Current.IsEnabled) `
+        -Name 'Morse Code completes a native timing-correct flash preview safely'
+
+}
+
+Invoke-OwnedRoute -Route 'module.morse' -ExpectedTitle 'Morse Code'
 
 Invoke-OwnedRoute -Route 'textdiff' -ExpectedTitle 'Text Diff' -Inspect {
     param($root, $title)

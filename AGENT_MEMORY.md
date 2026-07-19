@@ -1,5 +1,12 @@
 # Persistent Agent Task Memory / 長期代理任務記憶
 
+## Latest combined Reference Text + Morse Code integration validation (main commit/release pending) / 最新參考文字及摩斯電碼整合驗證（main 提交／發佈待處理）
+
+- `module.morse` and `morse` now render natively through C++/WinRT over the standard-C++ Morse core. Preserve managed-compatible UTF-16 encode/decode aliases, unique unknown-symbol reporting, exact 1/3/7-unit flash timeline and bounded WPM conversion, explicit-only clipboard writes, and dispatcher-timer cleanup on completion, route exit, or window close. Reference Text continues to provide native Phonetic Speller, Box & Banner Text, and HTML Entities renderers.
+- Controlled merge validation over current main plus `6d9c4ae8f25726cf7d17549310f34b33194d669f` is green: Debug and Release solution builds exit 0 with 0 errors; both core executables pass **783/783**; focused Reference Text UI Automation passes **29/29**; focused Morse UI Automation passes **13/13**; catalog parity covers **346 fixed routes + five dynamic families**; and the exhaustive native shell passes **430/430**. The ledger is **31 `in-progress` / 315 `not-started`**; no pending or capture-blocked renderer is called complete.
+- LowLevel MCP is available on disk but not callable in this Codex session. The required native `morse` driver launch rejected screenshot fallback because `CopyFromScreen` is unavailable and `PrintWindow` was blank or near-uniform. Keep visual evidence `capture-blocked`; retain no invalid PNG and do not claim a screenshot.
+- The source feature commit `66bb415e5f1730bb128f4d649e493150da222d06` and follow-up docs tip `6d9c4ae8f25726cf7d17549310f34b33194d669f` are being committed from the controlled main merge. The parent owns the final main push, hosted CI, exact-SHA native-only release proof, and subsequent remote-ancestry proof.
+
 This file is the durable execution contract for every agent working in this repository. It supplements, and never weakens, `AGENTS.md`.
 
 ## Latest native C++ feature and release checkpoint (2026-07-19) / 最新原生 C++ 功能及發佈檢查點（2026-07-19）
