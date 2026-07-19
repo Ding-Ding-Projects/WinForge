@@ -12,6 +12,7 @@ param(
     [switch]$BmiRoutesOnly,
     [switch]$UuidV5RoutesOnly,
     [switch]$UnitPriceRoutesOnly,
+    [switch]$BaseConvertRoutesOnly,
     [switch]$AllowClipboardMutation
 )
 
@@ -624,7 +625,8 @@ function Invoke-OwnedRoute {
     $isBmiRoute = @('bmi', 'health', 'module.bmi') -contains $Route
     $isUuidV5Route = @('uuid5', 'uuidv5', 'module.uuidv5') -contains $Route
     $isUnitPriceRoute = @('priceper', 'unitprice', 'module.unitprice') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $BmiRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly) -and -not (
+    $isBaseConvertRoute = @('baseconvert', 'module.baseconvert') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $BmiRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly -or $BaseConvertRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
         ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
@@ -633,7 +635,8 @@ function Invoke-OwnedRoute {
         ($SlugifyRoutesOnly -and $isSlugifyRoute) -or
         ($BmiRoutesOnly -and $isBmiRoute) -or
         ($UuidV5RoutesOnly -and $isUuidV5Route) -or
-        ($UnitPriceRoutesOnly -and $isUnitPriceRoute))) {
+        ($UnitPriceRoutesOnly -and $isUnitPriceRoute) -or
+        ($BaseConvertRoutesOnly -and $isBaseConvertRoute))) {
         return
     }
 
@@ -4258,6 +4261,159 @@ Invoke-OwnedRoute -Route 'unitprice' -ExpectedTitle 'Unit Price' -Inspect {
 
 foreach ($alias in @('priceper', 'unitprice', 'module.unitprice')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Unit Price'
+}
+
+Invoke-OwnedRoute -Route 'baseconvert' -ExpectedTitle 'Base Converter' -Inspect {
+    param($root, $title)
+
+    $baseConvertDot = [char]0x00B7
+    $baseConvertOpenQuote = [char]0x201C
+    $baseConvertCloseQuote = [char]0x201D
+    $baseConvertNbsp = [char]0x00A0
+
+    foreach ($id in @(
+        'NativeBaseConvertImplementationStatus',
+        'NativeBaseConvertInput',
+        'NativeBaseConvertInputBase',
+        'NativeBaseConvertStatus',
+        'NativeBaseConvertBinary',
+        'NativeBaseConvertBinaryCopy',
+        'NativeBaseConvertOctal',
+        'NativeBaseConvertOctalCopy',
+        'NativeBaseConvertDecimal',
+        'NativeBaseConvertDecimalCopy',
+        'NativeBaseConvertHex',
+        'NativeBaseConvertHexCopy',
+        'NativeBaseConvertCustom',
+        'NativeBaseConvertCustomCopy',
+        'NativeBaseConvertBitLength',
+        'NativeBaseConvertBit64Label',
+        'NativeBaseConvertBit64',
+        'NativeBaseConvertOperandA',
+        'NativeBaseConvertOperation',
+        'NativeBaseConvertOperandB',
+        'NativeBaseConvertBitwiseResult'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $baseConvertFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertInputBase'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertBinary'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertHex'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertOperandA'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertOperation'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertOperandB'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertBitwiseResult')
+    )
+    Assert-True -Condition $baseConvertFit `
+        -Name 'Base Converter exposes accessible local controls without horizontal clipping'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertInput' -ExpectedValue '255' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertBinary' -ExpectedValue '1111 1111' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertOctal' -ExpectedValue '377' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertDecimal' -ExpectedValue '255' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertHex' -ExpectedValue '0xFF' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertCustom' -ExpectedValue '255' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBitLength' -Prefix 'Bit length: 8' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBitwiseResult' -Prefix ('0  ' + $baseConvertDot + '  0x0') | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Base Converter renders the managed decimal defaults and live bitwise baseline'
+
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertInputBase') -Index 3
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertInput' -Value 'Ff' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertDecimal' -ExpectedValue '255' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertCustom' -ExpectedValue 'ff' | Out-Null
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertInputBase') -Index 4
+    Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertCustomBase' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertInput' -Value 'z' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertDecimal' -ExpectedValue '35' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertCustom' -ExpectedValue 'z' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Base Converter supports hexadecimal and custom-base arbitrary-radix input'
+
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertInputBase') -Index 0
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertInput' -Value ($baseConvertNbsp + '2' + $baseConvertNbsp) | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertBinary' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertHex' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertStatus' `
+        -Prefix ($baseConvertOpenQuote + '2' + $baseConvertCloseQuote + ' is not a valid base-2 number.') | Out-Null
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertInputBase') -Index 2
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertInput' -Value '18446744073709551616' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBitLength' -Prefix 'Bit length: 65' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBit64Label' -Prefix 'Value exceeds 64 bits.' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Base Converter clears invalid rows and keeps oversized arbitrary-precision values out of 64-bit display'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertOperandA' -Value '0xF0' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertOperandB' -Value '0x0F' | Out-Null
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertOperation') -Index 1
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBitwiseResult' -Prefix ('255  ' + $baseConvertDot + '  0xFF') | Out-Null
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertOperation') -Index 5
+    $operandB = Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertOperandB'
+    Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertShift' | Out-Null
+    Assert-True -Condition (-not $operandB.Current.IsEnabled) `
+        -Name 'Base Converter shift mode disables Operand B'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertOperandA' -Value '-5' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertShift' -Value '2' | Out-Null
+    # NumberBox commits a typed value when focus leaves its embedded edit control.
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBaseConvertOperandA' -Value '-5' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBitwiseResult' -Prefix ('-20  ' + $baseConvertDot + '  -0x14') | Out-Null
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertOperation') -Index 6
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBitwiseResult' -Prefix ('-2  ' + $baseConvertDot + '  -0x2') | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Base Converter evaluates native signed bitwise and arithmetic-shift operations'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeBaseConvertHexCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertStatus' `
+            -Prefix 'Output copied to the clipboard.' | Out-Null
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertHexCopy' -Prefix 'Copied' | Out-Null
+        Assert-True -Condition $true -Name 'Base Converter writes the clipboard only after explicit Copy'
+    }
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboIndex -Combo $language -Index 1
+    $baseLabel = @([char]0x9032, [char]0x4F4D, [char]0x8F49, [char]0x63DB) -join ''
+    Wait-ForPageTitle -Root $root -Prefix $baseLabel | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBitwiseResult' -Prefix ('-2  ' + $baseConvertDot + '  -0x2') | Out-Null
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboIndex -Combo $language -Index 2
+    Wait-ForPageTitle -Root $root -Prefix 'Base Converter' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBaseConvertBitwiseResult' -Prefix ('-2  ' + $baseConvertDot + '  -0x2') | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Base Converter localizes labels while retaining input and bitwise state across language rerenders'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeBaseConvertInput')) `
+        -Name 'Base Converter releases observable controls after navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.baseconvert' -ExpectedTitle 'Base Converter'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertInput' -ExpectedValue '255' | Out-Null
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertInputBase') -Index 4
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertCustomBase' -ExpectedValue '36' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertOperandA' -ExpectedValue '0xF0' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertOperandB' -ExpectedValue '0x0F' | Out-Null
+    $resetOperation = Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertOperation'
+    $resetSelection = [System.Windows.Automation.SelectionPattern]$resetOperation.GetCurrentPattern(
+        [System.Windows.Automation.SelectionPattern]::Pattern)
+    $resetSelected = $resetSelection.Current.GetSelection()
+    Assert-True -Condition ($resetSelected.Count -eq 1 -and $resetSelected[0].Current.Name -eq 'AND') `
+        -Name 'Base Converter resets the managed bitwise operation after in-process route re-entry'
+    Select-ComboIndex -Combo $resetOperation -Index 5
+    Wait-ForElement -Root $root -AutomationId 'NativeBaseConvertShift' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBaseConvertShift' -ExpectedValue '1' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Base Converter resets managed page defaults after in-process route re-entry'
+}
+
+foreach ($alias in @('baseconvert', 'module.baseconvert')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Base Converter'
 }
 
 Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {

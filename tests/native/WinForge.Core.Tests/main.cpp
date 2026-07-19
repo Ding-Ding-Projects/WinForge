@@ -1,5 +1,6 @@
 #include "BmiTests.h"
 #include "BinaryTextTests.h"
+#include "BaseConvertTests.h"
 #include "CaseConvertTests.h"
 #include "CommandLine.h"
 #include "CheckDigitTests.h"
@@ -233,6 +234,7 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L" module.bmi ") &&
         winforge::core::HasNativeRenderer(L"MODULE.UUIDV5") &&
         winforge::core::HasNativeRenderer(L"module.unitprice") &&
+        winforge::core::HasNativeRenderer(L"module.baseconvert") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
@@ -263,6 +265,10 @@ int wmain(int argc, wchar_t** argv)
     auto const binaryTextCounts = RunBinaryTextTests();
     passed += binaryTextCounts.passed;
     failed += binaryTextCounts.failed;
+
+    auto const baseConvertCounts = RunBaseConvertTests();
+    passed += baseConvertCounts.passed;
+    failed += baseConvertCounts.failed;
 
     auto const caseConvertCounts = RunCaseConvertTests();
     passed += caseConvertCounts.passed;

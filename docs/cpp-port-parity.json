@@ -957,25 +957,41 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
-                                  ],
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.Core/BaseConvert.cpp",
+                                      "src/WinForge.Core/BaseConvert.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/BaseConvertTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/BaseConvertTests.h",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
+                                   ],
                        "risk":  "stateful",
                        "expected":  "Base Converter · 進位轉換 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                         {
+                                            "timestamp":  "2026-07-19T21:52:13Z",
+                                            "result":  "Native dependency-free arbitrary-precision Base Converter core and C++/WinRT page implemented for base 2–36 signed parsing/rendering, grouped binary, signed 64-bit display, and BigInteger-compatible AND/OR/XOR/NAND/NOR/arithmetic shifts. Native Debug and Release solution builds passed with 0 errors; Debug and Release core each passed 816/816, including 15/15 Base Converter contracts; focused UI Automation passed 14/14. Catalog parity and the native installer contract passed. The local LowLevel checkout is present but no callable headless MCP tool is exposed in this Codex session. After the root-owned shared suite cleared, the required `driver.ps1 -Native -Page baseconvert -WaitMs 16000` attempt reported CopyFromScreen unavailable and rejected the blank or near-uniform PrintWindow fallback; no PNG was created or retained and no WinForge process remained."
+                                         },
+                                         {
+                                            "timestamp":  "2026-07-19T23:29:37Z",
+                                            "result":  "Controlled integration merged the Base Converter with the existing BMI and Unit Price native slices. Debug and Release x64 solution builds passed with 0 errors; both combined core suites passed 857/857, including Base Converter 15/15 and a managed Unicode Trim diagnostic regression; focused UI Automation passed 14/14; catalog parity is 346 fixed routes plus five dynamic families with 319 registry and 346 ledger rows; and the native installer contract passed. The local LowLevel checkout is present but no callable headless MCP tool is exposed in this Codex session. The fresh current driver reported CopyFromScreen unavailable and rejected the blank or near-uniform PrintWindow fallback; no PNG was created or retained and no WinForge process remained."
+                                         }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The local-only native page preserves managed arbitrary-precision base conversion, signed bitwise behavior, route reset, language rerender state, explicit-only clipboard writes, and the managed Unicode Trim diagnostic contract. · 只因新視覺擷取受阻而保持進行中；本機原生頁保留 managed 任意精度進制轉換、有符號位元運算、route 重設、語言重繪狀態、只限明確剪貼簿寫入同 managed Unicode Trim 診斷合約。"
                    },
                    {
                        "id":  "module.battery",

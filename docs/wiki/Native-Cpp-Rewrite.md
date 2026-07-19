@@ -1,5 +1,9 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Current Base Converter controlled integration · 最新進位轉換受控整合
+
+`baseconvert` and `module.baseconvert` are **36/346** fixed native routes (`36 in-progress / 310 not-started`): Debug/Release builds have 0 errors, both combined cores are **857/857** including Base Converter **15/15**, focused UIA is **14/14**, catalog parity and installer contract pass, and the managed Unicode `Trim()` diagnostic contract is native. No LowLevel MCP tool is callable in this session; the fresh driver rejected a blank fallback and retained no PNG, so visual evidence remains `capture-blocked`. · `baseconvert` 同 `module.baseconvert` 係 **36/346** 條固定原生 route（`36 in-progress / 310 not-started`）：Debug／Release 0 errors、合併 core 各 **857/857**（Base Converter **15/15**）、專項 UIA **14/14**、catalog parity 同 installer contract 通過，managed Unicode `Trim()` 診斷亦已原生化。今個 session 冇可呼叫 LowLevel MCP；最新 driver 拒絕空白 fallback、冇 PNG，所以 visual 保持 `capture-blocked`。
+
 ## Current 2026-07-19 Health Calculators controlled integration / 2026-07-19 最新健康計算器受控整合
 
 `bmi`, `health`, and `module.bmi` now render a genuine C++/WinRT Health Calculators page over the standard-C++ `Bmi` core. The controlled combined checkpoint is **35/346 fixed routes** (**35 `in-progress` / 311 `not-started`**, plus five dynamic families): Debug and Release x64 solution builds have 0 errors, both core suites pass **842/842** including BMI **14/14**, focused BMI UI Automation passes **14/14**, catalog parity remains 346+5 with 319 registry records and 346 ledger rows, and the installer contract passes. The local LowLevel checkout is present but no callable MCP tool is exposed; the native driver rejected a blank/near-uniform fallback after `CopyFromScreen` was unavailable, retained no PNG, and visual remains `capture-blocked`. No release workflow changed: publishing remains C++-only. · `bmi`、`health` 同 `module.bmi` 而家用標準 C++ `Bmi` core 開真正 C++/WinRT 健康計算器頁。受控合併檢查點係 **35/346** 條固定 route（**35 `in-progress` / 311 `not-started`**，另加五組動態家族）：Debug／Release solution 0 errors、core 各 **842/842**（BMI **14/14**）、BMI UIA **14/14**、catalog parity 346+5（319 registry／346 ledger）同 installer contract 都通過。LowLevel checkout 喺度但冇可呼叫 MCP 工具；driver 因 `CopyFromScreen` 不可用而拒絕空白／近乎單色 fallback，冇 PNG，visual 保持 `capture-blocked`。冇改 release workflow，發佈保持只限 C++。
@@ -181,5 +185,6 @@ On 2026-07-16, the required driver launched `passgen` at `-WaitMs 16000`, but `C
 Cutover requires every route, control, service, companion, launcher, updater, installer, protocol, test, documentation mirror, and changed-page screenshot to pass, with a final binary audit proving no CLR, C++/CLI, managed assembly, managed subprocess, or wrapper dependency. · 正式切換要求每條 route、control、service、companion、launcher、updater、installer、protocol、test、文件鏡像同改過頁面截圖都通過，並有最後 binary audit 證明冇 CLR、C++/CLI、受控 assembly、受控 subprocess 或 wrapper 相依。
 
 - [Full migration record · 完整遷移記錄](../Native-Cpp-Rewrite.md)
+- [Native Base Converter feature checkpoint · 原生進位轉換功能 checkpoint](Native-Base-Converter.md)
 - [Package Manager · 套件管理](Package-Manager.md)
 - [Parity ledger · 對等清單](../cpp-port-parity.json)

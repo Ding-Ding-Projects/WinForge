@@ -9,6 +9,7 @@
 |---|---|
 | [Module Categories](Module-Categories.md) | Browse every module by area · 按分類瀏覽全部模組 |
 | [Native C++ Rewrite](Native-Cpp-Rewrite.md) | Honest C++ migration scope, evidence, blockers, and cutover gates · 如實 C++ 遷移範圍、證據、阻礙同切換閘門 |
+| [Native Base Converter](Native-Base-Converter.md) | Controlled C++ Base Converter integration and evidence boundary · 受控 C++ 進位轉換整合同證據界線 |
 | [Native Morse Code](Native-Morse-Code.md) | Native Morse encoding, decoding, and flash-playback evidence · 原生摩斯電碼編碼、解碼同閃燈播放證據 |
 | [Reactor Hub](Reactor-Hub.md) | Reactor manual, procedures, safety, fuel, waste, and tests · 反應堆手冊、程序、安全、燃料、廢料同測試 |
 | [Generated References](Generated-References.md) | One page per feature and one page per button/control · 每功能一頁、每按鈕／控制項一頁 |
@@ -26,6 +27,7 @@
 - [GitHub Desktop Profiles](GitHub-Desktop-Profiles.md) · GitHub Desktop 多帳戶設定檔
 - [Package Manager](Package-Manager.md) · 套件管理
 - [Native C++ Rewrite](Native-Cpp-Rewrite.md) · 原生 C++ 重寫
+- [Native Base Converter](Native-Base-Converter.md) · 原生進位轉換
 - [AWS Manager](AWS-Manager.md) · AWS 管理中心
 - [AI Agents](AI-Agents.md) · AI 代理
 - [Cake Factory & Farm](Cake-Factory-and-Farm.md) · 蛋糕工廠與農場

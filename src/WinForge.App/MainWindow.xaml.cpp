@@ -1127,7 +1127,46 @@ namespace winrt::WinForge::implementation
         m_slugifyRendering = false;
     }
 
-    void MainWindow::ReleaseBmiRouteState(std::wstring_view nextRoute)
+    void MainWindow::ReleaseBaseConvertRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute != L"module.baseconvert" || nextRoute == L"module.baseconvert") return;
+
+        m_baseConvertInputBox = nullptr;
+        m_baseConvertBaseBox = nullptr;
+        m_baseConvertCustomPanel = nullptr;
+        m_baseConvertCustomBaseBox = nullptr;
+        m_baseConvertCustomOutputLabel = nullptr;
+        m_baseConvertStatus = nullptr;
+        m_baseConvertBinaryOutput = nullptr;
+        m_baseConvertOctalOutput = nullptr;
+        m_baseConvertDecimalOutput = nullptr;
+        m_baseConvertHexOutput = nullptr;
+        m_baseConvertCustomOutput = nullptr;
+        m_baseConvertBitLength = nullptr;
+        m_baseConvertBit64Label = nullptr;
+        m_baseConvertBit64Output = nullptr;
+        m_baseConvertOperandA = nullptr;
+        m_baseConvertOperationBox = nullptr;
+        m_baseConvertOperandB = nullptr;
+        m_baseConvertShiftPanel = nullptr;
+        m_baseConvertShiftBox = nullptr;
+        m_baseConvertBitwiseResult = nullptr;
+        std::wstring{}.swap(m_baseConvertInputValue);
+        std::wstring{}.swap(m_baseConvertBinaryValue);
+        std::wstring{}.swap(m_baseConvertOctalValue);
+        std::wstring{}.swap(m_baseConvertDecimalValue);
+        std::wstring{}.swap(m_baseConvertHexValue);
+        std::wstring{}.swap(m_baseConvertCustomValue);
+        std::wstring{}.swap(m_baseConvertOperandAValue);
+        std::wstring{}.swap(m_baseConvertOperandBValue);
+        m_baseConvertInputBaseIndex = 2;
+        m_baseConvertCustomBaseValue = 36.0;
+        m_baseConvertOperationIndex = 0;
+        m_baseConvertShiftValue = 1.0;
+        m_baseConvertRendering = false;
+    }
+
+   void MainWindow::ReleaseBmiRouteState(std::wstring_view nextRoute)
     {
         if (m_currentRoute == L"module.bmi" && nextRoute != L"module.bmi")
         {
@@ -1235,6 +1274,7 @@ namespace winrt::WinForge::implementation
             ReleaseBmiRouteState(L"search");
             ReleaseUuidV5RouteState(L"search");
             ReleaseUnitPriceRouteState(L"search");
+            ReleaseBaseConvertRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -1250,6 +1290,7 @@ namespace winrt::WinForge::implementation
             ReleaseBmiRouteState(L"manual");
             ReleaseUuidV5RouteState(L"manual");
             ReleaseUnitPriceRouteState(L"manual");
+            ReleaseBaseConvertRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -1267,6 +1308,7 @@ namespace winrt::WinForge::implementation
             ReleaseBmiRouteState(normalized);
             ReleaseUuidV5RouteState(normalized);
             ReleaseUnitPriceRouteState(normalized);
+            ReleaseBaseConvertRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
@@ -1281,6 +1323,7 @@ namespace winrt::WinForge::implementation
         ReleaseBmiRouteState(module->id);
         ReleaseUuidV5RouteState(module->id);
         ReleaseUnitPriceRouteState(module->id);
+        ReleaseBaseConvertRouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
@@ -1410,6 +1453,21 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.unitprice")
         {
             ResetUnitPriceRouteState();
+        }
+        else if (module->id == L"module.baseconvert")
+        {
+            m_baseConvertInputValue = L"255";
+            m_baseConvertBinaryValue.clear();
+            m_baseConvertOctalValue.clear();
+            m_baseConvertDecimalValue.clear();
+            m_baseConvertHexValue.clear();
+            m_baseConvertCustomValue.clear();
+            m_baseConvertInputBaseIndex = 2;
+            m_baseConvertCustomBaseValue = 36.0;
+            m_baseConvertOperationIndex = 0;
+            m_baseConvertOperandAValue = L"0xF0";
+            m_baseConvertOperandBValue = L"0x0F";
+            m_baseConvertShiftValue = 1.0;
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -1605,6 +1663,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.unitprice")
         {
             RenderUnitPrice();
+        }
+        else if (module->id == L"module.baseconvert")
+        {
+            RenderBaseConvert();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -7542,7 +7604,491 @@ namespace winrt::WinForge::implementation
         }
     }
 
-    void MainWindow::RenderAspectRatio()
+    void MainWindow::RenderBaseConvert()
+    {
+        using namespace winforge::core::baseconvert;
+        m_baseConvertRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Base Converter", L"進位轉換" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Convert a number between binary, octal, decimal, hexadecimal, or any base 2–36. Big values, bit length, and a signed bitwise calculator all stay on this PC.",
+                L"喺二進制、八進制、十進制、十六進制或者任何 2–36 進制之間轉換。大數、位元長度同有符號位元運算計數機全部留喺你部電腦。" }.Pick(m_language));
+        page.MaxWidth(820);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeBaseConvertPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native arbitrary-precision converter", L"全原生任意精度進制轉換" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Parsing, rendering, two's-complement display, and signed bitwise operations run in dependency-free standard C++; clipboard writes require an explicit Copy click.",
+            L"解析、顯示、二補數同有符號位元運算全部用唔靠依賴嘅標準 C++ 喺本機執行；剪貼簿只會喺你明確撳 Copy 後改動。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeBaseConvertImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(10);
+        input.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Input", L"輸入" }.Pick(m_language), 15, true));
+
+        auto valueLabel = CreateText(
+            winforge::core::LocalizedText{ L"Value", L"數值" }.Pick(m_language), 13, true);
+        input.Children().Append(valueLabel);
+        m_baseConvertInputBox = TextBox();
+        m_baseConvertInputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_baseConvertInputBox.Text(ToHString(TextBoxPresentation(m_baseConvertInputValue)));
+        m_baseConvertInputBox.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"e.g. FF, 1010, or 123_456", L"例如 FF、1010 或者 123_456" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(m_baseConvertInputBox, L"NativeBaseConvertInput");
+        AutomationProperties::SetLabeledBy(m_baseConvertInputBox, valueLabel);
+        m_baseConvertInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_baseConvertRendering) return;
+            m_baseConvertInputValue = ToWide(sender.as<TextBox>().Text());
+            RefreshBaseConvert();
+        });
+        input.Children().Append(m_baseConvertInputBox);
+
+        auto baseLabel = CreateText(
+            winforge::core::LocalizedText{ L"Input base", L"輸入進制" }.Pick(m_language), 13, true);
+        input.Children().Append(baseLabel);
+        m_baseConvertBaseBox = ComboBox();
+        m_baseConvertBaseBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        m_baseConvertBaseBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{ L"Binary (2)", L"二進制 (2)" }.Pick(m_language))));
+        m_baseConvertBaseBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{ L"Octal (8)", L"八進制 (8)" }.Pick(m_language))));
+        m_baseConvertBaseBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{ L"Decimal (10)", L"十進制 (10)" }.Pick(m_language))));
+        m_baseConvertBaseBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{ L"Hexadecimal (16)", L"十六進制 (16)" }.Pick(m_language))));
+        m_baseConvertBaseBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{ L"Custom…", L"自訂…" }.Pick(m_language))));
+        m_baseConvertBaseBox.SelectedIndex(std::clamp(m_baseConvertInputBaseIndex, 0, 4));
+        AutomationProperties::SetAutomationId(m_baseConvertBaseBox, L"NativeBaseConvertInputBase");
+        AutomationProperties::SetLabeledBy(m_baseConvertBaseBox, baseLabel);
+        m_baseConvertBaseBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_baseConvertRendering) return;
+            m_baseConvertInputBaseIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 4);
+            RefreshBaseConvert();
+        });
+        input.Children().Append(m_baseConvertBaseBox);
+
+        m_baseConvertCustomPanel = StackPanel();
+        m_baseConvertCustomPanel.Spacing(6);
+        auto customBaseLabel = CreateText(
+            winforge::core::LocalizedText{ L"Custom base (2–36)", L"自訂進制（2–36）" }.Pick(m_language), 13, true);
+        m_baseConvertCustomPanel.Children().Append(customBaseLabel);
+        m_baseConvertCustomBaseBox = NumberBox();
+        m_baseConvertCustomBaseBox.Minimum(2);
+        m_baseConvertCustomBaseBox.Maximum(36);
+        m_baseConvertCustomBaseBox.Value(std::isfinite(m_baseConvertCustomBaseValue) ? m_baseConvertCustomBaseValue : 36.0);
+        m_baseConvertCustomBaseBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_baseConvertCustomBaseBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        AutomationProperties::SetAutomationId(m_baseConvertCustomBaseBox, L"NativeBaseConvertCustomBase");
+        AutomationProperties::SetLabeledBy(m_baseConvertCustomBaseBox, customBaseLabel);
+        m_baseConvertCustomBaseBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_baseConvertRendering) return;
+            auto const value = sender.Value();
+            m_baseConvertCustomBaseValue = std::isfinite(value) ? std::clamp(value, 2.0, 36.0) : 36.0;
+            RefreshBaseConvert();
+        });
+        m_baseConvertCustomPanel.Children().Append(m_baseConvertCustomBaseBox);
+        input.Children().Append(m_baseConvertCustomPanel);
+
+        m_baseConvertStatus = CreateText(L"", 12.5);
+        m_baseConvertStatus.Opacity(0.82);
+        m_baseConvertStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_baseConvertStatus, L"NativeBaseConvertStatus");
+        input.Children().Append(m_baseConvertStatus);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border outputCard = MakeNativeCard();
+        StackPanel output;
+        output.Spacing(10);
+        output.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Outputs", L"輸出" }.Pick(m_language), 15, true));
+
+        auto addOutput = [this, &output](
+            std::wstring_view label,
+            std::wstring_view automationId,
+            TextBox& destination,
+            std::wstring const* value)
+        {
+            StackPanel row;
+            row.Spacing(4);
+            auto rowLabel = CreateText(label, 12.5);
+            rowLabel.Opacity(0.82);
+            row.Children().Append(rowLabel);
+            destination = TextBox();
+            destination.IsReadOnly(true);
+            destination.FontFamily(Media::FontFamily(L"Consolas"));
+            destination.HorizontalAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(destination, ToHString(automationId));
+            AutomationProperties::SetLabeledBy(destination, rowLabel);
+            row.Children().Append(destination);
+            auto copy = MakeNativeButton(
+                winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language),
+                std::wstring(automationId) + L"Copy");
+            copy.Click([this, value](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                CopyBaseConvertValue(*value, sender.as<Button>());
+            });
+            row.Children().Append(copy);
+            output.Children().Append(row);
+        };
+
+        addOutput(
+            winforge::core::LocalizedText{ L"Binary (grouped in nibbles)", L"二進制（每四位一組）" }.Pick(m_language),
+            L"NativeBaseConvertBinary", m_baseConvertBinaryOutput, &m_baseConvertBinaryValue);
+        addOutput(
+            winforge::core::LocalizedText{ L"Octal", L"八進制" }.Pick(m_language),
+            L"NativeBaseConvertOctal", m_baseConvertOctalOutput, &m_baseConvertOctalValue);
+        addOutput(
+            winforge::core::LocalizedText{ L"Decimal", L"十進制" }.Pick(m_language),
+            L"NativeBaseConvertDecimal", m_baseConvertDecimalOutput, &m_baseConvertDecimalValue);
+        addOutput(
+            winforge::core::LocalizedText{ L"Hexadecimal", L"十六進制" }.Pick(m_language),
+            L"NativeBaseConvertHex", m_baseConvertHexOutput, &m_baseConvertHexValue);
+        m_baseConvertCustomOutputLabel = CreateText(L"", 12.5);
+        m_baseConvertCustomOutputLabel.Opacity(0.82);
+        output.Children().Append(m_baseConvertCustomOutputLabel);
+        m_baseConvertCustomOutput = TextBox();
+        m_baseConvertCustomOutput.IsReadOnly(true);
+        m_baseConvertCustomOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        AutomationProperties::SetAutomationId(m_baseConvertCustomOutput, L"NativeBaseConvertCustom");
+        AutomationProperties::SetLabeledBy(m_baseConvertCustomOutput, m_baseConvertCustomOutputLabel);
+        output.Children().Append(m_baseConvertCustomOutput);
+        auto customCopy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language),
+            L"NativeBaseConvertCustomCopy");
+        customCopy.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            CopyBaseConvertValue(m_baseConvertCustomValue, sender.as<Button>());
+        });
+        output.Children().Append(customCopy);
+        outputCard.Child(output);
+        page.Children().Append(outputCard);
+
+        Border bitsCard = MakeNativeCard();
+        StackPanel bits;
+        bits.Spacing(8);
+        bits.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Bit info", L"位元資訊" }.Pick(m_language), 15, true));
+        m_baseConvertBitLength = CreateText(L"", 13);
+        AutomationProperties::SetAutomationId(m_baseConvertBitLength, L"NativeBaseConvertBitLength");
+        bits.Children().Append(m_baseConvertBitLength);
+        m_baseConvertBit64Label = CreateText(L"", 12.5);
+        m_baseConvertBit64Label.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_baseConvertBit64Label, L"NativeBaseConvertBit64Label");
+        bits.Children().Append(m_baseConvertBit64Label);
+        m_baseConvertBit64Output = TextBox();
+        m_baseConvertBit64Output.IsReadOnly(true);
+        m_baseConvertBit64Output.FontFamily(Media::FontFamily(L"Consolas"));
+        m_baseConvertBit64Output.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_baseConvertBit64Output, L"NativeBaseConvertBit64");
+        bits.Children().Append(m_baseConvertBit64Output);
+        bitsCard.Child(bits);
+        page.Children().Append(bitsCard);
+
+        Border bitwiseCard = MakeNativeCard();
+        StackPanel bitwise;
+        bitwise.Spacing(10);
+        bitwise.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Bitwise calculator", L"位元運算計數機" }.Pick(m_language), 15, true));
+        auto operandHelp = CreateText(
+            winforge::core::LocalizedText{
+                L"Operands accept plain decimal or a 0x-prefixed hexadecimal literal.",
+                L"運算元可以用普通十進制或者 0x 開頭嘅十六進制。" }.Pick(m_language), 12.5);
+        operandHelp.Opacity(0.82);
+        operandHelp.TextWrapping(TextWrapping::Wrap);
+        bitwise.Children().Append(operandHelp);
+
+        auto operandALabel = CreateText(
+            winforge::core::LocalizedText{ L"Operand A", L"運算元 A" }.Pick(m_language), 13, true);
+        bitwise.Children().Append(operandALabel);
+        m_baseConvertOperandA = TextBox();
+        m_baseConvertOperandA.FontFamily(Media::FontFamily(L"Consolas"));
+        m_baseConvertOperandA.Text(ToHString(TextBoxPresentation(m_baseConvertOperandAValue)));
+        AutomationProperties::SetAutomationId(m_baseConvertOperandA, L"NativeBaseConvertOperandA");
+        AutomationProperties::SetLabeledBy(m_baseConvertOperandA, operandALabel);
+        m_baseConvertOperandA.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_baseConvertRendering) return;
+            m_baseConvertOperandAValue = ToWide(sender.as<TextBox>().Text());
+            RefreshBaseConvertBitwise();
+        });
+        bitwise.Children().Append(m_baseConvertOperandA);
+
+        auto operationLabel = CreateText(
+            winforge::core::LocalizedText{ L"Operation", L"運算" }.Pick(m_language), 13, true);
+        bitwise.Children().Append(operationLabel);
+        m_baseConvertOperationBox = ComboBox();
+        m_baseConvertOperationBox.Items().Append(box_value(L"AND"));
+        m_baseConvertOperationBox.Items().Append(box_value(L"OR"));
+        m_baseConvertOperationBox.Items().Append(box_value(L"XOR"));
+        m_baseConvertOperationBox.Items().Append(box_value(L"NAND"));
+        m_baseConvertOperationBox.Items().Append(box_value(L"NOR"));
+        m_baseConvertOperationBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{ L"Left shift «", L"左移 «" }.Pick(m_language))));
+        m_baseConvertOperationBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{ L"Right shift »", L"右移 »" }.Pick(m_language))));
+        m_baseConvertOperationBox.SelectedIndex(std::clamp(m_baseConvertOperationIndex, 0, 6));
+        AutomationProperties::SetAutomationId(m_baseConvertOperationBox, L"NativeBaseConvertOperation");
+        AutomationProperties::SetLabeledBy(m_baseConvertOperationBox, operationLabel);
+        m_baseConvertOperationBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_baseConvertRendering) return;
+            m_baseConvertOperationIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 6);
+            RefreshBaseConvertBitwise();
+        });
+        bitwise.Children().Append(m_baseConvertOperationBox);
+
+        auto operandBLabel = CreateText(
+            winforge::core::LocalizedText{ L"Operand B", L"運算元 B" }.Pick(m_language), 13, true);
+        bitwise.Children().Append(operandBLabel);
+        m_baseConvertOperandB = TextBox();
+        m_baseConvertOperandB.FontFamily(Media::FontFamily(L"Consolas"));
+        m_baseConvertOperandB.Text(ToHString(TextBoxPresentation(m_baseConvertOperandBValue)));
+        AutomationProperties::SetAutomationId(m_baseConvertOperandB, L"NativeBaseConvertOperandB");
+        AutomationProperties::SetLabeledBy(m_baseConvertOperandB, operandBLabel);
+        m_baseConvertOperandB.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_baseConvertRendering) return;
+            m_baseConvertOperandBValue = ToWide(sender.as<TextBox>().Text());
+            RefreshBaseConvertBitwise();
+        });
+        bitwise.Children().Append(m_baseConvertOperandB);
+
+        m_baseConvertShiftPanel = StackPanel();
+        m_baseConvertShiftPanel.Spacing(6);
+        auto shiftLabel = CreateText(
+            winforge::core::LocalizedText{ L"Shift by (bits)", L"移位（位元）" }.Pick(m_language), 13, true);
+        m_baseConvertShiftPanel.Children().Append(shiftLabel);
+        m_baseConvertShiftBox = NumberBox();
+        m_baseConvertShiftBox.Minimum(0);
+        m_baseConvertShiftBox.Maximum(4096);
+        m_baseConvertShiftBox.Value(std::isfinite(m_baseConvertShiftValue) ? m_baseConvertShiftValue : 0.0);
+        m_baseConvertShiftBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        AutomationProperties::SetAutomationId(m_baseConvertShiftBox, L"NativeBaseConvertShift");
+        AutomationProperties::SetLabeledBy(m_baseConvertShiftBox, shiftLabel);
+        m_baseConvertShiftBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_baseConvertRendering) return;
+            auto const value = sender.Value();
+            m_baseConvertShiftValue = std::isfinite(value) ? std::clamp(value, 0.0, 4096.0) : 0.0;
+            RefreshBaseConvertBitwise();
+        });
+        m_baseConvertShiftPanel.Children().Append(m_baseConvertShiftBox);
+        bitwise.Children().Append(m_baseConvertShiftPanel);
+
+        auto resultLabel = CreateText(
+            winforge::core::LocalizedText{ L"Result", L"結果" }.Pick(m_language), 13, true);
+        bitwise.Children().Append(resultLabel);
+        m_baseConvertBitwiseResult = CreateText(L"", 14);
+        m_baseConvertBitwiseResult.FontFamily(Media::FontFamily(L"Consolas"));
+        m_baseConvertBitwiseResult.TextWrapping(TextWrapping::Wrap);
+        m_baseConvertBitwiseResult.IsTextSelectionEnabled(true);
+        AutomationProperties::SetAutomationId(m_baseConvertBitwiseResult, L"NativeBaseConvertBitwiseResult");
+        AutomationProperties::SetLabeledBy(m_baseConvertBitwiseResult, resultLabel);
+        bitwise.Children().Append(m_baseConvertBitwiseResult);
+        bitwiseCard.Child(bitwise);
+        page.Children().Append(bitwiseCard);
+
+        ShowPage(page);
+        m_baseConvertRendering = false;
+        RefreshBaseConvert();
+        RefreshBaseConvertBitwise();
+    }
+
+    void MainWindow::RefreshBaseConvert()
+    {
+        using namespace winforge::core::baseconvert;
+        if (!m_baseConvertStatus || !m_baseConvertCustomOutputLabel || !m_baseConvertBinaryOutput ||
+            !m_baseConvertOctalOutput || !m_baseConvertDecimalOutput || !m_baseConvertHexOutput ||
+            !m_baseConvertCustomOutput || !m_baseConvertBitLength || !m_baseConvertBit64Label ||
+            !m_baseConvertBit64Output) return;
+
+        auto const customBase = std::isfinite(m_baseConvertCustomBaseValue)
+            ? std::clamp(static_cast<int>(std::trunc(m_baseConvertCustomBaseValue)), MinBase, MaxBase)
+            : MaxBase;
+        auto const inputBase = [&]()
+        {
+            switch (std::clamp(m_baseConvertInputBaseIndex, 0, 4))
+            {
+            case 0: return 2;
+            case 1: return 8;
+            case 2: return 10;
+            case 3: return 16;
+            default: return customBase;
+            }
+        }();
+        auto const customLabel = winforge::core::LocalizedText{
+            L"Base " + std::to_wstring(inputBase),
+            std::to_wstring(inputBase) + L" 進制" }.Pick(m_language);
+        m_baseConvertCustomOutputLabel.Text(ToHString(customLabel));
+        AutomationProperties::SetName(m_baseConvertCustomOutputLabel, ToHString(customLabel));
+        if (m_baseConvertCustomPanel)
+        {
+            m_baseConvertCustomPanel.Visibility(m_baseConvertInputBaseIndex == 4 ? Visibility::Visible : Visibility::Collapsed);
+        }
+
+        auto clearOutputs = [this]()
+        {
+            m_baseConvertBinaryValue.clear();
+            m_baseConvertOctalValue.clear();
+            m_baseConvertDecimalValue.clear();
+            m_baseConvertHexValue.clear();
+            m_baseConvertCustomValue.clear();
+            m_baseConvertBinaryOutput.Text(L"");
+            m_baseConvertOctalOutput.Text(L"");
+            m_baseConvertDecimalOutput.Text(L"");
+            m_baseConvertHexOutput.Text(L"");
+            m_baseConvertCustomOutput.Text(L"");
+            m_baseConvertBitLength.Text(L"");
+            m_baseConvertBit64Output.Text(L"");
+            m_baseConvertBit64Output.Visibility(Visibility::Collapsed);
+        };
+
+        if (IsBlank(m_baseConvertInputValue))
+        {
+            clearOutputs();
+            AnnounceBaseConvertStatus(winforge::core::LocalizedText{
+                L"Enter a value to convert.", L"輸入一個值嚟轉換。" }.Pick(m_language), false, false);
+            return;
+        }
+
+        Integer value;
+        if (!TryParse(m_baseConvertInputValue, inputBase, value))
+        {
+            clearOutputs();
+            auto const trimmed = std::wstring(TrimManagedWhitespace(m_baseConvertInputValue));
+            AnnounceBaseConvertStatus(winforge::core::LocalizedText{
+                L"“" + trimmed + L"” is not a valid base-" + std::to_wstring(inputBase) + L" number.",
+                L"「" + trimmed + L"」唔係有效嘅 " + std::to_wstring(inputBase) + L" 進制數字。" }.Pick(m_language), true, false);
+            return;
+        }
+
+        m_baseConvertBinaryValue = ToGroupedBinary(value);
+        m_baseConvertOctalValue = ToBase(value, 8);
+        m_baseConvertDecimalValue = ToBase(value, 10);
+        m_baseConvertHexValue = ToHexPrefixed(value);
+        m_baseConvertCustomValue = ToBase(value, inputBase);
+        m_baseConvertBinaryOutput.Text(ToHString(m_baseConvertBinaryValue));
+        m_baseConvertOctalOutput.Text(ToHString(m_baseConvertOctalValue));
+        m_baseConvertDecimalOutput.Text(ToHString(m_baseConvertDecimalValue));
+        m_baseConvertHexOutput.Text(ToHString(m_baseConvertHexValue));
+        m_baseConvertCustomOutput.Text(ToHString(m_baseConvertCustomValue));
+
+        auto const bitText = winforge::core::LocalizedText{
+            L"Bit length: " + std::to_wstring(BitLength(value)),
+            L"位元長度：" + std::to_wstring(BitLength(value)) }.Pick(m_language);
+        m_baseConvertBitLength.Text(ToHString(bitText));
+        AutomationProperties::SetName(m_baseConvertBitLength, ToHString(bitText));
+        if (FitsIn64Bits(value))
+        {
+            auto const bit64Label = winforge::core::LocalizedText{
+                L"64-bit two's-complement", L"64 位元二補數" }.Pick(m_language);
+            m_baseConvertBit64Label.Text(ToHString(bit64Label));
+            AutomationProperties::SetName(m_baseConvertBit64Label, ToHString(bit64Label));
+            m_baseConvertBit64Output.Text(ToHString(To64BitBinary(value)));
+            m_baseConvertBit64Output.Visibility(Visibility::Visible);
+        }
+        else
+        {
+            auto const exceeds = winforge::core::LocalizedText{
+                L"Value exceeds 64 bits.", L"數值超過 64 位元。" }.Pick(m_language);
+            m_baseConvertBit64Label.Text(ToHString(exceeds));
+            AutomationProperties::SetName(m_baseConvertBit64Label, ToHString(exceeds));
+            m_baseConvertBit64Output.Text(L"");
+            m_baseConvertBit64Output.Visibility(Visibility::Collapsed);
+        }
+        AnnounceBaseConvertStatus(winforge::core::LocalizedText{
+            L"Parsed as base " + std::to_wstring(inputBase) + L".",
+            L"已當作 " + std::to_wstring(inputBase) + L" 進制解析。" }.Pick(m_language), false, false);
+    }
+
+    void MainWindow::RefreshBaseConvertBitwise()
+    {
+        using namespace winforge::core::baseconvert;
+        if (!m_baseConvertOperandB || !m_baseConvertShiftPanel || !m_baseConvertBitwiseResult) return;
+        auto const operation = static_cast<BitOp>(std::clamp(m_baseConvertOperationIndex, 0, 6));
+        auto const isShift = operation == BitOp::LeftShift || operation == BitOp::RightShift;
+        m_baseConvertShiftPanel.Visibility(isShift ? Visibility::Visible : Visibility::Collapsed);
+        m_baseConvertOperandB.IsEnabled(!isShift);
+
+        Integer a;
+        if (!TryParseOperand(m_baseConvertOperandAValue, a))
+        {
+            auto const message = winforge::core::LocalizedText{
+                L"Operand A is not a valid number.", L"運算元 A 唔係有效數字。" }.Pick(m_language);
+            m_baseConvertBitwiseResult.Text(ToHString(message));
+            AutomationProperties::SetName(m_baseConvertBitwiseResult, ToHString(message));
+            return;
+        }
+        Integer b;
+        if (!isShift && !TryParseOperand(m_baseConvertOperandBValue, b))
+        {
+            auto const message = winforge::core::LocalizedText{
+                L"Operand B is not a valid number.", L"運算元 B 唔係有效數字。" }.Pick(m_language);
+            m_baseConvertBitwiseResult.Text(ToHString(message));
+            AutomationProperties::SetName(m_baseConvertBitwiseResult, ToHString(message));
+            return;
+        }
+        auto const shift = isShift && std::isfinite(m_baseConvertShiftValue)
+            ? static_cast<int>(std::trunc(std::clamp(m_baseConvertShiftValue, 0.0, 4096.0)))
+            : 0;
+        auto const result = Evaluate(operation, a, b, shift);
+        auto const message = ToBase(result, 10) + L"  ·  " + ToHexPrefixed(result);
+        m_baseConvertBitwiseResult.Text(ToHString(message));
+        AutomationProperties::SetName(m_baseConvertBitwiseResult, ToHString(message));
+    }
+
+    void MainWindow::CopyBaseConvertValue(std::wstring_view value, Button const& button)
+    {
+        if (value.empty()) return;
+        try
+        {
+            Windows::ApplicationModel::DataTransfer::DataPackage package;
+            package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+            package.SetText(ToHString(value));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+            auto const copied = winforge::core::LocalizedText{ L"Copied ✓", L"已複製 ✓" }.Pick(m_language);
+            button.Content(box_value(ToHString(copied)));
+            AutomationProperties::SetName(button, ToHString(copied));
+            AnnounceBaseConvertStatus(winforge::core::LocalizedText{
+                L"Output copied to the clipboard.", L"輸出已複製到剪貼簿。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceBaseConvertStatus(winforge::core::LocalizedText{
+                L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::AnnounceBaseConvertStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_baseConvertStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_baseConvertStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_baseConvertStatus.Text(ToHString(message));
+        m_baseConvertStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_baseConvertStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_baseConvertStatus);
+        }
+    }
+
+   void MainWindow::RenderAspectRatio()
     {
         using namespace winforge::core::aspectratio;
         m_aspectRendering = true;

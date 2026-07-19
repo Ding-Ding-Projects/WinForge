@@ -54,6 +54,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BmiTests.cpp" />
+    <ClCompile Include="BaseConvertTests.cpp" />
     <ClCompile Include="BinaryTextTests.cpp" />
     <ClCompile Include="CaseConvertTests.cpp" />
     <ClCompile Include="CheckDigitTests.cpp" />
@@ -85,6 +86,7 @@
     <ClCompile Include="PackageRuntimeTests.cpp" />
     <ClCompile Include="ProcessRunnerTests.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\Bmi.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\BaseConvert.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\BinaryText.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CaseConvert.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CheckDigit.cpp" />
@@ -120,6 +122,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BmiTests.h" />
+    <ClInclude Include="BaseConvertTests.h" />
     <ClInclude Include="BinaryTextTests.h" />
     <ClInclude Include="CaseConvertTests.h" />
     <ClInclude Include="CheckDigitTests.h" />
@@ -149,6 +152,7 @@
     <ClInclude Include="PackageRuntimeTests.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Bmi.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\BinaryText.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\BaseConvert.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CaseConvert.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CheckDigit.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Codec.h" />

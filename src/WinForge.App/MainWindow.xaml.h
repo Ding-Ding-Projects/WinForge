@@ -2,6 +2,7 @@
 
 #include "MainWindow.g.h"
 #include "../WinForge.Core/Bmi.h"
+#include "../WinForge.Core/BaseConvert.h"
 #include "../WinForge.Core/BinaryText.h"
 #include "../WinForge.Core/CaseConvert.h"
 #include "../WinForge.Core/CheckDigit.h"
@@ -373,6 +374,26 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::NumberBox m_bmiBodyFatHips{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_bmiBodyFatResult{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_bmiStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_baseConvertBaseBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_baseConvertCustomPanel{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_baseConvertCustomBaseBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_baseConvertCustomOutputLabel{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_baseConvertStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertBinaryOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertOctalOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertDecimalOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertHexOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertCustomOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_baseConvertBitLength{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_baseConvertBit64Label{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertBit64Output{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertOperandA{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_baseConvertOperationBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_baseConvertOperandB{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_baseConvertShiftPanel{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_baseConvertShiftBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_baseConvertBitwiseResult{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -639,6 +660,19 @@ namespace winrt::WinForge::implementation
         double m_bmiBodyFatWaistValue{ 85.0 };
         double m_bmiBodyFatHipsValue{ 95.0 };
         bool m_bmiRendering{ false };
+        std::wstring m_baseConvertInputValue{ L"255" };
+        std::wstring m_baseConvertBinaryValue{};
+        std::wstring m_baseConvertOctalValue{};
+        std::wstring m_baseConvertDecimalValue{};
+        std::wstring m_baseConvertHexValue{};
+        std::wstring m_baseConvertCustomValue{};
+        int32_t m_baseConvertInputBaseIndex{ 2 };
+        double m_baseConvertCustomBaseValue{ 36.0 };
+        int32_t m_baseConvertOperationIndex{};
+        std::wstring m_baseConvertOperandAValue{ L"0xF0" };
+        std::wstring m_baseConvertOperandBValue{ L"0x0F" };
+        double m_baseConvertShiftValue{ 1.0 };
+        bool m_baseConvertRendering{ false };
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -772,6 +806,7 @@ namespace winrt::WinForge::implementation
         void ReleaseUuidV5RouteState(std::wstring_view nextRoute);
         void ReleaseUnitPriceRouteState(std::wstring_view nextRoute);
         void ResetUnitPriceRouteState();
+        void ReleaseBaseConvertRouteState(std::wstring_view nextRoute);
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -1019,6 +1054,14 @@ namespace winrt::WinForge::implementation
             std::wstring_view message,
             bool warning = false,
             bool announce = false);
+        void RenderBaseConvert();
+        void RefreshBaseConvert();
+        void RefreshBaseConvertBitwise();
+        void CopyBaseConvertValue(std::wstring_view value, Microsoft::UI::Xaml::Controls::Button const& button);
+        void AnnounceBaseConvertStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
         void RenderAspectRatio();
         void RefreshAspectRatio(bool adoptSimplifiedRatio = true);
         void RefreshAspectScale();
