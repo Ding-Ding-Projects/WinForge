@@ -9,6 +9,7 @@ param(
     [switch]$ReferenceTextRoutesOnly,
     [switch]$MorseRoutesOnly,
     [switch]$SlugifyRoutesOnly,
+    [switch]$BmiRoutesOnly,
     [switch]$UuidV5RoutesOnly,
     [switch]$UnitPriceRoutesOnly,
     [switch]$AllowClipboardMutation
@@ -620,15 +621,17 @@ function Invoke-OwnedRoute {
         'entities', 'htmlentities', 'module.htmlentities') -contains $Route
     $isMorseRoute = @('morse', 'module.morse') -contains $Route
     $isSlugifyRoute = @('slug', 'slugify', 'module.slugify') -contains $Route
+    $isBmiRoute = @('bmi', 'health', 'module.bmi') -contains $Route
     $isUuidV5Route = @('uuid5', 'uuidv5', 'module.uuidv5') -contains $Route
     $isUnitPriceRoute = @('priceper', 'unitprice', 'module.unitprice') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly) -and -not (
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $BmiRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
         ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
         ($ReferenceTextRoutesOnly -and $isReferenceTextRoute) -or
         ($MorseRoutesOnly -and $isMorseRoute) -or
         ($SlugifyRoutesOnly -and $isSlugifyRoute) -or
+        ($BmiRoutesOnly -and $isBmiRoute) -or
         ($UuidV5RoutesOnly -and $isUuidV5Route) -or
         ($UnitPriceRoutesOnly -and $isUnitPriceRoute))) {
         return
@@ -2064,6 +2067,204 @@ Invoke-OwnedRoute -Route 'uuidv5' -ExpectedTitle 'Namespaced UUID' -Inspect {
 
 foreach ($alias in @('uuid5', 'uuidv5', 'module.uuidv5')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Namespaced UUID'
+}
+
+Invoke-OwnedRoute -Route 'bmi' -ExpectedTitle 'Health Calculators' -Inspect {
+    param($root, $title)
+
+    $emdash = [char]0x2014
+    $middleDot = [char]0x00B7
+    $approximately = [char]0x2248
+
+    # A persisted shell language can otherwise make every local formatter and
+    # accessible label non-deterministic between owned route processes.
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Health Calculators' | Out-Null
+
+    foreach ($id in @(
+        'NativeBmiImplementationStatus',
+        'NativeBmiMetric',
+        'NativeBmiHeight',
+        'NativeBmiWeight',
+        'NativeBmiResult',
+        'NativeBmiBmrSex',
+        'NativeBmiBmrAge',
+        'NativeBmiBmrHeight',
+        'NativeBmiBmrWeight',
+        'NativeBmiActivity',
+        'NativeBmiBmrResult',
+        'NativeBmiBodyFatSex',
+        'NativeBmiBodyFatHeight',
+        'NativeBmiBodyFatNeck',
+        'NativeBmiBodyFatWaist',
+        'NativeBmiBodyFatResult',
+        'NativeBmiDisclaimer',
+        'NativeBmiStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $bmiControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiHeight'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiWeight'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiResult'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBmrSex'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBmrAge'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBmrHeight'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBmrWeight'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiActivity'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBmrResult'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBodyFatSex'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBodyFatHeight'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBodyFatNeck'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBodyFatWaist'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBodyFatResult'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiStatus'))
+    Assert-True -Condition $bmiControlsFit `
+        -Name 'Health Calculators exposes native accessible controls without horizontal clipping'
+
+    $metric = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $metric.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiHeight').Current.Name.StartsWith('Height (cm)', [StringComparison]::Ordinal) -and
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBmrSex').Current.Name.StartsWith('BMR sex', [StringComparison]::Ordinal) -and
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiBodyFatSex').Current.Name.StartsWith('Body-fat sex', [StringComparison]::Ordinal)) `
+        -Name 'Health Calculators starts with semantic metric controls and localized UIA names'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBmiHeight' -ExpectedValue '170' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBmiWeight' -ExpectedValue '65' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBmiBmrAge' -ExpectedValue '30' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiResult' -Prefix "BMI 22.5 $emdash Normal weight" | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiBmrResult' `
+        -Prefix "BMR 1568 kcal/day $middleDot about 1881 kcal/day to maintain" | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiBodyFatResult' -Prefix "Body fat $approximately 17.8%" | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Health Calculators renders managed BMI BMR TDEE and US Navy defaults through native code'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiHeight' -Value '180' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiWeight' -Value '80' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiResult' -Prefix "BMI 24.7 $emdash Normal weight" | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiHeight' -Value '' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiResult' -Prefix 'Enter a valid height and weight.' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiHeight' -Value '180' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').SetFocus()
+    Assert-True -Condition $true `
+        -Name 'Health Calculators updates BMI live and guards invalid values without a stale result'
+
+    $bmrSex = Wait-ForElement -Root $root -AutomationId 'NativeBmiBmrSex'
+    Select-ComboIndex -Combo $bmrSex -Index 1
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBmiActivity') -Index 2
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiBmrResult' `
+        -Prefix "BMR 1402 kcal/day $middleDot about 2172 kcal/day to maintain" | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiBmrAge' -Value '' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiBmrResult' -Prefix 'Enter a valid age, height and weight.' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiBmrAge' -Value '30' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').SetFocus()
+    Assert-True -Condition $true `
+        -Name 'Health Calculators applies Mifflin-St Jeor sex activity and age validation locally'
+
+    $bodyFatSex = Wait-ForElement -Root $root -AutomationId 'NativeBmiBodyFatSex'
+    Select-ComboIndex -Combo $bodyFatSex -Index 1
+    Wait-ForElementVisible -Root $root -AutomationId 'NativeBmiBodyFatHipsPanel' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiBodyFatHeight' -Value '165' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiBodyFatNeck' -Value '32' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiBodyFatWaist' -Value '75' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiBodyFatHips' -Value '100' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiBodyFatResult' -Prefix "Body fat $approximately 29.9%" | Out-Null
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBmiBodyFatSex') -Index 0
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiBodyFatNeck' -Value '85' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiBodyFatWaist' -Value '85' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiBodyFatResult' `
+        -Prefix 'Enter valid height, neck and waist' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Health Calculators shows female hips only when needed and rejects invalid Navy circumference geometry'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeBmiMetric' -IsOn $false | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeBmiHeight' | Out-Null
+    Assert-True -Condition (
+        (Wait-ForElement -Root $root -AutomationId 'NativeBmiHeight').Current.Name.StartsWith('Height (in)', [StringComparison]::Ordinal) -and
+        (Wait-ForElementValue -Root $root -AutomationId 'NativeBmiHeight' -ExpectedValue '180') -and
+        (Wait-ForElementValue -Root $root -AutomationId 'NativeBmiWeight' -ExpectedValue '80')) `
+        -Name 'Health Calculators relabels raw fields for imperial input without replacing their state'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiHeight' -Value '70' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBmiWeight' -Value '150' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiResult' -Prefix "BMI 21.5 $emdash Normal weight" | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Health Calculators converts imperial height and weight through the native BMI core'
+
+    $cantoneseLabel = @([char]0x7CB5, [char]0x8A9E) -join ''
+    $bilingualLabel = @([char]0x96D9, [char]0x8A9E) -join ''
+    $healthCantoneseTitle = @([char]0x5065, [char]0x5EB7, [char]0x8A08, [char]0x7B97, [char]0x5668) -join ''
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForPageTitle -Root $root -Prefix $healthCantoneseTitle | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiResult' -Prefix 'BMI 21.5' | Out-Null
+    Select-ComboItem -Combo (Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker') `
+        -Name ('Bilingual ' + [char]0x00B7 + ' ' + $bilingualLabel)
+    Wait-ForPageTitle -Root $root -Prefix ('Health Calculators ' + [char]0x00B7 + ' ' + $healthCantoneseTitle) | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiResult' -Prefix 'BMI 21.5' | Out-Null
+    Select-ComboItem -Combo (Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker') -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Health Calculators' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiResult' -Prefix "BMI 21.5 $emdash Normal weight" | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Health Calculators supports Cantonese bilingual and English modes without losing calculator state'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeBmiHeight')) `
+        -Name 'Health Calculators releases observable native controls when navigation leaves the route'
+
+    $shellSearch = Find-ByAutomationId -Root $root -AutomationId 'NativeShellSearchBox'
+    if (-not $shellSearch -or $shellSearch.Current.IsOffscreen) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'TogglePaneButton'
+    }
+    $shellSearch = Wait-ForElement -Root $root -AutomationId 'NativeShellSearchBox'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeShellSearchBox' -Value 'module.bmi' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeShellSearchExecute'
+    $bmiReentryDeadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        $bmiReentryTitle = Find-ByAutomationId -Root $root -AutomationId 'NativePageTitle'
+        if ($bmiReentryTitle -and $bmiReentryTitle.Current.Name.StartsWith('Health Calculators', [StringComparison]::Ordinal)) {
+            break
+        }
+        if ($bmiReentryTitle -and $bmiReentryTitle.Current.Name.StartsWith('Search results', [StringComparison]::Ordinal)) {
+            Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRoute_module_bmi'
+            Wait-ForPageTitle -Root $root -Prefix 'Health Calculators' | Out-Null
+            $bmiReentryTitle = Wait-ForElement -Root $root -AutomationId 'NativePageTitle'
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $bmiReentryDeadline)
+    if (-not $bmiReentryTitle -or -not $bmiReentryTitle.Current.Name.StartsWith('Health Calculators', [StringComparison]::Ordinal)) {
+        $actualBmiReentryTitle = if ($bmiReentryTitle) { $bmiReentryTitle.Current.Name } else { '(missing)' }
+        throw "Expected in-process Health Calculators re-entry, got '$actualBmiReentryTitle'."
+    }
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBmiHeight' -ExpectedValue '170' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBmiWeight' -ExpectedValue '65' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBmiBmrAge' -ExpectedValue '30' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBmiResult' -Prefix "BMI 22.5 $emdash Normal weight" | Out-Null
+    $reentryMetric = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeBmiMetric').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($reentryMetric.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) `
+        -Name 'Health Calculators resets all managed defaults after in-process route re-entry'
+}
+
+foreach ($alias in @('health', 'module.bmi')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Health Calculators'
 }
 
 Invoke-OwnedRoute -Route 'roman' -ExpectedTitle 'Roman Numerals' -Inspect {

@@ -133,6 +133,7 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="CatalogLoader.h" />
+    <ClInclude Include="..\WinForge.Core\Bmi.h" />
     <ClInclude Include="..\WinForge.Core\BinaryText.h" />
     <ClInclude Include="..\WinForge.Core\CaseConvert.h" />
     <ClInclude Include="..\WinForge.Core\CheckDigit.h" />
@@ -180,6 +181,9 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="CatalogLoader.cpp" />
+    <ClCompile Include="..\WinForge.Core\Bmi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\WinForge.Core\BinaryText.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>

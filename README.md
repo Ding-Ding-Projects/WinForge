@@ -25,6 +25,12 @@
 
 ## 🧱 Native C++ Rewrite · 原生 C++ 重寫
 
+### 2026-07-19 controlled native Health Calculators integration · 2026-07-19 受控原生健康計算器整合
+
+**EN —** `bmi`, `health`, and `module.bmi` now use the genuine C++/WinRT Health Calculators page and standard-C++ `Bmi` core in the controlled native shell. It preserves WHO BMI bands, Mifflin–St Jeor BMR, five TDEE factors, US Navy body-fat rules, raw metric/imperial relabelling, validation recovery, localization, reset, and no clipboard-write path. Debug and Release builds have 0 errors; both combined cores are **842/842** (BMI **14/14**), focused BMI UIA is **14/14**, catalog parity is **346 + 5**, and the native installer contract passes. This is **35/346** fixed native routes (`35 in-progress / 311 not-started`). LowLevel tools are unavailable and the fresh driver rejected a blank frame, so visual evidence remains `capture-blocked`; the release boundary remains C++-only.
+
+**粵語 —** `bmi`、`health` 同 `module.bmi` 而家喺受控原生 shell 用真正 C++/WinRT 健康計算器頁同標準 C++ `Bmi` core。保留 WHO BMI 分級、Mifflin–St Jeor BMR、五個 TDEE 系數、美國海軍體脂規則、原始公制／英制重標籤、驗證復原、本地化、重設，同埋冇寫剪貼簿路徑。Debug／Release 0 errors、合併 core 各 **842/842**（BMI **14/14**）、BMI UIA **14/14**、catalog parity **346 + 5**、native installer contract 全部通過。固定原生 route 係 **35/346**（`35 in-progress / 311 not-started`）。LowLevel 工具未可用、driver 拒絕空白畫面，visual 保持 `capture-blocked`；發佈界線繼續只限 C++。
+
 ### 2026-07-19 controlled native Unit Price integration · 2026-07-19 受控原生單位價格整合
 
 **EN —** `priceper`, `unitprice`, and `module.unitprice` now use the genuine C++/WinRT page and standard-C++ `UnitPrice` core in the controlled native shell. Debug and Release builds have 0 errors; both combined cores are **828/828** (Unit Price **13/13**), focused Unit Price UIA is **15/15**, Utility UIA is **39/39** including CSS Unit Converter, catalog parity is **346 + 5**, and the native installer contract passes. This is **34/346** fixed native routes (`34 in-progress / 312 not-started`). A broad aggregate reached the Unit Price block but did not produce a captured final footer, so no full-shell pass is claimed. LowLevel tools are unavailable and the fresh driver rejected a blank frame, so visual evidence remains `capture-blocked`; the release boundary remains C++-only.

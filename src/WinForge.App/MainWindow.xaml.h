@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MainWindow.g.h"
+#include "../WinForge.Core/Bmi.h"
 #include "../WinForge.Core/BinaryText.h"
 #include "../WinForge.Core/CaseConvert.h"
 #include "../WinForge.Core/CheckDigit.h"
@@ -354,6 +355,24 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::Button m_unitPriceAddButton{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_unitPriceCopyButton{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_unitPriceStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_bmiMetricSwitch{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiHeight{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiWeight{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_bmiResult{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_bmiBmrSex{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiBmrAge{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiBmrHeight{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiBmrWeight{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_bmiActivity{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_bmiBmrResult{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_bmiBodyFatSex{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiBodyFatHeight{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiBodyFatNeck{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiBodyFatWaist{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_bmiBodyFatHipsPanel{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_bmiBodyFatHips{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_bmiBodyFatResult{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_bmiStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -606,6 +625,20 @@ namespace winrt::WinForge::implementation
         std::vector<winforge::core::unitprice::Item> m_unitPriceItems;
         bool m_unitPriceInitialized{ false };
         bool m_unitPriceRendering{ false };
+        bool m_bmiMetric{ true };
+        double m_bmiHeightValue{ 170.0 };
+        double m_bmiWeightValue{ 65.0 };
+        int32_t m_bmiBmrSexIndex{};
+        double m_bmiBmrAgeValue{ 30.0 };
+        double m_bmiBmrHeightValue{ 170.0 };
+        double m_bmiBmrWeightValue{ 65.0 };
+        int32_t m_bmiActivityIndex{};
+        int32_t m_bmiBodyFatSexIndex{};
+        double m_bmiBodyFatHeightValue{ 170.0 };
+        double m_bmiBodyFatNeckValue{ 38.0 };
+        double m_bmiBodyFatWaistValue{ 85.0 };
+        double m_bmiBodyFatHipsValue{ 95.0 };
+        bool m_bmiRendering{ false };
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -734,6 +767,8 @@ namespace winrt::WinForge::implementation
         void ReleaseMorseRouteState(std::wstring_view nextRoute);
         void ResetMorseRouteState();
         void ReleaseSlugifyRouteState(std::wstring_view nextRoute);
+        void ReleaseBmiRouteState(std::wstring_view nextRoute);
+        void ResetBmiRouteState();
         void ReleaseUuidV5RouteState(std::wstring_view nextRoute);
         void ReleaseUnitPriceRouteState(std::wstring_view nextRoute);
         void ResetUnitPriceRouteState();
@@ -978,6 +1013,12 @@ namespace winrt::WinForge::implementation
             std::wstring_view message,
             bool warning = false,
             bool announce = true);
+        void RenderBmi();
+        void RefreshBmi();
+        void AnnounceBmiStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = false);
         void RenderAspectRatio();
         void RefreshAspectRatio(bool adoptSimplifiedRatio = true);
         void RefreshAspectScale();

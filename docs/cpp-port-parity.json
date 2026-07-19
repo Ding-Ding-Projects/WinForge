@@ -1103,25 +1103,47 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/Bmi.h",
+                                      "src/WinForge.Core/Bmi.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/BmiTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/Native-Bmi.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Health Calculators · 健康計算器 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-19T22:28:53Z",
+                                           "result":  "Dedicated standard-C++ Bmi core and C++/WinRT Health Calculators renderer now cover BMI WHO classification, managed Mifflin–St Jeor BMR and five TDEE factors, US Navy body-fat formulae, raw unit relabelling, localized retained state, and reset lifecycle. Native Debug and Release x64 solution builds each exited 0 with 0 errors; Debug and Release core executables each passed 829/829 including BMI Calculator 14/14; native catalog parity passed 346 fixed routes plus five dynamic families; and the native installer contract passed. Focused UI Automation and visual capture are intentionally pending shared-desktop clearance.",
+                                           "status":  "pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T22:44:12Z",
+                                           "result":  "Focused -BmiRoutesOnly native UI Automation passed 14/14 across bmi, health, and module.bmi: UIA names/bounds, default BMI/BMR/TDEE/US Navy values, invalid-input recovery, male/female body-fat geometry, raw metric/imperial relabelling, Cantonese/bilingual/English retained state, lifecycle cleanup, and in-process reset all passed. The local LowLevel MCP checkout is not callable in this Codex session. The required native bmi driver found CopyFromScreen unavailable and rejected a blank/near-uniform PrintWindow client; no PNG was created or retained and no worktree WinForge process remained.",
+                                           "status":  "capture-blocked"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T23:02:03Z",
+                                           "result":  "Controlled integration combined Health Calculators with the current native shell. Debug and Release x64 solution builds exited 0 with 0 errors; both core suites passed 842/842 including BMI Calculator 14/14; focused BMI UI Automation passed 14/14 across bmi, health, and module.bmi; catalog parity covered 346 fixed routes plus five dynamic families with 319 registry records and 346 ledger rows; and the installer contract passed. The local LowLevel MCP checkout was not callable and the required driver rejected a blank or near-uniform fallback; no PNG was retained.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中. Controlled combined validation is green: Debug/Release 0-error builds, core 842/842 including BMI 14/14, focused UIA 14/14, catalog parity, installer contract, side-effect policy, and bilingual documentation. The local LowLevel checkout is not callable; the fresh driver rejected its blank/near-uniform fallback, created no PNG, and left no process. Visual is honestly capture-blocked, so the route is not called complete. 原生 core、Debug／Release build、catalog parity、installer contract、BMI 專項 UIA 14/14、安全副作用政策同雙語功能文件已通過。本機 LowLevel checkout 唔可呼叫；最新 driver 拒絕空白／近乎單色 fallback，冇 PNG／冇 process。visual 如實係 capture-blocked，所以 route 唔會叫完成。"
                    },
                    {
                        "id":  "module.boxtext",

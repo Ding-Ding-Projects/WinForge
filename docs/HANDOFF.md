@@ -7,6 +7,12 @@ A complete map of every module/feature: what it does, how to open it, the page +
 完整列出每個模組／功能：做乜、點開、頁面同服務檔案、同埋包住嘅真實引擎。WinForge 係雙語（英文 + 粵語）
 嘅 WinUI 3 / .NET 11 Windows 11 套件。**唔跳轉** — 每個發佈中功能都喺 app 內運行、包住真實引擎／API。而家亦有真正 C++20/C++/WinRT 重寫同受控 oracle 並存；基礎 shell 已可路由同驗證，但功能對等仍要逐項證據把關，未聲稱完成。
 
+## Native Health Calculators · 原生健康計算器
+
+`bmi`, `health`, and `module.bmi` are now a genuine C++/WinRT route over the pure standard-C++ `Bmi` core in the controlled native shell. It keeps managed BMI WHO bands, Mifflin–St Jeor BMR, five TDEE activity factors, US Navy body-fat validation/formulae, raw unit relabelling, all three language modes, route reset, and no clipboard mutation. Debug/Release native builds are 0-error; both combined cores are **842/842** (BMI **14/14**); catalog parity and installer contract pass; and focused UIA is **14/14** across all aliases. The renderer count is **35/346**. LowLevel MCP is not callable in this session; the required driver rejected a blank fallback after `CopyFromScreen` was unavailable, leaving no PNG or process, so visual evidence is `capture-blocked`. The C++-only release boundary is unchanged.
+
+`bmi`、`health` 同 `module.bmi` 而家喺受控原生 shell 係用純標準 C++ `Bmi` core 嘅真正 C++/WinRT route。保留 managed BMI WHO 分級、Mifflin–St Jeor BMR、五個 TDEE 活動量系數、美國海軍體脂驗證／公式、原始單位重標籤、三種語言、route reset，同埋冇剪貼簿改動。Debug／Release native build 0-error；合併 core 各 **842/842**（BMI **14/14**）；catalog parity、installer contract 同全部 alias UIA **14/14** 已通過。renderer 係 **35/346**。今個 session 冇可呼叫 LowLevel MCP；`CopyFromScreen` 唔可用後 driver 拒絕空白 fallback，冇 PNG／冇 process，所以 visual 係 `capture-blocked`。只限 C++ release 界線冇變。
+
 ## Build / run / release · 建置／運行／發佈
 - Build: `dotnet build -c Debug -p:Platform=x64` (must stay 0 errors).
 - Native build: `msbuild WinForge.Native.sln /restore /m /p:Configuration=Debug /p:Platform=x64` (the local driver discovers the installed MSVC toolset).

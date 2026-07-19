@@ -1127,6 +1127,50 @@ namespace winrt::WinForge::implementation
         m_slugifyRendering = false;
     }
 
+    void MainWindow::ReleaseBmiRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute == L"module.bmi" && nextRoute != L"module.bmi")
+        {
+            ResetBmiRouteState();
+        }
+    }
+
+    void MainWindow::ResetBmiRouteState()
+    {
+        m_bmiMetricSwitch = nullptr;
+        m_bmiHeight = nullptr;
+        m_bmiWeight = nullptr;
+        m_bmiResult = nullptr;
+        m_bmiBmrSex = nullptr;
+        m_bmiBmrAge = nullptr;
+        m_bmiBmrHeight = nullptr;
+        m_bmiBmrWeight = nullptr;
+        m_bmiActivity = nullptr;
+        m_bmiBmrResult = nullptr;
+        m_bmiBodyFatSex = nullptr;
+        m_bmiBodyFatHeight = nullptr;
+        m_bmiBodyFatNeck = nullptr;
+        m_bmiBodyFatWaist = nullptr;
+        m_bmiBodyFatHipsPanel = nullptr;
+        m_bmiBodyFatHips = nullptr;
+        m_bmiBodyFatResult = nullptr;
+        m_bmiStatus = nullptr;
+        m_bmiMetric = true;
+        m_bmiHeightValue = 170.0;
+        m_bmiWeightValue = 65.0;
+        m_bmiBmrSexIndex = 0;
+        m_bmiBmrAgeValue = 30.0;
+        m_bmiBmrHeightValue = 170.0;
+        m_bmiBmrWeightValue = 65.0;
+        m_bmiActivityIndex = 0;
+        m_bmiBodyFatSexIndex = 0;
+        m_bmiBodyFatHeightValue = 170.0;
+        m_bmiBodyFatNeckValue = 38.0;
+        m_bmiBodyFatWaistValue = 85.0;
+        m_bmiBodyFatHipsValue = 95.0;
+        m_bmiRendering = false;
+    }
+
     void MainWindow::ReleaseUuidV5RouteState(std::wstring_view nextRoute)
     {
         if (m_currentRoute == L"module.uuidv5" && nextRoute != L"module.uuidv5")
@@ -1188,6 +1232,7 @@ namespace winrt::WinForge::implementation
             ReleaseReferenceTextRouteState(L"search");
             ReleaseMorseRouteState(L"search");
             ReleaseSlugifyRouteState(L"search");
+            ReleaseBmiRouteState(L"search");
             ReleaseUuidV5RouteState(L"search");
             ReleaseUnitPriceRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
@@ -1202,6 +1247,7 @@ namespace winrt::WinForge::implementation
             ReleaseReferenceTextRouteState(L"manual");
             ReleaseMorseRouteState(L"manual");
             ReleaseSlugifyRouteState(L"manual");
+            ReleaseBmiRouteState(L"manual");
             ReleaseUuidV5RouteState(L"manual");
             ReleaseUnitPriceRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
@@ -1218,6 +1264,7 @@ namespace winrt::WinForge::implementation
             ReleaseReferenceTextRouteState(normalized);
             ReleaseMorseRouteState(normalized);
             ReleaseSlugifyRouteState(normalized);
+            ReleaseBmiRouteState(normalized);
             ReleaseUuidV5RouteState(normalized);
             ReleaseUnitPriceRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
@@ -1231,6 +1278,7 @@ namespace winrt::WinForge::implementation
         ReleaseReferenceTextRouteState(module->id);
         ReleaseMorseRouteState(module->id);
         ReleaseSlugifyRouteState(module->id);
+        ReleaseBmiRouteState(module->id);
         ReleaseUuidV5RouteState(module->id);
         ReleaseUnitPriceRouteState(module->id);
 
@@ -1344,6 +1392,10 @@ namespace winrt::WinForge::implementation
             m_slugifyStripDiacritics = true;
             m_slugifyCollapseRepeats = true;
             m_slugifyKeepUnicodeLetters = false;
+        }
+        else if (module->id == L"module.bmi")
+        {
+            ResetBmiRouteState();
         }
         else if (module->id == L"module.uuidv5")
         {
@@ -1461,6 +1513,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.binarytext")
         {
             RenderBinaryText();
+        }
+        else if (module->id == L"module.bmi")
+        {
+            RenderBmi();
         }
         else if (module->id == L"module.base32")
         {
@@ -18836,6 +18892,484 @@ namespace winrt::WinForge::implementation
 
         ShowPage(page);
         RefreshRegexTesterPreview();
+    }
+
+    void MainWindow::RenderBmi()
+    {
+        using namespace winforge::core;
+        using namespace winforge::core::bmi;
+
+        m_bmiRendering = true;
+        auto page = CreatePage(
+            LocalizedText{ L"Health Calculators", L"健康計算器" }.Pick(m_language),
+            LocalizedText{
+                L"Quick local estimates for body-mass index, basal metabolic rate, daily calories, and US Navy body-fat %. Values update as you edit.",
+                L"BMI、基礎代謝率、每日熱量同美國海軍體脂率嘅快速本機估算；你一修改數值就會更新。" }.Pick(m_language));
+        page.MaxWidth(920);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeBmiPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(LocalizedText{
+            L"Fully native health calculations", L"全原生健康計算" }.Pick(m_language)));
+        implementation.Message(ToHString(LocalizedText{
+            L"BMI, Mifflin–St Jeor BMR, activity-adjusted TDEE, unit conversion, and the US Navy circumference formula all run locally in standard C++. Nothing is uploaded, copied, or used as medical advice.",
+            L"BMI、Mifflin–St Jeor BMR、按活動量調整嘅 TDEE、單位換算同美國海軍圍度公式，全部都喺本機標準 C++ 執行。唔會上傳、複製任何資料，亦唔係醫療建議。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeBmiImplementationStatus");
+        page.Children().Append(implementation);
+
+        auto addNumberField = [this](
+            std::wstring_view label,
+            std::wstring_view automationId,
+            double value,
+            Microsoft::UI::Xaml::Controls::NumberBox& target,
+            std::function<void(double)> onChanged,
+            std::optional<double> maximum = std::nullopt)
+        {
+            StackPanel field;
+            field.Spacing(4);
+            auto caption = CreateText(label, 12.5, true);
+            field.Children().Append(caption);
+            target = NumberBox();
+            target.Minimum(1.0);
+            if (maximum) target.Maximum(*maximum);
+            target.Value(value);
+            target.MinWidth(0.0);
+            target.HorizontalAlignment(HorizontalAlignment::Stretch);
+            target.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Compact);
+            AutomationProperties::SetAutomationId(target, ToHString(automationId));
+            AutomationProperties::SetName(target, ToHString(label));
+            AutomationProperties::SetLabeledBy(target, caption);
+            target.ValueChanged([this, onChanged = std::move(onChanged)](
+                NumberBox const& sender,
+                NumberBoxValueChangedEventArgs const&)
+            {
+                if (m_bmiRendering) return;
+                onChanged(sender.Value());
+                RefreshBmi();
+            });
+            field.Children().Append(target);
+            return field;
+        };
+
+        auto addColumns = [](Grid const& grid, int count)
+        {
+            grid.ColumnSpacing(12);
+            for (int index{}; index < count; ++index)
+            {
+                grid.ColumnDefinitions().Append(ColumnDefinition());
+            }
+        };
+
+        Border unitsCard = MakeNativeCard();
+        StackPanel units;
+        units.Spacing(8);
+        units.Children().Append(CreateText(
+            LocalizedText{ L"Units", L"單位" }.Pick(m_language), 15, true));
+        auto unitHint = CreateText(
+            LocalizedText{
+                L"Switching labels does not convert the typed values, matching the managed calculator.",
+                L"切換單位只會換標籤，唔會轉換你已經輸入嘅數值，跟受控版一樣。" }.Pick(m_language), 12);
+        unitHint.Opacity(0.82);
+        units.Children().Append(unitHint);
+        m_bmiMetricSwitch = ToggleSwitch();
+        m_bmiMetricSwitch.Header(box_value(ToHString(LocalizedText{ L"Use metric units", L"使用公制" }.Pick(m_language))));
+        m_bmiMetricSwitch.OnContent(box_value(ToHString(LocalizedText{ L"Metric · cm / kg", L"公制 · 厘米 / 公斤" }.Pick(m_language))));
+        m_bmiMetricSwitch.OffContent(box_value(ToHString(LocalizedText{ L"Imperial · in / lb", L"英制 · 英寸 / 磅" }.Pick(m_language))));
+        m_bmiMetricSwitch.IsOn(m_bmiMetric);
+        AutomationProperties::SetAutomationId(m_bmiMetricSwitch, L"NativeBmiMetric");
+        AutomationProperties::SetName(m_bmiMetricSwitch, ToHString(LocalizedText{
+            L"Use metric centimetres and kilograms", L"使用公制厘米同公斤" }.Pick(m_language)));
+        m_bmiMetricSwitch.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_bmiRendering) return;
+            m_bmiMetric = sender.as<ToggleSwitch>().IsOn();
+            // The managed Units_Toggled path rerenders all unit labels while
+            // deliberately retaining the raw NumberBox values.
+            RenderBmi();
+        });
+        units.Children().Append(m_bmiMetricSwitch);
+        unitsCard.Child(units);
+        page.Children().Append(unitsCard);
+
+        auto const lengthUnit = m_bmiMetric ? L" (cm)" : L" (in)";
+        auto const massUnit = m_bmiMetric ? L" (kg)" : L" (lb)";
+
+        Border bmiCard = MakeNativeCard();
+        StackPanel bmiContent;
+        bmiContent.Spacing(10);
+        bmiContent.Children().Append(CreateText(
+            LocalizedText{ L"Body Mass Index (BMI)", L"身體質量指數（BMI）" }.Pick(m_language), 15, true));
+        Grid bmiInputs;
+        addColumns(bmiInputs, 2);
+        auto bmiHeight = addNumberField(
+            LocalizedText{ L"Height", L"身高" }.Pick(m_language) + lengthUnit,
+            L"NativeBmiHeight",
+            m_bmiHeightValue,
+            m_bmiHeight,
+            [this](double value) { m_bmiHeightValue = value; });
+        Grid::SetColumn(bmiHeight, 0);
+        bmiInputs.Children().Append(bmiHeight);
+        auto bmiWeight = addNumberField(
+            LocalizedText{ L"Weight", L"體重" }.Pick(m_language) + massUnit,
+            L"NativeBmiWeight",
+            m_bmiWeightValue,
+            m_bmiWeight,
+            [this](double value) { m_bmiWeightValue = value; });
+        Grid::SetColumn(bmiWeight, 1);
+        bmiInputs.Children().Append(bmiWeight);
+        bmiContent.Children().Append(bmiInputs);
+        m_bmiResult = CreateText(L"", 15, true);
+        m_bmiResult.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_bmiResult, L"NativeBmiResult");
+        AutomationProperties::SetLiveSetting(
+            m_bmiResult,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        bmiContent.Children().Append(m_bmiResult);
+        bmiCard.Child(bmiContent);
+        page.Children().Append(bmiCard);
+
+        Border bmrCard = MakeNativeCard();
+        StackPanel bmrContent;
+        bmrContent.Spacing(10);
+        bmrContent.Children().Append(CreateText(
+            LocalizedText{ L"Metabolic rate & daily calories", L"代謝率同每日熱量" }.Pick(m_language), 15, true));
+
+        Grid bmrIdentity;
+        addColumns(bmrIdentity, 2);
+        StackPanel bmrSexField;
+        bmrSexField.Spacing(4);
+        auto bmrSexLabel = CreateText(LocalizedText{ L"Sex", L"性別" }.Pick(m_language), 12.5, true);
+        bmrSexField.Children().Append(bmrSexLabel);
+        m_bmiBmrSex = ComboBox();
+        m_bmiBmrSex.Items().Append(box_value(ToHString(LocalizedText{ L"Male", L"男" }.Pick(m_language))));
+        m_bmiBmrSex.Items().Append(box_value(ToHString(LocalizedText{ L"Female", L"女" }.Pick(m_language))));
+        m_bmiBmrSex.SelectedIndex(std::clamp(m_bmiBmrSexIndex, 0, 1));
+        m_bmiBmrSex.MinWidth(0.0);
+        m_bmiBmrSex.HorizontalAlignment(HorizontalAlignment::Stretch);
+        AutomationProperties::SetAutomationId(m_bmiBmrSex, L"NativeBmiBmrSex");
+        AutomationProperties::SetName(m_bmiBmrSex, ToHString(LocalizedText{ L"BMR sex", L"BMR 性別" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_bmiBmrSex, bmrSexLabel);
+        m_bmiBmrSex.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_bmiRendering) return;
+            m_bmiBmrSexIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 1);
+            RefreshBmi();
+        });
+        bmrSexField.Children().Append(m_bmiBmrSex);
+        Grid::SetColumn(bmrSexField, 0);
+        bmrIdentity.Children().Append(bmrSexField);
+        auto bmrAge = addNumberField(
+            LocalizedText{ L"Age (years)", L"年齡（歲）" }.Pick(m_language),
+            L"NativeBmiBmrAge",
+            m_bmiBmrAgeValue,
+            m_bmiBmrAge,
+            [this](double value) { m_bmiBmrAgeValue = value; },
+            130.0);
+        Grid::SetColumn(bmrAge, 1);
+        bmrIdentity.Children().Append(bmrAge);
+        bmrContent.Children().Append(bmrIdentity);
+
+        Grid bmrMeasures;
+        addColumns(bmrMeasures, 2);
+        auto bmrHeight = addNumberField(
+            LocalizedText{ L"Height", L"身高" }.Pick(m_language) + lengthUnit,
+            L"NativeBmiBmrHeight",
+            m_bmiBmrHeightValue,
+            m_bmiBmrHeight,
+            [this](double value) { m_bmiBmrHeightValue = value; });
+        Grid::SetColumn(bmrHeight, 0);
+        bmrMeasures.Children().Append(bmrHeight);
+        auto bmrWeight = addNumberField(
+            LocalizedText{ L"Weight", L"體重" }.Pick(m_language) + massUnit,
+            L"NativeBmiBmrWeight",
+            m_bmiBmrWeightValue,
+            m_bmiBmrWeight,
+            [this](double value) { m_bmiBmrWeightValue = value; });
+        Grid::SetColumn(bmrWeight, 1);
+        bmrMeasures.Children().Append(bmrWeight);
+        bmrContent.Children().Append(bmrMeasures);
+
+        auto activityLabel = CreateText(LocalizedText{ L"Activity level", L"活動量" }.Pick(m_language), 12.5, true);
+        bmrContent.Children().Append(activityLabel);
+        m_bmiActivity = ComboBox();
+        for (auto const& label : std::array<LocalizedText, 5>{
+            LocalizedText{ L"Sedentary (little/no exercise)", L"久坐（好少或者冇運動）" },
+            LocalizedText{ L"Light (1–3 days/week)", L"輕度（每週 1–3 日）" },
+            LocalizedText{ L"Moderate (3–5 days/week)", L"中度（每週 3–5 日）" },
+            LocalizedText{ L"Active (6–7 days/week)", L"活躍（每週 6–7 日）" },
+            LocalizedText{ L"Very active (physical job)", L"非常活躍（體力勞動）" },
+        })
+        {
+            m_bmiActivity.Items().Append(box_value(ToHString(label.Pick(m_language))));
+        }
+        m_bmiActivity.SelectedIndex(std::clamp(m_bmiActivityIndex, 0, 4));
+        m_bmiActivity.MinWidth(0.0);
+        m_bmiActivity.HorizontalAlignment(HorizontalAlignment::Stretch);
+        AutomationProperties::SetAutomationId(m_bmiActivity, L"NativeBmiActivity");
+        AutomationProperties::SetName(m_bmiActivity, ToHString(LocalizedText{
+            L"TDEE activity level", L"TDEE 活動量" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_bmiActivity, activityLabel);
+        m_bmiActivity.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_bmiRendering) return;
+            m_bmiActivityIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 4);
+            RefreshBmi();
+        });
+        bmrContent.Children().Append(m_bmiActivity);
+        m_bmiBmrResult = CreateText(L"", 15, true);
+        m_bmiBmrResult.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_bmiBmrResult, L"NativeBmiBmrResult");
+        AutomationProperties::SetLiveSetting(
+            m_bmiBmrResult,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        bmrContent.Children().Append(m_bmiBmrResult);
+        bmrCard.Child(bmrContent);
+        page.Children().Append(bmrCard);
+
+        Border bodyFatCard = MakeNativeCard();
+        StackPanel bodyFatContent;
+        bodyFatContent.Spacing(10);
+        bodyFatContent.Children().Append(CreateText(
+            LocalizedText{ L"Body-fat % (US Navy method)", L"體脂率（美國海軍法）" }.Pick(m_language), 15, true));
+
+        Grid bodyFatIdentity;
+        addColumns(bodyFatIdentity, 2);
+        StackPanel bodyFatSexField;
+        bodyFatSexField.Spacing(4);
+        auto bodyFatSexLabel = CreateText(LocalizedText{ L"Sex", L"性別" }.Pick(m_language), 12.5, true);
+        bodyFatSexField.Children().Append(bodyFatSexLabel);
+        m_bmiBodyFatSex = ComboBox();
+        m_bmiBodyFatSex.Items().Append(box_value(ToHString(LocalizedText{ L"Male", L"男" }.Pick(m_language))));
+        m_bmiBodyFatSex.Items().Append(box_value(ToHString(LocalizedText{ L"Female", L"女" }.Pick(m_language))));
+        m_bmiBodyFatSex.SelectedIndex(std::clamp(m_bmiBodyFatSexIndex, 0, 1));
+        m_bmiBodyFatSex.MinWidth(0.0);
+        m_bmiBodyFatSex.HorizontalAlignment(HorizontalAlignment::Stretch);
+        AutomationProperties::SetAutomationId(m_bmiBodyFatSex, L"NativeBmiBodyFatSex");
+        AutomationProperties::SetName(m_bmiBodyFatSex, ToHString(LocalizedText{
+            L"Body-fat sex", L"體脂性別" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_bmiBodyFatSex, bodyFatSexLabel);
+        m_bmiBodyFatSex.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_bmiRendering) return;
+            m_bmiBodyFatSexIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 1);
+            if (m_bmiBodyFatHipsPanel)
+            {
+                m_bmiBodyFatHipsPanel.Visibility(m_bmiBodyFatSexIndex == 1
+                    ? Visibility::Visible
+                    : Visibility::Collapsed);
+            }
+            RefreshBmi();
+        });
+        bodyFatSexField.Children().Append(m_bmiBodyFatSex);
+        Grid::SetColumn(bodyFatSexField, 0);
+        bodyFatIdentity.Children().Append(bodyFatSexField);
+        auto bodyFatHeight = addNumberField(
+            LocalizedText{ L"Height", L"身高" }.Pick(m_language) + lengthUnit,
+            L"NativeBmiBodyFatHeight",
+            m_bmiBodyFatHeightValue,
+            m_bmiBodyFatHeight,
+            [this](double value) { m_bmiBodyFatHeightValue = value; });
+        Grid::SetColumn(bodyFatHeight, 1);
+        bodyFatIdentity.Children().Append(bodyFatHeight);
+        bodyFatContent.Children().Append(bodyFatIdentity);
+
+        Grid circumferences;
+        addColumns(circumferences, 3);
+        auto neck = addNumberField(
+            LocalizedText{ L"Neck", L"頸圍" }.Pick(m_language) + lengthUnit,
+            L"NativeBmiBodyFatNeck",
+            m_bmiBodyFatNeckValue,
+            m_bmiBodyFatNeck,
+            [this](double value) { m_bmiBodyFatNeckValue = value; });
+        Grid::SetColumn(neck, 0);
+        circumferences.Children().Append(neck);
+        auto waist = addNumberField(
+            LocalizedText{ L"Waist", L"腰圍" }.Pick(m_language) + lengthUnit,
+            L"NativeBmiBodyFatWaist",
+            m_bmiBodyFatWaistValue,
+            m_bmiBodyFatWaist,
+            [this](double value) { m_bmiBodyFatWaistValue = value; });
+        Grid::SetColumn(waist, 1);
+        circumferences.Children().Append(waist);
+        m_bmiBodyFatHipsPanel = addNumberField(
+            LocalizedText{ L"Hips", L"臀圍" }.Pick(m_language) + lengthUnit,
+            L"NativeBmiBodyFatHips",
+            m_bmiBodyFatHipsValue,
+            m_bmiBodyFatHips,
+            [this](double value) { m_bmiBodyFatHipsValue = value; });
+        m_bmiBodyFatHipsPanel.Visibility(m_bmiBodyFatSexIndex == 1
+            ? Visibility::Visible
+            : Visibility::Collapsed);
+        AutomationProperties::SetAutomationId(m_bmiBodyFatHipsPanel, L"NativeBmiBodyFatHipsPanel");
+        AutomationProperties::SetName(m_bmiBodyFatHipsPanel, ToHString(LocalizedText{
+            L"Body-fat hips measurement", L"體脂臀圍量度" }.Pick(m_language)));
+        Grid::SetColumn(m_bmiBodyFatHipsPanel, 2);
+        circumferences.Children().Append(m_bmiBodyFatHipsPanel);
+        bodyFatContent.Children().Append(circumferences);
+        m_bmiBodyFatResult = CreateText(L"", 15, true);
+        m_bmiBodyFatResult.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_bmiBodyFatResult, L"NativeBmiBodyFatResult");
+        AutomationProperties::SetLiveSetting(
+            m_bmiBodyFatResult,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        bodyFatContent.Children().Append(m_bmiBodyFatResult);
+        bodyFatCard.Child(bodyFatContent);
+        page.Children().Append(bodyFatCard);
+
+        auto disclaimer = CreateText(LocalizedText{
+            L"Estimates only — not medical advice. Consult a healthcare professional for anything that matters.",
+            L"只係估算 — 唔係醫療建議。有需要請諮詢專業醫護人員。" }.Pick(m_language), 12);
+        disclaimer.FontStyle(Windows::UI::Text::FontStyle::Italic);
+        disclaimer.Opacity(0.82);
+        AutomationProperties::SetAutomationId(disclaimer, L"NativeBmiDisclaimer");
+        page.Children().Append(disclaimer);
+
+        m_bmiStatus = CreateText(L"", 12);
+        m_bmiStatus.Opacity(0.78);
+        m_bmiStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_bmiStatus, L"NativeBmiStatus");
+        AutomationProperties::SetLiveSetting(
+            m_bmiStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        page.Children().Append(m_bmiStatus);
+
+        ShowPage(page);
+        m_bmiRendering = false;
+        RefreshBmi();
+    }
+
+    void MainWindow::RefreshBmi()
+    {
+        using namespace winforge::core;
+        using namespace winforge::core::bmi;
+        if (!m_bmiResult || !m_bmiBmrResult || !m_bmiBodyFatResult || !m_bmiStatus) return;
+
+        auto setOutput = [](TextBlock const& output, std::wstring_view value)
+        {
+            output.Text(ToHString(value));
+            AutomationProperties::SetName(output, ToHString(value));
+        };
+        auto category = [](Category value)
+        {
+            switch (value)
+            {
+            case Category::Underweight:
+                return LocalizedText{ L"Underweight", L"體重過輕" };
+            case Category::NormalWeight:
+                return LocalizedText{ L"Normal weight", L"正常體重" };
+            case Category::Overweight:
+                return LocalizedText{ L"Overweight", L"超重" };
+            case Category::ObeseClassI:
+                return LocalizedText{ L"Obese (class I)", L"肥胖（一級）" };
+            case Category::ObeseClassII:
+                return LocalizedText{ L"Obese (class II)", L"肥胖（二級）" };
+            case Category::ObeseClassIII:
+            default:
+                return LocalizedText{ L"Obese (class III)", L"肥胖（三級）" };
+            }
+        };
+
+        auto const bmiValue = CalculateBmi(
+            LengthToCm(m_bmiHeightValue, m_bmiMetric),
+            MassToKg(m_bmiWeightValue, m_bmiMetric));
+        if (!bmiValue)
+        {
+            setOutput(m_bmiResult, LocalizedText{
+                L"Enter a valid height and weight.", L"請輸入有效嘅身高同體重。" }.Pick(m_language));
+        }
+        else
+        {
+            auto const labels = category(ClassifyBmi(*bmiValue));
+            auto const value = FormatCurrentOneDecimal(*bmiValue);
+            setOutput(m_bmiResult, LocalizedText{
+                L"BMI " + value + L" — " + labels.en,
+                L"BMI " + value + L" — " + labels.zh }.Pick(m_language));
+        }
+
+        auto const bmrAge = RoundAge(m_bmiBmrAgeValue);
+        auto const bmrSex = m_bmiBmrSexIndex == 1 ? Sex::Female : Sex::Male;
+        auto const bmrValue = bmrAge
+            ? CalculateBmr(
+                bmrSex,
+                *bmrAge,
+                LengthToCm(m_bmiBmrHeightValue, m_bmiMetric),
+                MassToKg(m_bmiBmrWeightValue, m_bmiMetric))
+            : std::optional<double>{};
+        if (!bmrValue)
+        {
+            setOutput(m_bmiBmrResult, LocalizedText{
+                L"Enter a valid age, height and weight.", L"請輸入有效嘅年齡、身高同體重。" }.Pick(m_language));
+        }
+        else
+        {
+            auto const index = std::clamp(m_bmiActivityIndex, 0, static_cast<int32_t>(ActivityLevels.size() - 1));
+            auto const tdee = CalculateTdee(*bmrValue, ActivityLevels[static_cast<std::size_t>(index)].factor);
+            auto const bmrText = FormatAspectNumber(*bmrValue, 0);
+            auto const tdeeText = tdee ? FormatAspectNumber(*tdee, 0) : std::wstring{};
+            auto const english = L"BMR " + bmrText + L" kcal/day" +
+                (tdee ? L" · about " + tdeeText + L" kcal/day to maintain" : L"");
+            auto const cantonese = L"基礎代謝 " + bmrText + L" 卡路里/日" +
+                (tdee ? L" · 大約每日 " + tdeeText + L" 卡路里維持體重" : L"");
+            setOutput(m_bmiBmrResult, LocalizedText{ english, cantonese }.Pick(m_language));
+        }
+
+        auto const bodyFatSex = m_bmiBodyFatSexIndex == 1 ? Sex::Female : Sex::Male;
+        auto const female = bodyFatSex == Sex::Female;
+        if (m_bmiBodyFatHipsPanel)
+        {
+            m_bmiBodyFatHipsPanel.Visibility(female ? Visibility::Visible : Visibility::Collapsed);
+        }
+        auto const bodyFat = CalculateBodyFatNavy(
+            bodyFatSex,
+            LengthToCm(m_bmiBodyFatHeightValue, m_bmiMetric),
+            LengthToCm(m_bmiBodyFatNeckValue, m_bmiMetric),
+            LengthToCm(m_bmiBodyFatWaistValue, m_bmiMetric),
+            LengthToCm(m_bmiBodyFatHipsValue, m_bmiMetric));
+        if (!bodyFat)
+        {
+            setOutput(m_bmiBodyFatResult, female
+                ? LocalizedText{
+                    L"Enter valid height, neck, waist and hips (waist + hips must exceed neck).",
+                    L"請輸入有效嘅身高、頸圍、腰圍同臀圍（腰＋臀要大過頸）。" }.Pick(m_language)
+                : LocalizedText{
+                    L"Enter valid height, neck and waist (waist must exceed neck).",
+                    L"請輸入有效嘅身高、頸圍同腰圍（腰要大過頸）。" }.Pick(m_language));
+        }
+        else
+        {
+            auto const value = FormatCurrentOneDecimal(*bodyFat);
+            setOutput(m_bmiBodyFatResult, LocalizedText{
+                L"Body fat ≈ " + value + L"%", L"體脂率約 " + value + L"%" }.Pick(m_language));
+        }
+
+        AnnounceBmiStatus(LocalizedText{
+            L"All estimates update locally as you edit. Results are estimates only — not medical advice.",
+            L"所有估算都會跟住輸入喺本機更新；結果只係估算，唔係醫療建議。" }.Pick(m_language));
+    }
+
+    void MainWindow::AnnounceBmiStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_bmiStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_bmiStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_bmiStatus.Text(ToHString(message));
+        m_bmiStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_bmiStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_bmiStatus);
+        }
     }
 
     void MainWindow::RenderAbout()

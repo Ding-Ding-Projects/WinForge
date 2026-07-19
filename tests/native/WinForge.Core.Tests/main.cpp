@@ -1,3 +1,4 @@
+#include "BmiTests.h"
 #include "BinaryTextTests.h"
 #include "CaseConvertTests.h"
 #include "CommandLine.h"
@@ -229,6 +230,7 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L" module.htmlentities ") &&
         winforge::core::HasNativeRenderer(L"module.morse") &&
         winforge::core::HasNativeRenderer(L"MODULE.SLUGIFY") &&
+        winforge::core::HasNativeRenderer(L" module.bmi ") &&
         winforge::core::HasNativeRenderer(L"MODULE.UUIDV5") &&
         winforge::core::HasNativeRenderer(L"module.unitprice") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
@@ -253,6 +255,10 @@ int wmain(int argc, wchar_t** argv)
     Expect(rejectedDuplicate, "rejects duplicate canonical route keys");
 
     winforge::tests::RunProcessRunnerTests(Expect);
+
+    auto const bmiCounts = RunBmiTests();
+    passed += bmiCounts.passed;
+    failed += bmiCounts.failed;
 
     auto const binaryTextCounts = RunBinaryTextTests();
     passed += binaryTextCounts.passed;
