@@ -44,7 +44,7 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut · 建立桌面捷徑"; GroupDescription: "Shortcuts · 捷徑"
 
 [Files]
-Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "*.pdb,*.ilk"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "*.pdb,*.ilk,*.lib,*.exp,THIRD-PARTY-NOTICES.txt"; Flags: recursesubdirs createallsubdirs ignoreversion
 ; PCRE2 is linked statically by the native regex layer. Keep its complete
 ; redistribution notice beside every installed binary.
 Source: "..\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion

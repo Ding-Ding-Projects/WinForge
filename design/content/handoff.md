@@ -1,6 +1,16 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
-## Native line-processing wave — focused validation record; visual capture blocked · 原生行文字處理批次 — 專項驗證紀錄；視覺擷取受阻
+## Native text-analysis wave — exhaustive shell green; visual capture blocked · 原生文字分析批次 — 完整 shell 通過；視覺擷取受阻
+
+**EN.** Text Statistics, Word Frequency, and String Compare now have dedicated C++/WinRT renderers over the shared standard-C++ `TextAnalysis` core. The implementations preserve local UTF-16/CJK statistics, sentence/paragraph/average/time/Flesch/top-ten results; word/bigram/Unicode-scalar frequency, managed options/stop words, current-culture ordering, count/bar/percentage rows and exact CSV; and normalization, UTF-16, OSA/Jaro–Winkler/longest-common metrics, the greater-than-2,000 guard, subquadratic exact greedy Jaro, and route-exit cleanup. Word Frequency and String Compare write the clipboard only after explicit Copy; Text Statistics is side-effect free.
+
+Renderer accounting is **27/346 fixed routes**, with **319 fixed routes** plus five dynamic families remaining; the ledger is **27 `in-progress` / 319 `not-started`**. Debug/Release core is **714/714** each, focused Text Analysis **84/84**, managed Structured Text Tools **7/7**, seven-alias UIA **40/40**, utility **39/39**, exhaustive shell **388/388 (388 passed, 0 failed)**, catalog parity, and managed build 0 errors. LowLevel MCP 1.28.1 launched the three canonical pages on named private desktops, resolved 1980×1320 native frames, and returned `rendered_ok=true`; inspection and pixel audit found every 1958×1264 client exactly pure white. Run-winforge independently rejected all three blank fallbacks with exit 1. Six invalid PNGs were removed, exact PIDs/desktops were cleaned successfully, no WinForge process remained, and no canonical image changed. Visual evidence is `capture-blocked`.
+
+The release contract now has one native-only publisher. Every successful branch push publishes a prerelease; the current main tip publishes stable/Latest; an older exact-SHA main run is non-Latest; exactly two assets are produced from a clean runtime stage; the build job is read-only and only the release job can write; every staged PE is rejected if it carries CLR/apphost markers or packaged build artifacts. Hosted proof remains pending. Legacy managed workflow `301226619` is remotely disabled, exactly 28 obsolete failed/cancelled no-release run records were deleted, and successful history/releases remain.
+
+**粵語.** 三項文字分析已有專用 C++/WinRT renderer 同 `TextAnalysis` core；Renderer 計 **27/346**，仲有 **319** 條固定 route 同五組動態家族。完整 shell **388/388（388 passed、0 failed）** 已通過。LowLevel 三張 client 都係純白，run-winforge 三次亦拒絕空白 fallback；六張無效圖、三個 PID 同三個 desktop 已清理，冇改 canonical 截圖，visual 最終係 `capture-blocked`。發佈只由原生 workflow 負責；舊 managed workflow 已禁用，28 條無 release 嘅失敗／取消 run record 已刪，成功歷史同既有 release 保留。
+
+## Earlier native line-processing wave — focused validation record; visual capture blocked · 較早原生行文字處理批次 — 專項驗證紀錄；視覺擷取受阻
 
 **Evidence-count note · 證據計數備註：** The managed build's 161 warnings are recorded only as historical, non-contract output; the durable gate is exit 0 with 0 errors. · Managed build 嘅 161 個 warning 只記錄做歷史、非合約輸出；長期 gate 係 exit 0 同 0 errors。
 
@@ -68,7 +78,7 @@ A complete map of every module/feature: what it does, how to open it, the page +
 - Launch a page directly: `WinForge.exe --page <id>` (see `docs/CLI.md` for every id) · master search: `--page search:<q>` · headless docs: `--export-docs docs\features`.
 - Window: **windowed by default (~82% screen), F11 toggles full screen** (saved). Closing **hides to the system tray** (right-click tray → Quit) so the background clipboard monitor keeps running.
 - Theme: Settings → App theme (Light/Dark/System), saved. Language: Settings → Language (Bilingual/Cantonese/English).
-- CI: `.github/workflows/release.yml` builds + publishes a **new GitHub Release on every push** (`v1.0.<run#>`) with a portable zip + Inno Setup installer (`installer/WinForge.iss`).
+- CI: `.github/workflows/native-release.yml` is the sole publisher. After the native gates pass, every branch push publishes a native prerelease and the current `main` tip publishes stable/Latest, with exactly the C++ portable ZIP and `WinForge-Native-Setup.exe`; the managed release workflow is removed.
 
 ## Suite modules · 套件模組
 

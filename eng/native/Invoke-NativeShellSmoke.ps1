@@ -4,7 +4,9 @@ param(
     [string]$ExecutablePath,
     [int]$TimeoutMs = 10000,
     [switch]$UtilityRoutesOnly,
-    [switch]$LineRoutesOnly
+    [switch]$LineRoutesOnly,
+    [switch]$TextAnalysisRoutesOnly,
+    [switch]$AllowClipboardMutation
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,6 +27,8 @@ $uiaReferences = @(
     [System.Windows.Automation.AutomationEventArgs].Assembly.Location
 ) | Select-Object -Unique
 Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Automation;
 
@@ -33,6 +37,12 @@ public sealed class WinForgeAutomationEventLatch
     private readonly AutoResetEvent signal = new AutoResetEvent(false);
     public WaitHandle Signal { get { return signal; } }
     public void OnEvent(object sender, AutomationEventArgs args) { signal.Set(); }
+}
+
+public static class WinForgeNativeMethods
+{
+    [DllImport("user32.dll")]
+    public static extern uint GetDpiForWindow(IntPtr hwnd);
 }
 '@ -ReferencedAssemblies $uiaReferences
 
@@ -480,7 +490,10 @@ function Test-HorizontalBoundsWithinWindow {
 
     $window = $Root.Current.BoundingRectangle
     foreach ($element in $Elements) {
-        if (-not $element) { return $false }
+        if (-not $element) {
+            Write-Host 'Horizontal bounds check received a missing element.' -ForegroundColor DarkYellow
+            return $false
+        }
         $rect = $element.Current.BoundingRectangle
         # A vertically off-screen item is not clipped: the shared page host
         # intentionally exposes it through its vertical ScrollViewer. Ask UIA
@@ -494,13 +507,18 @@ function Test-HorizontalBoundsWithinWindow {
                 $rect = $element.Current.BoundingRectangle
             }
             catch {
+                Write-Host "Horizontal bounds scroll failed for '$($element.Current.AutomationId)': $($_.Exception.Message)" -ForegroundColor DarkYellow
                 return $false
             }
         }
-        if ($rect.Width -le 0 -or $rect.Height -le 0) { return $false }
+        if ($rect.Width -le 0 -or $rect.Height -le 0) {
+            Write-Host "Horizontal bounds are empty for '$($element.Current.AutomationId)'." -ForegroundColor DarkYellow
+            return $false
+        }
         # Vertical overflow is intentionally scrollable. Horizontal overflow
         # is the clipping defect this smoke check is designed to catch.
         if ($rect.Left -lt ($window.Left - 2) -or $rect.Right -gt ($window.Right + 2)) {
+            Write-Host "Horizontal clipping for '$($element.Current.AutomationId)': element [$($rect.Left), $($rect.Right)] window [$($window.Left), $($window.Right)]." -ForegroundColor DarkYellow
             return $false
         }
     }
@@ -523,9 +541,14 @@ function Invoke-OwnedRoute {
         'lines', 'linetools', 'module.linetools',
         'textsort', 'module.textsort',
         'textwrap', 'module.textwrap') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly) -and -not (
+    $isTextAnalysisRoute = @(
+        'textstats', 'module.textstats',
+        'wordfreq', 'module.wordfreq',
+        'similarity', 'stringcompare', 'module.stringcompare') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
-        ($LineRoutesOnly -and $isLineRoute))) {
+        ($LineRoutesOnly -and $isLineRoute) -or
+        ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute))) {
         return
     }
 
@@ -2129,15 +2152,30 @@ Invoke-OwnedRoute -Route 'textdiff' -ExpectedTitle 'Text Diff' -Inspect {
         [System.Windows.Automation.TreeScope]::Descendants,
         $listItemCondition).Count
     $rowsBounds = $rows.Current.BoundingRectangle
+    $windowDpi = [WinForgeNativeMethods]::GetDpiForWindow(
+        [IntPtr]::new($root.Current.NativeWindowHandle))
+    if ($windowDpi -eq 0) { $windowDpi = 96 }
+    $maximumRowsHeight = [Math]::Ceiling(420.0 * $windowDpi / 96.0) + 2
     $innerScroll = [System.Windows.Automation.ScrollPattern]$rows.GetCurrentPattern(
         [System.Windows.Automation.ScrollPattern]::Pattern)
     $innerScroll.SetScrollPercent([System.Windows.Automation.ScrollPattern]::NoScroll, 100.0)
     $lastLargeRow = Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextDiffLine1999' -Prefix '- line-2000'
-    Assert-True -Condition (
+    $largeComparisonVirtualized = (
         -not $rows.Current.IsOffscreen -and
-        $rowsBounds.Height -gt 0 -and $rowsBounds.Height -le 422 -and
+        $rowsBounds.Height -gt 0 -and $rowsBounds.Height -le $maximumRowsHeight -and
         $firstLargeRow -and $lastLargeRow -and
-        $realizedRows -gt 0 -and $realizedRows -lt 200) `
+        $realizedRows -gt 0 -and $realizedRows -lt 200)
+    if (-not $largeComparisonVirtualized) {
+        Write-Host ("Text Diff large comparison diagnostics: offscreen={0}; bounds={1}; dpi={2}; maxHeight={3}; first={4}; last={5}; realized={6}." -f `
+            $rows.Current.IsOffscreen,
+            $rowsBounds,
+            $windowDpi,
+            $maximumRowsHeight,
+            [bool]$firstLargeRow,
+            [bool]$lastLargeRow,
+            $realizedRows) -ForegroundColor DarkYellow
+    }
+    Assert-True -Condition $largeComparisonVirtualized `
         -Name 'Text Diff virtualizes and bounds a large one-sided comparison'
 
     Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextDiffInputA' -Value $leftText | Out-Null
@@ -2694,6 +2732,435 @@ Invoke-OwnedRoute -Route 'textwrap' -ExpectedTitle 'Text Wrap' -Inspect {
 }
 
 Invoke-OwnedRoute -Route 'module.textwrap' -ExpectedTitle 'Text Wrap'
+
+Invoke-OwnedRoute -Route 'textstats' -ExpectedTitle 'Text Statistics' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeTextStatsImplementationStatus',
+        'NativeTextStatsInput',
+        'NativeTextStatsIgnoreStopWords',
+        'NativeTextStatsStatus',
+        'NativeTextStatsCharacters',
+        'NativeTextStatsCharactersNoSpaces',
+        'NativeTextStatsWords',
+        'NativeTextStatsUniqueWords',
+        'NativeTextStatsSentences',
+        'NativeTextStatsParagraphs',
+        'NativeTextStatsAverageWordLength',
+        'NativeTextStatsAverageSentenceLength',
+        'NativeTextStatsReadingTime',
+        'NativeTextStatsSpeakingTime',
+        'NativeTextStatsReadingEase',
+        'NativeTextStatsGrade',
+        'NativeTextStatsEaseHint',
+        'NativeTextStatsFrequencyList',
+        'NativeTextStatsFrequencyEmpty'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $statsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextStatsInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextStatsIgnoreStopWords'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextStatsCharactersNoSpaces'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextStatsAverageSentenceLength'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextStatsGrade'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextStatsFrequencyEmpty'))
+    Assert-True -Condition $statsFit `
+        -Name 'Text Statistics exposes accessible editors, metrics, frequency results, and horizontal clipping safety'
+
+    $statsInput = Wait-ForElement -Root $root -AutomationId 'NativeTextStatsInput'
+    Assert-True -Condition $statsInput.Current.Name.StartsWith('Text Statistics input', [StringComparison]::Ordinal) `
+        -Name 'Text Statistics editor exposes a localized accessible name'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextStatsInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsCharacters' -Prefix 'Characters: 0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsWords' -Prefix 'Words: 0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsStatus' -Prefix 'Ready.' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsFrequencyEmpty' `
+        -Prefix 'No words yet' | Out-Null
+    $statsStop = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeTextStatsIgnoreStopWords').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($statsStop.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'Text Statistics starts empty, ready, and with stop-word filtering off'
+
+    $statsText = 'The cat sat. The cat.'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextStatsInput' -Value $statsText | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsCharacters' -Prefix 'Characters: 21' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsWords' -Prefix 'Words: 5' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsUniqueWords' -Prefix 'Unique words: 3' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsSentences' -Prefix 'Sentences: 2' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsAverageSentenceLength' `
+        -Prefix 'Avg sentence length: 2.5 words' | Out-Null
+    $middleDot = [char]0x00B7
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsTopWord0' -Prefix "cat $middleDot 2" | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsStatus' -Prefix 'Updated live.' | Out-Null
+    $statsResultsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextStatsFrequencyList'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextStatsTopWord0'))
+    Assert-True -Condition $statsResultsFit `
+        -Name 'Text Statistics populated frequency list and ranked rows stay horizontally unclipped'
+    Assert-True -Condition $true `
+        -Name 'Text Statistics recomputes live counts, readability inputs, and deterministic top-word ranking'
+
+    $thousandCharacters = ('a' * 1000) -join ''
+    $groupedThousand = (1000).ToString('N0', [Globalization.CultureInfo]::CurrentCulture)
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextStatsInput' -Value $thousandCharacters | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsCharacters' `
+        -Prefix "Characters: $groupedThousand" | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextStatsInput' -Value $statsText | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Text Statistics formats four-digit counts with the current user culture N0 contract'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeTextStatsIgnoreStopWords' -IsOn $true | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsTopWord0' -Prefix "cat $middleDot 2" | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsTopWord1' -Prefix "sat $middleDot 1" | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Text Statistics removes English stop words only from its frequency list'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextStatsInput' -ExpectedValue $statsText | Out-Null
+    $statsCantoneseWords = ([char]0x5B57).ToString() + [char]0x6578 + [char]0xFF1A + '5'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsWords' `
+        -Prefix $statsCantoneseWords | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Text Statistics renders a real Cantonese metric label before returning to English'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsWords' -Prefix 'Words: 5' | Out-Null
+    $statsStop = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeTextStatsIgnoreStopWords').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($statsStop.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) `
+        -Name 'Text Statistics localizes in place while preserving text and stop-word state'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeTextStatsInput')) `
+        -Name 'Text Statistics releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.textstats' -ExpectedTitle 'Text Statistics'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextStatsInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextStatsWords' -Prefix 'Words: 0' | Out-Null
+    $statsStop = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeTextStatsIgnoreStopWords').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($statsStop.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'Text Statistics resets managed page state after in-process route re-entry'
+}
+
+Invoke-OwnedRoute -Route 'module.textstats' -ExpectedTitle 'Text Statistics'
+
+Invoke-OwnedRoute -Route 'wordfreq' -ExpectedTitle 'Word Frequency' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeWordFreqImplementationStatus',
+        'NativeWordFreqInput',
+        'NativeWordFreqMode',
+        'NativeWordFreqMinLength',
+        'NativeWordFreqCaseInsensitive',
+        'NativeWordFreqStripPunctuation',
+        'NativeWordFreqRemoveStopWords',
+        'NativeWordFreqTotals',
+        'NativeWordFreqCopy',
+        'NativeWordFreqResults'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $wordFreqFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqMinLength'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqCaseInsensitive'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqStripPunctuation'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqRemoveStopWords'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqTotals'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqCopy'))
+    Assert-True -Condition $wordFreqFit `
+        -Name 'Word Frequency exposes accessible options, summary, results, and horizontal clipping safety'
+
+    $wordInput = Wait-ForElement -Root $root -AutomationId 'NativeWordFreqInput'
+    Assert-True -Condition $wordInput.Current.Name.StartsWith('Word Frequency input', [StringComparison]::Ordinal) `
+        -Name 'Word Frequency editor exposes a localized accessible name'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeWordFreqInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeWordFreqMinLength' -ExpectedValue '1' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqTotals' -Prefix 'Total: 0' | Out-Null
+    $mode = Wait-ForElement -Root $root -AutomationId 'NativeWordFreqMode'
+    $modeSelection = [System.Windows.Automation.SelectionPattern]$mode.GetCurrentPattern(
+        [System.Windows.Automation.SelectionPattern]::Pattern)
+    $selectedMode = $modeSelection.Current.GetSelection()
+    $case = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeWordFreqCaseInsensitive').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $punctuation = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeWordFreqStripPunctuation').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $stop = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeWordFreqRemoveStopWords').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $selectedMode.Count -eq 1 -and
+        $selectedMode[0].Current.Name.StartsWith('Words', [StringComparison]::Ordinal) -and
+        $case.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and
+        $punctuation.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and
+        $stop.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'Word Frequency starts in word mode with managed case, punctuation, stop-word, and length defaults'
+
+    $wordFreqCopy = Wait-ForElement -Root $root -AutomationId 'NativeWordFreqCopy'
+    Assert-True -Condition (
+        $wordFreqCopy.Current.IsEnabled -and
+        $wordFreqCopy.Current.Name.StartsWith('Copy as CSV', [StringComparison]::Ordinal)) `
+        -Name 'Word Frequency exposes its explicit CSV copy action without mutating the clipboard by default'
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeWordFreqCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqCopy' -Prefix 'Copied!' | Out-Null
+        Assert-True -Condition $true `
+            -Name 'Word Frequency opt-in smoke explicitly copies the managed header-only CSV'
+    }
+
+    $frequencyText = 'The cat, cat dog.'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeWordFreqInput' -Value $frequencyText | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqTotals' `
+        -Prefix 'Total: 4   Unique: 3   Lexical diversity: 75.0%' | Out-Null
+    $middleDot = [char]0x00B7
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqRow0' `
+        -Prefix "1 $middleDot cat $middleDot 2 $middleDot 50.0%" | Out-Null
+    $wordFreqResultsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqResults'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqRow0'))
+    Assert-True -Condition $wordFreqResultsFit `
+        -Name 'Word Frequency populated ranked list and bar rows stay horizontally unclipped'
+    Assert-True -Condition $true `
+        -Name 'Word Frequency ranks case-folded, punctuation-stripped words with counts and percentages'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeWordFreqRemoveStopWords' -IsOn $true | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqTotals' `
+        -Prefix 'Total: 3   Unique: 2   Lexical diversity: 66.7%' | Out-Null
+    $mode = Wait-ForElement -Root $root -AutomationId 'NativeWordFreqMode'
+    Select-ComboIndex -Combo $mode -Index 1
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqTotals' `
+        -Prefix 'Total: 2   Unique: 2' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqRow0' `
+        -Prefix "1 $middleDot cat cat $middleDot 1 $middleDot 50.0%" | Out-Null
+    $mode = Wait-ForElement -Root $root -AutomationId 'NativeWordFreqMode'
+    Select-ComboIndex -Combo $mode -Index 2
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqTotals' `
+        -Prefix 'Total: 14' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Word Frequency switches live between stop-word-filtered words, bigrams, and Unicode-scalar characters'
+
+    $mode = Wait-ForElement -Root $root -AutomationId 'NativeWordFreqMode'
+    Select-ComboIndex -Combo $mode -Index 0
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeWordFreqMinLength' -Value '4' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqInput').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqTotals' -Prefix 'Total: 0' | Out-Null
+    Assert-True -Condition $true -Name 'Word Frequency applies the managed minimum-length filter'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeWordFreqInput' -ExpectedValue $frequencyText | Out-Null
+    $wordFreqCantoneseTotal = ([char]0x7E3D).ToString() + [char]0x6578 + [char]0xFF1A + '0'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqTotals' `
+        -Prefix $wordFreqCantoneseTotal | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Word Frequency renders a real Cantonese result summary before returning to English'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeWordFreqMinLength' -ExpectedValue '4' | Out-Null
+    $stop = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeWordFreqRemoveStopWords').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($stop.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) `
+        -Name 'Word Frequency localizes in place while preserving input and every option'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeWordFreqInput')) `
+        -Name 'Word Frequency releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.wordfreq' -ExpectedTitle 'Word Frequency'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeWordFreqInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeWordFreqMinLength' -ExpectedValue '1' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeWordFreqTotals' -Prefix 'Total: 0' | Out-Null
+    $case = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeWordFreqCaseInsensitive').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $punctuation = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeWordFreqStripPunctuation').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $stop = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeWordFreqRemoveStopWords').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $case.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and
+        $punctuation.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and
+        $stop.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off -and
+        (Wait-ForElement -Root $root -AutomationId 'NativeWordFreqCopy').Current.Name.StartsWith('Copy as CSV', [StringComparison]::Ordinal)) `
+        -Name 'Word Frequency resets managed page state and copy label after in-process route re-entry'
+}
+
+Invoke-OwnedRoute -Route 'module.wordfreq' -ExpectedTitle 'Word Frequency'
+
+Invoke-OwnedRoute -Route 'similarity' -ExpectedTitle 'String Compare' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeStringCompareImplementationStatus',
+        'NativeStringCompareInputA',
+        'NativeStringCompareInputB',
+        'NativeStringCompareIgnoreCase',
+        'NativeStringCompareIgnoreWhitespace',
+        'NativeStringCompareCopy',
+        'NativeStringCompareLength',
+        'NativeStringCompareLevenshtein',
+        'NativeStringCompareSimilarity',
+        'NativeStringCompareDamerau',
+        'NativeStringCompareHamming',
+        'NativeStringCompareJaroWinkler',
+        'NativeStringCompareLongestSubstring',
+        'NativeStringCompareLongestSubsequence',
+        'NativeStringCompareStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $compareFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeStringCompareInputA'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeStringCompareInputB'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeStringCompareIgnoreCase'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeStringCompareIgnoreWhitespace'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeStringCompareCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeStringCompareSimilarity'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeStringCompareLongestSubsequence'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeStringCompareStatus'))
+    Assert-True -Condition $compareFit `
+        -Name 'String Compare exposes accessible editors, options, metrics, copy, and horizontal clipping safety'
+
+    $inputA = Wait-ForElement -Root $root -AutomationId 'NativeStringCompareInputA'
+    $inputB = Wait-ForElement -Root $root -AutomationId 'NativeStringCompareInputB'
+    Assert-True -Condition (
+        $inputA.Current.Name.StartsWith('String A', [StringComparison]::Ordinal) -and
+        $inputB.Current.Name.StartsWith('String B', [StringComparison]::Ordinal)) `
+        -Name 'String Compare editors expose localized accessible names'
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeStringCompareInputA' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeStringCompareInputB' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareLength' -Prefix 'Length A / B: 0 / 0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareSimilarity' -Prefix 'Similarity: 100.0%' | Out-Null
+    $case = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeStringCompareIgnoreCase').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $whitespace = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeStringCompareIgnoreWhitespace').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $case.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off -and
+        $whitespace.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'String Compare starts with empty inputs, a 100 percent empty match, and both managed options off'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeStringCompareInputA' -Value 'kitten' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeStringCompareInputB' -Value 'sitting' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareLength' -Prefix 'Length A / B: 6 / 7' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareLevenshtein' `
+        -Prefix 'Levenshtein distance: 3' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareSimilarity' `
+        -Prefix 'Similarity: 57.1%' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareHamming' `
+        -Prefix 'Hamming distance: n/a (lengths differ)' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareLongestSubsequence' `
+        -Prefix 'Longest common subsequence: 4' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'String Compare computes the complete live classic-metric set for unequal strings'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeStringCompareInputA' -Value 'A b' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeStringCompareInputB' -Value 'ab' | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeStringCompareIgnoreCase' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeStringCompareIgnoreWhitespace' -IsOn $true | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareLength' -Prefix 'Length A / B: 2 / 2' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareLevenshtein' `
+        -Prefix 'Levenshtein distance: 0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareSimilarity' `
+        -Prefix 'Similarity: 100.0%' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'String Compare composes invariant case folding with managed whitespace removal'
+
+    $compareCopy = Wait-ForElement -Root $root -AutomationId 'NativeStringCompareCopy'
+    $compareStatus = Wait-ForElement -Root $root -AutomationId 'NativeStringCompareStatus'
+    Assert-True -Condition (
+        $compareCopy.Current.IsEnabled -and
+        $compareCopy.Current.Name.StartsWith('Copy report', [StringComparison]::Ordinal) -and
+        $compareStatus.Current.Name.StartsWith('Computed locally', [StringComparison]::Ordinal)) `
+        -Name 'String Compare exposes explicit report copy and accessible status without mutating the clipboard by default'
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeStringCompareCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareStatus' `
+            -Prefix 'Report copied to the clipboard.' | Out-Null
+        Assert-True -Condition $true `
+            -Name 'String Compare opt-in smoke copies its localized report after explicit Copy'
+    }
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeStringCompareInputA' -ExpectedValue 'A b' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeStringCompareInputB' -ExpectedValue 'ab' | Out-Null
+    $compareCantoneseSimilarity = ([char]0x76F8).ToString() + [char]0x4F3C + [char]0x5EA6 + ': 100.0%'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareSimilarity' `
+        -Prefix $compareCantoneseSimilarity | Out-Null
+    Assert-True -Condition $true `
+        -Name 'String Compare renders a real Cantonese metric label before returning to English'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareSimilarity' `
+        -Prefix 'Similarity: 100.0%' | Out-Null
+    $case = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeStringCompareIgnoreCase').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $whitespace = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeStringCompareIgnoreWhitespace').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $case.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and
+        $whitespace.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) `
+        -Name 'String Compare localizes in place while preserving both inputs and options'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeStringCompareInputA')) `
+        -Name 'String Compare releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.stringcompare' -ExpectedTitle 'String Compare'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeStringCompareInputA' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeStringCompareInputB' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeStringCompareSimilarity' -Prefix 'Similarity: 100.0%' | Out-Null
+    $case = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeStringCompareIgnoreCase').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $whitespace = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeStringCompareIgnoreWhitespace').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $case.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off -and
+        $whitespace.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'String Compare resets managed page state after in-process route re-entry'
+}
+
+foreach ($alias in @('stringcompare', 'module.stringcompare')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'String Compare'
+}
 
 Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {
     param($root, $title)

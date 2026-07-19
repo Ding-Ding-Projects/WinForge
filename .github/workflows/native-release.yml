@@ -18,7 +18,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-test-package:
@@ -27,6 +27,11 @@ jobs:
     # `windows-latest` has moved to VS 2026, where that UWP compatibility
     # toolset is not present by default.
     runs-on: windows-2022
+    permissions:
+      contents: read
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+      version: ${{ steps.runtime.outputs.version }}
 
     steps:
       - name: Resolve immutable source commit · 解析不可變來源提交
@@ -157,7 +162,45 @@ jobs:
         run: |
           $source = Resolve-Path 'src\WinForge.App\bin\x64\Release'
           if (-not (Test-Path (Join-Path $source 'WinForge.exe'))) { throw 'native WinForge.exe missing' }
-          "dir=$source" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+          # Package from one clean runtime-only directory so the portable zip and
+          # installer consume the exact same native payload. Build/link symbols,
+          # the managed oracle helpers, and .NET hosting files must never escape
+          # into a native GitHub release.
+          $staging = Join-Path $env:RUNNER_TEMP "WinForge-native-runtime-${{ github.run_id }}-${{ github.run_attempt }}"
+          New-Item -ItemType Directory -Path $staging -Force | Out-Null
+          $blockedExtensions = @('.pdb', '.ilk', '.lib', '.exp')
+          $blockedNames = @(
+            'WinForge.dll',
+            'WinForgeLauncher.exe',
+            'WinForgeUpdater.exe',
+            'coreclr.dll',
+            'hostfxr.dll',
+            'hostpolicy.dll'
+          )
+
+          Get-ChildItem -LiteralPath $source -Recurse -File | ForEach-Object {
+            $relative = [IO.Path]::GetRelativePath($source.Path, $_.FullName)
+            $segments = @($relative -split '[\\/]')
+            $isBlocked = $_.Extension.ToLowerInvariant() -in $blockedExtensions -or
+              $_.Name -in $blockedNames -or
+              $_.Name.EndsWith('.deps.json', [StringComparison]::OrdinalIgnoreCase) -or
+              $_.Name.EndsWith('.runtimeconfig.json', [StringComparison]::OrdinalIgnoreCase) -or
+              $segments -contains 'updater-runtime'
+            if ($isBlocked) {
+              Write-Host "Excluding non-runtime native release file: $relative"
+              return
+            }
+
+            $destination = Join-Path $staging $relative
+            $destinationDirectory = Split-Path -Parent $destination
+            New-Item -ItemType Directory -Path $destinationDirectory -Force | Out-Null
+            Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+          }
+
+          Copy-Item -LiteralPath 'THIRD-PARTY-NOTICES.txt' -Destination $staging -Force
+          if (-not (Test-Path (Join-Path $staging 'WinForge.exe'))) { throw 'staged native WinForge.exe missing' }
+          "dir=$staging" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           $version = "1.0.${{ github.run_number }}"
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "WINFORGE_NATIVE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -171,11 +214,7 @@ jobs:
       - name: Portable native zip · 原生可攜 zip
         shell: pwsh
         run: |
-          $staging = Join-Path $env:RUNNER_TEMP "WinForge-native-${{ steps.runtime.outputs.version }}"
-          New-Item -ItemType Directory -Path $staging -Force | Out-Null
-          Copy-Item -Path "${{ steps.runtime.outputs.dir }}\*" -Destination $staging -Recurse -Force
-          Copy-Item -LiteralPath 'THIRD-PARTY-NOTICES.txt' -Destination $staging -Force
-          Compress-Archive -Path "$staging\*" -DestinationPath "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" -Force
+          Compress-Archive -Path "${{ steps.runtime.outputs.dir }}\*" -DestinationPath "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" -Force
 
       - name: Install Inno Setup · 安裝 Inno Setup
         shell: pwsh
@@ -244,23 +283,93 @@ jobs:
             }
           }
 
-      - name: Upload native artifacts · 上載原生 artifacts
+      - name: Stage exact native release assets · 整理確切原生發佈檔
+        shell: pwsh
+        run: |
+          $releaseAssets = Join-Path $env:GITHUB_WORKSPACE 'release-assets'
+          if (Test-Path -LiteralPath $releaseAssets) {
+            throw "native release asset staging directory already exists: $releaseAssets"
+          }
+          New-Item -ItemType Directory -Path $releaseAssets | Out-Null
+
+          $portableName = "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip"
+          Copy-Item -LiteralPath $portableName -Destination (Join-Path $releaseAssets $portableName) -Force
+          Copy-Item -LiteralPath 'installer/out-native/WinForge-Native-Setup.exe' -Destination (Join-Path $releaseAssets 'WinForge-Native-Setup.exe') -Force
+
+          $actualNames = @(Get-ChildItem -LiteralPath $releaseAssets -File | Sort-Object Name | ForEach-Object Name)
+          $expectedNames = @('WinForge-Native-Setup.exe', $portableName) | Sort-Object
+          if ($actualNames.Count -ne 2 -or (Compare-Object $expectedNames $actualNames)) {
+            throw "native release handoff must contain exactly setup + portable zip; found: $($actualNames -join ', ')"
+          }
+
+      - name: Upload exact native release assets · 上載確切原生發佈檔
         uses: actions/upload-artifact@v4
         with:
-          name: WinForge-native-${{ steps.runtime.outputs.version }}
+          name: WinForge-native-release-${{ steps.runtime.outputs.version }}
           path: |
-            WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip
-            installer/out-native/WinForge-Native-Setup.exe
+            release-assets/WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip
+            release-assets/WinForge-Native-Setup.exe
           if-no-files-found: error
 
-      - name: Create native GitHub release · 建立原生 GitHub 版本
-        if: (github.event_name == 'push' && github.ref_type == 'branch') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/native-v')) || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+  release-native:
+    name: Publish trusted native C++ release · 發佈可信原生 C++ 版本
+    needs: build-test-package
+    if: (github.event_name == 'push' && github.ref_type == 'branch') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/native-v')) || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+    runs-on: windows-2022
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout exact native release source · 取出確切原生發佈來源
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.build-test-package.outputs.source_sha }}
+
+      - name: Verify exact native release source · 驗證確切原生發佈來源
+        shell: pwsh
+        env:
+          EXPECTED_SOURCE_SHA: ${{ needs.build-test-package.outputs.source_sha }}
+        run: |
+          $expectedSha = ([string]$env:EXPECTED_SOURCE_SHA).Trim().ToLowerInvariant()
+          if ($expectedSha -notmatch '^[0-9a-f]{40}$') { throw "invalid release handoff source SHA: $expectedSha" }
+          $actualSha = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $actualSha -ne $expectedSha) {
+            throw "trusted release checkout mismatch: expected $expectedSha, got $actualSha"
+          }
+          git cat-file -e "$expectedSha^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw "trusted release source is not a commit: $expectedSha" }
+
+      - name: Download exact native release assets · 下載確切原生發佈檔
+        uses: actions/download-artifact@v4
+        with:
+          name: WinForge-native-release-${{ needs.build-test-package.outputs.version }}
+          path: release-assets
+
+      - name: Verify exact native release handoff · 驗證確切原生發佈交接
+        shell: pwsh
+        env:
+          NATIVE_VERSION: ${{ needs.build-test-package.outputs.version }}
+        run: |
+          $portableName = "WinForge-native-x64-$env:NATIVE_VERSION.zip"
+          $actualNames = @(Get-ChildItem -LiteralPath 'release-assets' -Recurse -File | Sort-Object Name | ForEach-Object Name)
+          $expectedNames = @('WinForge-Native-Setup.exe', $portableName) | Sort-Object
+          if ($actualNames.Count -ne 2 -or (Compare-Object $expectedNames $actualNames)) {
+            throw "trusted native release handoff must contain exactly setup + portable zip; found: $($actualNames -join ', ')"
+          }
+          if ((Get-Item -LiteralPath 'release-assets/WinForge-Native-Setup.exe').Length -le 0 -or
+              (Get-Item -LiteralPath "release-assets/$portableName").Length -le 0) {
+            throw 'trusted native release handoff contains an empty asset'
+          }
+
+      - name: Create sole native GitHub release · 建立唯一原生 GitHub 版本
         shell: pwsh
         env:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_REF_NAME: ${{ github.ref_name }}
           EVENT_REF_TYPE: ${{ github.ref_type }}
-          EXPECTED_SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          EXPECTED_SOURCE_SHA: ${{ needs.build-test-package.outputs.source_sha }}
+          NATIVE_VERSION: ${{ needs.build-test-package.outputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
           $expectedSha = ([string]$env:EXPECTED_SOURCE_SHA).Trim().ToLowerInvariant()
@@ -269,13 +378,46 @@ jobs:
             ([string]$env:EVENT_REF_NAME).StartsWith('native-v', [StringComparison]::Ordinal)
           $tag = if ($usePushedNativeTag) { $env:EVENT_REF_NAME } else { "native-v1.0.${{ github.run_number }}" }
           $notes = "Native C++20/WinUI 3 build from commit $expectedSha.`n原生 C++20/WinUI 3 建置，來自 commit $expectedSha。"
-          # Native remains a migration preview until the parity ledger is complete.
-          # A prerelease publishes every successful branch build without replacing
-          # the managed shipping release consumed by /releases/latest.
+          $portableAsset = "release-assets/WinForge-native-x64-$env:NATIVE_VERSION.zip"
+          $installerAsset = 'release-assets/WinForge-Native-Setup.exe'
+
+          # Refresh main immediately before publishing. Only the current remote
+          # main tip may become /releases/latest; an older main build remains a
+          # stable historical release with an explicit --latest=false marker.
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+          if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before native release creation' }
+          $currentMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
+          if ($LASTEXITCODE -ne 0 -or $currentMainSha -notmatch '^[0-9a-f]{40}$') {
+            throw "could not resolve current origin/main tip: $currentMainSha"
+          }
+
+          $isMainChannel = $env:EVENT_REF_TYPE -eq 'branch' -and
+            $env:EVENT_REF_NAME -eq 'main' -and
+            $env:EVENT_NAME -in @('push', 'workflow_dispatch')
+          $isCurrentMainTip = $isMainChannel -and $expectedSha -eq $currentMainSha
+          $title = if ($isMainChannel) { "WinForge Native $tag" } else { "WinForge Native Preview $tag" }
+          $releaseArgs = @(
+            'release', 'create', $tag,
+            $portableAsset,
+            $installerAsset,
+            '--target', $expectedSha,
+            '--title', $title,
+            '--notes', $notes
+          )
+          if ($isCurrentMainTip) {
+            $releaseArgs += '--latest'
+          }
+          elseif ($isMainChannel) {
+            $releaseArgs += '--latest=false'
+          }
+          else {
+            $releaseArgs += '--prerelease'
+          }
+
           # Pin the release tag to the immutable commit that produced these artifacts.
           # Otherwise a concurrent main update can move the default target away
           # from the source SHA even though the release notes identify this run.
-          gh release create $tag "WinForge-native-x64-${{ steps.runtime.outputs.version }}.zip" 'installer/out-native/WinForge-Native-Setup.exe' --target "$expectedSha" --title "WinForge Native Preview $tag" --notes $notes --prerelease
+          & gh @releaseArgs
           if ($LASTEXITCODE -ne 0) { throw "native release creation failed: $tag" }
 
           $refJson = (& gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" | Out-String)
