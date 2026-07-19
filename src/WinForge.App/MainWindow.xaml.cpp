@@ -18,6 +18,7 @@
 #include <winrt/Microsoft.UI.Xaml.Automation.Peers.h>
 
 #include <chrono>
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -1010,6 +1011,59 @@ namespace winrt::WinForge::implementation
         }
     }
 
+    void MainWindow::ReleaseReferenceTextRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute == L"module.phonetic" && nextRoute != L"module.phonetic")
+        {
+            if (m_phoneticRows)
+            {
+                m_phoneticRows.Items().Clear();
+            }
+            m_phoneticInputBox = nullptr;
+            m_phoneticAlphabetBox = nullptr;
+            m_phoneticUpperBox = nullptr;
+            m_phoneticPunctuationBox = nullptr;
+            m_phoneticSpokenBox = nullptr;
+            m_phoneticRows = nullptr;
+            m_phoneticStatus = nullptr;
+            std::wstring{}.swap(m_phoneticInput);
+            std::wstring{}.swap(m_phoneticSpoken);
+            m_phoneticRendering = false;
+        }
+        else if (m_currentRoute == L"module.boxtext" && nextRoute != L"module.boxtext")
+        {
+            m_boxTextInputBox = nullptr;
+            m_boxTextStyleBox = nullptr;
+            m_boxTextAlignmentBox = nullptr;
+            m_boxTextPaddingBox = nullptr;
+            m_boxTextTitleBox = nullptr;
+            m_boxTextOutputBox = nullptr;
+            m_boxTextStatus = nullptr;
+            std::wstring{}.swap(m_boxTextInput);
+            std::wstring{}.swap(m_boxTextTitle);
+            std::wstring{}.swap(m_boxTextOutput);
+            m_boxTextRendering = false;
+        }
+        else if (m_currentRoute == L"module.htmlentities" && nextRoute != L"module.htmlentities")
+        {
+            if (m_htmlEntitiesReferenceRows)
+            {
+                m_htmlEntitiesReferenceRows.Children().Clear();
+            }
+            m_htmlEntitiesModeBox = nullptr;
+            m_htmlEntitiesNonAsciiBox = nullptr;
+            m_htmlEntitiesInputBox = nullptr;
+            m_htmlEntitiesOutputBox = nullptr;
+            m_htmlEntitiesInputCount = nullptr;
+            m_htmlEntitiesOutputCount = nullptr;
+            m_htmlEntitiesReferenceRows = nullptr;
+            m_htmlEntitiesStatus = nullptr;
+            std::wstring{}.swap(m_htmlEntitiesInput);
+            std::wstring{}.swap(m_htmlEntitiesOutput);
+            m_htmlEntitiesRendering = false;
+        }
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -1027,6 +1081,7 @@ namespace winrt::WinForge::implementation
         if (normalized == L"search")
         {
             ReleaseTextAnalysisRouteState(L"search");
+            ReleaseReferenceTextRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -1036,6 +1091,7 @@ namespace winrt::WinForge::implementation
         if (normalized == L"manual" && !argument.empty())
         {
             ReleaseTextAnalysisRouteState(L"manual");
+            ReleaseReferenceTextRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -1047,6 +1103,7 @@ namespace winrt::WinForge::implementation
         if (!module)
         {
             ReleaseTextAnalysisRouteState(normalized);
+            ReleaseReferenceTextRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
@@ -1055,6 +1112,7 @@ namespace winrt::WinForge::implementation
         }
 
         ReleaseTextAnalysisRouteState(module->id);
+        ReleaseReferenceTextRouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
@@ -1127,6 +1185,30 @@ namespace winrt::WinForge::implementation
             m_stringCompareIgnoreWhitespace = false;
             decltype(m_stringCompareLastRows){}.swap(m_stringCompareLastRows);
             m_stringCompareTruncationWarningActive = false;
+        }
+        else if (module->id == L"module.phonetic")
+        {
+            m_phoneticInput.clear();
+            m_phoneticAlphabet = 0;
+            m_phoneticUpper = false;
+            m_phoneticKeepPunctuation = true;
+            m_phoneticSpoken.clear();
+        }
+        else if (module->id == L"module.boxtext")
+        {
+            m_boxTextInput.clear();
+            m_boxTextStyle = 0;
+            m_boxTextAlignment = 0;
+            m_boxTextPadding = 1.0;
+            m_boxTextTitle.clear();
+            m_boxTextOutput.clear();
+        }
+        else if (module->id == L"module.htmlentities")
+        {
+            m_htmlEntitiesInput.clear();
+            m_htmlEntitiesOutput.clear();
+            m_htmlEntitiesDecode = false;
+            m_htmlEntitiesEscapeNonAscii = false;
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -1290,6 +1372,18 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.stringcompare")
         {
             RenderStringCompare();
+        }
+        else if (module->id == L"module.phonetic")
+        {
+            RenderPhonetic();
+        }
+        else if (module->id == L"module.boxtext")
+        {
+            RenderBoxText();
+        }
+        else if (module->id == L"module.htmlentities")
+        {
+            RenderHtmlEntities();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -5308,6 +5402,725 @@ namespace winrt::WinForge::implementation
         if (announce)
         {
             RaisePoliteLiveRegion(m_stringCompareStatus);
+        }
+    }
+
+    void MainWindow::RenderPhonetic()
+    {
+        using namespace winforge::core::referencetext;
+        m_phoneticRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Phonetic Speller", L"拼讀字母表" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Spell text with NATO/ICAO, LAPD police, or simple code words. Letters, digits, spaces, punctuation, and explicit clipboard copy stay on this PC.",
+                L"用北約／ICAO、LAPD 警察或者簡單代碼字逐個拼讀文字。字母、數字、空格、標點同明確複製全部留喺呢部電腦。" }.Pick(m_language));
+        page.MaxWidth(820);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativePhoneticPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native phonetic spelling", L"全原生拼讀" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"All alphabet tables and transformations run in standard C++; clipboard access only follows the Copy button.",
+            L"全部字母表同轉換都用標準 C++ 執行；只會喺你撳複製掣之後先存取剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativePhoneticImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(12);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Text to spell", L"要拼讀嘅文字" }.Pick(m_language), 14, true);
+        input.Children().Append(inputLabel);
+        m_phoneticInputBox = TextBox();
+        m_phoneticInputBox.Text(ToHString(m_phoneticInput));
+        m_phoneticInputBox.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"e.g. ABC-123", L"例如 ABC-123" }.Pick(m_language)));
+        m_phoneticInputBox.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_phoneticInputBox, L"NativePhoneticInput");
+        AutomationProperties::SetLabeledBy(m_phoneticInputBox, inputLabel);
+        m_phoneticInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_phoneticRendering) return;
+            m_phoneticInput = ToWide(sender.as<TextBox>().Text());
+            RefreshPhonetic();
+        });
+        input.Children().Append(m_phoneticInputBox);
+
+        auto alphabetLabel = CreateText(
+            winforge::core::LocalizedText{ L"Alphabet", L"字母表" }.Pick(m_language), 13, true);
+        input.Children().Append(alphabetLabel);
+        m_phoneticAlphabetBox = ComboBox();
+        m_phoneticAlphabetBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        m_phoneticAlphabetBox.Items().Append(box_value(L"NATO / ICAO"));
+        m_phoneticAlphabetBox.Items().Append(box_value(L"LAPD / Police"));
+        m_phoneticAlphabetBox.Items().Append(box_value(winforge::core::LocalizedText{
+            L"Simple words", L"簡單英文字" }.Pick(m_language)));
+        m_phoneticAlphabetBox.SelectedIndex(std::clamp(m_phoneticAlphabet, 0, 2));
+        AutomationProperties::SetAutomationId(m_phoneticAlphabetBox, L"NativePhoneticAlphabet");
+        AutomationProperties::SetLabeledBy(m_phoneticAlphabetBox, alphabetLabel);
+        m_phoneticAlphabetBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_phoneticRendering) return;
+            m_phoneticAlphabet = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 2);
+            RefreshPhonetic();
+        });
+        input.Children().Append(m_phoneticAlphabetBox);
+
+        m_phoneticUpperBox = CheckBox();
+        m_phoneticUpperBox.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Upper-case the displayed characters", L"顯示字元轉大寫" }.Pick(m_language))));
+        m_phoneticUpperBox.IsChecked(box_value(m_phoneticUpper).as<Windows::Foundation::IReference<bool>>());
+        AutomationProperties::SetAutomationId(m_phoneticUpperBox, L"NativePhoneticUpper");
+        m_phoneticUpperBox.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_phoneticRendering) return;
+            m_phoneticUpper = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+            RefreshPhonetic();
+        });
+        input.Children().Append(m_phoneticUpperBox);
+
+        m_phoneticPunctuationBox = CheckBox();
+        m_phoneticPunctuationBox.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Keep punctuation and symbols", L"保留標點同符號" }.Pick(m_language))));
+        m_phoneticPunctuationBox.IsChecked(
+            box_value(m_phoneticKeepPunctuation).as<Windows::Foundation::IReference<bool>>());
+        AutomationProperties::SetAutomationId(m_phoneticPunctuationBox, L"NativePhoneticKeepPunctuation");
+        m_phoneticPunctuationBox.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_phoneticRendering) return;
+            m_phoneticKeepPunctuation = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+            RefreshPhonetic();
+        });
+        input.Children().Append(m_phoneticPunctuationBox);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border outputCard = MakeNativeCard();
+        StackPanel output;
+        output.Spacing(10);
+        auto spokenLabel = CreateText(
+            winforge::core::LocalizedText{ L"Spoken", L"讀法" }.Pick(m_language), 15, true);
+        output.Children().Append(spokenLabel);
+        m_phoneticSpokenBox = TextBox();
+        m_phoneticSpokenBox.IsReadOnly(true);
+        m_phoneticSpokenBox.AcceptsReturn(true);
+        m_phoneticSpokenBox.TextWrapping(TextWrapping::Wrap);
+        m_phoneticSpokenBox.MinHeight(72);
+        AutomationProperties::SetAutomationId(m_phoneticSpokenBox, L"NativePhoneticSpoken");
+        AutomationProperties::SetLabeledBy(m_phoneticSpokenBox, spokenLabel);
+        output.Children().Append(m_phoneticSpokenBox);
+
+        auto copy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy spoken", L"複製讀法" }.Pick(m_language),
+            L"NativePhoneticCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            auto const value = m_phoneticSpoken.empty()
+                ? winforge::core::LocalizedText{ L"(nothing to spell yet)", L"（暫時冇嘢拼讀）" }.Pick(m_language)
+                : m_phoneticSpoken;
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(value));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnouncePhoneticStatus(winforge::core::LocalizedText{
+                    L"Spoken text copied to the clipboard.", L"讀法已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnouncePhoneticStatus(winforge::core::LocalizedText{
+                    L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+            }
+        });
+        output.Children().Append(copy);
+
+        m_phoneticRows = ListView();
+        m_phoneticRows.SelectionMode(ListViewSelectionMode::None);
+        m_phoneticRows.MaxHeight(360);
+        AutomationProperties::SetAutomationId(m_phoneticRows, L"NativePhoneticRows");
+        output.Children().Append(m_phoneticRows);
+        m_phoneticStatus = CreateText(L"", 12.5);
+        m_phoneticStatus.Opacity(0.82);
+        m_phoneticStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_phoneticStatus, L"NativePhoneticStatus");
+        output.Children().Append(m_phoneticStatus);
+        outputCard.Child(output);
+        page.Children().Append(outputCard);
+
+        ShowPage(page);
+        m_phoneticRendering = false;
+        RefreshPhonetic();
+    }
+
+    void MainWindow::RefreshPhonetic()
+    {
+        using namespace winforge::core::referencetext;
+        if (!m_phoneticSpokenBox || !m_phoneticRows || !m_phoneticStatus) return;
+        auto const alphabet = static_cast<PhoneticAlphabet>(std::clamp(m_phoneticAlphabet, 0, 2));
+        auto const result = SpellPhonetic(
+            m_phoneticInput,
+            alphabet,
+            m_phoneticUpper,
+            m_phoneticKeepPunctuation);
+        m_phoneticSpoken = result.spoken;
+        auto const display = result.spoken.empty()
+            ? winforge::core::LocalizedText{ L"(nothing to spell yet)", L"（暫時冇嘢拼讀）" }.Pick(m_language)
+            : result.spoken;
+        m_phoneticSpokenBox.Text(ToHString(display));
+        m_phoneticRows.Items().Clear();
+        for (auto const& item : result.characters)
+        {
+            m_phoneticRows.Items().Append(box_value(ToHString(item.character + L": " + item.code)));
+        }
+        auto const status = winforge::core::LocalizedText{
+            std::to_wstring(result.characters.size()) + L" item(s) spelled locally.",
+            L"已喺本機拼讀 " + std::to_wstring(result.characters.size()) + L" 個項目。" }.Pick(m_language);
+        AnnouncePhoneticStatus(status, false, false);
+    }
+
+    void MainWindow::AnnouncePhoneticStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_phoneticStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_phoneticStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_phoneticStatus.Text(ToHString(message));
+        m_phoneticStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_phoneticStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_phoneticStatus);
+        }
+    }
+
+    void MainWindow::RenderBoxText()
+    {
+        using namespace winforge::core::referencetext;
+        m_boxTextRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Box & Banner Text", L"文字方框" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Wrap multiline text in a drawn box or comment banner with selectable borders, alignment, padding, and an optional title.",
+                L"將多行文字包成方框或者註解橫幅，可以揀邊框、對齊、內距同可選標題。" }.Pick(m_language));
+        page.MaxWidth(860);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeBoxTextPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native box rendering", L"全原生方框產生" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Line normalization, Unicode-aware display width, eight border styles, alignment, title bars, and comment blocks run locally in standard C++.",
+            L"換行正規化、Unicode 顯示闊度、八種邊框、對齊、標題列同註解區塊全部喺本機用標準 C++ 執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeBoxTextImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(10);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Text to box", L"要入框嘅文字" }.Pick(m_language), 14, true);
+        input.Children().Append(inputLabel);
+        m_boxTextInputBox = TextBox();
+        m_boxTextInputBox.AcceptsReturn(true);
+        m_boxTextInputBox.TextWrapping(TextWrapping::Wrap);
+        m_boxTextInputBox.MinHeight(120);
+        m_boxTextInputBox.Text(ToHString(TextBoxPresentation(m_boxTextInput)));
+        m_boxTextInputBox.IsSpellCheckEnabled(false);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_boxTextInputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_boxTextInputBox, L"NativeBoxTextInput");
+        AutomationProperties::SetLabeledBy(m_boxTextInputBox, inputLabel);
+        m_boxTextInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_boxTextRendering) return;
+            m_boxTextInput = ToWide(sender.as<TextBox>().Text());
+            RefreshBoxText();
+        });
+        input.Children().Append(m_boxTextInputBox);
+
+        auto styleLabel = CreateText(
+            winforge::core::LocalizedText{ L"Border style", L"邊框樣式" }.Pick(m_language), 13, true);
+        input.Children().Append(styleLabel);
+        m_boxTextStyleBox = ComboBox();
+        m_boxTextStyleBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        std::array<std::wstring, 8> const styleLabels{
+            winforge::core::LocalizedText{ L"ASCII (+ - |)", L"ASCII（+ - |）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Single (─ │)", L"單線（─ │）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Double (═ ║)", L"雙線（═ ║）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Rounded (╭ ╮)", L"圓角（╭ ╮）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Heavy (━ ┃)", L"粗線（━ ┃）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Stars (*)", L"星號（*）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Comment /* … */", L"註解 /* … */" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Comment ### … ###", L"註解 ### … ###" }.Pick(m_language),
+        };
+        for (auto const& label : styleLabels) m_boxTextStyleBox.Items().Append(box_value(ToHString(label)));
+        m_boxTextStyleBox.SelectedIndex(std::clamp(m_boxTextStyle, 0, 7));
+        AutomationProperties::SetAutomationId(m_boxTextStyleBox, L"NativeBoxTextStyle");
+        AutomationProperties::SetLabeledBy(m_boxTextStyleBox, styleLabel);
+        m_boxTextStyleBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_boxTextRendering) return;
+            m_boxTextStyle = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 7);
+            RefreshBoxText();
+        });
+        input.Children().Append(m_boxTextStyleBox);
+
+        auto alignmentLabel = CreateText(
+            winforge::core::LocalizedText{ L"Alignment", L"對齊" }.Pick(m_language), 13, true);
+        input.Children().Append(alignmentLabel);
+        m_boxTextAlignmentBox = ComboBox();
+        m_boxTextAlignmentBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        m_boxTextAlignmentBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Left", L"靠左" }.Pick(m_language))));
+        m_boxTextAlignmentBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Center", L"置中" }.Pick(m_language))));
+        m_boxTextAlignmentBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Right", L"靠右" }.Pick(m_language))));
+        m_boxTextAlignmentBox.SelectedIndex(std::clamp(m_boxTextAlignment, 0, 2));
+        AutomationProperties::SetAutomationId(m_boxTextAlignmentBox, L"NativeBoxTextAlignment");
+        AutomationProperties::SetLabeledBy(m_boxTextAlignmentBox, alignmentLabel);
+        m_boxTextAlignmentBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_boxTextRendering) return;
+            m_boxTextAlignment = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 2);
+            RefreshBoxText();
+        });
+        input.Children().Append(m_boxTextAlignmentBox);
+
+        auto paddingLabel = CreateText(
+            winforge::core::LocalizedText{ L"Horizontal padding", L"水平內距" }.Pick(m_language), 13, true);
+        input.Children().Append(paddingLabel);
+        m_boxTextPaddingBox = NumberBox();
+        m_boxTextPaddingBox.Minimum(0);
+        m_boxTextPaddingBox.Maximum(40);
+        m_boxTextPaddingBox.Value(m_boxTextPadding);
+        m_boxTextPaddingBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_boxTextPaddingBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        AutomationProperties::SetAutomationId(m_boxTextPaddingBox, L"NativeBoxTextPadding");
+        AutomationProperties::SetLabeledBy(m_boxTextPaddingBox, paddingLabel);
+        m_boxTextPaddingBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_boxTextRendering) return;
+            m_boxTextPadding = sender.Value();
+            RefreshBoxText();
+        });
+        input.Children().Append(m_boxTextPaddingBox);
+
+        auto titleLabel = CreateText(
+            winforge::core::LocalizedText{ L"Title (optional)", L"標題（可選）" }.Pick(m_language), 13, true);
+        input.Children().Append(titleLabel);
+        m_boxTextTitleBox = TextBox();
+        m_boxTextTitleBox.Text(ToHString(m_boxTextTitle));
+        m_boxTextTitleBox.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_boxTextTitleBox, L"NativeBoxTextTitle");
+        AutomationProperties::SetLabeledBy(m_boxTextTitleBox, titleLabel);
+        m_boxTextTitleBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_boxTextRendering) return;
+            m_boxTextTitle = ToWide(sender.as<TextBox>().Text());
+            RefreshBoxText();
+        });
+        input.Children().Append(m_boxTextTitleBox);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border outputCard = MakeNativeCard();
+        StackPanel output;
+        output.Spacing(10);
+        auto outputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Result", L"結果" }.Pick(m_language), 15, true);
+        output.Children().Append(outputLabel);
+        m_boxTextOutputBox = TextBox();
+        m_boxTextOutputBox.IsReadOnly(true);
+        m_boxTextOutputBox.AcceptsReturn(true);
+        m_boxTextOutputBox.TextWrapping(TextWrapping::NoWrap);
+        m_boxTextOutputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_boxTextOutputBox.MinHeight(180);
+        m_boxTextOutputBox.MaxHeight(360);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_boxTextOutputBox, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollBarVisibility(m_boxTextOutputBox, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollMode(m_boxTextOutputBox, ScrollMode::Enabled);
+        AutomationProperties::SetAutomationId(m_boxTextOutputBox, L"NativeBoxTextOutput");
+        AutomationProperties::SetLabeledBy(m_boxTextOutputBox, outputLabel);
+        output.Children().Append(m_boxTextOutputBox);
+        auto copy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language),
+            L"NativeBoxTextCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_boxTextOutput.empty())
+            {
+                AnnounceBoxTextStatus(winforge::core::LocalizedText{
+                    L"Nothing to copy yet.", L"暫時冇嘢可以複製。" }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_boxTextOutput));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceBoxTextStatus(winforge::core::LocalizedText{
+                    L"Copied to the clipboard.", L"已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceBoxTextStatus(winforge::core::LocalizedText{
+                    L"Copy failed.", L"複製失敗。" }.Pick(m_language), true);
+            }
+        });
+        output.Children().Append(copy);
+        m_boxTextStatus = CreateText(L"", 12.5);
+        m_boxTextStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_boxTextStatus, L"NativeBoxTextStatus");
+        output.Children().Append(m_boxTextStatus);
+        outputCard.Child(output);
+        page.Children().Append(outputCard);
+
+        ShowPage(page);
+        m_boxTextRendering = false;
+        RefreshBoxText();
+    }
+
+    void MainWindow::RefreshBoxText()
+    {
+        using namespace winforge::core::referencetext;
+        if (!m_boxTextOutputBox || !m_boxTextStatus) return;
+        auto const padding = std::isfinite(m_boxTextPadding)
+            ? std::clamp(static_cast<int>(m_boxTextPadding), 0, 40)
+            : 0;
+        m_boxTextOutput = winforge::core::referencetext::RenderBoxText(
+            m_boxTextInput,
+            static_cast<BoxBorderStyle>(std::clamp(m_boxTextStyle, 0, 7)),
+            padding,
+            static_cast<BoxAlignment>(std::clamp(m_boxTextAlignment, 0, 2)),
+            m_boxTextTitle);
+        m_boxTextOutputBox.Text(ToHString(TextBoxPresentation(m_boxTextOutput)));
+        auto const lines = m_boxTextOutput.empty()
+            ? std::size_t{}
+            : static_cast<std::size_t>(std::count(m_boxTextOutput.begin(), m_boxTextOutput.end(), L'\n') + 1);
+        auto const status = winforge::core::LocalizedText{
+            std::to_wstring(m_boxTextOutput.size()) + L" chars · " + std::to_wstring(lines) + L" lines",
+            std::to_wstring(m_boxTextOutput.size()) + L" 個字元 · " + std::to_wstring(lines) + L" 行" }.Pick(m_language);
+        AnnounceBoxTextStatus(status, false, false);
+    }
+
+    void MainWindow::AnnounceBoxTextStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_boxTextStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_boxTextStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_boxTextStatus.Text(ToHString(message));
+        m_boxTextStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_boxTextStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_boxTextStatus);
+        }
+    }
+
+    void MainWindow::RenderHtmlEntities()
+    {
+        using namespace winforge::core::referencetext;
+        m_htmlEntitiesRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"HTML Entities", L"HTML 實體" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Encode HTML-sensitive text, optionally escape every non-ASCII scalar, or decode named and numeric entities. Everything runs locally.",
+                L"將 HTML 敏感文字編碼、可選擇跳脫全部非 ASCII scalar，或者解碼具名同數字實體。全部喺本機執行。" }.Pick(m_language));
+        page.MaxWidth(880);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeHtmlEntitiesPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native entity conversion", L"全原生實體轉換" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"HTML escaping, Unicode-scalar numeric references, common named entities, malformed-input preservation, and the reference table run in standard C++.",
+            L"HTML 跳脫、Unicode scalar 數字參照、常用具名實體、保留格式錯誤輸入同參考表全部用標準 C++ 執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeHtmlEntitiesImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border conversionCard = MakeNativeCard();
+        StackPanel conversion;
+        conversion.Spacing(10);
+        auto modeLabel = CreateText(
+            winforge::core::LocalizedText{ L"Mode", L"模式" }.Pick(m_language), 13, true);
+        conversion.Children().Append(modeLabel);
+        m_htmlEntitiesModeBox = ComboBox();
+        m_htmlEntitiesModeBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        m_htmlEntitiesModeBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Encode → entities", L"編碼 → 實體" }.Pick(m_language))));
+        m_htmlEntitiesModeBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Decode → text", L"解碼 → 文字" }.Pick(m_language))));
+        m_htmlEntitiesModeBox.SelectedIndex(m_htmlEntitiesDecode ? 1 : 0);
+        AutomationProperties::SetAutomationId(m_htmlEntitiesModeBox, L"NativeHtmlEntitiesMode");
+        AutomationProperties::SetLabeledBy(m_htmlEntitiesModeBox, modeLabel);
+        m_htmlEntitiesModeBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_htmlEntitiesRendering) return;
+            m_htmlEntitiesDecode = sender.as<ComboBox>().SelectedIndex() == 1;
+            RefreshHtmlEntities();
+        });
+        conversion.Children().Append(m_htmlEntitiesModeBox);
+
+        m_htmlEntitiesNonAsciiBox = CheckBox();
+        m_htmlEntitiesNonAsciiBox.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Also escape every non-ASCII character (as &#xHHHH;)",
+            L"連所有非 ASCII 字元都跳脫（變成 &#xHHHH;）" }.Pick(m_language))));
+        m_htmlEntitiesNonAsciiBox.IsChecked(
+            box_value(m_htmlEntitiesEscapeNonAscii).as<Windows::Foundation::IReference<bool>>());
+        m_htmlEntitiesNonAsciiBox.Visibility(
+            m_htmlEntitiesDecode ? Visibility::Collapsed : Visibility::Visible);
+        AutomationProperties::SetAutomationId(m_htmlEntitiesNonAsciiBox, L"NativeHtmlEntitiesEscapeNonAscii");
+        m_htmlEntitiesNonAsciiBox.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_htmlEntitiesRendering) return;
+            m_htmlEntitiesEscapeNonAscii = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+            RefreshHtmlEntities();
+        });
+        conversion.Children().Append(m_htmlEntitiesNonAsciiBox);
+
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Input", L"輸入" }.Pick(m_language), 14, true);
+        conversion.Children().Append(inputLabel);
+        m_htmlEntitiesInputBox = TextBox();
+        m_htmlEntitiesInputBox.AcceptsReturn(true);
+        m_htmlEntitiesInputBox.TextWrapping(TextWrapping::Wrap);
+        m_htmlEntitiesInputBox.MinHeight(120);
+        m_htmlEntitiesInputBox.Text(ToHString(TextBoxPresentation(m_htmlEntitiesInput)));
+        m_htmlEntitiesInputBox.IsSpellCheckEnabled(false);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_htmlEntitiesInputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_htmlEntitiesInputBox, L"NativeHtmlEntitiesInput");
+        AutomationProperties::SetLabeledBy(m_htmlEntitiesInputBox, inputLabel);
+        m_htmlEntitiesInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_htmlEntitiesRendering) return;
+            m_htmlEntitiesInput = ToWide(sender.as<TextBox>().Text());
+            RefreshHtmlEntities();
+        });
+        conversion.Children().Append(m_htmlEntitiesInputBox);
+        m_htmlEntitiesInputCount = CreateText(L"", 12);
+        m_htmlEntitiesInputCount.Opacity(0.78);
+        AutomationProperties::SetAutomationId(m_htmlEntitiesInputCount, L"NativeHtmlEntitiesInputCount");
+        conversion.Children().Append(m_htmlEntitiesInputCount);
+
+        auto outputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Output", L"輸出" }.Pick(m_language), 14, true);
+        conversion.Children().Append(outputLabel);
+        m_htmlEntitiesOutputBox = TextBox();
+        m_htmlEntitiesOutputBox.AcceptsReturn(true);
+        m_htmlEntitiesOutputBox.TextWrapping(TextWrapping::Wrap);
+        m_htmlEntitiesOutputBox.MinHeight(120);
+        m_htmlEntitiesOutputBox.IsReadOnly(true);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_htmlEntitiesOutputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_htmlEntitiesOutputBox, L"NativeHtmlEntitiesOutput");
+        AutomationProperties::SetLabeledBy(m_htmlEntitiesOutputBox, outputLabel);
+        conversion.Children().Append(m_htmlEntitiesOutputBox);
+        m_htmlEntitiesOutputCount = CreateText(L"", 12);
+        m_htmlEntitiesOutputCount.Opacity(0.78);
+        AutomationProperties::SetAutomationId(m_htmlEntitiesOutputCount, L"NativeHtmlEntitiesOutputCount");
+        conversion.Children().Append(m_htmlEntitiesOutputCount);
+
+        auto copy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy output", L"複製輸出" }.Pick(m_language),
+            L"NativeHtmlEntitiesCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_htmlEntitiesOutput.empty())
+            {
+                AnnounceHtmlEntitiesStatus(winforge::core::LocalizedText{
+                    L"Nothing to copy yet.", L"暫時冇嘢可以複製。" }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_htmlEntitiesOutput));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceHtmlEntitiesStatus(winforge::core::LocalizedText{
+                    L"Output copied to the clipboard.", L"已將輸出複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceHtmlEntitiesStatus(winforge::core::LocalizedText{
+                    L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+            }
+        });
+        conversion.Children().Append(copy);
+        m_htmlEntitiesStatus = CreateText(L"", 12.5);
+        m_htmlEntitiesStatus.Opacity(0.82);
+        m_htmlEntitiesStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_htmlEntitiesStatus, L"NativeHtmlEntitiesStatus");
+        conversion.Children().Append(m_htmlEntitiesStatus);
+        conversionCard.Child(conversion);
+        page.Children().Append(conversionCard);
+
+        Border referenceCard = MakeNativeCard();
+        StackPanel reference;
+        reference.Spacing(8);
+        reference.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Common entities", L"常用實體" }.Pick(m_language), 15, true));
+        auto referenceBlurb = CreateText(
+            winforge::core::LocalizedText{
+                L"Choose a row to copy its entity name.",
+                L"揀一行就可以複製個實體名稱。" }.Pick(m_language), 12.5);
+        referenceBlurb.Opacity(0.78);
+        referenceBlurb.TextWrapping(TextWrapping::Wrap);
+        reference.Children().Append(referenceBlurb);
+        m_htmlEntitiesReferenceRows = StackPanel();
+        m_htmlEntitiesReferenceRows.Spacing(4);
+        auto const& rows = HtmlEntityReferenceList();
+        for (std::size_t index{}; index < rows.size(); ++index)
+        {
+            auto const& item = rows[index];
+            auto const localizedDescription = winforge::core::LocalizedText{
+                item.description_en, item.description_zh }.Pick(m_language);
+            Button rowButton;
+            rowButton.HorizontalAlignment(HorizontalAlignment::Stretch);
+            rowButton.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+            rowButton.Padding(Thickness{ 12, 8, 12, 8 });
+            Grid row;
+            row.ColumnSpacing(12);
+            ColumnDefinition nameColumn;
+            nameColumn.Width(GridLengthHelper::FromPixels(160));
+            row.ColumnDefinitions().Append(nameColumn);
+            ColumnDefinition characterColumn;
+            characterColumn.Width(GridLengthHelper::FromPixels(48));
+            row.ColumnDefinitions().Append(characterColumn);
+            row.ColumnDefinitions().Append(ColumnDefinition());
+            auto name = CreateText(item.name, 14, true);
+            name.FontFamily(Media::FontFamily(L"Consolas"));
+            Grid::SetColumn(name, 0);
+            row.Children().Append(name);
+            auto character = CreateText(item.character, 18);
+            Grid::SetColumn(character, 1);
+            row.Children().Append(character);
+            auto description = CreateText(localizedDescription, 13);
+            description.Opacity(0.78);
+            description.TextWrapping(TextWrapping::Wrap);
+            Grid::SetColumn(description, 2);
+            row.Children().Append(description);
+            rowButton.Content(row);
+            AutomationProperties::SetAutomationId(
+                rowButton,
+                ToHString(L"NativeHtmlEntitiesReference" + std::to_wstring(index)));
+            AutomationProperties::SetName(
+                rowButton, ToHString(item.name + L" " + localizedDescription));
+            rowButton.Click([this, entity = item.name](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                try
+                {
+                    Windows::ApplicationModel::DataTransfer::DataPackage package;
+                    package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                    package.SetText(ToHString(entity));
+                    Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                    AnnounceHtmlEntitiesStatus(winforge::core::LocalizedText{
+                        L"Copied " + entity + L" to the clipboard.",
+                        L"已複製 " + entity + L" 到剪貼簿。" }.Pick(m_language));
+                }
+                catch (...)
+                {
+                    AnnounceHtmlEntitiesStatus(winforge::core::LocalizedText{
+                        L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+                }
+            });
+            m_htmlEntitiesReferenceRows.Children().Append(rowButton);
+        }
+        ScrollViewer referenceScroll;
+        referenceScroll.MaxHeight(360);
+        referenceScroll.VerticalScrollBarVisibility(ScrollBarVisibility::Auto);
+        referenceScroll.VerticalScrollMode(ScrollMode::Enabled);
+        AutomationProperties::SetAutomationId(referenceScroll, L"NativeHtmlEntitiesReferenceRows");
+        referenceScroll.Content(m_htmlEntitiesReferenceRows);
+        reference.Children().Append(referenceScroll);
+        referenceCard.Child(reference);
+        page.Children().Append(referenceCard);
+
+        ShowPage(page);
+        m_htmlEntitiesRendering = false;
+        RefreshHtmlEntities();
+    }
+
+    void MainWindow::RefreshHtmlEntities()
+    {
+        using namespace winforge::core::referencetext;
+        if (!m_htmlEntitiesOutputBox || !m_htmlEntitiesInputCount ||
+            !m_htmlEntitiesOutputCount || !m_htmlEntitiesStatus) return;
+        m_htmlEntitiesOutput = m_htmlEntitiesDecode
+            ? DecodeHtmlEntities(m_htmlEntitiesInput)
+            : EncodeHtmlEntities(m_htmlEntitiesInput, m_htmlEntitiesEscapeNonAscii);
+        m_htmlEntitiesOutputBox.Text(ToHString(TextBoxPresentation(m_htmlEntitiesOutput)));
+        if (m_htmlEntitiesNonAsciiBox)
+        {
+            m_htmlEntitiesNonAsciiBox.Visibility(
+                m_htmlEntitiesDecode ? Visibility::Collapsed : Visibility::Visible);
+        }
+        auto const inputLength = HtmlEntityUtf16Length(m_htmlEntitiesInput);
+        auto const outputLength = HtmlEntityUtf16Length(m_htmlEntitiesOutput);
+        auto const inputCount = winforge::core::LocalizedText{
+            std::to_wstring(inputLength) + L" characters in",
+            L"輸入 " + std::to_wstring(inputLength) + L" 個字元" }.Pick(m_language);
+        auto const outputCount = winforge::core::LocalizedText{
+            std::to_wstring(outputLength) + L" characters out",
+            L"輸出 " + std::to_wstring(outputLength) + L" 個字元" }.Pick(m_language);
+        m_htmlEntitiesInputCount.Text(ToHString(inputCount));
+        m_htmlEntitiesOutputCount.Text(ToHString(outputCount));
+        AutomationProperties::SetName(m_htmlEntitiesInputCount, ToHString(inputCount));
+        AutomationProperties::SetName(m_htmlEntitiesOutputCount, ToHString(outputCount));
+        auto const status = winforge::core::LocalizedText{
+            L"Converted locally — nothing leaves your PC.",
+            L"已喺本機轉換 — 冇任何資料離開你部電腦。" }.Pick(m_language);
+        AnnounceHtmlEntitiesStatus(status, false, false);
+    }
+
+    void MainWindow::AnnounceHtmlEntitiesStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_htmlEntitiesStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_htmlEntitiesStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_htmlEntitiesStatus.Text(ToHString(message));
+        m_htmlEntitiesStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_htmlEntitiesStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_htmlEntitiesStatus);
         }
     }
 

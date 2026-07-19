@@ -19,6 +19,7 @@
 #include "../WinForge.Core/PackageRuntime.h"
 #include "../WinForge.Core/PackageSetup.h"
 #include "../WinForge.Core/RegexCheat.h"
+#include "../WinForge.Core/ReferenceText.h"
 #include "../WinForge.Core/SymbolsPalette.h"
 #include "../WinForge.Core/TextDiff.h"
 #include "../WinForge.Core/TextAnalysis.h"
@@ -285,6 +286,28 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_stringCompareWhitespaceSwitch{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_stringCompareMetrics{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_stringCompareStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_phoneticInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_phoneticAlphabetBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_phoneticUpperBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_phoneticPunctuationBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_phoneticSpokenBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ListView m_phoneticRows{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_phoneticStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_boxTextInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_boxTextStyleBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_boxTextAlignmentBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_boxTextPaddingBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_boxTextTitleBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_boxTextOutputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_boxTextStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_htmlEntitiesModeBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_htmlEntitiesNonAsciiBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_htmlEntitiesInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_htmlEntitiesOutputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_htmlEntitiesInputCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_htmlEntitiesOutputCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_htmlEntitiesReferenceRows{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_htmlEntitiesStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -488,6 +511,24 @@ namespace winrt::WinForge::implementation
         bool m_stringCompareRendering{ false };
         bool m_stringCompareTruncationWarningActive{ false };
         std::vector<std::pair<std::wstring, std::wstring>> m_stringCompareLastRows;
+        std::wstring m_phoneticInput{};
+        int32_t m_phoneticAlphabet{ 0 };
+        bool m_phoneticUpper{ false };
+        bool m_phoneticKeepPunctuation{ true };
+        bool m_phoneticRendering{ false };
+        std::wstring m_phoneticSpoken{};
+        std::wstring m_boxTextInput{};
+        int32_t m_boxTextStyle{ 0 };
+        int32_t m_boxTextAlignment{ 0 };
+        double m_boxTextPadding{ 1.0 };
+        std::wstring m_boxTextTitle{};
+        std::wstring m_boxTextOutput{};
+        bool m_boxTextRendering{ false };
+        std::wstring m_htmlEntitiesInput{};
+        std::wstring m_htmlEntitiesOutput{};
+        bool m_htmlEntitiesDecode{ false };
+        bool m_htmlEntitiesEscapeNonAscii{ false };
+        bool m_htmlEntitiesRendering{ false };
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -612,6 +653,7 @@ namespace winrt::WinForge::implementation
         void BuildPrimaryNavigation();
         void Navigate(std::wstring_view route, std::wstring_view argument = {}, bool deepLink = false);
         void ReleaseTextAnalysisRouteState(std::wstring_view nextRoute);
+        void ReleaseReferenceTextRouteState(std::wstring_view nextRoute);
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -801,6 +843,24 @@ namespace winrt::WinForge::implementation
         void RenderStringCompare();
         void RefreshStringCompare();
         void AnnounceStringCompareStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
+        void RenderPhonetic();
+        void RefreshPhonetic();
+        void AnnouncePhoneticStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
+        void RenderBoxText();
+        void RefreshBoxText();
+        void AnnounceBoxTextStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
+        void RenderHtmlEntities();
+        void RefreshHtmlEntities();
+        void AnnounceHtmlEntitiesStatus(
             std::wstring_view message,
             bool warning = false,
             bool announce = true);

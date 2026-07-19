@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-19T03:56:04Z",
+    "generatedAtUtc":  "2026-07-19T17:25:47Z",
     "baselineCommit":  "ce879cc6626eae328ec72e0143761c0edfbae340",
     "baselineCounts":  {
                            "routes":  346,
@@ -1128,25 +1128,37 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/ReferenceText.h",
+                                      "src/WinForge.Core/ReferenceText.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/ReferenceTextTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/wiki/features/text-tools/boxtext.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Box \u0026 Banner Text · 文字方框 / 橫幅 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-19T17:25:46Z",
+                                           "result":  "Dedicated native C++/WinRT Box & Banner Text and standard-C++ ReferenceText core preserve eight border/comment styles, three alignments, bounded padding, optional titles, multiline/tab-aware layout, Unicode display width, live output, and explicit-only Copy. Native Debug and Release x64 solution builds each exited 0 with 0 errors; Debug and Release core each passed 759/759, the managed Debug x64 solution build exited 0 with 0 errors, catalog parity passed 346 fixed routes plus five dynamic families, and focused -ReferenceTextRoutesOnly UI Automation passed 29/29 across all eight registered aliases. The post-localization exhaustive run passed every reference-text check and ended 408/410 after one existing Case Converter status check and one Line Tools output check missed once; unchanged read-only retests cleared Line Tools at 42/42 and the targeted Case Converter batch at 48/48. LowLevel MCP is not callable in this Codex session. The repository driver attempted boxtext but failed because CopyFromScreen was unavailable and PrintWindow returned a blank/near-uniform client. No PNG was created, no WinForge process remained, and no canonical screenshot changed.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中. Debug/Release 0-error builds, core 759/759 each, managed 0-error build, catalog parity, focused UIA 29/29, reference-text checks inside the 408/410 exhaustive run, side-effect policy, and docs evidence pass. Two existing unrelated assertions cleared unchanged on 42/42 and 48/48 read-only retests. LowLevel MCP is unavailable; the required driver rejected the blank/near-uniform client, created no PNG, left no process, and changed no canonical screenshot. Visual is conclusively capture-blocked, so the route is not called complete. Debug／Release build、core 759/759、managed build、catalog parity、專項 29/29 同新 route 完整 shell 檢查已通過；兩個既有偶發失敗已用不改碼重測清除；driver 拒絕空白畫面，visual 最終係 capture-blocked。"
                    },
                    {
                        "id":  "module.bulkops",
@@ -3849,25 +3861,37 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/ReferenceText.h",
+                                      "src/WinForge.Core/ReferenceText.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/ReferenceTextTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/wiki/features/markup-docs-symbols/htmlentities.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "HTML Entities · HTML 實體 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-19T17:25:46Z",
+                                           "result":  "Dedicated native C++/WinRT HTML Entities and standard-C++ ReferenceText core preserve must-escape and optional non-ASCII encoding, named and decimal/hex numeric decoding, Unicode scalars and invalid UTF-16 safety, managed-compatible scan behavior, a local 50-row English/Cantonese/bilingual reference, live counts, and explicit-only Copy. Native Debug and Release x64 solution builds each exited 0 with 0 errors; Debug and Release core each passed 759/759, the managed Debug x64 solution build exited 0 with 0 errors, catalog parity passed 346 fixed routes plus five dynamic families, and focused -ReferenceTextRoutesOnly UI Automation passed 29/29 across all eight registered aliases, including all three language modes. The post-localization exhaustive run passed every reference-text check and ended 408/410 after one existing Case Converter status check and one Line Tools output check missed once; unchanged read-only retests cleared Line Tools at 42/42 and the targeted Case Converter batch at 48/48. LowLevel MCP is not callable in this Codex session. A fresh final htmlentities driver attempt failed because CopyFromScreen was unavailable and PrintWindow returned a blank/near-uniform client. No PNG was created, no WinForge process remained, and no canonical screenshot changed.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中. Debug/Release 0-error builds, core 759/759 each, managed 0-error build, catalog parity, focused UIA 29/29 with English/Cantonese/bilingual reference-row coverage, reference-text checks inside the 408/410 exhaustive run, side-effect policy, and docs evidence pass. Two existing unrelated assertions cleared unchanged on 42/42 and 48/48 read-only retests. LowLevel MCP is unavailable; the fresh final driver attempt rejected the blank/near-uniform client, created no PNG, left no process, and changed no canonical screenshot. Visual is conclusively capture-blocked, so the route is not called complete. Debug／Release build、core 759/759、managed build、catalog parity、三種語言專項 29/29 同新 route 完整 shell 檢查已通過；兩個既有偶發失敗已用不改碼重測清除；driver 拒絕空白畫面，visual 最終係 capture-blocked。"
                    },
                    {
                        "id":  "module.htmlformat",
@@ -5933,25 +5957,37 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/ReferenceText.h",
+                                      "src/WinForge.Core/ReferenceText.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/ReferenceTextTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/wiki/features/text-tools/phonetic.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Phonetic Speller · 拼讀字母表 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-19T17:25:46Z",
+                                           "result":  "Dedicated native C++/WinRT Phonetic Speller and standard-C++ ReferenceText core preserve NATO, police, and simple alphabets, digits, uppercase/punctuation options, managed UTF-16 code-unit rows, spoken output, and explicit-only Copy. Native Debug and Release x64 solution builds each exited 0 with 0 errors; Debug and Release core each passed 759/759, the managed Debug x64 solution build exited 0 with 0 errors, catalog parity passed 346 fixed routes plus five dynamic families, and focused -ReferenceTextRoutesOnly UI Automation passed 29/29 across all eight registered aliases. The post-localization exhaustive run passed every reference-text check, including the 501-row virtualized list, and ended 408/410 after one existing Case Converter status check and one Line Tools output check missed once; unchanged read-only retests cleared Line Tools at 42/42 and the targeted Case Converter batch at 48/48. LowLevel MCP is not callable in this Codex session. The repository driver attempted phonetic but failed because CopyFromScreen was unavailable and PrintWindow returned a blank/near-uniform client. No PNG was created, no WinForge process remained, and no canonical screenshot changed.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中. Debug/Release 0-error builds, core 759/759 each, managed 0-error build, catalog parity, focused UIA 29/29, 501-row virtualization and reference-text checks inside the 408/410 exhaustive run, side-effect policy, and docs evidence pass. Two existing unrelated assertions cleared unchanged on 42/42 and 48/48 read-only retests. LowLevel MCP is unavailable; the required driver rejected the blank/near-uniform client, created no PNG, left no process, and changed no canonical screenshot. Visual is conclusively capture-blocked, so the route is not called complete. Debug／Release build、core 759/759、managed build、catalog parity、專項 29/29、501 列 virtualized list 同新 route 完整 shell 檢查已通過；兩個既有偶發失敗已用不改碼重測清除；driver 拒絕空白畫面，visual 最終係 capture-blocked。"
                    },
                    {
                        "id":  "module.ping",

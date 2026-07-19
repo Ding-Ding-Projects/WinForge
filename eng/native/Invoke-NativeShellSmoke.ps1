@@ -6,6 +6,7 @@ param(
     [switch]$UtilityRoutesOnly,
     [switch]$LineRoutesOnly,
     [switch]$TextAnalysisRoutesOnly,
+    [switch]$ReferenceTextRoutesOnly,
     [switch]$AllowClipboardMutation
 )
 
@@ -193,20 +194,84 @@ function Wait-ForElementNamePrefix {
     param(
         [Parameter(Mandatory)]$Root,
         [Parameter(Mandatory)][string]$AutomationId,
-        [Parameter(Mandatory)][string]$Prefix
+        [Parameter(Mandatory)][string]$Prefix,
+        [int]$WaitTimeoutMs = $TimeoutMs
     )
 
-    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($WaitTimeoutMs)
+    $element = $null
+    $lastError = $null
     do {
-        $element = Find-ByAutomationId -Root $Root -AutomationId $AutomationId
-        if ($element -and $element.Current.Name.StartsWith($Prefix, [StringComparison]::Ordinal)) {
-            return $element
+        try {
+            $element = Find-ByAutomationId -Root $Root -AutomationId $AutomationId
+            if ($element -and $element.Current.Name.StartsWith($Prefix, [StringComparison]::Ordinal)) {
+                return $element
+            }
+        }
+        catch {
+            # A virtualized WinUI list can briefly invalidate its provider while
+            # replacing realized rows. Reacquire the live element on the next poll.
+            $element = $null
+            $lastError = $_
         }
         Start-Sleep -Milliseconds 100
     } while ([DateTime]::UtcNow -lt $deadline)
 
     $actual = if ($element) { $element.Current.Name } else { '(missing)' }
-    throw "Expected '$AutomationId' name prefix '$Prefix', got '$actual'."
+    $suffix = if ($lastError) { " Last automation error: $lastError" } else { '' }
+    throw "Expected '$AutomationId' name prefix '$Prefix', got '$actual'.$suffix"
+}
+
+function Wait-ForDescendantNamePrefix {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$Prefix
+    )
+
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        $elements = $Root.FindAll(
+            [System.Windows.Automation.TreeScope]::Descendants,
+            [System.Windows.Automation.Condition]::TrueCondition)
+        foreach ($element in $elements) {
+            if ($element.Current.Name.StartsWith($Prefix, [StringComparison]::Ordinal)) {
+                return $element
+            }
+        }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    throw "Timed out waiting for a descendant name prefix '$Prefix'."
+}
+
+function Wait-ForExistingElementNamePrefix {
+    param(
+        [Parameter(Mandatory)]$Element,
+        [Parameter(Mandatory)][string]$Prefix,
+        [int]$WaitTimeoutMs = $TimeoutMs
+    )
+
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($WaitTimeoutMs)
+    $actual = '(unavailable)'
+    $lastError = $null
+    do {
+        try {
+            $actual = $Element.Current.Name
+            if ($actual.StartsWith($Prefix, [StringComparison]::Ordinal)) {
+                return $Element
+            }
+        }
+        catch {
+            # The retained element avoids traversing a large virtualized subtree;
+            # retry if its provider is momentarily busy refreshing realized rows.
+            $actual = '(unavailable)'
+            $lastError = $_
+        }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    $suffix = if ($lastError) { " Last automation error: $lastError" } else { '' }
+    throw "Expected retained element name prefix '$Prefix', got '$actual'.$suffix"
 }
 
 function Wait-ForElementValue {
@@ -545,10 +610,15 @@ function Invoke-OwnedRoute {
         'textstats', 'module.textstats',
         'wordfreq', 'module.wordfreq',
         'similarity', 'stringcompare', 'module.stringcompare') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly) -and -not (
+    $isReferenceTextRoute = @(
+        'nato', 'phonetic', 'module.phonetic',
+        'boxtext', 'module.boxtext',
+        'entities', 'htmlentities', 'module.htmlentities') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
-        ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute))) {
+        ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
+        ($ReferenceTextRoutesOnly -and $isReferenceTextRoute))) {
         return
     }
 
@@ -3160,6 +3230,271 @@ Invoke-OwnedRoute -Route 'similarity' -ExpectedTitle 'String Compare' -Inspect {
 
 foreach ($alias in @('stringcompare', 'module.stringcompare')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'String Compare'
+}
+
+Invoke-OwnedRoute -Route 'phonetic' -ExpectedTitle 'Phonetic Speller' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativePhoneticImplementationStatus',
+        'NativePhoneticInput',
+        'NativePhoneticAlphabet',
+        'NativePhoneticUpper',
+        'NativePhoneticKeepPunctuation',
+        'NativePhoneticSpoken',
+        'NativePhoneticRows',
+        'NativePhoneticCopy',
+        'NativePhoneticStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePhoneticInput' -Value 'ab-9' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePhoneticSpoken' `
+        -ExpectedValue 'Alpha Bravo - Niner' | Out-Null
+    $phoneticRows = Wait-ForElement -Root $root -AutomationId 'NativePhoneticRows'
+    Wait-ForDescendantNamePrefix -Root $phoneticRows -Prefix 'a: Alpha' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Phonetic Speller maps letters, punctuation, and ICAO digit words through native controls'
+
+    Set-ToggleState -Root $root -AutomationId 'NativePhoneticKeepPunctuation' -IsOn $false | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePhoneticSpoken' `
+        -ExpectedValue 'Alpha Bravo Niner' | Out-Null
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativePhoneticAlphabet') -Index 1
+    Wait-ForElementValue -Root $root -AutomationId 'NativePhoneticSpoken' `
+        -ExpectedValue 'Adam Boy Niner' | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePhoneticUpper' -IsOn $true | Out-Null
+    $phoneticRows = Wait-ForElement -Root $root -AutomationId 'NativePhoneticRows'
+    Wait-ForDescendantNamePrefix -Root $phoneticRows -Prefix 'A: Adam' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Phonetic Speller preserves police alphabet, punctuation filtering, and display-case options'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativePhoneticCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePhoneticStatus' `
+            -Prefix 'Spoken text copied' | Out-Null
+        Assert-True -Condition $true -Name 'Phonetic Speller writes the clipboard only after explicit Copy'
+    }
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Phonetic Speller' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePhoneticSpoken' `
+        -ExpectedValue 'Adam Boy Niner' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Phonetic Speller localizes in place while preserving its input and options'
+
+    $phoneticStatus = Wait-ForElement -Root $root -AutomationId 'NativePhoneticStatus'
+    $largePhoneticInput = 'a' * 501
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePhoneticInput' `
+        -Value $largePhoneticInput | Out-Null
+    Wait-ForExistingElementNamePrefix -Element $phoneticStatus `
+        -Prefix '501 item(s) spelled locally.' -WaitTimeoutMs 30000 | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Phonetic Speller virtualizes the complete per-character row collection'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativePhoneticInput')) `
+        -Name 'Phonetic Speller releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.phonetic' -ExpectedTitle 'Phonetic Speller'
+    Wait-ForElementValue -Root $root -AutomationId 'NativePhoneticInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePhoneticSpoken' `
+        -ExpectedValue '(nothing to spell yet)' | Out-Null
+    $upper = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativePhoneticUpper').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $punctuation = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativePhoneticKeepPunctuation').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $upper.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off -and
+        $punctuation.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) `
+        -Name 'Phonetic Speller resets managed page state after in-process route re-entry'
+}
+
+foreach ($alias in @('nato', 'phonetic', 'module.phonetic')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Phonetic Speller'
+}
+
+Invoke-OwnedRoute -Route 'boxtext' -ExpectedTitle 'Box & Banner Text' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeBoxTextImplementationStatus',
+        'NativeBoxTextInput',
+        'NativeBoxTextStyle',
+        'NativeBoxTextAlignment',
+        'NativeBoxTextPadding',
+        'NativeBoxTextTitle',
+        'NativeBoxTextOutput',
+        'NativeBoxTextCopy',
+        'NativeBoxTextStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $newLine = "`r"
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBoxTextInput' `
+        -Value (@('hi', 'x') -join $newLine) | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBoxTextOutput' `
+        -ExpectedValue (@('+----+', '| hi |', '| x  |', '+----+') -join $newLine) | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Box Text renders managed-compatible multiline ASCII padding through native controls'
+
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeBoxTextStyle') -Index 6
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBoxTextTitle' -Value 'Note' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeBoxTextPadding' -Value '2' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeBoxTextOutput').SetFocus()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBoxTextOutput' `
+        -ExpectedValue (@('/*', ' * Note', ' *', ' *   hi', ' *   x', ' */') -join $newLine) | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Box Text switches to titled comment blocks with bounded padding'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeBoxTextCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBoxTextStatus' `
+            -Prefix 'Copied to the clipboard' | Out-Null
+        Assert-True -Condition $true -Name 'Box Text writes the clipboard only after explicit Copy'
+    }
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Box & Banner Text' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBoxTextOutput' `
+        -ExpectedValue (@('/*', ' * Note', ' *', ' *   hi', ' *   x', ' */') -join $newLine) | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Box Text localizes in place while preserving text, title, style, and padding'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeBoxTextInput')) `
+        -Name 'Box Text releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.boxtext' -ExpectedTitle 'Box & Banner Text'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBoxTextInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBoxTextTitle' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBoxTextPadding' -ExpectedValue '1' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBoxTextOutput' `
+        -ExpectedValue (@('+--+', '|  |', '+--+') -join $newLine) | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Box Text resets managed page state after in-process route re-entry'
+}
+
+foreach ($alias in @('boxtext', 'module.boxtext')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Box & Banner Text'
+}
+
+Invoke-OwnedRoute -Route 'htmlentities' -ExpectedTitle 'HTML Entities' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeHtmlEntitiesImplementationStatus',
+        'NativeHtmlEntitiesMode',
+        'NativeHtmlEntitiesEscapeNonAscii',
+        'NativeHtmlEntitiesInput',
+        'NativeHtmlEntitiesInputCount',
+        'NativeHtmlEntitiesOutput',
+        'NativeHtmlEntitiesOutputCount',
+        'NativeHtmlEntitiesCopy',
+        'NativeHtmlEntitiesReferenceRows',
+        'NativeHtmlEntitiesReference0',
+        'NativeHtmlEntitiesStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $copyright = [char]0x00A9
+    $emoji = [char]::ConvertFromUtf32(0x1F600)
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeHtmlEntitiesInput' `
+        -Value "A<&`"'$copyright$emoji" | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeHtmlEntitiesOutput' `
+        -ExpectedValue "A&lt;&amp;&quot;&#39;$copyright$emoji" | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeHtmlEntitiesEscapeNonAscii' -IsOn $true | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeHtmlEntitiesOutput' `
+        -ExpectedValue 'A&lt;&amp;&quot;&#39;&#xA9;&#x1F600;' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'HTML Entities escapes mandatory characters and supplementary scalars through native controls'
+
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeHtmlEntitiesMode') -Index 1
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeHtmlEntitiesInput' `
+        -Value '&copy; &#x1F600; &unknown;' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeHtmlEntitiesOutput' `
+        -ExpectedValue "$copyright $emoji &unknown;" | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeHtmlEntitiesReference0' `
+        -Prefix '&amp; Ampersand' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'HTML Entities decodes named and numeric entities while preserving unknown references'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeHtmlEntitiesReference0'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeHtmlEntitiesStatus' `
+            -Prefix 'Copied &amp;' | Out-Null
+        Assert-True -Condition $true `
+            -Name 'HTML Entities reference rows copy only after an explicit selection'
+    }
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = @([char]0x7CB5, [char]0x8A9E) -join ''
+    $bilingualLabel = @([char]0x96D9, [char]0x8A9E) -join ''
+    $entityLabel = @([char]0x5BE6, [char]0x9AD4) -join ''
+    $andSymbolLabel = 'and ' + (@([char]0x7B26, [char]0x865F) -join '')
+    $middleDot = [char]0x00B7
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForPageTitle -Root $root -Prefix ('HTML ' + $entityLabel) | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeHtmlEntitiesReference0' `
+        -Prefix ('&amp; ' + $andSymbolLabel) | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeHtmlEntitiesOutput' `
+        -ExpectedValue "$copyright $emoji &unknown;" | Out-Null
+    Assert-True -Condition $true `
+        -Name 'HTML Entities localizes reference descriptions in Cantonese while preserving decode state'
+
+    Select-ComboItem -Combo $language -Name ('Bilingual ' + $middleDot + ' ' + $bilingualLabel)
+    Wait-ForPageTitle -Root $root -Prefix ('HTML Entities ' + $middleDot + ' HTML ' + $entityLabel) | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeHtmlEntitiesReference0' `
+        -Prefix ('&amp; Ampersand ' + $middleDot + ' ' + $andSymbolLabel) | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeHtmlEntitiesOutput' `
+        -ExpectedValue "$copyright $emoji &unknown;" | Out-Null
+    Assert-True -Condition $true `
+        -Name 'HTML Entities exposes bilingual reference descriptions while preserving decode state'
+
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'HTML Entities' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeHtmlEntitiesReference0' `
+        -Prefix '&amp; Ampersand' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeHtmlEntitiesOutput' `
+        -ExpectedValue "$copyright $emoji &unknown;" | Out-Null
+    Assert-True -Condition $true `
+        -Name 'HTML Entities returns reference descriptions to English while preserving decode state and input'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeHtmlEntitiesInput')) `
+        -Name 'HTML Entities releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.htmlentities' -ExpectedTitle 'HTML Entities'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeHtmlEntitiesInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeHtmlEntitiesOutput' -ExpectedValue '' | Out-Null
+    $nonAscii = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeHtmlEntitiesEscapeNonAscii').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $nonAscii.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'HTML Entities resets managed page state after in-process route re-entry'
+}
+
+foreach ($alias in @('entities', 'htmlentities', 'module.htmlentities')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'HTML Entities'
 }
 
 Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {
