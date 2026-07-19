@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-19T19:11:59Z",
+    "generatedAtUtc":  "2026-07-19T19:35:55Z",
     "baselineCommit":  "ce879cc6626eae328ec72e0143761c0edfbae340",
     "baselineCounts":  {
                            "routes":  346,
@@ -5275,9 +5275,14 @@
                                            "atUtc":  "2026-07-19T19:11:59Z",
                                            "result":  "Controlled merge validation with Reference Text: native Debug and Release solution builds exited 0 with 0 errors; both core suites passed 783/783; catalog parity passed 346 fixed routes plus five dynamic families; focused Reference Text UI Automation passed 29/29; focused Morse UI Automation passed 13/13; and the exhaustive native shell passed 430/430. LowLevel MCP remained unavailable in this session. The fresh native morse driver launch rejected a blank or near-uniform PrintWindow fallback after CopyFromScreen was unavailable, so no PNG or canonical screenshot was retained.",
                                            "status":  "capture-blocked"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T19:35:55Z",
+                                           "result":  "Remote integration and release proof: merge dc95f0f8, Morse tip 6d9c4ae8, and Reference Text tip 25cc6a78 are ancestors of origin/main. Hosted native run 29700338773 passed and published stable native-v1.0.64 at dc95f0f8 with exactly the native setup and ZIP. The successful site-data follow-up committed 5e2636fd; native run 29700486762 published stable native-v1.0.65 as current Latest with the same two-asset native-only contract. Downloaded v1.0.65 SHA-256 values matched GitHub; its 292-entry ZIP contains one MZ WinForge.exe and no WinForge.dll, deps.json, or runtimeconfig.json payload.",
+                                           "status":  "pass"
                                        }
                                     ],
-                       "notes":  "2026-07-19 · IN PROGRESS / 進行中. Controlled merge validation is green: Debug/Release 0-error builds, core 783/783 each, catalog parity, Reference Text UIA 29/29, Morse UIA 13/13, and exhaustive shell 430/430. Morse remains local-only with explicit clipboard Copy and timer cleanup on Stop, route exit, and window close. LowLevel MCP is not callable in this session; the fresh morse driver rejected the blank WinUI fallback, retained no PNG, and changed no canonical screenshot. Visual is conclusively capture-blocked, so the row remains in-progress. 受控整合驗證已通過：Debug／Release 0 errors、core 各 783/783、catalog parity、Reference Text UIA 29/29、Morse UIA 13/13 同完整 shell 430/430；但 LowLevel 不可呼叫、driver 拒絕空白 fallback，冇 PNG，所以 visual 保持 capture-blocked。"
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中. Controlled merge validation and remote release proof are green: Debug/Release 0-error builds, core 783/783 each, catalog parity, Reference Text UIA 29/29, Morse UIA 13/13, exhaustive shell 430/430, hosted native-v1.0.64 at dc95f0f8, and current Latest native-v1.0.65 at origin/main 5e2636fd. Morse remains local-only with explicit clipboard Copy and timer cleanup on Stop, route exit, and window close. LowLevel MCP is not callable in this session; the fresh morse driver rejected the blank WinUI fallback, retained no PNG, and changed no canonical screenshot. Visual is conclusively capture-blocked, so the row remains in-progress. 受控整合驗證同遠端發佈證明已通過：Debug／Release 0 errors、core 各 783/783、catalog parity、Reference Text UIA 29/29、Morse UIA 13/13、完整 shell 430/430、dc95f0f8 嘅 native-v1.0.64 同 current main 5e2636fd 嘅 Latest native-v1.0.65；但 LowLevel 不可呼叫、driver 拒絕空白 fallback，冇 PNG，所以 visual 保持 capture-blocked。"
                    },
                    {
                        "id":  "module.mouse",
