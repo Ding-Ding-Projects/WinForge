@@ -21,6 +21,7 @@
 #include "../WinForge.Core/PackageSetup.h"
 #include "../WinForge.Core/RegexCheat.h"
 #include "../WinForge.Core/ReferenceText.h"
+#include "../WinForge.Core/Slugify.h"
 #include "../WinForge.Core/SymbolsPalette.h"
 #include "../WinForge.Core/TextDiff.h"
 #include "../WinForge.Core/TextAnalysis.h"
@@ -322,6 +323,16 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBlock m_htmlEntitiesOutputCount{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_htmlEntitiesReferenceRows{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_htmlEntitiesStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_slugifyInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_slugifySeparatorBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_slugifyCaseBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_slugifyMaxLengthBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_slugifyDiacriticsBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_slugifyCollapseBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_slugifyUnicodeBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_slugifyOutputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_slugifyPreviewText{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_slugifyStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -553,6 +564,15 @@ namespace winrt::WinForge::implementation
         bool m_htmlEntitiesDecode{ false };
         bool m_htmlEntitiesEscapeNonAscii{ false };
         bool m_htmlEntitiesRendering{ false };
+        std::wstring m_slugifyInput{};
+        std::wstring m_slugifyOutput{};
+        int32_t m_slugifySeparator{ 0 };
+        int32_t m_slugifyCase{ 0 };
+        double m_slugifyMaxLength{};
+        bool m_slugifyStripDiacritics{ true };
+        bool m_slugifyCollapseRepeats{ true };
+        bool m_slugifyKeepUnicodeLetters{};
+        bool m_slugifyRendering{ false };
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -680,6 +700,7 @@ namespace winrt::WinForge::implementation
         void ReleaseReferenceTextRouteState(std::wstring_view nextRoute);
         void ReleaseMorseRouteState(std::wstring_view nextRoute);
         void ResetMorseRouteState();
+        void ReleaseSlugifyRouteState(std::wstring_view nextRoute);
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -896,6 +917,12 @@ namespace winrt::WinForge::implementation
         void RenderHtmlEntities();
         void RefreshHtmlEntities();
         void AnnounceHtmlEntitiesStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
+        void RenderSlugify();
+        void RefreshSlugify();
+        void AnnounceSlugifyStatus(
             std::wstring_view message,
             bool warning = false,
             bool announce = true);

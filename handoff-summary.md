@@ -1,6 +1,15 @@
 # WinForge Full Development Handoff
 
-## Current 2026-07-19 native Reference Text + Morse integration — hosted release proven · 2026-07-19 原生參考文字及摩斯整合 — hosted 發佈已證明
+## Current 2026-07-19 native Slugify controlled integration — local validation green · 2026-07-19 原生網址別名受控整合 — 本機驗證通過
+
+- **Scope / 範圍：** `slug`, `slugify`, and `module.slugify` are now a genuine C++/WinRT renderer over the standard-C++ `Slugify` core, integrated with existing native Reference Text and Morse routes. It preserves managed line/blank/diacritic/Unicode/separator/case/UTF-16-preview semantics, route lifecycle, all three language modes, and explicit-only clipboard Copy.
+- **Current evidence / 目前證據：** Debug and Release x64 solution builds exit 0 with 0 errors; both core suites pass **801/801**; catalog parity passes **346 fixed routes + five dynamic families**; focused UIA is **29/29** Reference Text, **13/13** Morse, and **12/12** Slugify; the exhaustive native shell is **441/441**. `HasNativeRenderer` and the ledger are **32/346 fixed routes**, **32 `in-progress` / 314 `not-started`**.
+- **Visual evidence / 視覺證據：** the local LowLevel MCP checkout exists but is not callable in this Codex session. The required native `slugify` driver found `CopyFromScreen` unavailable and rejected a blank/near-uniform `PrintWindow` fallback. No PNG was retained or promoted and no canonical screenshot changed; these five routes remain honestly `capture-blocked`.
+- **Release boundary / 發佈界線：** the integration does not change workflows or release policy. It remains a pure native C++ feature; the controlled `main` push will be verified against the existing C++-only release gate before it is called remotely complete.
+
+**粵語摘要：** Slugify 三個 alias 已同現有 Reference Text 同 Morse 原生 route 受控整合，保留 managed 分行／空白／重音／Unicode／分隔符／大小寫／UTF-16／預覽、route lifecycle、三種語言同只限明確 Copy。Debug／Release 0 errors、core 各 **801/801**、catalog parity、Reference Text **29/29**、Morse **13/13**、Slugify **12/12** 同完整 shell **441/441** 已通過；計數係 **32/346**，ledger **32 `in-progress` / 314 `not-started`**。LowLevel MCP 今個 session 不可呼叫，driver 因 `CopyFromScreen`／空白 fallback 受阻，冇 PNG 或 canonical 圖變更，所以五條 route 保持 `capture-blocked`。呢次唔改 workflow／release policy，受控 main push 會由現有只限 C++ release gate 驗證。
+
+## Historical 2026-07-19 native Reference Text + Morse integration — hosted release proven · 2026-07-19 歷史原生參考文字及摩斯整合 — hosted 發佈已證明
 
 - **Scope / 範圍：** the controlled main merge combines native Phonetic Speller, Box & Banner Text, HTML Entities, and Morse Code. All four have genuine C++/WinRT renderers over testable standard-C++ cores, local processing, explicit-only clipboard writes, route reset/lifecycle handling, localization, and accessible control surfaces.
 - **Current evidence / 目前證據：** native Debug and Release x64 solution builds each exit 0 with 0 errors; Debug and Release core each pass **783/783**; catalog parity passes **346 fixed routes + five dynamic route families**; `-ReferenceTextRoutesOnly` passes **29/29**; `-MorseRoutesOnly` passes **13/13**; and the exhaustive native shell passes **430/430 (430 passed, 0 failed)**. `HasNativeRenderer` and the ledger are **31/346 fixed routes**, **31 `in-progress` / 315 `not-started`**; capture-blocked is never presented as port complete.
@@ -19,6 +28,17 @@
 - **Integration state / 整合狀態：** feature commit 66bb415e5f1730bb128f4d649e493150da222d06 is in a controlled merge with current main. Fresh native build, core, UIA, parity, capture disposition, hosted CI, and native-only release evidence will replace the branch-only aggregate after integration.
 
 ### Reference Text routes / 參考文字 route
+## 2026-07-19 native Slugify wave — focused routes green; visual capture blocked · 2026-07-19 原生網址別名批次 — 專項 route 通過；視覺擷取受阻
+
+- **Scope / 範圍：** `slug`, `slugify`, and `module.slugify` now have a dedicated C++/WinRT page backed by standard-C++ `Slugify`. It preserves managed CRLF/LF/CR block conversion, blank-line skipping, diacritic normalization, default ASCII and opt-in Unicode categories, separator/case/max-length rules, first nonblank-line preview, route-entry reset, language rerender retention, and explicit-only clipboard Copy.
+- **Inventory / 清單：** `HasNativeRenderer` and the provisional ledger account for **31/346 fixed routes**, leaving **315** fixed routes plus five dynamic families. The new row is `in-progress`; a renderer without valid visual evidence is never called complete.
+- **Evidence green / 已通過證據：** Debug and Release x64 native solution builds each exit 0 with 0 errors; Debug and Release core each pass **777/777**, including Slugify **18/18**; catalog parity covers 346 fixed routes plus five dynamic families; focused `-SlugifyRoutesOnly` UI Automation passes **12/12** across all three aliases and covers explicit clipboard Copy.
+- **Visual disposition / 視覺處置：** LowLevel MCP is not callable in this Codex session. The required repository-driver capture reached the fallback, reported `CopyFromScreen` unavailable, and rejected a blank/near-uniform `PrintWindow` client. No PNG was created, no worktree WinForge process remained, and no canonical screenshot changed. The ledger visual dimension is `capture-blocked`.
+- **Integration boundary / 整合界線：** feature-only work: no workflow, release, tag, GitHub, or `main` mutation. The isolated `codex/native-slugify` commit must be integrated under the release owner’s controlled native-only publishing flow.
+
+**粵語摘要：** 網址別名三個 alias 而家有專用原生 renderer 同 `Slugify` core；renderer 計 **31/346**，仲有 **315** 條固定 route 同五組家族。Debug／Release 0 errors、core 各 **777/777**（Slugify **18/18**）、catalog parity 同三個 alias UIA **12/12** 已通過。今次冇可呼叫 LowLevel MCP；driver 因 `CopyFromScreen` 唔可用而拒絕空白 fallback，冇 PNG／冇 worktree process／冇改 canonical 截圖，所以 visual 係 `capture-blocked`。呢個分支只改功能，唔改 workflow／release／GitHub／`main`，要由 release owner 受控整合。
+
+## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
 
 - **Scope / 範圍：** dedicated C++/WinRT renderers for Phonetic Speller, Box & Banner Text, and HTML Entities, backed by the shared standard-C++ `ReferenceText` core. The wave preserves three phonetic alphabets, digits, uppercase/punctuation options, managed UTF-16 code-unit rows and spoken output; eight box/comment styles, three alignments, bounded padding, optional titles, multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local; clipboard writes require explicit Copy.
 - **Inventory / 清單：** `HasNativeRenderer` and the provisional ledger now account for **30/346 fixed routes**, leaving **316 fixed routes** plus five dynamic route families. The ledger is exactly **30 `in-progress` / 316 `not-started`**; no pending or uninspected page is called complete.

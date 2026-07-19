@@ -25,6 +25,18 @@
 
 ## 🧱 Native C++ Rewrite · 原生 C++ 重寫
 
+### 2026-07-19 controlled native Slugify integration · 2026-07-19 受控原生網址別名整合
+
+**EN —** Slugify is now integrated with the native Reference Text and Morse renderers. The C++/WinRT page and standard-C++ core preserve managed line/diacritic/Unicode/separator/case/max-length/preview/reset/localization semantics and explicit-only Copy. Debug and Release native builds have 0 errors; both cores pass **801/801**; catalog parity is **346 + 5**; focused UIA is **29/29** Reference Text, **13/13** Morse, and **12/12** Slugify; the full native shell is **441/441**. This is **32/346** fixed native routes (`32 in-progress / 314 not-started`); screenshot evidence remains `capture-blocked` because the local LowLevel checkout is not callable and the driver rejected its blank fallback. The release boundary remains C++-only.
+
+**粵語 —** Slugify 而家已同原生 Reference Text 同 Morse renderer 整合。C++/WinRT 頁同標準 C++ core 保留 managed 分行／重音／Unicode／分隔符／大小寫／最長長度／預覽／重設／本地化同只限明確 Copy。Debug／Release 0 errors、core 各 **801/801**、catalog parity **346 + 5**、Reference Text **29/29**、Morse **13/13**、Slugify **12/12** 同完整 shell **441/441** 已通過。固定原生 route 係 **32/346**（`32 in-progress / 314 not-started`）；本機 LowLevel checkout 不可呼叫而 driver 拒絕空白 fallback，所以截圖證據保持 `capture-blocked`。發佈界線繼續只限 C++。
+
+### Historical 2026-07-19 native Slugify feature branch · 歷史原生網址別名功能分支
+
+**EN —** `slug`, `slugify`, and `module.slugify` now have a genuine C++/WinRT renderer backed by a standard-C++ `Slugify` core. It preserves managed block/line behavior, diacritic and Unicode rules, separator/case/max-length choices, live first-line preview, lifecycle reset and localization retention, and explicit-only clipboard Copy. Debug and Release native builds exit 0 with 0 errors; both core suites pass **777/777** (Slugify **18/18**), catalog parity covers 346 fixed routes plus five dynamic families, and focused UI Automation passes **12/12** across all aliases. The active session has no callable LowLevel MCP; the required driver rejected a blank fallback and retained no PNG, so this route remains honestly `in-progress` / `capture-blocked`.
+
+**粵語 —** `slug`、`slugify` 同 `module.slugify` 而家有真正 C++/WinRT renderer 同標準 C++ `Slugify` core；managed 分行、去重音／Unicode 規則、分隔符／大小寫／最長長度、即時第一行預覽、重設／本地化狀態同只限明確 Copy 都有保留。Debug／Release 原生 build 0 errors，兩個 core 各 **777/777**（Slugify **18/18**），catalog parity 覆蓋 346 條固定 route 加五組家族，全部 alias 專項 UIA **12/12**。今次冇可呼叫 LowLevel MCP；必需 driver 拒絕空白 fallback，冇留 PNG，所以 route 如實保持 `in-progress`／`capture-blocked`。
+
 ### 2026-07-19 native reference-text wave · 原生參考文字批次
 
 **EN —** Phonetic Speller (`module.phonetic`), Box & Banner Text (`module.boxtext`), and HTML Entities (`module.htmlentities`) now have dedicated C++/WinRT renderers backed by one testable standard-C++ `ReferenceText` core. Phonetic Speller preserves three alphabets, digits, uppercase/punctuation options, managed UTF-16 code-unit rows, and spoken output. Box Text preserves eight border/comment styles, three alignments, bounded padding, titles, multiline/tab-aware layout, and Unicode display width. HTML Entities preserves named and numeric encode/decode behavior, optional non-ASCII encoding, invalid UTF-16 safety, managed-compatible scanning, and a local 50-row bilingual reference. Each feature is local; only explicit Copy writes the clipboard.

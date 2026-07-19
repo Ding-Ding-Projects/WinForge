@@ -143,6 +143,7 @@
     <ClInclude Include="..\WinForge.Core\Morse.h" />
     <ClInclude Include="..\WinForge.Core\TextAnalysis.h" />
     <ClInclude Include="..\WinForge.Core\ReferenceText.h" />
+    <ClInclude Include="..\WinForge.Core\Slugify.h" />
     <ClInclude Include="..\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\WinForge.Core\PassGen.h" />
     <ClInclude Include="..\WinForge.Core\PasswordStrength.h" />
@@ -205,6 +206,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\ReferenceText.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\Slugify.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\GuidGen.cpp">
