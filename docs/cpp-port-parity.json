@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-18T22:49:49Z",
+    "generatedAtUtc":  "2026-07-19T00:53:44Z",
     "baselineCommit":  "ce879cc6626eae328ec72e0143761c0edfbae340",
     "baselineCounts":  {
                            "routes":  346,
@@ -4699,25 +4699,67 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/LineToolsModule.xaml",
+                                      "Pages/LineToolsModule.xaml.cs",
+                                      "Services/LineToolsService.cs",
+                                      "src/WinForge.Core/LineProcessing.h",
+                                      "src/WinForge.Core/LineProcessing.cpp",
+                                      "src/WinForge.Core/TextDiff.h",
+                                      "src/WinForge.Core/TextDiff.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/LineProcessingTests.h",
+                                      "tests/native/WinForge.Core.Tests/LineProcessingTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "tools/Generate-WikiFeatureDocs.ps1",
+                                      "README.md",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/features/text-tools/linetools.md",
+                                      "design/content/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md",
+                                      "handoff-summary.md",
+                                      "design/content/handoff.md",
+                                      "AGENT_MEMORY.md",
+                                      "docs/wiki/Screenshots.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Line Tools · 行工具 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "behavior-pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                            "atUtc":  "2026-07-19T00:06:15Z",
+                                           "result":  "The shared standard-C++ Line Processing core implements the managed Line Tools contracts for UTF-16 line/count semantics, numbering and Unicode line-number removal, prefix/suffix/quotes, literal join/split, code-unit reversal, ordinal-ignore-case sorting and first-win deduplication, Unicode whitespace cleanup, and cryptographic shuffle. The focused Line Processing suite passed 70/70 and the aggregate Debug core executable passed 630/630. Renderer membership, all three aliases, exact AutomationIds, every action, clipping, localization retention, re-entry reset, and clipboard states are represented in source and the focused -LineRoutesOnly harness. Final native UI build, executable UI Automation, launch, LowLevel MCP/driver capture, and screenshot disposition remain pending and are not claimed by this attempt.",
+                                           "status":  "test-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T00:28:19Z",
+                                           "result":  "Final focused evidence is green except visual capture. Native Debug and Release builds each exited 0; both core executables passed 630/630, including Line Processing 70/70. Catalog parity passed all 346 fixed routes plus five dynamic families. The managed dotnet build WinForge.sln -c Debug -p:Platform=x64 check exited 0 with 0 errors and reported 161 existing warnings as a historical, non-contract observation. Focused -LineRoutesOnly UI Automation passed 42/42 across all seven registered aliases, exact AutomationIds and actions, valid and empty states, localization retention, route re-entry, clipping, and explicit clipboard behavior. LowLevel Computer Use MCP 1.28.1 launched the exact canonical entry command --page lines on a private desktop, resolved one 852x880 window, and cleaned up the exact PID and desktop. PrintWindow returned rendered_ok, but inspection found a composition-white invalid frame; the image was deleted and no visual pass is claimed. Full native shell smoke, run-winforge and canonical screenshots, hosted release-per-push proof, and Git integration/remote proof remain pending.",
+                                           "status":  "capture-blocked"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T00:53:44Z",
+                                           "result":  "Final local execution evidence is reconciled. Native Debug and Release builds exited 0; both core executables passed 630/630, including Line Processing 70/70; catalog parity passed; the managed solution build exited 0 with 0 errors, with 161 warnings retained only as historical, non-contract output; focused UI Automation passed 42/42; and the full owned shell passed 348/348 with exit 0. The first LowLevel MCP pass launched all three canonical commands on private desktops, resolving 852x880 windows at PIDs 29740, 19176, and 25196, but every inspected rendered_ok PrintWindow frame was composition-white and deleted. A compositor retry at PIDs 21696, 23644, and 22048 failed show_headless_desktop with Win32 error 5 before monitor capture. The required run-winforge driver then rejected blank or near-uniform fallbacks for all three routes. Exact processes/desktops and all invalid images were cleaned; the artifact directory is empty and no canonical image was replaced. Visual evidence is conclusively capture-blocked. Hosted release-per-push and Git integration/remote proof remain pending.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中. Debug/Release builds and 630/630 core, Line Processing 70/70, catalog parity, managed 0-error build, focused UIA 42/42, full owned shell 348/348, canonical --page lines headless launch, safe behavior, and explicit clipboard evidence are green. The LowLevel PrintWindow frame was composition-white/invalid, compositor monitor capture was denied with Win32 error 5, and the required run-winforge fallback was blank and rejected. All invalid artifacts were deleted; visual is conclusively capture-blocked. Only hosted release-per-push and Git integration/remote proof remain pending. Debug／Release build、總 core 630/630、Line Processing 70/70、catalog parity、managed 0-error build、專項 UIA 42/42、完整 shell 348/348、--page lines 無頭啟動、安全行為同明確剪貼簿證據已通過；LowLevel PrintWindow 畫面係 composition-white 無效圖，compositor monitor capture 因 Win32 錯誤 5 被拒，而 run-winforge fallback 亦空白並被拒。所有無效 artifact 已刪除，visual 最終係 capture-blocked；只剩 hosted release-per-push 同 Git 遙距證明待完成。"
                    },
                    {
                        "id":  "module.loancalc",
@@ -7487,25 +7529,67 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/TextSortModule.xaml",
+                                      "Pages/TextSortModule.xaml.cs",
+                                      "Services/TextSortService.cs",
+                                      "src/WinForge.Core/LineProcessing.h",
+                                      "src/WinForge.Core/LineProcessing.cpp",
+                                      "src/WinForge.Core/TextDiff.h",
+                                      "src/WinForge.Core/TextDiff.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/LineProcessingTests.h",
+                                      "tests/native/WinForge.Core.Tests/LineProcessingTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "tools/Generate-WikiFeatureDocs.ps1",
+                                      "README.md",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/features/text-tools/textsort.md",
+                                      "docs/wiki/Screenshots.md",
+                                      "design/content/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md",
+                                      "handoff-summary.md",
+                                      "design/content/handoff.md",
+                                      "AGENT_MEMORY.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Line Sort \u0026 Dedupe · 行排序同去重 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "behavior-pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                            "atUtc":  "2026-07-19T00:06:15Z",
+                                           "result":  "The shared standard-C++ Line Processing core implements the managed Text Sort pipeline order: trim each line, remove blanks, first-win deduplicate, sort, reverse, then shuffle. It covers keep-order, ordinal ascending/descending, natural numeric comparison, case-insensitive and trim-before-compare keys, exact line/duplicate statistics, and deterministic random-provider fixtures. The focused Line Processing suite passed 70/70 and the aggregate Debug core executable passed 630/630. Renderer membership, both aliases, exact AutomationIds, every option and action, clipping, localization retention, re-entry reset, and empty/populated clipboard states are represented in source and the focused -LineRoutesOnly harness. Final native UI build, executable UI Automation, launch, LowLevel MCP/driver capture, and screenshot disposition remain pending and are not claimed by this attempt.",
+                                           "status":  "test-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T00:28:19Z",
+                                           "result":  "Final focused evidence is green except visual capture. Native Debug and Release builds each exited 0; both core executables passed 630/630, including Line Processing 70/70. Catalog parity passed all 346 fixed routes plus five dynamic families. The managed dotnet build WinForge.sln -c Debug -p:Platform=x64 check exited 0 with 0 errors and reported 161 existing warnings as a historical, non-contract observation. Focused -LineRoutesOnly UI Automation passed 42/42 across all seven registered aliases, exact AutomationIds and actions, option pipelines, valid and empty states, localization retention, route re-entry, clipping, and explicit clipboard behavior. LowLevel Computer Use MCP 1.28.1 launched the exact canonical entry command --page textsort on a private desktop, resolved one 852x880 window, and cleaned up the exact PID and desktop. PrintWindow returned rendered_ok, but inspection found a composition-white invalid frame; the image was deleted and no visual pass is claimed. Full native shell smoke, run-winforge and canonical screenshots, hosted release-per-push proof, and Git integration/remote proof remain pending.",
+                                           "status":  "capture-blocked"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T00:53:44Z",
+                                           "result":  "Final local execution evidence is reconciled. Native Debug and Release builds exited 0; both core executables passed 630/630, including Line Processing 70/70; catalog parity passed; the managed solution build exited 0 with 0 errors, with 161 warnings retained only as historical, non-contract output; focused UI Automation passed 42/42; and the full owned shell passed 348/348 with exit 0. The first LowLevel MCP pass launched all three canonical commands on private desktops, resolving 852x880 windows at PIDs 29740, 19176, and 25196, but every inspected rendered_ok PrintWindow frame was composition-white and deleted. A compositor retry at PIDs 21696, 23644, and 22048 failed show_headless_desktop with Win32 error 5 before monitor capture. The required run-winforge driver then rejected blank or near-uniform fallbacks for all three routes. Exact processes/desktops and all invalid images were cleaned; the artifact directory is empty and no canonical image was replaced. Visual evidence is conclusively capture-blocked. Hosted release-per-push and Git integration/remote proof remain pending.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中. Debug/Release builds and 630/630 core, Line Processing 70/70, catalog parity, managed 0-error build, focused UIA 42/42, full owned shell 348/348, canonical --page textsort headless launch, safe behavior, and explicit clipboard evidence are green. The LowLevel PrintWindow frame was composition-white/invalid, compositor monitor capture was denied with Win32 error 5, and the required run-winforge fallback was blank and rejected. All invalid artifacts were deleted; visual is conclusively capture-blocked. Only hosted release-per-push and Git integration/remote proof remain pending. Debug／Release build、總 core 630/630、Line Processing 70/70、catalog parity、managed 0-error build、專項 UIA 42/42、完整 shell 348/348、--page textsort 無頭啟動、安全行為同明確剪貼簿證據已通過；LowLevel PrintWindow 畫面係 composition-white 無效圖，compositor monitor capture 因 Win32 錯誤 5 被拒，而 run-winforge fallback 亦空白並被拒。所有無效 artifact 已刪除，visual 最終係 capture-blocked；只剩 hosted release-per-push 同 Git 遙距證明待完成。"
                    },
                    {
                        "id":  "module.textstats",
@@ -7587,25 +7671,67 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/TextWrapModule.xaml",
+                                      "Pages/TextWrapModule.xaml.cs",
+                                      "Services/TextWrapService.cs",
+                                      "src/WinForge.Core/LineProcessing.h",
+                                      "src/WinForge.Core/LineProcessing.cpp",
+                                      "src/WinForge.Core/TextDiff.h",
+                                      "src/WinForge.Core/TextDiff.cpp",
+                                      "src/WinForge.Core/RouteIndex.h",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/LineProcessingTests.h",
+                                      "tests/native/WinForge.Core.Tests/LineProcessingTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "tools/Generate-WikiFeatureDocs.ps1",
+                                      "README.md",
+                                      "docs/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/Native-Cpp-Rewrite.md",
+                                      "docs/wiki/features/text-tools/textwrap.md",
+                                      "docs/wiki/Screenshots.md",
+                                      "design/content/Native-Cpp-Rewrite.md",
+                                      "design/content/wiki/Native-Cpp-Rewrite.md",
+                                      "handoff-summary.md",
+                                      "design/content/handoff.md",
+                                      "AGENT_MEMORY.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Text Wrap · 文字換行 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "behavior-pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                            "atUtc":  "2026-07-19T00:06:15Z",
+                                           "result":  "The shared standard-C++ Line Processing core implements the managed Text Wrap contracts: 72-column default and bounded width, optional long-word chunking, paragraph-aware hard wrap and unwrap, two-pass reflow, output-chaining prefix and hanging-indent actions, managed blank-paragraph quirks, and UTF-16 readout metrics. The focused Line Processing suite passed 70/70 and the aggregate Debug core executable passed 630/630. Renderer membership, both aliases, exact AutomationIds, every action, clipping, localization retention, re-entry reset, and empty/populated clipboard states are represented in source and the focused -LineRoutesOnly harness. Final native UI build, executable UI Automation, launch, LowLevel MCP/driver capture, and screenshot disposition remain pending and are not claimed by this attempt.",
+                                           "status":  "test-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T00:28:19Z",
+                                           "result":  "Final focused evidence is green except visual capture. Native Debug and Release builds each exited 0; both core executables passed 630/630, including Line Processing 70/70. Catalog parity passed all 346 fixed routes plus five dynamic families. The managed dotnet build WinForge.sln -c Debug -p:Platform=x64 check exited 0 with 0 errors and reported 161 existing warnings as a historical, non-contract observation. Focused -LineRoutesOnly UI Automation passed 42/42 across all seven registered aliases, exact AutomationIds and actions, bounded width and output chaining states, localization retention, route re-entry, clipping, and explicit clipboard behavior. LowLevel Computer Use MCP 1.28.1 launched the exact canonical entry command --page textwrap on a private desktop, resolved one 852x880 window, and cleaned up the exact PID and desktop. PrintWindow returned rendered_ok, but inspection found a composition-white invalid frame; the image was deleted and no visual pass is claimed. Full native shell smoke, run-winforge and canonical screenshots, hosted release-per-push proof, and Git integration/remote proof remain pending.",
+                                           "status":  "capture-blocked"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T00:53:44Z",
+                                           "result":  "Final local execution evidence is reconciled. Native Debug and Release builds exited 0; both core executables passed 630/630, including Line Processing 70/70; catalog parity passed; the managed solution build exited 0 with 0 errors, with 161 warnings retained only as historical, non-contract output; focused UI Automation passed 42/42; and the full owned shell passed 348/348 with exit 0. The first LowLevel MCP pass launched all three canonical commands on private desktops, resolving 852x880 windows at PIDs 29740, 19176, and 25196, but every inspected rendered_ok PrintWindow frame was composition-white and deleted. A compositor retry at PIDs 21696, 23644, and 22048 failed show_headless_desktop with Win32 error 5 before monitor capture. The required run-winforge driver then rejected blank or near-uniform fallbacks for all three routes. Exact processes/desktops and all invalid images were cleaned; the artifact directory is empty and no canonical image was replaced. Visual evidence is conclusively capture-blocked. Hosted release-per-push and Git integration/remote proof remain pending.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中. Debug/Release builds and 630/630 core, Line Processing 70/70, catalog parity, managed 0-error build, focused UIA 42/42, full owned shell 348/348, canonical --page textwrap headless launch, safe behavior, and explicit clipboard evidence are green. The LowLevel PrintWindow frame was composition-white/invalid, compositor monitor capture was denied with Win32 error 5, and the required run-winforge fallback was blank and rejected. All invalid artifacts were deleted; visual is conclusively capture-blocked. Only hosted release-per-push and Git integration/remote proof remain pending. Debug／Release build、總 core 630/630、Line Processing 70/70、catalog parity、managed 0-error build、專項 UIA 42/42、完整 shell 348/348、--page textwrap 無頭啟動、安全行為同明確剪貼簿證據已通過；LowLevel PrintWindow 畫面係 composition-white 無效圖，compositor monitor capture 因 Win32 錯誤 5 被拒，而 run-winforge fallback 亦空白並被拒。所有無效 artifact 已刪除，visual 最終係 capture-blocked；只剩 hosted release-per-push 同 Git 遙距證明待完成。"
                    },
                    {
                        "id":  "module.timelens",

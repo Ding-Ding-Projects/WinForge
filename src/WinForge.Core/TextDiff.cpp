@@ -384,7 +384,7 @@ namespace
             key.assign(line);
         }
 
-        return ignoreCase ? ToUpperInvariant(key) : key;
+        return ignoreCase ? winforge::core::textdiff::ToUpperInvariantKey(key) : key;
     }
 
     void Emit(
@@ -415,6 +415,35 @@ namespace
 
 namespace winforge::core::textdiff
 {
+    std::wstring ToUpperInvariantKey(std::wstring_view input)
+    {
+        return ToUpperInvariant(input);
+    }
+
+    wchar_t ToUpperInvariantCodeUnit(wchar_t input) noexcept
+    {
+        auto const mapped = UpperInvariant(static_cast<std::uint32_t>(input));
+        return mapped <= 0xFFFFu ? static_cast<wchar_t>(mapped) : input;
+    }
+
+    std::wstring FoldOrdinalIgnoreCase(std::wstring_view input)
+    {
+        // Exhaustive .NET 11 scalar probing confirms StringComparer.OrdinalIgnoreCase
+        // follows invariant uppercase for every scalar except long s: U+017F
+        // uppercases to S but remains ordinally distinct from s/S.
+        std::wstring folded;
+        std::size_t start{};
+        for (std::size_t index{}; index < input.size(); ++index)
+        {
+            if (input[index] != static_cast<wchar_t>(0x017F)) continue;
+            folded.append(ToUpperInvariant(input.substr(start, index - start)));
+            folded.push_back(input[index]);
+            start = index + 1;
+        }
+        folded.append(ToUpperInvariant(input.substr(start)));
+        return folded;
+    }
+
     DiffResult Compute(
         std::wstring_view leftText,
         std::wstring_view rightText,

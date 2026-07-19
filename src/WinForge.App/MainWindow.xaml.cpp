@@ -56,6 +56,76 @@ namespace
         return std::wstring(value.c_str(), value.size());
     }
 
+    // UI Automation supplies multiline TextBox values with lone CR separators,
+    // while a newly rendered WinUI TextBox expects LF for programmatic text.
+    // Normalize only the presentation value so the native engines retain their
+    // exact CR/LF/CRLF contracts and state survives a language rerender.
+    std::wstring TextBoxPresentation(std::wstring_view value)
+    {
+        std::wstring normalized;
+        normalized.reserve(value.size() + 8);
+        for (std::size_t index{}; index < value.size(); ++index)
+        {
+            auto const ch = value[index];
+            if (ch == L'\r')
+            {
+                normalized.push_back(L'\n');
+                if (index + 1 < value.size() && value[index + 1] == L'\n') ++index;
+            }
+            else
+            {
+                normalized.push_back(ch);
+            }
+        }
+        return normalized;
+    }
+
+    Border MakeNativeCard()
+    {
+        Border card;
+        card.Padding(Thickness{ 18, 16, 18, 18 });
+        card.CornerRadius(CornerRadius{ 8 });
+        card.BorderThickness(Thickness{ 1 });
+        card.BorderBrush(Application::Current().Resources().Lookup(
+            box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+        card.Background(Application::Current().Resources().Lookup(
+            box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+        return card;
+    }
+
+    Button MakeNativeButton(std::wstring_view label, std::wstring_view automationId)
+    {
+        Button button;
+        button.Content(box_value(ToHString(label)));
+        button.HorizontalAlignment(HorizontalAlignment::Stretch);
+        button.HorizontalContentAlignment(HorizontalAlignment::Center);
+        AutomationProperties::SetAutomationId(button, ToHString(automationId));
+        AutomationProperties::SetName(button, ToHString(label));
+        return button;
+    }
+
+    void RaisePoliteLiveRegion(TextBlock const& status)
+    {
+        if (!status) return;
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(status);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(status);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility reporting never interrupts local text processing.
+        }
+    }
+
     std::wstring FormatAspectNumber(double value, int digits)
     {
         if (std::isnan(value)) return L"NaN";
@@ -847,6 +917,40 @@ namespace winrt::WinForge::implementation
             m_textDiffIgnoreWhitespace = false;
             m_textDiffIgnoreCase = false;
         }
+        else if (module->id == L"module.linetools")
+        {
+            m_lineToolsInput.clear();
+            m_lineToolsPrefix.clear();
+            m_lineToolsSuffix.clear();
+            m_lineToolsDelimiter = L", ";
+            m_lineToolsOutput.clear();
+            m_lineToolsStatusEn = L"Ready.";
+            m_lineToolsStatusZh = L"準備就緒。";
+        }
+        else if (module->id == L"module.textsort")
+        {
+            m_textSortInput.clear();
+            m_textSortOutput.clear();
+            m_textSortMode = 1;
+            m_textSortCaseInsensitive = false;
+            m_textSortDeduplicate = false;
+            m_textSortTrimBeforeCompare = false;
+            m_textSortReverse = false;
+            m_textSortShuffle = false;
+            m_textSortRemoveBlank = false;
+            m_textSortTrimEach = false;
+        }
+        else if (module->id == L"module.textwrap")
+        {
+            m_textWrapInput.clear();
+            m_textWrapOutput.clear();
+            m_textWrapWidth = 72.0;
+            m_textWrapBreakLongWords = false;
+            m_textWrapPrefix = L"> ";
+            m_textWrapIndent = 4.0;
+            m_textWrapStatusEn = L"Ready.";
+            m_textWrapStatusZh = L"準備就緒。";
+        }
         else if (module->id == L"module.aspectratio")
         {
             m_aspectWidthValue = 1920.0;
@@ -985,6 +1089,18 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.textdiff")
         {
             RenderTextDiff();
+        }
+        else if (module->id == L"module.linetools")
+        {
+            RenderLineTools();
+        }
+        else if (module->id == L"module.textsort")
+        {
+            RenderTextSort();
+        }
+        else if (module->id == L"module.textwrap")
+        {
+            RenderTextWrap();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -3222,6 +3338,927 @@ namespace winrt::WinForge::implementation
         {
             // Accessibility reporting must not interrupt the local comparison.
         }
+    }
+
+    void MainWindow::RenderLineTools()
+    {
+        m_lineToolsRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Line Tools", L"行工具" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Transform text line by line: number, prefix, quote, join, split, sort, deduplicate, shuffle, and more. Everything stays on this PC.",
+                L"一行行處理文字：加編號、前綴、引號、合併、拆分、排序、去重同打亂等等。全程留喺你部電腦。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeLineToolsPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native line processing", L"全原生行文字處理" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"All fifteen transforms, managed-compatible line parsing, Unicode-aware cleanup, cryptographic shuffle, counts, and explicit clipboard actions run locally in standard C++.",
+            L"全部十五項轉換、相容 managed 版嘅分行、Unicode 清理、密碼學打亂、統計同明確剪貼簿動作都用標準 C++ 喺本機執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeLineToolsImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(10);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Input", L"輸入" }.Pick(m_language), 15, true);
+        input.Children().Append(inputLabel);
+        m_lineToolsInputBox = TextBox();
+        m_lineToolsInputBox.AcceptsReturn(true);
+        m_lineToolsInputBox.Text(ToHString(TextBoxPresentation(m_lineToolsInput)));
+        m_lineToolsInputBox.TextWrapping(TextWrapping::Wrap);
+        m_lineToolsInputBox.MinHeight(180);
+        m_lineToolsInputBox.MaxHeight(320);
+        m_lineToolsInputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_lineToolsInputBox.IsSpellCheckEnabled(false);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_lineToolsInputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_lineToolsInputBox, L"NativeLineToolsInput");
+        AutomationProperties::SetName(m_lineToolsInputBox, ToHString(winforge::core::LocalizedText{
+            L"Line Tools input", L"行工具輸入" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_lineToolsInputBox, inputLabel);
+        m_lineToolsInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_lineToolsRendering) return;
+            m_lineToolsInput = ToWide(sender.as<TextBox>().Text());
+            RefreshLineToolsCount();
+        });
+        input.Children().Append(m_lineToolsInputBox);
+
+        m_lineToolsCount = CreateText(L"", 12.5);
+        m_lineToolsCount.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_lineToolsCount, L"NativeLineToolsCounts");
+        input.Children().Append(m_lineToolsCount);
+
+        auto appendField = [this, &input](
+            std::wstring_view labelText,
+            std::wstring_view accessibleName,
+            std::wstring_view automationId,
+            TextBox& box,
+            std::wstring const& value,
+            auto&& changed)
+        {
+            StackPanel field;
+            field.Spacing(3);
+            auto label = CreateText(labelText, 12.5, true);
+            field.Children().Append(label);
+            box = TextBox();
+            box.Text(ToHString(value));
+            box.IsSpellCheckEnabled(false);
+            AutomationProperties::SetAutomationId(box, ToHString(automationId));
+            AutomationProperties::SetName(box, ToHString(accessibleName));
+            AutomationProperties::SetLabeledBy(box, label);
+            box.TextChanged(std::forward<decltype(changed)>(changed));
+            field.Children().Append(box);
+            input.Children().Append(field);
+        };
+        appendField(
+            winforge::core::LocalizedText{ L"Prefix", L"前綴" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Prefix to add", L"要加嘅前綴" }.Pick(m_language),
+            L"NativeLineToolsPrefix", m_lineToolsPrefixBox, m_lineToolsPrefix,
+            [this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                if (!m_lineToolsRendering) m_lineToolsPrefix = ToWide(sender.as<TextBox>().Text());
+            });
+        appendField(
+            winforge::core::LocalizedText{ L"Suffix", L"後綴" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Suffix to add", L"要加嘅後綴" }.Pick(m_language),
+            L"NativeLineToolsSuffix", m_lineToolsSuffixBox, m_lineToolsSuffix,
+            [this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                if (!m_lineToolsRendering) m_lineToolsSuffix = ToWide(sender.as<TextBox>().Text());
+            });
+        appendField(
+            winforge::core::LocalizedText{ L"Delimiter (join / split)", L"分隔符（合併 / 拆分）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Join and split delimiter", L"合併同拆分分隔符" }.Pick(m_language),
+            L"NativeLineToolsDelimiter", m_lineToolsDelimiterBox, m_lineToolsDelimiter,
+            [this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                if (!m_lineToolsRendering) m_lineToolsDelimiter = ToWide(sender.as<TextBox>().Text());
+            });
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border actionsCard = MakeNativeCard();
+        StackPanel actionStack;
+        actionStack.Spacing(10);
+        actionStack.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Transforms", L"轉換" }.Pick(m_language), 15, true));
+        Grid actions;
+        actions.ColumnSpacing(8);
+        actions.RowSpacing(8);
+        for (int column{}; column < 2; ++column)
+        {
+            ColumnDefinition definition;
+            definition.Width(GridLengthHelper::FromValueAndType(1.0, GridUnitType::Star));
+            actions.ColumnDefinitions().Append(definition);
+        }
+        int actionIndex{};
+        auto appendAction = [this, &actions, &actionIndex](
+            std::wstring_view label,
+            std::wstring_view automationId,
+            LineToolAction action)
+        {
+            auto const rowIndex = actionIndex / 2;
+            auto const columnIndex = actionIndex % 2;
+            if (columnIndex == 0) actions.RowDefinitions().Append(RowDefinition());
+            auto button = MakeNativeButton(label, automationId);
+            button.Click([this, action](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                ApplyLineTool(action);
+            });
+            Grid::SetRow(button, rowIndex);
+            Grid::SetColumn(button, columnIndex);
+            actions.Children().Append(button);
+            ++actionIndex;
+        };
+        appendAction(winforge::core::LocalizedText{ L"Number (1.)", L"編號 (1.)" }.Pick(m_language), L"NativeLineToolsNumberDot", LineToolAction::NumberDot);
+        appendAction(winforge::core::LocalizedText{ L"Number (1))", L"編號 (1))" }.Pick(m_language), L"NativeLineToolsNumberParen", LineToolAction::NumberParen);
+        appendAction(winforge::core::LocalizedText{ L"Remove numbers", L"移除編號" }.Pick(m_language), L"NativeLineToolsRemoveNumbers", LineToolAction::RemoveNumbers);
+        appendAction(winforge::core::LocalizedText{ L"Wrap in quotes", L"加引號" }.Pick(m_language), L"NativeLineToolsQuotes", LineToolAction::WrapQuotes);
+        appendAction(winforge::core::LocalizedText{ L"Add prefix", L"加前綴" }.Pick(m_language), L"NativeLineToolsAddPrefix", LineToolAction::AddPrefix);
+        appendAction(winforge::core::LocalizedText{ L"Add suffix", L"加後綴" }.Pick(m_language), L"NativeLineToolsAddSuffix", LineToolAction::AddSuffix);
+        appendAction(winforge::core::LocalizedText{ L"Join lines", L"合併行" }.Pick(m_language), L"NativeLineToolsJoin", LineToolAction::Join);
+        appendAction(winforge::core::LocalizedText{ L"Split on delimiter", L"按分隔符拆分" }.Pick(m_language), L"NativeLineToolsSplit", LineToolAction::Split);
+        appendAction(winforge::core::LocalizedText{ L"Reverse chars", L"反轉字元" }.Pick(m_language), L"NativeLineToolsReverseChars", LineToolAction::ReverseCharacters);
+        appendAction(winforge::core::LocalizedText{ L"Sort A→Z", L"排序 A→Z" }.Pick(m_language), L"NativeLineToolsSort", LineToolAction::Sort);
+        appendAction(winforge::core::LocalizedText{ L"Reverse order", L"反轉次序" }.Pick(m_language), L"NativeLineToolsReverseOrder", LineToolAction::ReverseOrder);
+        appendAction(winforge::core::LocalizedText{ L"Shuffle", L"打亂" }.Pick(m_language), L"NativeLineToolsShuffle", LineToolAction::Shuffle);
+        appendAction(winforge::core::LocalizedText{ L"Deduplicate", L"去重複" }.Pick(m_language), L"NativeLineToolsDedupe", LineToolAction::Deduplicate);
+        appendAction(winforge::core::LocalizedText{ L"Remove empty", L"移除空行" }.Pick(m_language), L"NativeLineToolsRemoveEmpty", LineToolAction::RemoveEmpty);
+        appendAction(winforge::core::LocalizedText{ L"Trim lines", L"修剪空白" }.Pick(m_language), L"NativeLineToolsTrim", LineToolAction::Trim);
+        actionStack.Children().Append(actions);
+        actionsCard.Child(actionStack);
+        page.Children().Append(actionsCard);
+
+        Border outputCard = MakeNativeCard();
+        StackPanel output;
+        output.Spacing(10);
+        auto outputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Output", L"輸出" }.Pick(m_language), 15, true);
+        output.Children().Append(outputLabel);
+        m_lineToolsOutputBox = TextBox();
+        m_lineToolsOutputBox.AcceptsReturn(true);
+        m_lineToolsOutputBox.IsReadOnly(true);
+        m_lineToolsOutputBox.Text(ToHString(TextBoxPresentation(m_lineToolsOutput)));
+        m_lineToolsOutputBox.TextWrapping(TextWrapping::Wrap);
+        m_lineToolsOutputBox.MinHeight(180);
+        m_lineToolsOutputBox.MaxHeight(320);
+        m_lineToolsOutputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        ScrollViewer::SetVerticalScrollBarVisibility(m_lineToolsOutputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_lineToolsOutputBox, L"NativeLineToolsOutput");
+        AutomationProperties::SetName(m_lineToolsOutputBox, ToHString(winforge::core::LocalizedText{
+            L"Line Tools output", L"行工具輸出" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_lineToolsOutputBox, outputLabel);
+        output.Children().Append(m_lineToolsOutputBox);
+
+        auto copy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy output", L"複製輸出" }.Pick(m_language),
+            L"NativeLineToolsCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_lineToolsOutput.empty())
+            {
+                m_lineToolsStatusEn = L"Nothing to copy yet.";
+                m_lineToolsStatusZh = L"暫時冇嘢可以複製。";
+                AnnounceLineToolsStatus(winforge::core::LocalizedText{
+                    m_lineToolsStatusEn, m_lineToolsStatusZh }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_lineToolsOutput));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                Windows::ApplicationModel::DataTransfer::Clipboard::Flush();
+                m_lineToolsStatusEn = L"Output copied to the clipboard.";
+                m_lineToolsStatusZh = L"已複製輸出到剪貼簿。";
+                AnnounceLineToolsStatus(winforge::core::LocalizedText{
+                    m_lineToolsStatusEn, m_lineToolsStatusZh }.Pick(m_language));
+            }
+            catch (...)
+            {
+                m_lineToolsStatusEn = L"Could not access the clipboard.";
+                m_lineToolsStatusZh = L"用唔到剪貼簿。";
+                AnnounceLineToolsStatus(winforge::core::LocalizedText{
+                    m_lineToolsStatusEn, m_lineToolsStatusZh }.Pick(m_language), true);
+            }
+        });
+        output.Children().Append(copy);
+
+        m_lineToolsStatus = CreateText(L"", 12.5);
+        m_lineToolsStatus.Opacity(0.84);
+        m_lineToolsStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_lineToolsStatus, L"NativeLineToolsStatus");
+        AutomationProperties::SetLiveSetting(
+            m_lineToolsStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        output.Children().Append(m_lineToolsStatus);
+        outputCard.Child(output);
+        page.Children().Append(outputCard);
+
+        ShowPage(page);
+        m_lineToolsRendering = false;
+        RefreshLineToolsCount();
+        AnnounceLineToolsStatus(winforge::core::LocalizedText{
+            m_lineToolsStatusEn, m_lineToolsStatusZh }.Pick(m_language));
+    }
+
+    void MainWindow::RefreshLineToolsCount()
+    {
+        if (!m_lineToolsCount) return;
+        auto const count = winforge::core::lineprocessing::Count(m_lineToolsInput);
+        auto const value = winforge::core::LocalizedText{
+            std::to_wstring(count.lines) + L" lines · " + std::to_wstring(count.words) +
+                L" words · " + std::to_wstring(count.characters) + L" chars",
+            std::to_wstring(count.lines) + L" 行 · " + std::to_wstring(count.words) +
+                L" 個字 · " + std::to_wstring(count.characters) + L" 個字元" }.Pick(m_language);
+        m_lineToolsCount.Text(ToHString(value));
+        AutomationProperties::SetName(m_lineToolsCount, ToHString(value));
+    }
+
+    void MainWindow::ApplyLineTool(LineToolAction action)
+    {
+        using namespace winforge::core::lineprocessing;
+        std::wstring_view nameEn;
+        std::wstring_view nameZh;
+        switch (action)
+        {
+        case LineToolAction::NumberDot:
+            m_lineToolsOutput = NumberLines(m_lineToolsInput, false);
+            nameEn = L"Numbered"; nameZh = L"已加編號"; break;
+        case LineToolAction::NumberParen:
+            m_lineToolsOutput = NumberLines(m_lineToolsInput, true);
+            nameEn = L"Numbered"; nameZh = L"已加編號"; break;
+        case LineToolAction::RemoveNumbers:
+            m_lineToolsOutput = RemoveLineNumbers(m_lineToolsInput);
+            nameEn = L"Removed line numbers"; nameZh = L"已移除編號"; break;
+        case LineToolAction::WrapQuotes:
+            m_lineToolsOutput = WrapQuotes(m_lineToolsInput);
+            nameEn = L"Quoted"; nameZh = L"已加引號"; break;
+        case LineToolAction::AddPrefix:
+            m_lineToolsOutput = AddPrefix(m_lineToolsInput, m_lineToolsPrefix);
+            nameEn = L"Prefixed"; nameZh = L"已加前綴"; break;
+        case LineToolAction::AddSuffix:
+            m_lineToolsOutput = AddSuffix(m_lineToolsInput, m_lineToolsSuffix);
+            nameEn = L"Suffixed"; nameZh = L"已加後綴"; break;
+        case LineToolAction::Join:
+            m_lineToolsOutput = JoinLines(m_lineToolsInput, m_lineToolsDelimiter);
+            nameEn = L"Joined"; nameZh = L"已合併"; break;
+        case LineToolAction::Split:
+            m_lineToolsOutput = SplitOn(m_lineToolsInput, m_lineToolsDelimiter);
+            nameEn = L"Split"; nameZh = L"已拆分"; break;
+        case LineToolAction::ReverseCharacters:
+            m_lineToolsOutput = ReverseCharacters(m_lineToolsInput);
+            nameEn = L"Reversed chars"; nameZh = L"已反轉字元"; break;
+        case LineToolAction::Sort:
+            m_lineToolsOutput = SortLines(m_lineToolsInput);
+            nameEn = L"Sorted"; nameZh = L"已排序"; break;
+        case LineToolAction::ReverseOrder:
+            m_lineToolsOutput = ReverseOrder(m_lineToolsInput);
+            nameEn = L"Reversed order"; nameZh = L"已反轉次序"; break;
+        case LineToolAction::Shuffle:
+            m_lineToolsOutput = ShuffleLines(m_lineToolsInput);
+            nameEn = L"Shuffled"; nameZh = L"已打亂"; break;
+        case LineToolAction::Deduplicate:
+            m_lineToolsOutput = Deduplicate(m_lineToolsInput);
+            nameEn = L"Deduplicated"; nameZh = L"已去重"; break;
+        case LineToolAction::RemoveEmpty:
+            m_lineToolsOutput = RemoveEmpty(m_lineToolsInput);
+            nameEn = L"Removed empty lines"; nameZh = L"已移除空行"; break;
+        case LineToolAction::Trim:
+            m_lineToolsOutput = TrimLines(m_lineToolsInput);
+            nameEn = L"Trimmed"; nameZh = L"已修剪"; break;
+        }
+
+        if (m_lineToolsOutputBox)
+        {
+            m_lineToolsOutputBox.Text(ToHString(TextBoxPresentation(m_lineToolsOutput)));
+        }
+        auto const lines = Count(m_lineToolsOutput).lines;
+        m_lineToolsStatusEn = std::wstring(nameEn) + L" — " + std::to_wstring(lines) + L" line(s) out.";
+        m_lineToolsStatusZh = std::wstring(nameZh) + L" — 輸出 " + std::to_wstring(lines) + L" 行。";
+        AnnounceLineToolsStatus(winforge::core::LocalizedText{
+            m_lineToolsStatusEn, m_lineToolsStatusZh }.Pick(m_language));
+    }
+
+    void MainWindow::AnnounceLineToolsStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_lineToolsStatus) return;
+        m_lineToolsStatus.Text(ToHString(message));
+        m_lineToolsStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_lineToolsStatus, ToHString(message));
+        RaisePoliteLiveRegion(m_lineToolsStatus);
+    }
+
+    void MainWindow::RenderTextSort()
+    {
+        m_textSortRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Line Sort & Dedupe", L"行排序同去重" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Sort, deduplicate, reverse, shuffle, and clean pasted lines. Natural order keeps file2 before file10, and the output updates live.",
+                L"排序、去重、反轉、打亂同清理貼上嘅行。自然排序會保持 file2 喺 file10 前面，輸出會即時更新。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeTextSortPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native line sorting", L"全原生行排序" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Managed-compatible comparison, natural numeric order, filtering, deduplication, cryptographic shuffling, and explicit clipboard actions run locally in standard C++.",
+            L"相容 managed 版嘅比較、自然數字順序、過濾、去重、密碼學打亂同明確剪貼簿動作都用標準 C++ 喺本機執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeTextSortImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border optionsCard = MakeNativeCard();
+        StackPanel options;
+        options.Spacing(10);
+        auto modeLabel = CreateText(
+            winforge::core::LocalizedText{ L"Sort mode", L"排序模式" }.Pick(m_language), 13.5, true);
+        options.Children().Append(modeLabel);
+        m_textSortModeBox = ComboBox();
+        for (auto const& label : std::array<winforge::core::LocalizedText, 4>{
+            winforge::core::LocalizedText{ L"No sort (keep order)", L"唔排序（保留原順序）" },
+            winforge::core::LocalizedText{ L"Sort A → Z", L"排序 A → Z" },
+            winforge::core::LocalizedText{ L"Sort Z → A", L"排序 Z → A" },
+            winforge::core::LocalizedText{ L"Natural sort (file2 < file10)", L"自然排序（file2 < file10）" },
+        })
+        {
+            m_textSortModeBox.Items().Append(box_value(ToHString(label.Pick(m_language))));
+        }
+        m_textSortModeBox.SelectedIndex(std::clamp(m_textSortMode, 0, 3));
+        // Match the managed picker: keep a useful minimum without stretching
+        // to an unbounded width inside the shell's horizontal ScrollViewer.
+        m_textSortModeBox.MinWidth(220);
+        m_textSortModeBox.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(m_textSortModeBox, L"NativeTextSortMode");
+        AutomationProperties::SetName(m_textSortModeBox, ToHString(winforge::core::LocalizedText{
+            L"Line sort mode", L"行排序模式" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textSortModeBox, modeLabel);
+        m_textSortModeBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_textSortRendering) return;
+            m_textSortMode = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 3);
+            RefreshTextSort();
+        });
+        options.Children().Append(m_textSortModeBox);
+
+        auto appendToggle = [this, &options](
+            std::wstring_view label,
+            std::wstring_view automationId,
+            bool value,
+            bool MainWindow::* state)
+        {
+            ToggleSwitch toggle;
+            toggle.Header(box_value(ToHString(label)));
+            toggle.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+            toggle.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+            toggle.IsOn(value);
+            AutomationProperties::SetAutomationId(toggle, ToHString(automationId));
+            AutomationProperties::SetName(toggle, ToHString(label));
+            toggle.Toggled([this, state](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                if (m_textSortRendering) return;
+                this->*state = sender.as<ToggleSwitch>().IsOn();
+                RefreshTextSort();
+            });
+            options.Children().Append(toggle);
+        };
+        appendToggle(winforge::core::LocalizedText{ L"Case-insensitive", L"唔分大細楷" }.Pick(m_language),
+            L"NativeTextSortCaseInsensitive", m_textSortCaseInsensitive, &MainWindow::m_textSortCaseInsensitive);
+        appendToggle(winforge::core::LocalizedText{ L"Remove duplicates", L"移除重複行" }.Pick(m_language),
+            L"NativeTextSortDedupe", m_textSortDeduplicate, &MainWindow::m_textSortDeduplicate);
+        appendToggle(winforge::core::LocalizedText{ L"Trim before comparing (dedupe)", L"比較前先修剪（去重）" }.Pick(m_language),
+            L"NativeTextSortTrimCompare", m_textSortTrimBeforeCompare, &MainWindow::m_textSortTrimBeforeCompare);
+        appendToggle(winforge::core::LocalizedText{ L"Reverse lines", L"反轉行順序" }.Pick(m_language),
+            L"NativeTextSortReverse", m_textSortReverse, &MainWindow::m_textSortReverse);
+        appendToggle(winforge::core::LocalizedText{ L"Shuffle (random)", L"隨機打亂" }.Pick(m_language),
+            L"NativeTextSortShuffle", m_textSortShuffle, &MainWindow::m_textSortShuffle);
+        appendToggle(winforge::core::LocalizedText{ L"Remove blank lines", L"移除空白行" }.Pick(m_language),
+            L"NativeTextSortRemoveBlank", m_textSortRemoveBlank, &MainWindow::m_textSortRemoveBlank);
+        appendToggle(winforge::core::LocalizedText{ L"Trim each line", L"修剪每一行" }.Pick(m_language),
+            L"NativeTextSortTrimEach", m_textSortTrimEach, &MainWindow::m_textSortTrimEach);
+
+        Grid actions;
+        actions.ColumnSpacing(8);
+        actions.RowSpacing(8);
+        for (int column{}; column < 2; ++column)
+        {
+            ColumnDefinition definition;
+            definition.Width(GridLengthHelper::FromValueAndType(1.0, GridUnitType::Star));
+            actions.ColumnDefinitions().Append(definition);
+        }
+        for (int row{}; row < 2; ++row) actions.RowDefinitions().Append(RowDefinition());
+        auto appendAction = [&actions](Button const& button, int index)
+        {
+            Grid::SetRow(button, index / 2);
+            Grid::SetColumn(button, index % 2);
+            actions.Children().Append(button);
+        };
+        auto apply = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Apply", L"套用" }.Pick(m_language), L"NativeTextSortApply");
+        apply.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&) { RefreshTextSort(); });
+        appendAction(apply, 0);
+        auto reshuffle = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Re-shuffle", L"再打亂" }.Pick(m_language), L"NativeTextSortReshuffle");
+        reshuffle.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&) { RefreshTextSort(); });
+        appendAction(reshuffle, 1);
+        auto copy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy output", L"複製結果" }.Pick(m_language), L"NativeTextSortCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_textSortOutput));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceTextSortStatus(winforge::core::LocalizedText{
+                    L"Copied to clipboard.", L"已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceTextSortStatus(winforge::core::LocalizedText{
+                    L"Copy failed.", L"複製失敗。" }.Pick(m_language), true);
+            }
+        });
+        appendAction(copy, 2);
+        auto clear = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Clear", L"清除" }.Pick(m_language), L"NativeTextSortClear");
+        clear.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            m_textSortInput.clear();
+            if (m_textSortInputBox)
+            {
+                m_textSortRendering = true;
+                m_textSortInputBox.Text(L"");
+                m_textSortRendering = false;
+            }
+            RefreshTextSort();
+        });
+        appendAction(clear, 3);
+        options.Children().Append(actions);
+
+        m_textSortStats = CreateText(L"", 12.5);
+        m_textSortStats.Opacity(0.84);
+        m_textSortStats.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_textSortStats, L"NativeTextSortStats");
+        AutomationProperties::SetLiveSetting(
+            m_textSortStats,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        options.Children().Append(m_textSortStats);
+        optionsCard.Child(options);
+        page.Children().Append(optionsCard);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(8);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Input", L"輸入" }.Pick(m_language), 15, true);
+        input.Children().Append(inputLabel);
+        m_textSortInputBox = TextBox();
+        m_textSortInputBox.AcceptsReturn(true);
+        m_textSortInputBox.Text(ToHString(TextBoxPresentation(m_textSortInput)));
+        m_textSortInputBox.TextWrapping(TextWrapping::NoWrap);
+        m_textSortInputBox.MinHeight(220);
+        m_textSortInputBox.MaxHeight(360);
+        m_textSortInputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_textSortInputBox.IsSpellCheckEnabled(false);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textSortInputBox, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollBarVisibility(m_textSortInputBox, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollMode(m_textSortInputBox, ScrollMode::Enabled);
+        AutomationProperties::SetAutomationId(m_textSortInputBox, L"NativeTextSortInput");
+        AutomationProperties::SetName(m_textSortInputBox, ToHString(winforge::core::LocalizedText{
+            L"Text Sort input", L"文字排序輸入" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textSortInputBox, inputLabel);
+        m_textSortInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_textSortRendering) return;
+            m_textSortInput = ToWide(sender.as<TextBox>().Text());
+            RefreshTextSort();
+        });
+        input.Children().Append(m_textSortInputBox);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border outputCard = MakeNativeCard();
+        StackPanel output;
+        output.Spacing(8);
+        auto outputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Output", L"輸出" }.Pick(m_language), 15, true);
+        output.Children().Append(outputLabel);
+        m_textSortOutputBox = TextBox();
+        m_textSortOutputBox.AcceptsReturn(true);
+        m_textSortOutputBox.IsReadOnly(true);
+        m_textSortOutputBox.Text(ToHString(TextBoxPresentation(m_textSortOutput)));
+        m_textSortOutputBox.TextWrapping(TextWrapping::NoWrap);
+        m_textSortOutputBox.MinHeight(220);
+        m_textSortOutputBox.MaxHeight(360);
+        m_textSortOutputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textSortOutputBox, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollBarVisibility(m_textSortOutputBox, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollMode(m_textSortOutputBox, ScrollMode::Enabled);
+        AutomationProperties::SetAutomationId(m_textSortOutputBox, L"NativeTextSortOutput");
+        AutomationProperties::SetName(m_textSortOutputBox, ToHString(winforge::core::LocalizedText{
+            L"Text Sort output", L"文字排序輸出" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textSortOutputBox, outputLabel);
+        output.Children().Append(m_textSortOutputBox);
+        outputCard.Child(output);
+        page.Children().Append(outputCard);
+
+        ShowPage(page);
+        m_textSortRendering = false;
+        RefreshTextSort();
+    }
+
+    void MainWindow::RefreshTextSort()
+    {
+        using namespace winforge::core::lineprocessing;
+        if (!m_textSortOutputBox || !m_textSortStats) return;
+        TextSortOptions options;
+        switch (m_textSortMode)
+        {
+        case 0: options.mode = SortMode::None; break;
+        case 2: options.mode = SortMode::Descending; break;
+        case 3: options.mode = SortMode::Natural; break;
+        default: options.mode = SortMode::Ascending; break;
+        }
+        options.caseInsensitive = m_textSortCaseInsensitive;
+        options.removeDuplicates = m_textSortDeduplicate;
+        options.trimBeforeCompare = m_textSortTrimBeforeCompare;
+        options.reverse = m_textSortReverse;
+        options.shuffle = m_textSortShuffle;
+        options.removeBlank = m_textSortRemoveBlank;
+        options.trimEach = m_textSortTrimEach;
+        auto const result = TransformTextSort(m_textSortInput, options);
+        m_textSortOutput = result.text;
+        m_textSortOutputBox.Text(ToHString(TextBoxPresentation(m_textSortOutput)));
+        auto const stats = winforge::core::LocalizedText{
+            L"Lines in: " + std::to_wstring(result.linesIn) + L"   ·   Lines out: " +
+                std::to_wstring(result.linesOut) + L"   ·   Duplicates removed: " +
+                std::to_wstring(result.duplicatesRemoved),
+            L"輸入行數：" + std::to_wstring(result.linesIn) + L"   ·   輸出行數：" +
+                std::to_wstring(result.linesOut) + L"   ·   移除重複：" +
+                std::to_wstring(result.duplicatesRemoved) }.Pick(m_language);
+        AnnounceTextSortStatus(stats);
+    }
+
+    void MainWindow::AnnounceTextSortStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_textSortStats) return;
+        m_textSortStats.Text(ToHString(message));
+        m_textSortStats.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_textSortStats, ToHString(message));
+        RaisePoliteLiveRegion(m_textSortStats);
+    }
+
+    void MainWindow::RenderTextWrap()
+    {
+        m_textWrapRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Text Wrap", L"文字換行" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Wrap, unwrap, or reflow plain text to a fixed width for code comments, commit messages, email, and README files. Blank lines keep paragraphs apart.",
+                L"將純文字換行、拉直或重排到固定闊度，適合程式註解、commit 訊息、電郵同 README。空白行會分開段落。" }.Pick(m_language));
+        page.MaxWidth(820);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeTextWrapPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native text wrapping", L"全原生文字換行" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Paragraph parsing, managed-compatible whitespace handling, hard wrap, unwrap, reflow, prefix, hanging indent, measurements, and explicit copy run locally in standard C++.",
+            L"段落剖析、相容 managed 版嘅空白處理、硬換行、拉直、重排、前綴、懸掛縮排、測量同明確複製都用標準 C++ 喺本機執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeTextWrapImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(8);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Input", L"輸入" }.Pick(m_language), 15, true);
+        input.Children().Append(inputLabel);
+        m_textWrapInputBox = TextBox();
+        m_textWrapInputBox.AcceptsReturn(true);
+        m_textWrapInputBox.Text(ToHString(TextBoxPresentation(m_textWrapInput)));
+        m_textWrapInputBox.TextWrapping(TextWrapping::Wrap);
+        m_textWrapInputBox.MinHeight(180);
+        m_textWrapInputBox.MaxHeight(320);
+        m_textWrapInputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_textWrapInputBox.IsSpellCheckEnabled(false);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textWrapInputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_textWrapInputBox, L"NativeTextWrapInput");
+        AutomationProperties::SetName(m_textWrapInputBox, ToHString(winforge::core::LocalizedText{
+            L"Text Wrap input", L"文字換行輸入" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textWrapInputBox, inputLabel);
+        m_textWrapInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_textWrapRendering) return;
+            m_textWrapInput = ToWide(sender.as<TextBox>().Text());
+            RefreshTextWrapReadout();
+        });
+        input.Children().Append(m_textWrapInputBox);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border optionsCard = MakeNativeCard();
+        StackPanel options;
+        options.Spacing(10);
+        auto widthLabel = CreateText(
+            winforge::core::LocalizedText{ L"Width (columns)", L"闊度（字元）" }.Pick(m_language), 12.5, true);
+        options.Children().Append(widthLabel);
+        m_textWrapWidthBox = NumberBox();
+        m_textWrapWidthBox.Minimum(1);
+        m_textWrapWidthBox.Maximum(2000);
+        m_textWrapWidthBox.Value(m_textWrapWidth);
+        m_textWrapWidthBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Compact);
+        m_textWrapWidthBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        AutomationProperties::SetAutomationId(m_textWrapWidthBox, L"NativeTextWrapWidth");
+        AutomationProperties::SetName(m_textWrapWidthBox, ToHString(winforge::core::LocalizedText{
+            L"Text wrapping width in columns", L"文字換行寬度（字元）" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textWrapWidthBox, widthLabel);
+        m_textWrapWidthBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_textWrapRendering) return;
+            m_textWrapWidth = sender.Value();
+            RefreshTextWrapReadout();
+        });
+        options.Children().Append(m_textWrapWidthBox);
+
+        m_textWrapReadout = CreateText(L"", 12.5);
+        m_textWrapReadout.Opacity(0.82);
+        m_textWrapReadout.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_textWrapReadout, L"NativeTextWrapReadout");
+        options.Children().Append(m_textWrapReadout);
+
+        m_textWrapBreakLongBox = CheckBox();
+        m_textWrapBreakLongBox.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Break words longer than the width", L"斬開超過闊度嘅長字" }.Pick(m_language))));
+        m_textWrapBreakLongBox.IsChecked(
+            box_value(m_textWrapBreakLongWords).as<Windows::Foundation::IReference<bool>>());
+        AutomationProperties::SetAutomationId(m_textWrapBreakLongBox, L"NativeTextWrapBreakLong");
+        AutomationProperties::SetName(m_textWrapBreakLongBox, ToHString(winforge::core::LocalizedText{
+            L"Break words longer than the wrapping width", L"斬開超過換行寬度嘅長字" }.Pick(m_language)));
+        m_textWrapBreakLongBox.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_textWrapRendering) return;
+            m_textWrapBreakLongWords = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+        });
+        options.Children().Append(m_textWrapBreakLongBox);
+
+        auto prefixLabel = CreateText(
+            winforge::core::LocalizedText{ L"Prefix", L"前綴" }.Pick(m_language), 12.5, true);
+        options.Children().Append(prefixLabel);
+        m_textWrapPrefixBox = TextBox();
+        m_textWrapPrefixBox.Text(ToHString(m_textWrapPrefix));
+        m_textWrapPrefixBox.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_textWrapPrefixBox, L"NativeTextWrapPrefix");
+        AutomationProperties::SetName(m_textWrapPrefixBox, ToHString(winforge::core::LocalizedText{
+            L"Prefix for every line", L"每行前綴" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textWrapPrefixBox, prefixLabel);
+        m_textWrapPrefixBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (!m_textWrapRendering) m_textWrapPrefix = ToWide(sender.as<TextBox>().Text());
+        });
+        options.Children().Append(m_textWrapPrefixBox);
+
+        auto indentLabel = CreateText(
+            winforge::core::LocalizedText{ L"Indent spaces", L"縮排空格" }.Pick(m_language), 12.5, true);
+        options.Children().Append(indentLabel);
+        m_textWrapIndentBox = NumberBox();
+        m_textWrapIndentBox.Minimum(0);
+        m_textWrapIndentBox.Maximum(200);
+        m_textWrapIndentBox.Value(m_textWrapIndent);
+        m_textWrapIndentBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Compact);
+        m_textWrapIndentBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        AutomationProperties::SetAutomationId(m_textWrapIndentBox, L"NativeTextWrapIndent");
+        AutomationProperties::SetName(m_textWrapIndentBox, ToHString(winforge::core::LocalizedText{
+            L"Hanging indent spaces", L"懸掛縮排空格" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textWrapIndentBox, indentLabel);
+        m_textWrapIndentBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (!m_textWrapRendering) m_textWrapIndent = sender.Value();
+        });
+        options.Children().Append(m_textWrapIndentBox);
+
+        Grid actions;
+        actions.ColumnSpacing(8);
+        actions.RowSpacing(8);
+        for (int column{}; column < 2; ++column)
+        {
+            ColumnDefinition definition;
+            definition.Width(GridLengthHelper::FromValueAndType(1.0, GridUnitType::Star));
+            actions.ColumnDefinitions().Append(definition);
+        }
+        int actionIndex{};
+        auto appendAction = [this, &actions, &actionIndex](
+            std::wstring_view label,
+            std::wstring_view automationId,
+            TextWrapAction action)
+        {
+            auto const rowIndex = actionIndex / 2;
+            auto const columnIndex = actionIndex % 2;
+            if (columnIndex == 0) actions.RowDefinitions().Append(RowDefinition());
+            auto button = MakeNativeButton(label, automationId);
+            button.Click([this, action](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                ApplyTextWrap(action);
+            });
+            Grid::SetRow(button, rowIndex);
+            Grid::SetColumn(button, columnIndex);
+            actions.Children().Append(button);
+            ++actionIndex;
+        };
+        appendAction(winforge::core::LocalizedText{ L"Hard-wrap", L"硬換行" }.Pick(m_language),
+            L"NativeTextWrapHardWrap", TextWrapAction::HardWrap);
+        appendAction(winforge::core::LocalizedText{ L"Unwrap", L"拉直" }.Pick(m_language),
+            L"NativeTextWrapUnwrap", TextWrapAction::Unwrap);
+        appendAction(winforge::core::LocalizedText{ L"Reflow", L"重排" }.Pick(m_language),
+            L"NativeTextWrapReflow", TextWrapAction::Reflow);
+        appendAction(winforge::core::LocalizedText{ L"Add prefix", L"加前綴" }.Pick(m_language),
+            L"NativeTextWrapAddPrefix", TextWrapAction::AddPrefix);
+        appendAction(winforge::core::LocalizedText{ L"Hanging indent", L"懸掛縮排" }.Pick(m_language),
+            L"NativeTextWrapHangingIndent", TextWrapAction::HangingIndent);
+        options.Children().Append(actions);
+        optionsCard.Child(options);
+        page.Children().Append(optionsCard);
+
+        Border outputCard = MakeNativeCard();
+        StackPanel output;
+        output.Spacing(8);
+        auto outputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Output", L"輸出" }.Pick(m_language), 15, true);
+        output.Children().Append(outputLabel);
+        m_textWrapOutputBox = TextBox();
+        m_textWrapOutputBox.AcceptsReturn(true);
+        m_textWrapOutputBox.IsReadOnly(true);
+        m_textWrapOutputBox.Text(ToHString(TextBoxPresentation(m_textWrapOutput)));
+        m_textWrapOutputBox.TextWrapping(TextWrapping::NoWrap);
+        m_textWrapOutputBox.MinHeight(180);
+        m_textWrapOutputBox.MaxHeight(320);
+        m_textWrapOutputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textWrapOutputBox, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollBarVisibility(m_textWrapOutputBox, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollMode(m_textWrapOutputBox, ScrollMode::Enabled);
+        AutomationProperties::SetAutomationId(m_textWrapOutputBox, L"NativeTextWrapOutput");
+        AutomationProperties::SetName(m_textWrapOutputBox, ToHString(winforge::core::LocalizedText{
+            L"Text Wrap output", L"文字換行輸出" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textWrapOutputBox, outputLabel);
+        output.Children().Append(m_textWrapOutputBox);
+
+        auto copy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy output", L"複製輸出" }.Pick(m_language),
+            L"NativeTextWrapCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_textWrapOutput.empty())
+            {
+                m_textWrapStatusEn = L"Nothing to copy.";
+                m_textWrapStatusZh = L"冇嘢可以複製。";
+                AnnounceTextWrapStatus(winforge::core::LocalizedText{
+                    m_textWrapStatusEn, m_textWrapStatusZh }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_textWrapOutput));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                m_textWrapStatusEn = L"Copied to clipboard.";
+                m_textWrapStatusZh = L"已複製到剪貼簿。";
+                AnnounceTextWrapStatus(winforge::core::LocalizedText{
+                    m_textWrapStatusEn, m_textWrapStatusZh }.Pick(m_language));
+            }
+            catch (...)
+            {
+                m_textWrapStatusEn = L"Copy failed.";
+                m_textWrapStatusZh = L"複製失敗。";
+                AnnounceTextWrapStatus(winforge::core::LocalizedText{
+                    m_textWrapStatusEn, m_textWrapStatusZh }.Pick(m_language), true);
+            }
+        });
+        output.Children().Append(copy);
+
+        m_textWrapStatus = CreateText(L"", 12.5);
+        m_textWrapStatus.Opacity(0.84);
+        m_textWrapStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_textWrapStatus, L"NativeTextWrapStatus");
+        AutomationProperties::SetLiveSetting(
+            m_textWrapStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        output.Children().Append(m_textWrapStatus);
+        outputCard.Child(output);
+        page.Children().Append(outputCard);
+
+        ShowPage(page);
+        m_textWrapRendering = false;
+        RefreshTextWrapReadout();
+        AnnounceTextWrapStatus(winforge::core::LocalizedText{
+            m_textWrapStatusEn, m_textWrapStatusZh }.Pick(m_language));
+    }
+
+    void MainWindow::RefreshTextWrapReadout()
+    {
+        if (!m_textWrapReadout) return;
+        auto const width = std::isfinite(m_textWrapWidth) && m_textWrapWidth >= 1.0
+            ? std::clamp(static_cast<int>(m_textWrapWidth), 1, 2000)
+            : 72;
+        auto const& source = m_textWrapOutput.empty() ? m_textWrapInput : m_textWrapOutput;
+        auto const measure = winforge::core::lineprocessing::MeasureText(source);
+        auto const value = winforge::core::LocalizedText{
+            L"Target " + std::to_wstring(width) + L" cols · longest line " +
+                std::to_wstring(measure.longestLine) + L" · " + std::to_wstring(measure.lines) +
+                L" lines · " + std::to_wstring(measure.characters) + L" chars",
+            L"目標 " + std::to_wstring(width) + L" 字元 · 最長一行 " +
+                std::to_wstring(measure.longestLine) + L" · " + std::to_wstring(measure.lines) +
+                L" 行 · " + std::to_wstring(measure.characters) + L" 個字元" }.Pick(m_language);
+        m_textWrapReadout.Text(ToHString(value));
+        AutomationProperties::SetName(m_textWrapReadout, ToHString(value));
+    }
+
+    void MainWindow::ApplyTextWrap(TextWrapAction action)
+    {
+        using namespace winforge::core::lineprocessing;
+        auto const width = std::isfinite(m_textWrapWidth) && m_textWrapWidth >= 1.0
+            ? std::clamp(static_cast<int>(m_textWrapWidth), 1, 2000)
+            : 72;
+        auto const indent = std::isfinite(m_textWrapIndent) && m_textWrapIndent >= 0.0
+            ? std::clamp(static_cast<int>(m_textWrapIndent), 0, 2000)
+            : 0;
+        switch (action)
+        {
+        case TextWrapAction::HardWrap:
+            m_textWrapOutput = HardWrap(m_textWrapInput, width, m_textWrapBreakLongWords);
+            m_textWrapStatusEn = L"Hard-wrapped.";
+            m_textWrapStatusZh = L"已硬換行。";
+            break;
+        case TextWrapAction::Unwrap:
+            m_textWrapOutput = Unwrap(m_textWrapInput);
+            m_textWrapStatusEn = L"Unwrapped.";
+            m_textWrapStatusZh = L"已拉直。";
+            break;
+        case TextWrapAction::Reflow:
+            m_textWrapOutput = Reflow(m_textWrapInput, width, m_textWrapBreakLongWords);
+            m_textWrapStatusEn = L"Reflowed.";
+            m_textWrapStatusZh = L"已重排。";
+            break;
+        case TextWrapAction::AddPrefix:
+        {
+            auto const& basis = m_textWrapOutput.empty() ? m_textWrapInput : m_textWrapOutput;
+            m_textWrapOutput = AddPrefixEveryLine(basis, m_textWrapPrefix);
+            m_textWrapStatusEn = L"Prefix added to each line.";
+            m_textWrapStatusZh = L"已為每行加前綴。";
+            break;
+        }
+        case TextWrapAction::HangingIndent:
+        {
+            auto const& basis = m_textWrapOutput.empty() ? m_textWrapInput : m_textWrapOutput;
+            m_textWrapOutput = HangingIndent(basis, indent);
+            m_textWrapStatusEn = L"Hanging indent applied.";
+            m_textWrapStatusZh = L"已套用懸掛縮排。";
+            break;
+        }
+        }
+
+        if (m_textWrapOutputBox)
+        {
+            m_textWrapOutputBox.Text(ToHString(TextBoxPresentation(m_textWrapOutput)));
+        }
+        RefreshTextWrapReadout();
+        AnnounceTextWrapStatus(winforge::core::LocalizedText{
+            m_textWrapStatusEn, m_textWrapStatusZh }.Pick(m_language));
+    }
+
+    void MainWindow::AnnounceTextWrapStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_textWrapStatus) return;
+        m_textWrapStatus.Text(ToHString(message));
+        m_textWrapStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_textWrapStatus, ToHString(message));
+        RaisePoliteLiveRegion(m_textWrapStatus);
     }
 
     void MainWindow::RenderAspectRatio()

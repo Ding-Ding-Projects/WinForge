@@ -8,6 +8,7 @@
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/DesignTools.h"
 #include "../WinForge.Core/GuidGen.h"
+#include "../WinForge.Core/LineProcessing.h"
 #include "../WinForge.Core/PassGen.h"
 #include "../WinForge.Core/PasswordStrength.h"
 #include "../WinForge.Core/RomanNum.h"
@@ -242,6 +243,25 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ListView m_textDiffRows{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_textDiffCounts{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_textDiffStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_lineToolsInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_lineToolsPrefixBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_lineToolsSuffixBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_lineToolsDelimiterBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_lineToolsOutputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_lineToolsCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_lineToolsStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_textSortModeBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_textSortInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_textSortOutputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_textSortStats{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_textWrapInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_textWrapWidthBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_textWrapBreakLongBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_textWrapPrefixBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_textWrapIndentBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_textWrapOutputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_textWrapReadout{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_textWrapStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -373,6 +393,60 @@ namespace winrt::WinForge::implementation
         bool m_textDiffIgnoreWhitespace{ false };
         bool m_textDiffIgnoreCase{ false };
         bool m_textDiffRendering{ false };
+        enum class LineToolAction
+        {
+            NumberDot,
+            NumberParen,
+            RemoveNumbers,
+            WrapQuotes,
+            AddPrefix,
+            AddSuffix,
+            Join,
+            Split,
+            ReverseCharacters,
+            Sort,
+            ReverseOrder,
+            Shuffle,
+            Deduplicate,
+            RemoveEmpty,
+            Trim,
+        };
+        std::wstring m_lineToolsInput{};
+        std::wstring m_lineToolsPrefix{};
+        std::wstring m_lineToolsSuffix{};
+        std::wstring m_lineToolsDelimiter{ L", " };
+        std::wstring m_lineToolsOutput{};
+        std::wstring m_lineToolsStatusEn{ L"Ready." };
+        std::wstring m_lineToolsStatusZh{ L"準備就緒。" };
+        bool m_lineToolsRendering{ false };
+        std::wstring m_textSortInput{};
+        std::wstring m_textSortOutput{};
+        int32_t m_textSortMode{ 1 };
+        bool m_textSortCaseInsensitive{ false };
+        bool m_textSortDeduplicate{ false };
+        bool m_textSortTrimBeforeCompare{ false };
+        bool m_textSortReverse{ false };
+        bool m_textSortShuffle{ false };
+        bool m_textSortRemoveBlank{ false };
+        bool m_textSortTrimEach{ false };
+        bool m_textSortRendering{ false };
+        enum class TextWrapAction
+        {
+            HardWrap,
+            Unwrap,
+            Reflow,
+            AddPrefix,
+            HangingIndent,
+        };
+        std::wstring m_textWrapInput{};
+        std::wstring m_textWrapOutput{};
+        double m_textWrapWidth{ 72.0 };
+        bool m_textWrapBreakLongWords{ false };
+        std::wstring m_textWrapPrefix{ L"> " };
+        double m_textWrapIndent{ 4.0 };
+        std::wstring m_textWrapStatusEn{ L"Ready." };
+        std::wstring m_textWrapStatusZh{ L"準備就緒。" };
+        bool m_textWrapRendering{ false };
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -667,6 +741,17 @@ namespace winrt::WinForge::implementation
         void RenderTextDiff();
         void RefreshTextDiff();
         void AnnounceTextDiffStatus(std::wstring_view message, bool warning = false);
+        void RenderLineTools();
+        void RefreshLineToolsCount();
+        void ApplyLineTool(LineToolAction action);
+        void AnnounceLineToolsStatus(std::wstring_view message, bool warning = false);
+        void RenderTextSort();
+        void RefreshTextSort();
+        void AnnounceTextSortStatus(std::wstring_view message, bool warning = false);
+        void RenderTextWrap();
+        void RefreshTextWrapReadout();
+        void ApplyTextWrap(TextWrapAction action);
+        void AnnounceTextWrapStatus(std::wstring_view message, bool warning = false);
         void RenderAspectRatio();
         void RefreshAspectRatio(bool adoptSimplifiedRatio = true);
         void RefreshAspectScale();
