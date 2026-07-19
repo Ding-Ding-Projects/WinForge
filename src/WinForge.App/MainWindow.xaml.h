@@ -9,6 +9,7 @@
 #include "../WinForge.Core/DesignTools.h"
 #include "../WinForge.Core/GuidGen.h"
 #include "../WinForge.Core/LineProcessing.h"
+#include "../WinForge.Core/Morse.h"
 #include "../WinForge.Core/PassGen.h"
 #include "../WinForge.Core/PasswordStrength.h"
 #include "../WinForge.Core/RomanNum.h"
@@ -222,6 +223,19 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_uuidV7LocalOutput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_uuidV7CanonicalOutput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_uuidV7Status{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_morseInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_morseDirectionSwitch{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_morseSeparatorPanel{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_morseSeparatorBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_morseOutputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_morseCopyButton{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_morseUnknown{ nullptr };
+        Microsoft::UI::Xaml::Controls::Border m_morseLamp{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_morseWpmBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_morsePlayButton{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_morseStopButton{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_morseStatus{ nullptr };
+        Microsoft::UI::Xaml::DispatcherTimer m_morseTimer{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_romanNumExtendedSwitch{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_romanNumNumberInput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_romanNumRomanOutput{ nullptr };
@@ -395,6 +409,16 @@ namespace winrt::WinForge::implementation
         std::wstring m_uuidV7DecodeInputValue{};
         std::wstring m_uuidV7TimestampValue{};
         bool m_uuidV7Rendering{ false };
+        std::wstring m_morseInputValue{};
+        std::wstring m_morseOutputValue{};
+        std::vector<winforge::core::morse::Flash> m_morseTimeline{};
+        bool m_morseDecode{ false };
+        int32_t m_morseSeparatorIndex{ 0 };
+        double m_morseWpm{ 15.0 };
+        double m_morseUnitMs{ 80.0 };
+        int32_t m_morseFlashIndex{ -1 };
+        bool m_morsePlaying{ false };
+        bool m_morseRendering{ false };
         bool m_romanNumExtended{ false };
         std::wstring m_romanNumNumberInputValue{};
         std::wstring m_romanNumRomanInputValue{};
@@ -612,6 +636,8 @@ namespace winrt::WinForge::implementation
         void BuildPrimaryNavigation();
         void Navigate(std::wstring_view route, std::wstring_view argument = {}, bool deepLink = false);
         void ReleaseTextAnalysisRouteState(std::wstring_view nextRoute);
+        void ReleaseMorseRouteState(std::wstring_view nextRoute);
+        void ResetMorseRouteState();
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -768,6 +794,15 @@ namespace winrt::WinForge::implementation
         void ClearUuidV7DecodeResults();
         void CopyUuidV7Value(std::wstring_view value, std::wstring_view successMessage);
         void AnnounceUuidV7Status(std::wstring_view message, bool warning = false);
+        void RenderMorse();
+        void RefreshMorse();
+        void UpdateMorseDirection();
+        void CopyMorseOutput();
+        void PlayMorseFlash();
+        void StopMorseFlash();
+        void AdvanceMorseFlash();
+        void SetMorseLamp(bool on);
+        void AnnounceMorseStatus(std::wstring_view message, bool warning = false);
         void RenderRomanNum();
         void RefreshRomanNum(bool refreshNumber = true, bool refreshRoman = true);
         void AnnounceRomanNumStatus(std::wstring_view message, bool warning = false);

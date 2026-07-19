@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-19T03:56:04Z",
+    "generatedAtUtc":  "2026-07-19T18:17:57Z",
     "baselineCommit":  "ce879cc6626eae328ec72e0143761c0edfbae340",
     "baselineCounts":  {
                            "routes":  346,
@@ -5191,25 +5191,54 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "src/WinForge.Core/Morse.h",
+                                      "src/WinForge.Core/Morse.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/MorseTests.h",
+                                      "tests/native/WinForge.Core.Tests/MorseTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "Pages/MorseModule.xaml",
+                                      "Pages/MorseModule.xaml.cs",
+                                      "Services/MorseService.cs",
+                                      "docs/Native-Morse-Code.md",
+                                      "docs/wiki/Native-Morse-Code.md",
+                                      "design/content/Native-Morse-Code.md",
+                                      "design/content/wiki/Native-Morse-Code.md",
+                                      "handoff-summary.md",
+                                      "design/content/handoff.md",
+                                      "AGENT_MEMORY.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Morse Code · 摩斯電碼 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "behavior-pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-19T18:17:57Z",
+                                           "result":  "Dedicated C++/WinRT Morse Code is backed by standard-C++ Morse logic. It preserves managed per-UTF-16-unit invariant casing, all registered International Morse punctuation, configurable letter/word separators, dot/dash/bar decoding aliases, unknown-character markers, PARIS WPM timing, and a dispatcher-timer flash preview with route/window cleanup. Native Debug and Release core executables each passed 741/741, including 24/24 focused Morse contracts; the focused -MorseRoutesOnly native UI Automation smoke passed 13/13 across morse and module.morse. The default-safe smoke did not mutate the clipboard; Copy remains an explicit-only action.",
+                                           "status":  "behavior-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T18:17:57Z",
+                                           "result":  "The repository-local lowlevel-computer-use-mcp checkout exists, but this Codex session exposes no callable LowLevel MCP or headless-desktop tools, so no MCP evidence is claimed. The required run-winforge fallback launched native morse successfully with -NoCapture (PID 1848), then capture exited without retaining a file because CopyFromScreen was unavailable and PrintWindow produced a blank or near-uniform WinUI client frame. No canonical screenshot changed and no owned WinForge process remained.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中. 專用 C++/WinRT Morse renderer 同標準 C++ core 已通過 build、24/24 專項 core、741/741 總 core、兩個 alias 嘅 13/13 UIA 同 launch-only 證據。轉換完全本機做；剪貼簿只會喺明確 Copy 時使用；timer 喺停止、離開 route 同關窗時清理。LowLevel MCP 工具喺此 session 不可呼叫，driver fallback 如實拒絕空白 WinUI 圖，所以 visual 係 capture-blocked，row 保持 in-progress。"
                    },
                    {
                        "id":  "module.mouse",

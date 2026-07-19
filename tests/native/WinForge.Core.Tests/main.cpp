@@ -6,6 +6,7 @@
 #include "DesignTools.h"
 #include "DesignToolsTests.h"
 #include "LineProcessingTests.h"
+#include "MorseTests.h"
 #include "TextAnalysisTests.h"
 #include "GuidGenTests.h"
 #include "PassGenTests.h"
@@ -219,6 +220,7 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L" module.linetools ") &&
         winforge::core::HasNativeRenderer(L"MODULE.TEXTSORT") &&
         winforge::core::HasNativeRenderer(L"module.textwrap") &&
+        winforge::core::HasNativeRenderer(L"module.morse") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
@@ -289,6 +291,10 @@ int wmain(int argc, wchar_t** argv)
     auto const lineProcessingCounts = RunLineProcessingTests();
     passed += lineProcessingCounts.passed;
     failed += lineProcessingCounts.failed;
+
+    auto const morseCounts = RunMorseTests();
+    passed += morseCounts.passed;
+    failed += morseCounts.failed;
 
     auto const textAnalysisCounts = RunTextAnalysisTests();
     passed += textAnalysisCounts.passed;

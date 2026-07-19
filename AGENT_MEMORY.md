@@ -1,5 +1,12 @@
 # Persistent Agent Task Memory / 長期代理任務記憶
 
+## Latest native Morse Code feature branch (verification complete; integration pending) / 最新原生摩斯電碼功能分支（驗證完成；整合待處理）
+
+- module.morse and morse now render natively through C++/WinRT over the standard-C++ Morse core. Preserve managed-compatible UTF-16 encode/decode aliases, unique unknown-symbol reporting, exact 1/3/7-unit flash timeline and bounded WPM conversion, explicit-only clipboard writes, and dispatcher-timer cleanup on completion, route exit, or window close.
+- On isolated codex/native-morse, native Debug and Release solution builds exit 0; both core executables pass **741/741**, including Morse **24/24**; focused -MorseRoutesOnly native UI Automation passes **13/13**; catalog parity covers 346 fixed routes plus five dynamic route families; and the provisional ledger is **28 in-progress / 318 not-started**.
+- LowLevel MCP is available on disk but not callable in this Codex session. The required driver launched --page morse successfully but rejected screenshot fallback because CopyFromScreen is unavailable and PrintWindow was blank or near-uniform. Keep visual evidence capture-blocked; retain no invalid PNG and do not claim a screenshot.
+- The feature branch must be rebased/integrated by the parent agent after current main/release work. Resolve shared native shell, test-main, route index, parity ledger, docs, and handoff headings against current main; the parent owns hosted CI and native-only release verification.
+
 This file is the durable execution contract for every agent working in this repository. It supplements, and never weakens, `AGENTS.md`.
 
 ## Latest native text-analysis checkpoint (exhaustive shell green; visual capture blocked) / 最新原生文字分析檢查點（完整 shell 通過；視覺擷取受阻）

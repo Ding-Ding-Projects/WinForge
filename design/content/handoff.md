@@ -1,5 +1,13 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## Native Morse Code feature branch — verification complete; integration pending · 原生摩斯電碼功能分支 — 驗證完成；整合待處理
+
+**EN.** module.morse and alias morse now have a genuine C++/WinRT renderer backed by standard-C++ Morse logic. It preserves managed-compatible UTF-16 encode/decode aliases, unique unknown-symbol reporting, bounded WPM and flash timing, explicit Copy, and lifecycle-safe dispatcher-timer cleanup. Native Debug/Release builds exit 0; both core suites are **741/741**, Morse is **24/24**, focused native UIA is **13/13**, and catalog parity covers 346 fixed routes plus five dynamic families. This isolated feature branch records **28/346** fixed routes and **28 in-progress / 318 not-started**.
+
+**Visual evidence.** LowLevel MCP is present locally but not callable in this Codex session, so none is claimed. The required driver successfully launched the native page but rejected its blank/near-uniform fallback because CopyFromScreen is unavailable. No invalid image was retained or promoted; visual evidence remains capture-blocked.
+
+**粵語.** module.morse 同 morse 而家有真正 C++/WinRT renderer 同標準 C++ Morse 邏輯，保留 managed 相容 UTF-16 編碼／解碼別名、唯一未知符號報告、有界 WPM 同閃燈計時、明確 Copy 同 lifecycle-safe dispatcher-timer cleanup。Debug／Release 各通過 **741/741**、Morse **24/24**、專項 native UIA **13/13** 同 catalog parity；呢個獨立 feature branch 記錄 **28/346** 同 **28 in-progress / 318 not-started**。LowLevel MCP 雖然喺本機但呢個 session 唔可呼叫；driver 開到原生頁但因 CopyFromScreen 唔可用而拒絕空白／近乎單色 fallback。無效圖冇保留或提升，visual 保持 capture-blocked。父 agent 擁有 rebase、main 整合、hosted CI 同 native-only release 證明。
+
 ## Native text-analysis wave — exhaustive shell green; visual capture blocked · 原生文字分析批次 — 完整 shell 通過；視覺擷取受阻
 
 **EN.** Text Statistics, Word Frequency, and String Compare now have dedicated C++/WinRT renderers over the shared standard-C++ `TextAnalysis` core. The implementations preserve local UTF-16/CJK statistics, sentence/paragraph/average/time/Flesch/top-ten results; word/bigram/Unicode-scalar frequency, managed options/stop words, current-culture ordering, count/bar/percentage rows and exact CSV; and normalization, UTF-16, OSA/Jaro–Winkler/longest-common metrics, the greater-than-2,000 guard, subquadratic exact greedy Jaro, and route-exit cleanup. Word Frequency and String Compare write the clipboard only after explicit Copy; Text Statistics is side-effect free.

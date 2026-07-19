@@ -59,6 +59,7 @@
     <ClCompile Include="CodecTests.cpp" />
     <ClCompile Include="DesignToolsTests.cpp" />
     <ClCompile Include="LineProcessingTests.cpp" />
+    <ClCompile Include="MorseTests.cpp" />
     <ClCompile Include="TextAnalysisTests.cpp" />
     <ClCompile Include="GuidGenTests.cpp" />
     <ClCompile Include="PassGenTests.cpp" />
@@ -85,6 +86,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\DesignTools.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\LineProcessing.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\Morse.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\TextAnalysis.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PassGen.cpp" />
@@ -113,6 +115,7 @@
     <ClInclude Include="CodecTests.h" />
     <ClInclude Include="DesignToolsTests.h" />
     <ClInclude Include="LineProcessingTests.h" />
+    <ClInclude Include="MorseTests.h" />
     <ClInclude Include="TextAnalysisTests.h" />
     <ClInclude Include="GuidGenTests.h" />
     <ClInclude Include="PassGenTests.h" />
@@ -136,6 +139,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\DesignTools.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\LineProcessing.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\Morse.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\TextAnalysis.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PassGen.h" />
