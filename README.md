@@ -25,11 +25,22 @@
 
 ## 🧱 Native C++ Rewrite · 原生 C++ 重寫
 
+### 2026-07-19 controlled native Unit Price integration · 2026-07-19 受控原生單位價格整合
+
+**EN —** `priceper`, `unitprice`, and `module.unitprice` now use the genuine C++/WinRT page and standard-C++ `UnitPrice` core in the controlled native shell. Debug and Release builds have 0 errors; both combined cores are **828/828** (Unit Price **13/13**), focused Unit Price UIA is **15/15**, Utility UIA is **39/39** including CSS Unit Converter, catalog parity is **346 + 5**, and the native installer contract passes. This is **34/346** fixed native routes (`34 in-progress / 312 not-started`). A broad aggregate reached the Unit Price block but did not produce a captured final footer, so no full-shell pass is claimed. LowLevel tools are unavailable and the fresh driver rejected a blank frame, so visual evidence remains `capture-blocked`; the release boundary remains C++-only.
+
+**粵語 —** `priceper`、`unitprice` 同 `module.unitprice` 而家喺受控原生 shell 用真正 C++/WinRT 頁同標準 C++ `UnitPrice` core。Debug／Release 0 errors、合併 core 各 **828/828**（Unit Price **13/13**）、Unit Price UIA **15/15**、包括 CSS Unit Converter 嘅 Utility UIA **39/39**、catalog parity **346 + 5**、native installer contract 全部通過。固定原生 route 係 **34/346**（`34 in-progress / 312 not-started`）。廣泛 aggregate 跑到 Unit Price block，但冇擷取到最後 footer，所以唔聲稱 full-shell pass。LowLevel 工具未可用、driver 拒絕空白畫面，visual 保持 `capture-blocked`；發佈界線繼續只限 C++。
+
 ### 2026-07-19 controlled native Namespaced UUID integration · 2026-07-19 受控原生具名空間 UUID 整合
 
 **EN —** `uuid5`, `uuidv5`, and `module.uuidv5` now use a genuine C++/WinRT page and the standard-C++ `UuidV5` core for local RFC 4122 v3/v5 generation, managed-compatible namespace parsing, bulk output, localization, reset, and explicit-only Copy. Fresh Debug/Release native builds have 0 errors; both cores are **815/815**, focused UUID UIA is **21/21**, the full native shell is **469/469**, catalog parity is **346 + 5**, and the native installer contract passes. Native renderer accounting is **33/346** (`33 in-progress / 313 not-started`); the C++-only release boundary is unchanged. LowLevel tools are unavailable in this session and the fresh driver rejected a blank frame, so visual evidence remains `capture-blocked`.
 
 **粵語 —** `uuid5`、`uuidv5` 同 `module.uuidv5` 而家用真正 C++/WinRT 頁同標準 C++ `UuidV5` core，喺本機產生 RFC 4122 v3/v5、managed 相容 namespace parser、bulk 輸出、本地化、重設同只限明確 Copy。最新 Debug／Release 原生 build 0 errors、core 各 **815/815**、UUID 專項 UIA **21/21**、完整 native shell **469/469**、catalog parity **346 + 5**、native installer contract 通過。原生 renderer 計 **33/346**（`33 in-progress / 313 not-started`）；只限 C++ 發佈界線冇變。今個 session 冇 LowLevel 工具而最新 driver 拒絕空白畫面，所以 visual 保持 `capture-blocked`。
+### Historical 2026-07-19 native Unit Price feature branch (pre-integration) · 歷史原生單位價格功能分支（整合前）
+
+**EN —** `priceper`, `unitprice`, and `module.unitprice` now have a genuine C++/WinRT renderer backed by a pure standard-C++ `UnitPrice` core. It preserves managed-valid row filtering, free/infinity and tolerance-tie decisions, invariant display text, first-unit Add, removal/lifecycle cleanup, three-language state retention, fresh-route defaults, and explicit-only clipboard Copy. This isolated branch has Debug/Release 0-error builds, core **814/814** in both configurations (Unit Price **13/13**), catalog parity **346 + 5**, and focused UIA **15/15**. It takes renderer accounting to **33/346 fixed routes** (`33 in-progress / 313 not-started`). A broad shell run passed every Unit Price assertion but later stalled in an unrelated CSS route and was stopped to free shared UIA; it is not a completed full-suite claim. LowLevel MCP is not callable here and the required driver rejected its blank fallback, so visual evidence is `capture-blocked`. The feature changes no workflow or release policy and awaits controlled C++-only integration.
+
+**粵語 —** `priceper`、`unitprice` 同 `module.unitprice` 而家有真正 C++/WinRT renderer，同純標準 C++ `UnitPrice` core 一齊運作。保留 managed 有效行篩選、免費／infinity／容差平手、invariant 顯示、第一行單位 Add、移除／lifecycle 清理、三語狀態、全新 route 預設同只限明確 Copy。呢個獨立分支有 Debug／Release 0-error build、core 各 **814/814**（Unit Price **13/13**）、catalog parity **346 + 5** 同專項 UIA **15/15**；renderer 計 **33/346**（`33 in-progress / 313 not-started`）。廣泛 shell run 通過晒 Unit Price assertion，但之後喺不相關 CSS route 停住並為釋放共用 UIA 而停止，唔係完成 full-suite 聲稱。LowLevel MCP 喺呢度不可呼叫，driver 拒絕空白 fallback，所以 visual 係 `capture-blocked`。功能唔改 workflow／release policy，等只限 C++ 受控整合。
 
 ### 2026-07-19 controlled native Slugify integration · 2026-07-19 受控原生網址別名整合
 

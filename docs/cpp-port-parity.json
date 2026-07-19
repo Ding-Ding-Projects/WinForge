@@ -50,7 +50,7 @@
                        "notes":  "2026-07-18 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. About is a dedicated bilingual native renderer with no mutation path. The Regex Cheatsheet evidence previously stored in this row was corrected into module.regexcheat. No stale, synthetic, blank, or managed image is used as native evidence."
                    },
                    {
-                        "id":  "annoyances",
+                       "id":  "annoyances",
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
@@ -8224,25 +8224,48 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/UnitPriceModule.xaml",
+                                      "Pages/UnitPriceModule.xaml.cs",
+                                      "Services/UnitPriceService.cs",
+                                      "src/WinForge.Core/UnitPrice.h",
+                                      "src/WinForge.Core/UnitPrice.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "tests/native/WinForge.Core.Tests/UnitPriceTests.h",
+                                      "tests/native/WinForge.Core.Tests/UnitPriceTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/Native-Unit-Price.md",
+                                      "docs/wiki/Native-Unit-Price.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Unit Price · 單位價格 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-19T21:29:04Z",
+                                            "result":  "Feature-branch native C++/WinRT Unit Price reached priceper, unitprice, and module.unitprice. It preserved valid-price/quantity filtering, free-item infinity behavior, epsilon ties, invariant price/percentage text, blank-row defaults, first-unit Add, row removal, explicit-only clipboard Copy, route reset, and English/Cantonese/bilingual state retention. Debug and Release x64 builds exited 0 with 0 errors; both core suites passed 814/814 including Unit Price 13/13; focused Unit Price UI Automation passed 15/15 across every alias. The dedicated branch did not claim a completed broad shell result. LowLevel MCP was not callable and the driver rejected a blank or near-uniform fallback; no PNG was retained.",
+                                            "status":  "capture-blocked"
+                                        },
+                                        {
+                                            "atUtc":  "2026-07-19T22:43:45Z",
+                                            "result":  "Controlled integration combined Unit Price with the current native shell. Debug and Release x64 solution builds exited 0 with 0 errors; both core suites passed 828/828 including Unit Price 13/13; focused Unit Price UI Automation passed 15/15; Utility UI Automation passed 39/39 including CSS Unit Converter; catalog parity covered 346 fixed routes plus five dynamic families with 319 registry records and 346 ledger rows; and the installer contract passed. A broad aggregate exercised Unit Price but did not return a captured final footer, so no completed full-shell result is claimed. LowLevel MCP was not callable and the driver rejected its blank or near-uniform fallback; no PNG was retained.",
+                                            "status":  "capture-blocked"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. Controlled combined validation is green: Debug/Release 0-error builds, core 828/828 including Unit Price 13/13, focused UIA 15/15, Utility 39/39 including CSS, catalog parity, and installer contract. Unit Price is local-only; its sole side effect is an operator-selected Copy of a populated comparison. 專用原生 Unit Price 保留 managed 價格／數量驗證、免費項目、容差平手、增減列、三語狀態同只限明確 Copy。LowLevel MCP 今個 session 不可呼叫，driver 拒絕空白 fallback，冇 PNG，所以 visual 如實係 capture-blocked。"
                    },
                    {
                        "id":  "module.unixperm",

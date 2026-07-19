@@ -10,6 +10,7 @@ param(
     [switch]$MorseRoutesOnly,
     [switch]$SlugifyRoutesOnly,
     [switch]$UuidV5RoutesOnly,
+    [switch]$UnitPriceRoutesOnly,
     [switch]$AllowClipboardMutation
 )
 
@@ -620,14 +621,16 @@ function Invoke-OwnedRoute {
     $isMorseRoute = @('morse', 'module.morse') -contains $Route
     $isSlugifyRoute = @('slug', 'slugify', 'module.slugify') -contains $Route
     $isUuidV5Route = @('uuid5', 'uuidv5', 'module.uuidv5') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $UuidV5RoutesOnly) -and -not (
+    $isUnitPriceRoute = @('priceper', 'unitprice', 'module.unitprice') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
         ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
         ($ReferenceTextRoutesOnly -and $isReferenceTextRoute) -or
         ($MorseRoutesOnly -and $isMorseRoute) -or
         ($SlugifyRoutesOnly -and $isSlugifyRoute) -or
-        ($UuidV5RoutesOnly -and $isUuidV5Route))) {
+        ($UuidV5RoutesOnly -and $isUuidV5Route) -or
+        ($UnitPriceRoutesOnly -and $isUnitPriceRoute))) {
         return
     }
 
@@ -3916,6 +3919,144 @@ Invoke-OwnedRoute -Route 'slugify' -ExpectedTitle 'Slugify' -Inspect {
 
 foreach ($alias in @('slug', 'slugify', 'module.slugify')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Slugify'
+}
+
+Invoke-OwnedRoute -Route 'unitprice' -ExpectedTitle 'Unit Price' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeUnitPriceImplementationStatus',
+        'NativeUnitPriceCurrency',
+        'NativeUnitPriceColumns',
+        'NativeUnitPriceRows',
+        'NativeUnitPriceLabel0',
+        'NativeUnitPricePrice0',
+        'NativeUnitPriceQuantity0',
+        'NativeUnitPriceUnit0',
+        'NativeUnitPricePerUnit0',
+        'NativeUnitPriceBadge0',
+        'NativeUnitPriceRemove0',
+        'NativeUnitPriceLabel1',
+        'NativeUnitPricePrice1',
+        'NativeUnitPriceQuantity1',
+        'NativeUnitPriceUnit1',
+        'NativeUnitPricePerUnit1',
+        'NativeUnitPriceBadge1',
+        'NativeUnitPriceRemove1',
+        'NativeUnitPriceAdd',
+        'NativeUnitPriceCopy',
+        'NativeUnitPriceStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $unitPriceFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceCurrency'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceLabel0'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPricePrice0'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceQuantity0'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceUnit0'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPricePerUnit0'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceBadge0'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceRemove0'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceAdd'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceStatus'))
+    Assert-True -Condition $unitPriceFit `
+        -Name 'Unit Price exposes accessible local comparison controls without horizontal clipping'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnitPriceCurrency' -ExpectedValue '$' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceStatus' `
+        -Prefix '2 item(s) need a quantity greater than zero' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Unit Price starts with the managed dollar currency and two blank comparison rows'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPriceLabel0' -Value 'Coffee' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPricePrice0' -Value '5' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPriceQuantity0' -Value '250' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPriceUnit0' -Value 'g' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPriceLabel1' -Value 'Tea' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPricePrice1' -Value '3' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPriceQuantity1' -Value '100' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPriceUnit1' -Value 'g' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPricePerUnit0' -Prefix '$0.02/g' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceBadge0' -Prefix ([char]0x2605) | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPricePerUnit1' -Prefix '$0.03/g' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceBadge1' -Prefix '+50% more' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceStatus' -Prefix 'Comparing 2 items' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Unit Price calculates price-per-unit best-value and percent-more badges locally'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPricePrice1' -Value '2' | Out-Null
+    # NumberBox commits a typed value when its embedded editor loses focus.
+    (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceCopy').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceBadge1' -Prefix ([char]0x2605) | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Unit Price marks equal per-unit costs as managed tolerance ties'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPricePrice0' -Value '0' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPricePrice1' -Value '3' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceCopy').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPricePerUnit0' -Prefix '$0/g' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceBadge1' -Prefix ([char]0x221E) | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Unit Price preserves the managed free-item infinity comparison behavior'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUnitPriceAdd'
+    Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceLabel2' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnitPriceUnit2' -ExpectedValue 'g' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUnitPriceRemove2'
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeUnitPriceLabel2')) `
+        -Name 'Unit Price adds a row with the first unit and can remove it without a stale control'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPriceQuantity1' -Value '0' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceCopy').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceStatus' `
+        -Prefix '1 item(s) need a quantity greater than zero' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeUnitPriceQuantity1' -Value '100' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceCopy').SetFocus()
+    Assert-True -Condition $true `
+        -Name 'Unit Price reports invalid zero quantities before comparing valid items'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUnitPriceCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceStatus' `
+            -Prefix 'Comparison copied to clipboard' | Out-Null
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceCopy' `
+            -Prefix 'Copied' | Out-Null
+        Assert-True -Condition $true -Name 'Unit Price writes the local comparison only after explicit Copy'
+    }
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = @([char]0x7CB5, [char]0x8A9E) -join ''
+    $unitPriceCantoneseTitle = @([char]0x55AE, [char]0x4F4D, [char]0x50F9, [char]0x683C) -join ''
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForPageTitle -Root $root -Prefix $unitPriceCantoneseTitle | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPriceBadge0' -Prefix ([char]0x2605) | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Unit Price' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUnitPricePerUnit0' -Prefix '$0/g' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Unit Price localizes Cantonese and English while retaining comparison state'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeUnitPriceCurrency')) `
+        -Name 'Unit Price releases observable controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.unitprice' -ExpectedTitle 'Unit Price'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUnitPriceCurrency' -ExpectedValue '$' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceLabel0' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativeUnitPriceLabel1' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeUnitPriceLabel2')) `
+        -Name 'Unit Price resets managed defaults after in-process route re-entry'
+}
+
+foreach ($alias in @('priceper', 'unitprice', 'module.unitprice')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Unit Price'
 }
 
 Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {

@@ -1143,6 +1143,31 @@ namespace winrt::WinForge::implementation
         }
     }
 
+    void MainWindow::ReleaseUnitPriceRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute != L"module.unitprice" || nextRoute == L"module.unitprice") return;
+        ResetUnitPriceRouteState();
+    }
+
+    void MainWindow::ResetUnitPriceRouteState()
+    {
+        m_unitPriceCurrencyBox = nullptr;
+        m_unitPriceRowsPanel = nullptr;
+        decltype(m_unitPriceLabelBoxes){}.swap(m_unitPriceLabelBoxes);
+        decltype(m_unitPricePriceBoxes){}.swap(m_unitPricePriceBoxes);
+        decltype(m_unitPriceQuantityBoxes){}.swap(m_unitPriceQuantityBoxes);
+        decltype(m_unitPriceUnitBoxes){}.swap(m_unitPriceUnitBoxes);
+        decltype(m_unitPricePerUnitTexts){}.swap(m_unitPricePerUnitTexts);
+        decltype(m_unitPriceBadgeTexts){}.swap(m_unitPriceBadgeTexts);
+        m_unitPriceAddButton = nullptr;
+        m_unitPriceCopyButton = nullptr;
+        m_unitPriceStatus = nullptr;
+        m_unitPriceCurrency = L"$";
+        decltype(m_unitPriceItems){}.swap(m_unitPriceItems);
+        m_unitPriceInitialized = false;
+        m_unitPriceRendering = false;
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -1164,6 +1189,7 @@ namespace winrt::WinForge::implementation
             ReleaseMorseRouteState(L"search");
             ReleaseSlugifyRouteState(L"search");
             ReleaseUuidV5RouteState(L"search");
+            ReleaseUnitPriceRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -1177,6 +1203,7 @@ namespace winrt::WinForge::implementation
             ReleaseMorseRouteState(L"manual");
             ReleaseSlugifyRouteState(L"manual");
             ReleaseUuidV5RouteState(L"manual");
+            ReleaseUnitPriceRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -1192,6 +1219,7 @@ namespace winrt::WinForge::implementation
             ReleaseMorseRouteState(normalized);
             ReleaseSlugifyRouteState(normalized);
             ReleaseUuidV5RouteState(normalized);
+            ReleaseUnitPriceRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
@@ -1204,6 +1232,7 @@ namespace winrt::WinForge::implementation
         ReleaseMorseRouteState(module->id);
         ReleaseSlugifyRouteState(module->id);
         ReleaseUuidV5RouteState(module->id);
+        ReleaseUnitPriceRouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
@@ -1325,6 +1354,10 @@ namespace winrt::WinForge::implementation
             m_uuidV5ResultValue.clear();
             m_uuidV5BulkInputValue.clear();
             m_uuidV5BulkOutputValue.clear();
+        }
+        else if (module->id == L"module.unitprice")
+        {
+            ResetUnitPriceRouteState();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -1512,6 +1545,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.slugify")
         {
             RenderSlugify();
+        }
+        else if (module->id == L"module.unitprice")
+        {
+            RenderUnitPrice();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -7030,6 +7067,422 @@ namespace winrt::WinForge::implementation
         if (announce)
         {
             RaisePoliteLiveRegion(m_slugifyStatus);
+        }
+    }
+
+    void MainWindow::AddUnitPriceRow()
+    {
+        winforge::core::unitprice::Item item;
+        if (!m_unitPriceItems.empty())
+        {
+            // Match UnitPriceModule.AddRow: a newly added item starts with the
+            // first row's unit, not the last row's potentially unrelated unit.
+            item.unit = m_unitPriceItems.front().unit;
+        }
+        m_unitPriceItems.push_back(std::move(item));
+    }
+
+    void MainWindow::RemoveUnitPriceRow(std::size_t index)
+    {
+        if (index >= m_unitPriceItems.size()) return;
+        m_unitPriceItems.erase(m_unitPriceItems.begin() + static_cast<std::ptrdiff_t>(index));
+        RenderUnitPrice();
+    }
+
+    void MainWindow::RenderUnitPrice()
+    {
+        using namespace winforge::core;
+        using namespace winforge::core::unitprice;
+
+        m_unitPriceRendering = true;
+        if (!m_unitPriceInitialized)
+        {
+            m_unitPriceInitialized = true;
+            AddUnitPriceRow();
+            AddUnitPriceRow();
+        }
+
+        m_unitPriceCurrencyBox = nullptr;
+        m_unitPriceRowsPanel = nullptr;
+        m_unitPriceLabelBoxes.clear();
+        m_unitPricePriceBoxes.clear();
+        m_unitPriceQuantityBoxes.clear();
+        m_unitPriceUnitBoxes.clear();
+        m_unitPricePerUnitTexts.clear();
+        m_unitPriceBadgeTexts.clear();
+        m_unitPriceAddButton = nullptr;
+        m_unitPriceCopyButton = nullptr;
+        m_unitPriceStatus = nullptr;
+
+        auto page = CreatePage(
+            LocalizedText{ L"Unit Price", L"單位價格" }.Pick(m_language),
+            LocalizedText{
+                L"Compare items by price per unit. Enter a price, quantity, and unit; the lowest valid cost is the best value and every other item shows how much more it costs.",
+                L"用每單位價錢嚟格價。填入價錢、數量同單位；有效項目入面最平就係最抵，其餘會顯示貴幾多。" }.Pick(m_language));
+        page.MaxWidth(920);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeUnitPricePage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(LocalizedText{
+            L"Fully native unit-price comparison", L"全原生單位價格比較" }.Pick(m_language)));
+        implementation.Message(ToHString(LocalizedText{
+            L"All comparison, tie, free-item, invariant formatting, and clipboard-summary behavior runs locally in standard C++. Clipboard access only follows the explicit Copy action.",
+            L"所有比較、同價、免費項目、不變格式同剪貼簿摘要行為都用標準 C++ 喺本機執行；只有明確撳複製先會存取剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeUnitPriceImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border card = MakeNativeCard();
+        StackPanel content;
+        content.Spacing(12);
+
+        Grid currencyRow;
+        currencyRow.ColumnSpacing(10);
+        ColumnDefinition currencyLabelColumn;
+        currencyLabelColumn.Width(GridLengthHelper::Auto());
+        currencyRow.ColumnDefinitions().Append(currencyLabelColumn);
+        currencyRow.ColumnDefinitions().Append(ColumnDefinition());
+        auto currencyLabel = CreateText(
+            LocalizedText{ L"Currency symbol", L"貨幣符號" }.Pick(m_language), 14, true);
+        currencyLabel.VerticalAlignment(VerticalAlignment::Center);
+        Grid::SetColumn(currencyLabel, 0);
+        currencyRow.Children().Append(currencyLabel);
+        m_unitPriceCurrencyBox = TextBox();
+        m_unitPriceCurrencyBox.Text(ToHString(m_unitPriceCurrency));
+        m_unitPriceCurrencyBox.MaxWidth(100);
+        m_unitPriceCurrencyBox.HorizontalAlignment(HorizontalAlignment::Left);
+        m_unitPriceCurrencyBox.PlaceholderText(L"$");
+        AutomationProperties::SetAutomationId(m_unitPriceCurrencyBox, L"NativeUnitPriceCurrency");
+        AutomationProperties::SetName(m_unitPriceCurrencyBox, ToHString(LocalizedText{
+            L"Currency symbol", L"貨幣符號" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_unitPriceCurrencyBox, currencyLabel);
+        m_unitPriceCurrencyBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_unitPriceRendering) return;
+            m_unitPriceCurrency = ToWide(sender.as<TextBox>().Text());
+            RefreshUnitPrice();
+        });
+        Grid::SetColumn(m_unitPriceCurrencyBox, 1);
+        currencyRow.Children().Append(m_unitPriceCurrencyBox);
+        content.Children().Append(currencyRow);
+
+        auto itemHint = CreateText(LocalizedText{
+            L"Item name · Price · Quantity · Unit · Price per unit",
+            L"項目名稱 · 價錢 · 數量 · 單位 · 每單位價錢" }.Pick(m_language), 12.5);
+        itemHint.Opacity(0.78);
+        itemHint.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(itemHint, L"NativeUnitPriceColumns");
+        content.Children().Append(itemHint);
+
+        m_unitPriceRowsPanel = StackPanel();
+        m_unitPriceRowsPanel.Spacing(8);
+        AutomationProperties::SetAutomationId(m_unitPriceRowsPanel, L"NativeUnitPriceRows");
+        AutomationProperties::SetName(m_unitPriceRowsPanel, ToHString(LocalizedText{
+            L"Unit price comparison items", L"單位價格比較項目" }.Pick(m_language)));
+        m_unitPriceLabelBoxes.reserve(m_unitPriceItems.size());
+        m_unitPricePriceBoxes.reserve(m_unitPriceItems.size());
+        m_unitPriceQuantityBoxes.reserve(m_unitPriceItems.size());
+        m_unitPriceUnitBoxes.reserve(m_unitPriceItems.size());
+        m_unitPricePerUnitTexts.reserve(m_unitPriceItems.size());
+        m_unitPriceBadgeTexts.reserve(m_unitPriceItems.size());
+
+        for (std::size_t index{}; index < m_unitPriceItems.size(); ++index)
+        {
+            auto const rowId = std::to_wstring(index);
+            auto const itemNumber = std::to_wstring(index + 1);
+            Border rowCard = MakeNativeCard();
+            rowCard.Padding(Thickness{ 10, 8, 10, 8 });
+            AutomationProperties::SetAutomationId(rowCard, ToHString(L"NativeUnitPriceRow" + rowId));
+            AutomationProperties::SetName(rowCard, ToHString(LocalizedText{
+                L"Comparison item " + itemNumber, L"比較項目 " + itemNumber }.Pick(m_language)));
+
+            Grid row;
+            row.ColumnSpacing(8);
+            for (auto const width : std::array<double, 4>{ 160.0, 95.0, 105.0, 72.0 })
+            {
+                ColumnDefinition definition;
+                definition.Width(GridLengthHelper::FromPixels(width));
+                row.ColumnDefinitions().Append(definition);
+            }
+            row.ColumnDefinitions().Append(ColumnDefinition());
+            ColumnDefinition removeColumn;
+            removeColumn.Width(GridLengthHelper::Auto());
+            row.ColumnDefinitions().Append(removeColumn);
+
+            auto label = TextBox();
+            label.Text(ToHString(m_unitPriceItems[index].label));
+            label.PlaceholderText(ToHString(LocalizedText{ L"Item name", L"項目名稱" }.Pick(m_language)));
+            label.IsSpellCheckEnabled(false);
+            label.HorizontalAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(label, ToHString(L"NativeUnitPriceLabel" + rowId));
+            AutomationProperties::SetName(label, ToHString(LocalizedText{
+                L"Item name " + itemNumber, L"項目名稱 " + itemNumber }.Pick(m_language)));
+            label.TextChanged([this, index](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                if (m_unitPriceRendering || index >= m_unitPriceItems.size()) return;
+                m_unitPriceItems[index].label = ToWide(sender.as<TextBox>().Text());
+                RefreshUnitPrice();
+            });
+            Grid::SetColumn(label, 0);
+            row.Children().Append(label);
+            m_unitPriceLabelBoxes.push_back(label);
+
+            auto price = NumberBox();
+            price.Minimum(0.0);
+            price.Value(m_unitPriceItems[index].price);
+            price.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Compact);
+            price.HorizontalAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(price, ToHString(L"NativeUnitPricePrice" + rowId));
+            AutomationProperties::SetName(price, ToHString(LocalizedText{
+                L"Price " + itemNumber, L"價錢 " + itemNumber }.Pick(m_language)));
+            price.ValueChanged([this, index](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+            {
+                if (m_unitPriceRendering || index >= m_unitPriceItems.size()) return;
+                m_unitPriceItems[index].price = sender.Value();
+                RefreshUnitPrice();
+            });
+            Grid::SetColumn(price, 1);
+            row.Children().Append(price);
+            m_unitPricePriceBoxes.push_back(price);
+
+            auto quantity = NumberBox();
+            quantity.Minimum(0.0);
+            quantity.Value(m_unitPriceItems[index].quantity);
+            quantity.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Compact);
+            quantity.HorizontalAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(quantity, ToHString(L"NativeUnitPriceQuantity" + rowId));
+            AutomationProperties::SetName(quantity, ToHString(LocalizedText{
+                L"Quantity " + itemNumber, L"數量 " + itemNumber }.Pick(m_language)));
+            quantity.ValueChanged([this, index](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+            {
+                if (m_unitPriceRendering || index >= m_unitPriceItems.size()) return;
+                m_unitPriceItems[index].quantity = sender.Value();
+                RefreshUnitPrice();
+            });
+            Grid::SetColumn(quantity, 2);
+            row.Children().Append(quantity);
+            m_unitPriceQuantityBoxes.push_back(quantity);
+
+            auto unit = TextBox();
+            unit.Text(ToHString(m_unitPriceItems[index].unit));
+            unit.PlaceholderText(L"g");
+            unit.IsSpellCheckEnabled(false);
+            unit.HorizontalAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(unit, ToHString(L"NativeUnitPriceUnit" + rowId));
+            AutomationProperties::SetName(unit, ToHString(LocalizedText{
+                L"Unit " + itemNumber, L"單位 " + itemNumber }.Pick(m_language)));
+            unit.TextChanged([this, index](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                if (m_unitPriceRendering || index >= m_unitPriceItems.size()) return;
+                m_unitPriceItems[index].unit = ToWide(sender.as<TextBox>().Text());
+                RefreshUnitPrice();
+            });
+            Grid::SetColumn(unit, 3);
+            row.Children().Append(unit);
+            m_unitPriceUnitBoxes.push_back(unit);
+
+            StackPanel result;
+            result.Spacing(1);
+            result.VerticalAlignment(VerticalAlignment::Center);
+            auto perUnit = CreateText(L"—", 13, true);
+            AutomationProperties::SetAutomationId(perUnit, ToHString(L"NativeUnitPricePerUnit" + rowId));
+            result.Children().Append(perUnit);
+            m_unitPricePerUnitTexts.push_back(perUnit);
+            auto badge = CreateText(L"", 12);
+            badge.TextWrapping(TextWrapping::Wrap);
+            AutomationProperties::SetAutomationId(badge, ToHString(L"NativeUnitPriceBadge" + rowId));
+            result.Children().Append(badge);
+            m_unitPriceBadgeTexts.push_back(badge);
+            Grid::SetColumn(result, 4);
+            row.Children().Append(result);
+
+            auto remove = MakeNativeButton(
+                LocalizedText{ L"Remove", L"移除" }.Pick(m_language),
+                L"NativeUnitPriceRemove" + rowId);
+            remove.MinWidth(66);
+            remove.Click([this, index](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                if (m_unitPriceRendering) return;
+                RemoveUnitPriceRow(index);
+            });
+            Grid::SetColumn(remove, 5);
+            row.Children().Append(remove);
+            rowCard.Child(row);
+            m_unitPriceRowsPanel.Children().Append(rowCard);
+        }
+        content.Children().Append(m_unitPriceRowsPanel);
+
+        Grid actions;
+        actions.ColumnSpacing(10);
+        for (int index{}; index < 2; ++index)
+        {
+            ColumnDefinition actionColumn;
+            actionColumn.Width(GridLengthHelper::Auto());
+            actions.ColumnDefinitions().Append(actionColumn);
+        }
+        m_unitPriceAddButton = MakeNativeButton(
+            LocalizedText{ L"Add item", L"加一項" }.Pick(m_language),
+            L"NativeUnitPriceAdd");
+        m_unitPriceAddButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_unitPriceRendering) return;
+            AddUnitPriceRow();
+            RenderUnitPrice();
+        });
+        Grid::SetColumn(m_unitPriceAddButton, 0);
+        actions.Children().Append(m_unitPriceAddButton);
+        m_unitPriceCopyButton = MakeNativeButton(
+            LocalizedText{ L"Copy comparison", L"複製比較" }.Pick(m_language),
+            L"NativeUnitPriceCopy");
+        m_unitPriceCopyButton.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            try
+            {
+                auto const text = BuildClipboard(m_unitPriceCurrency, m_unitPriceItems);
+                if (text.empty())
+                {
+                    AnnounceUnitPriceStatus(LocalizedText{
+                        L"Nothing to copy yet.", L"暫時無嘢可以複製。" }.Pick(m_language), true);
+                    return;
+                }
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(text));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                auto const copied = LocalizedText{ L"Copied ✓", L"已複製 ✓" }.Pick(m_language);
+                auto button = sender.as<Button>();
+                button.Content(box_value(ToHString(copied)));
+                AutomationProperties::SetName(button, ToHString(copied));
+                AnnounceUnitPriceStatus(LocalizedText{
+                    L"Comparison copied to clipboard.", L"比較已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceUnitPriceStatus(LocalizedText{
+                    L"Couldn't copy to the clipboard.", L"複製到剪貼簿失敗。" }.Pick(m_language), true);
+            }
+        });
+        Grid::SetColumn(m_unitPriceCopyButton, 1);
+        actions.Children().Append(m_unitPriceCopyButton);
+        content.Children().Append(actions);
+
+        m_unitPriceStatus = CreateText(L"", 12.5);
+        m_unitPriceStatus.Opacity(0.82);
+        m_unitPriceStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_unitPriceStatus, L"NativeUnitPriceStatus");
+        content.Children().Append(m_unitPriceStatus);
+
+        card.Child(content);
+        page.Children().Append(card);
+        ShowPage(page);
+        m_unitPriceRendering = false;
+        RefreshUnitPrice();
+    }
+
+    void MainWindow::RefreshUnitPrice()
+    {
+        using namespace winforge::core;
+        using namespace winforge::core::unitprice;
+        if (!m_unitPriceStatus ||
+            m_unitPricePerUnitTexts.size() != m_unitPriceItems.size() ||
+            m_unitPriceBadgeTexts.size() != m_unitPriceItems.size()) return;
+
+        std::vector<PriceQuantity> pairs;
+        pairs.reserve(m_unitPriceItems.size());
+        for (auto const& item : m_unitPriceItems)
+        {
+            pairs.push_back({ item.price, item.quantity });
+        }
+        auto const computed = Compute(pairs);
+
+        int valid{};
+        int invalid{};
+        for (std::size_t index{}; index < m_unitPriceItems.size(); ++index)
+        {
+            auto const& item = m_unitPriceItems[index];
+            auto const result = index < computed.size()
+                ? computed[index]
+                : Computed{ .per_unit = std::numeric_limits<double>::quiet_NaN(),
+                    .percent_more = std::numeric_limits<double>::quiet_NaN() };
+            auto const price = Clean(item.price);
+            auto const quantity = Clean(item.quantity);
+            if (quantity > 0.0 && price >= 0.0)
+            {
+                ++valid;
+            }
+            else if (quantity <= 0.0)
+            {
+                // Deliberately mirrors managed UpdateStatus: a negative price
+                // with a positive quantity is non-valid but not a quantity
+                // warning, so the next status branch explains it conservatively.
+                ++invalid;
+            }
+
+            auto const perUnit = FormatPerUnit(m_unitPriceCurrency, result.per_unit, item.unit);
+            m_unitPricePerUnitTexts[index].Text(ToHString(perUnit));
+            AutomationProperties::SetName(m_unitPricePerUnitTexts[index], ToHString(perUnit));
+
+            std::wstring badge;
+            Media::Brush brush = Application::Current().Resources().Lookup(
+                box_value(L"TextFillColorSecondaryBrush")).as<Media::Brush>();
+            if (result.valid && result.is_best)
+            {
+                badge = LocalizedText{ L"★ Best value", L"★ 最抵" }.Pick(m_language);
+                brush = Media::SolidColorBrush(Windows::UI::Color{ 0xFF, 0x2E, 0xCC, 0x71 });
+            }
+            else if (result.valid)
+            {
+                auto const percent = FormatPercentMore(result.is_best, result.percent_more);
+                if (!percent.empty())
+                {
+                    badge = percent + (m_language == LanguageMode::Cantonese
+                        ? L" 貴啲"
+                        : (m_language == LanguageMode::English ? L" more" : L" more · 貴啲"));
+                }
+                brush = Media::SolidColorBrush(Windows::UI::Color{ 0xFF, 0xE7, 0x6F, 0x51 });
+            }
+            m_unitPriceBadgeTexts[index].Text(ToHString(badge));
+            m_unitPriceBadgeTexts[index].Foreground(brush);
+            AutomationProperties::SetName(m_unitPriceBadgeTexts[index], ToHString(badge));
+        }
+
+        auto const validText = std::to_wstring(valid);
+        auto const invalidText = std::to_wstring(invalid);
+        auto const status = invalid > 0
+            ? LocalizedText{
+                invalidText + L" item(s) need a quantity greater than zero to compare.",
+                L"有 " + invalidText + L" 項嘅數量要大過零先可以比較。" }.Pick(m_language)
+            : (valid < 2
+                ? LocalizedText{
+                    L"Add at least two items with a price and quantity to compare.",
+                    L"至少填兩項有價錢同數量嘅嘢先可以格價。" }.Pick(m_language)
+                : LocalizedText{
+                    L"Comparing " + validText + L" items — the greenest row is the best value.",
+                    L"正比較緊 " + validText + L" 項 — 綠色嗰行最抵。" }.Pick(m_language));
+        AnnounceUnitPriceStatus(status, false, false);
+    }
+
+    void MainWindow::AnnounceUnitPriceStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_unitPriceStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_unitPriceStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_unitPriceStatus.Text(ToHString(message));
+        m_unitPriceStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_unitPriceStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_unitPriceStatus);
         }
     }
 

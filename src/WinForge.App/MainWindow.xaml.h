@@ -23,6 +23,7 @@
 #include "../WinForge.Core/RegexCheat.h"
 #include "../WinForge.Core/ReferenceText.h"
 #include "../WinForge.Core/Slugify.h"
+#include "../WinForge.Core/UnitPrice.h"
 #include "../WinForge.Core/SymbolsPalette.h"
 #include "../WinForge.Core/TextDiff.h"
 #include "../WinForge.Core/TextAnalysis.h"
@@ -342,6 +343,17 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_slugifyOutputBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_slugifyPreviewText{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_slugifyStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_unitPriceCurrencyBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_unitPriceRowsPanel{ nullptr };
+        std::vector<Microsoft::UI::Xaml::Controls::TextBox> m_unitPriceLabelBoxes;
+        std::vector<Microsoft::UI::Xaml::Controls::NumberBox> m_unitPricePriceBoxes;
+        std::vector<Microsoft::UI::Xaml::Controls::NumberBox> m_unitPriceQuantityBoxes;
+        std::vector<Microsoft::UI::Xaml::Controls::TextBox> m_unitPriceUnitBoxes;
+        std::vector<Microsoft::UI::Xaml::Controls::TextBlock> m_unitPricePerUnitTexts;
+        std::vector<Microsoft::UI::Xaml::Controls::TextBlock> m_unitPriceBadgeTexts;
+        Microsoft::UI::Xaml::Controls::Button m_unitPriceAddButton{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_unitPriceCopyButton{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_unitPriceStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -590,6 +602,10 @@ namespace winrt::WinForge::implementation
         bool m_slugifyCollapseRepeats{ true };
         bool m_slugifyKeepUnicodeLetters{};
         bool m_slugifyRendering{ false };
+        std::wstring m_unitPriceCurrency{ L"$" };
+        std::vector<winforge::core::unitprice::Item> m_unitPriceItems;
+        bool m_unitPriceInitialized{ false };
+        bool m_unitPriceRendering{ false };
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -719,6 +735,8 @@ namespace winrt::WinForge::implementation
         void ResetMorseRouteState();
         void ReleaseSlugifyRouteState(std::wstring_view nextRoute);
         void ReleaseUuidV5RouteState(std::wstring_view nextRoute);
+        void ReleaseUnitPriceRouteState(std::wstring_view nextRoute);
+        void ResetUnitPriceRouteState();
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -949,6 +967,14 @@ namespace winrt::WinForge::implementation
         void RenderSlugify();
         void RefreshSlugify();
         void AnnounceSlugifyStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
+        void RenderUnitPrice();
+        void RefreshUnitPrice();
+        void AddUnitPriceRow();
+        void RemoveUnitPriceRow(std::size_t index);
+        void AnnounceUnitPriceStatus(
             std::wstring_view message,
             bool warning = false,
             bool announce = true);

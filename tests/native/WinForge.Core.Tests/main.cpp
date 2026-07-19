@@ -10,6 +10,7 @@
 #include "TextAnalysisTests.h"
 #include "ReferenceTextTests.h"
 #include "SlugifyTests.h"
+#include "UnitPriceTests.h"
 #include "GuidGenTests.h"
 #include "PassGenTests.h"
 #include "PasswordStrengthTests.h"
@@ -229,6 +230,7 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L"module.morse") &&
         winforge::core::HasNativeRenderer(L"MODULE.SLUGIFY") &&
         winforge::core::HasNativeRenderer(L"MODULE.UUIDV5") &&
+        winforge::core::HasNativeRenderer(L"module.unitprice") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
@@ -315,6 +317,10 @@ int wmain(int argc, wchar_t** argv)
     auto const slugifyCounts = RunSlugifyTests();
     passed += slugifyCounts.passed;
     failed += slugifyCounts.failed;
+
+    auto const unitPriceCounts = RunUnitPriceTests();
+    passed += unitPriceCounts.passed;
+    failed += unitPriceCounts.failed;
 
     auto const uuidV7Counts = RunUuidV7Tests();
     passed += uuidV7Counts.passed;
