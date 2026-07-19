@@ -1,6 +1,6 @@
 # WinForge Full Development Handoff
 
-## Current 2026-07-19 native Slugify controlled integration — local validation green · 2026-07-19 原生網址別名受控整合 — 本機驗證通過
+## Current 2026-07-19 native Slugify controlled integration — hosted release proven · 2026-07-19 原生網址別名受控整合 — hosted 發佈已證明
 
 - **Scope / 範圍：** `slug`, `slugify`, and `module.slugify` are now a genuine C++/WinRT renderer over the standard-C++ `Slugify` core, integrated with existing native Reference Text and Morse routes. It preserves managed line/blank/diacritic/Unicode/separator/case/UTF-16-preview semantics, route lifecycle, all three language modes, and explicit-only clipboard Copy.
 - **Current evidence / 目前證據：** Debug and Release x64 solution builds exit 0 with 0 errors; both core suites pass **801/801**; catalog parity passes **346 fixed routes + five dynamic families**; focused UIA is **29/29** Reference Text, **13/13** Morse, and **12/12** Slugify; the exhaustive native shell is **441/441**. `HasNativeRenderer` and the ledger are **32/346 fixed routes**, **32 `in-progress` / 314 `not-started`**.
@@ -8,6 +8,8 @@
 - **Release boundary / 發佈界線：** the integration does not change workflows or release policy. It remains a pure native C++ feature; the controlled `main` push will be verified against the existing C++-only release gate before it is called remotely complete.
 
 **粵語摘要：** Slugify 三個 alias 已同現有 Reference Text 同 Morse 原生 route 受控整合，保留 managed 分行／空白／重音／Unicode／分隔符／大小寫／UTF-16／預覽、route lifecycle、三種語言同只限明確 Copy。Debug／Release 0 errors、core 各 **801/801**、catalog parity、Reference Text **29/29**、Morse **13/13**、Slugify **12/12** 同完整 shell **441/441** 已通過；計數係 **32/346**，ledger **32 `in-progress` / 314 `not-started`**。LowLevel MCP 今個 session 不可呼叫，driver 因 `CopyFromScreen`／空白 fallback 受阻，冇 PNG 或 canonical 圖變更，所以五條 route 保持 `capture-blocked`。呢次唔改 workflow／release policy，受控 main push 會由現有只限 C++ release gate 驗證。
+
+**Remote release proof / 遙距發佈證明：** Slugify tip `bb853ef3` and controlled merge `88672704` are ancestors of `origin/main`. [Native run 29702620758](https://github.com/codingmachineedge/WinForge/actions/runs/29702620758) passed all native gates and published non-draft [`native-v1.0.70`](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.70) exactly at `88672704`, with only `WinForge-Native-Setup.exe` and `WinForge-native-x64-1.0.70.zip`. The successful [site-data run 29702620742](https://github.com/codingmachineedge/WinForge/actions/runs/29702620742) committed `ef822c1d`; its dispatched [native run 29702777841](https://github.com/codingmachineedge/WinForge/actions/runs/29702777841) passed and promoted stable [`native-v1.0.71`](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.71) to Latest at that exact current-main SHA, again with exactly the two native assets. · Slugify tip `bb853ef3` 同受控 merge `88672704` 都係 `origin/main` 祖先。原生 run 29702620758 通過所有原生 gate，準確喺 `88672704` 發佈非 draft `native-v1.0.70`，只有 native setup 同 `WinForge-native-x64-1.0.70.zip`。成功 site-data run 29702620742 提交 `ef822c1d`；佢 dispatch 嘅原生 run 29702777841 通過，將準確 current-main SHA 嘅 stable `native-v1.0.71` 升做 Latest，仍然準確只有兩個原生 asset。
 
 ## Historical 2026-07-19 native Reference Text + Morse integration — hosted release proven · 2026-07-19 歷史原生參考文字及摩斯整合 — hosted 發佈已證明
 

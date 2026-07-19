@@ -622,7 +622,7 @@ Reject-Regex -Content (Get-PublisherScanContent -Content $nativeBuildJob) -Patte
 
 $nativeReleaseJob = Get-WorkflowJob -Content $nativeWorkflow -Name 'release-native' -Label 'trusted native release'
 Require-Regex -Content $nativeReleaseJob -Pattern '(?m)^    needs: build-test-package[ \t]*$' -Label 'trusted release dependency on successful package job'
-Require-Regex -Content $nativeReleaseJob -Pattern '(?m)^    if: \(github\.event_name == ''push'' && github\.ref_type == ''branch''\) \|\| \(github\.event_name == ''push'' && startsWith\(github\.ref, ''refs/tags/native-v''\)\) \|\| \(github\.event_name == ''workflow_dispatch'' && inputs\.publish_release == true\)[ \t]*$' -Label 'trusted branch-push/native-tag/manual release condition'
+Require-Regex -Content $nativeReleaseJob -Pattern '(?m)^    if: github\.event_name == ''push'' \|\| \(github\.event_name == ''workflow_dispatch'' && inputs\.publish_release == true\)[ \t]*$' -Label 'trusted every-push/manual release condition'
 Require-Regex -Content $nativeReleaseJob -Pattern '(?m)^    permissions:\r?\n      contents: write[ \t]*$' -Label 'write token isolated to trusted release job'
 $trustedPublisherMatches = [System.Text.RegularExpressions.Regex]::Matches(
     (Get-PublisherScanContent -Content $nativeReleaseJob),
