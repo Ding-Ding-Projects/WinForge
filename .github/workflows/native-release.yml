@@ -50,7 +50,7 @@ jobs:
           "sha=$expectedSha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Checkout · 取出原始碼
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ steps.source.outputs.sha }}
@@ -108,7 +108,7 @@ jobs:
           Write-Host "Using UWP v143 toolset: $toolset"
 
       - name: Set up MSBuild · 設定 MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
         with:
           vs-version: '[17.0,18.0)'
 
@@ -303,7 +303,7 @@ jobs:
           }
 
       - name: Upload exact native release assets · 上載確切原生發佈檔
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: WinForge-native-release-${{ steps.runtime.outputs.version }}
           path: |
@@ -321,7 +321,7 @@ jobs:
 
     steps:
       - name: Checkout exact native release source · 取出確切原生發佈來源
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ needs.build-test-package.outputs.source_sha }}
@@ -341,7 +341,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "trusted release source is not a commit: $expectedSha" }
 
       - name: Download exact native release assets · 下載確切原生發佈檔
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: WinForge-native-release-${{ needs.build-test-package.outputs.version }}
           path: release-assets
@@ -380,10 +380,46 @@ jobs:
           $notes = "Native C++20/WinUI 3 build from commit $expectedSha.`n原生 C++20/WinUI 3 建置，來自 commit $expectedSha。"
           $portableAsset = "release-assets/WinForge-native-x64-$env:NATIVE_VERSION.zip"
           $installerAsset = 'release-assets/WinForge-Native-Setup.exe'
+          $expectedAssetNames = @(
+            [System.IO.Path]::GetFileName($installerAsset),
+            [System.IO.Path]::GetFileName($portableAsset)
+          ) | Sort-Object
 
-          # Refresh main immediately before publishing. Only the current remote
-          # main tip may become /releases/latest; an older main build remains a
-          # stable historical release with an explicit --latest=false marker.
+          function Get-ReleasePostconditionErrors {
+            param(
+              [Parameter(Mandatory)]$Release,
+              [Parameter(Mandatory)][string]$ExpectedTag,
+              [Parameter(Mandatory)][string]$ExpectedSha,
+              [Parameter(Mandatory)][bool]$ExpectedPrerelease,
+              [Parameter(Mandatory)][string[]]$ExpectedAssets
+            )
+
+            $errors = [System.Collections.Generic.List[string]]::new()
+            if ([string]$Release.tag_name -cne $ExpectedTag) {
+              $errors.Add("tag expected '$ExpectedTag', got '$($Release.tag_name)'")
+            }
+            if (([string]$Release.target_commitish).Trim().ToLowerInvariant() -cne $ExpectedSha) {
+              $errors.Add("target expected '$ExpectedSha', got '$($Release.target_commitish)'")
+            }
+            if ([bool]$Release.draft) {
+              $errors.Add('release is unexpectedly a draft')
+            }
+            if ([bool]$Release.prerelease -ne $ExpectedPrerelease) {
+              $errors.Add("prerelease expected '$ExpectedPrerelease', got '$($Release.prerelease)'")
+            }
+
+            $actualAssets = @($Release.assets | ForEach-Object { [string]$_.name } | Sort-Object)
+            if ($actualAssets.Count -ne $ExpectedAssets.Count -or
+                ($actualAssets.Count -eq $ExpectedAssets.Count -and
+                  (Compare-Object -ReferenceObject $ExpectedAssets -DifferenceObject $actualAssets -CaseSensitive))) {
+              $errors.Add(("assets expected '{0}', got '{1}'" -f ($ExpectedAssets -join ', '), ($actualAssets -join ', ')))
+            }
+            return @($errors)
+          }
+
+          # Refresh main immediately before creation to classify this run. Every
+          # stable main release starts with --latest=false; only the current tip
+          # may be promoted after a second fresh origin/main check.
           git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
           if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before native release creation' }
           $currentMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
@@ -404,10 +440,7 @@ jobs:
             '--title', $title,
             '--notes', $notes
           )
-          if ($isCurrentMainTip) {
-            $releaseArgs += '--latest'
-          }
-          elseif ($isMainChannel) {
+          if ($isMainChannel) {
             $releaseArgs += '--latest=false'
           }
           else {
@@ -419,6 +452,23 @@ jobs:
           # from the source SHA even though the release notes identify this run.
           & gh @releaseArgs
           if ($LASTEXITCODE -ne 0) { throw "native release creation failed: $tag" }
+
+          # `gh release create --latest` has returned success without moving the
+          # REST /releases/latest pointer. The official edit command is therefore
+          # the only promotion path, and it never uploads another asset.
+          if ($isCurrentMainTip) {
+            git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+            if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before native Latest promotion' }
+            $promotionMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
+            if ($LASTEXITCODE -ne 0 -or $promotionMainSha -notmatch '^[0-9a-f]{40}$') {
+              throw "could not resolve origin/main before native Latest promotion: $promotionMainSha"
+            }
+            if ($expectedSha -ne $promotionMainSha) {
+              throw "refusing stale native Latest promotion: expected $expectedSha, current main is $promotionMainSha"
+            }
+            & gh release edit $tag --latest
+            if ($LASTEXITCODE -ne 0) { throw "native Latest promotion failed: $tag" }
+          }
 
           $refJson = (& gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" | Out-String)
           if ($LASTEXITCODE -ne 0) { throw "could not resolve native release tag: $tag" }
@@ -434,4 +484,76 @@ jobs:
           if ($actualSha -ne $expectedSha) {
             throw "native release provenance mismatch for ${tag}: expected $expectedSha, got $actualSha"
           }
-          Write-Host "Verified native release $tag -> $actualSha"
+
+          $releaseJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw "could not read native release by tag: $tag" }
+          $release = $releaseJson | ConvertFrom-Json -ErrorAction Stop
+          $expectedPrerelease = -not $isMainChannel
+          $releaseErrors = @(Get-ReleasePostconditionErrors `
+            -Release $release `
+            -ExpectedTag $tag `
+            -ExpectedSha $expectedSha `
+            -ExpectedPrerelease $expectedPrerelease `
+            -ExpectedAssets $expectedAssetNames)
+          if ($releaseErrors.Count -ne 0) {
+            throw "native release postcondition failed for ${tag}: $($releaseErrors -join '; ')"
+          }
+
+          if ($isCurrentMainTip) {
+            $latestVerified = $false
+            $latestFailure = 'Latest endpoint was not checked'
+            for ($attempt = 1; $attempt -le 12; $attempt++) {
+              $latestJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | Out-String)
+              if ($LASTEXITCODE -ne 0) {
+                $latestFailure = "Latest endpoint request failed on attempt $attempt"
+              }
+              else {
+                $latestCandidateReady = $false
+                try {
+                  $latestRelease = $latestJson | ConvertFrom-Json -ErrorAction Stop
+                  $latestErrors = @(Get-ReleasePostconditionErrors `
+                    -Release $latestRelease `
+                    -ExpectedTag $tag `
+                    -ExpectedSha $expectedSha `
+                    -ExpectedPrerelease $false `
+                    -ExpectedAssets $expectedAssetNames)
+                  if ($latestErrors.Count -eq 0) {
+                    $latestCandidateReady = $true
+                  }
+                  else {
+                    $latestFailure = $latestErrors -join '; '
+                  }
+                }
+                catch {
+                  $latestFailure = "Latest endpoint returned invalid JSON: $($_.Exception.Message)"
+                }
+                if ($latestCandidateReady) {
+                  git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+                  if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before accepting native Latest postcondition' }
+                  $verificationMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
+                  if ($LASTEXITCODE -ne 0 -or $verificationMainSha -notmatch '^[0-9a-f]{40}$') {
+                    throw "could not resolve origin/main before accepting native Latest postcondition: $verificationMainSha"
+                  }
+                  if ($expectedSha -ne $verificationMainSha) {
+                    throw "native main advanced before Latest postcondition: expected $expectedSha, current main is $verificationMainSha"
+                  }
+                  $latestVerified = $true
+                  break
+                }
+              }
+              if ($attempt -lt 12) { Start-Sleep -Seconds 2 }
+            }
+            if (-not $latestVerified) {
+              throw "native Latest postcondition failed for $tag after 12 attempts: $latestFailure"
+            }
+          }
+          else {
+            $latestJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw 'could not verify that non-current native release stayed non-Latest' }
+            $latestRelease = $latestJson | ConvertFrom-Json -ErrorAction Stop
+            if ([string]$latestRelease.tag_name -ceq $tag) {
+              throw "non-current native release unexpectedly became Latest: $tag"
+            }
+          }
+
+          Write-Host "Verified native release $tag -> $actualSha; current-main Latest=$isCurrentMainTip"

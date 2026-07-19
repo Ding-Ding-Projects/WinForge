@@ -7,7 +7,7 @@
 ## Release behavior on every push · 每次 push 嘅發佈行為
 
 - Every push runs the complete native build/test/parity/package/installer gate without path filtering. A successful branch push publishes a uniquely tagged **prerelease** for that exact workflow SHA. · 每次 push 都會執行完整原生 gate；成功嘅 branch push 會對準確 workflow SHA 發佈唯一 tag 嘅 **prerelease**。
-- A successful run for the current `origin/main` tip publishes a stable release and makes it **Latest**. If an older `main` run finishes later, exact-SHA comparison makes it stable but explicitly non-Latest, so it cannot steal the channel from the newer tip. · 目前 `origin/main` tip 成功後會發 stable 版並設為 **Latest**；如果較舊 `main` run 之後先完成，exact-SHA 檢查會將佢設為非 Latest，不會搶走新 tip 嘅 channel。
+- The target policy makes the current `origin/main` tip stable and **Latest**, while an older exact-SHA `main` run is stable but non-Latest. Corrective hardening now explicitly edits the release to the selected state and then fails closed unless the exact asset set and `/releases/latest` endpoint match. Hosted proof of that automatic postcondition is still pending. · 目標政策會將目前 `origin/main` tip 設為 stable 同 **Latest**，較舊 exact-SHA `main` run 則係 stable 但非 Latest。修正加固而家會明確 edit release 去所選狀態，之後除非準確 asset 集合同 `/releases/latest` endpoint 都吻合，否則 fail closed；呢個自動 postcondition 嘅 hosted 證明仍待完成。
 - Pull requests run the same read-only quality gate but do not publish. Manual dispatch can test without publishing or explicitly publish the exact selected SHA. The site-data workflow dispatches the native workflow with its source SHA after a generated `main` commit. · Pull request 會執行同樣嘅只讀 gate 但不發佈；manual dispatch 可只測試，或明確發佈所選 SHA。Site-data workflow 在生成 `main` commit 後會帶 source SHA dispatch 原生 workflow。
 
 ## Native-only payload contract · 只限原生 payload 合約
@@ -19,12 +19,14 @@ Portable ZIP 同 `WinForge-Native-Setup.exe` 由同一個乾淨 runtime staging 
 ## Permission and provenance boundary · 權限同來源邊界
 
 - Workflow-level and `build-test-package` permissions are `contents: read`; only the separate `release-native` job receives `contents: write`, and only for eligible push/manual release modes.
-- Release creation pins the tag target to the workflow SHA, verifies that the resulting tag resolves to that same SHA, and chooses prerelease/stable/Latest state from the trigger plus exact remote-main comparison.
+- Release creation pins the tag target to the workflow SHA, verifies that the resulting tag resolves to that same SHA, and chooses prerelease/stable/Latest state from the trigger plus exact remote-main comparison. The corrective path explicitly applies that state and verifies the release metadata, exact two-asset set, and Latest endpoint before succeeding.
 - Runtime staging is reused for the ZIP and installer so the two deliverables cannot silently diverge. Release-job downloads are limited to the two named native artifacts.
+- Corrective CI uses the official Node 24 action lines: `actions/checkout@v7`, `actions/upload-artifact@v7`, `actions/download-artifact@v8`, and `microsoft/setup-msbuild@v3`.
 
 - Workflow 同 `build-test-package` 只有 `contents: read`；只有獨立 `release-native` job 喺合資格 push／manual 發佈模式才有 `contents: write`。
-- Release tag 明確指向 workflow SHA，建立後再核對 tag 仍解析到同一 SHA；prerelease／stable／Latest 由 trigger 同 remote-main exact comparison 決定。
+- Release tag 明確指向 workflow SHA，建立後再核對 tag 仍解析到同一 SHA；prerelease／stable／Latest 由 trigger 同 remote-main exact comparison 決定。修正路徑會明確套用該狀態，並喺成功前核對 release metadata、準確兩個 asset 同 Latest endpoint。
 - ZIP 同 installer 共用同一 runtime stage，兩份交付品不會靜默分叉；release job 只會下載兩個指定原生 artifact。
+- 修正 CI 使用官方 Node 24 action line：`actions/checkout@v7`、`actions/upload-artifact@v7`、`actions/download-artifact@v8` 同 `microsoft/setup-msbuild@v3`。
 
 ## CI sequence · CI 次序
 
@@ -34,7 +36,7 @@ Portable ZIP 同 `WinForge-Native-Setup.exe` 由同一個乾淨 runtime staging 
 4. Compile exactly one Inno Setup executable and validate its PE and embedded payload policy.
 5. Silent-install, validate the installed payload, silent-uninstall, and prove the guarded install root is gone.
 6. Upload only the portable ZIP and installer as inter-job artifacts.
-7. On every eligible successful push/manual publish, create the exact-SHA native release in the correct prerelease/stable/Latest mode with exactly those two assets.
+7. On every eligible successful push/manual publish, create the exact-SHA native release with exactly those two assets, explicitly apply the intended prerelease/stable/Latest state, then fail closed unless tag, assets, metadata, and Latest endpoint satisfy the selected mode.
 
 ## Local check · 本機檢查
 
@@ -50,7 +52,11 @@ After a Release build, pass `-PublishDir`; after Inno Setup, pass `-InstallerPat
 
 Legacy managed release workflow ID `301226619` is remotely `disabled_manually`. Exactly **28** obsolete failed/cancelled workflow run records that had produced no release were deleted after a full-pagination audit; successful workflow history and all existing releases were retained. This cleanup prevents the obsolete publisher from being run while preserving useful provenance. · 舊 managed release workflow ID `301226619` 已遠距設為 `disabled_manually`。完整分頁審查後，準確刪除 **28** 條沒有產生 release 嘅過時失敗／取消 run record；成功 workflow 歷史同所有既有 release 都保留。
 
-The revised workflow's local PowerShell parser, Prettier YAML parser, actionlint 1.7.12, installer contract, **292-file** clean-stage simulation, all-**48-PE** scan, release-mode matrix, manual CLR/apphost/PDB rejection checks, and existing Inno native-PE check are green. Exact hosted proof for the current text-analysis branch push and subsequent `main` integration is still pending and must not be inferred from older runs. · 新 workflow 嘅本機 PowerShell parser、Prettier YAML parser、actionlint 1.7.12、installer contract、**292-file** 乾淨 stage 模擬、全部 **48 個 PE** scan、release-mode matrix、手動 CLR／apphost／PDB 拒絕檢查同既有 Inno native-PE 檢查已通過。目前文字分析 branch push 同之後 `main` 整合嘅準確 hosted 證明仍待完成，不可用舊 run 推斷。
+Text-analysis feature commit `fc2b76e52171e4f81ab1d15f9fb1da5818791171` completed hosted branch run [29673079883](https://github.com/codingmachineedge/WinForge/actions/runs/29673079883), which published exact-SHA prerelease [native-v1.0.43](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.43) with exactly the native setup executable and portable ZIP. Merge commit `f7a9eec44aeffdf829f5c07f5eeb364f08a7677f` completed hosted `main` run [29673310778](https://github.com/codingmachineedge/WinForge/actions/runs/29673310778), which published stable exact-SHA [native-v1.0.44](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.44) with exactly those two native assets. · 文字分析功能 commit `fc2b76e52171e4f81ab1d15f9fb1da5818791171` 嘅 branch run [29673079883](https://github.com/codingmachineedge/WinForge/actions/runs/29673079883) 已成功，並發佈 exact-SHA prerelease [native-v1.0.43](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.43)，準確只含原生 setup 同 portable ZIP。Merge commit `f7a9eec44aeffdf829f5c07f5eeb364f08a7677f` 嘅 `main` run [29673310778](https://github.com/codingmachineedge/WinForge/actions/runs/29673310778) 亦成功，並發佈 stable exact-SHA [native-v1.0.44](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.44)，同樣準確只含兩個原生 asset。
+
+An independent download audit of `native-v1.0.44` matched the published digests and found **292 ZIP entries**, **48 PE files**, zero CLR headers or managed-apphost markers, zero forbidden managed runtime/build artifacts, and an AMD64 PE32+ `WinForge.exe`. This proves the text-analysis branch/main release payloads are native-only. · 獨立下載審查 `native-v1.0.44` 後，digest 同發佈值完全吻合；ZIP 有 **292 個 entry**、**48 個 PE file**，CLR header、managed-apphost marker 同禁止嘅 managed runtime／build artifact 全部係零，而 `WinForge.exe` 係 AMD64 PE32+。呢項證據確認文字分析 branch／main release payload 只含原生版。
+
+The hosted run also exposed a real Latest-channel defect: `gh release create --latest` created the correct stable native release but did **not** move `/releases/latest` from historical managed `v1.0.256`. The official manual repair `gh release edit native-v1.0.44 --latest` moved the endpoint, and exact verification then resolved `/releases/latest` to `native-v1.0.44`. Therefore runs 29673079883 and 29673310778 prove exact-SHA publication and native-only assets, but they do not prove the automatic Latest postcondition. The corrective branch is adding explicit release edit plus fail-closed Latest/asset verification and the official Node 24 action versions listed above. Exact corrective branch/main run IDs, tags, and SHAs remain pending and must be recorded only after hosted success. · Hosted run 同時揭露真實 Latest-channel 缺陷：`gh release create --latest` 雖然建立咗正確 stable 原生 release，但**冇**將 `/releases/latest` 由歷史 managed `v1.0.256` 移走。用官方命令 `gh release edit native-v1.0.44 --latest` 手動修復後，準確核對確認 `/releases/latest` 已解析到 `native-v1.0.44`。所以 run 29673079883 同 29673310778 證明 exact-SHA 發佈同 native-only asset，但未證明自動 Latest postcondition。修正 branch 正加入明確 release edit、fail-closed Latest／asset 驗證，同上列官方 Node 24 action 版本；準確修正 branch／main run ID、tag 同 SHA 仍待 hosted 成功後先可記錄。
 
 ## Visual evidence · 視覺證據
 
