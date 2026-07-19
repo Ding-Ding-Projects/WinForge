@@ -1,5 +1,11 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## 2026-07-19 native Slugify wave — feature-only handoff · 2026-07-19 原生網址別名批次 — 只限功能交接
+
+**EN.** `slug`, `slugify`, and `module.slugify` now use a dedicated C++/WinRT page backed by the standard-C++ `Slugify` core. Managed line/blank/diacritic/Unicode/separator/case/UTF-16-length semantics, live preview, route reset, localized state retention, and explicit-only Copy are preserved. Debug and Release builds exit 0 with 0 errors; core is **777/777** in each configuration (Slugify **18/18**), catalog parity is 346+5, and focused UIA is **12/12** across all aliases including explicit Copy. LowLevel MCP is unavailable in this session; the required driver rejected a blank fallback after `CopyFromScreen` was unavailable, retaining no PNG or process. The route remains `in-progress` / `capture-blocked`. The branch changes no workflow or release policy and is awaiting controlled integration by the native-only release owner.
+
+**粵語.** 三個網址別名 alias 已有專用 C++/WinRT 頁同 `Slugify` core；managed 分行、空白、重音、Unicode、分隔符、大小寫、UTF-16 長度、預覽、重設、本地化狀態同只限明確 Copy 都有保留。Debug／Release 0 errors，core 各 **777/777**（Slugify **18/18**），catalog parity 346+5，全部 alias UIA **12/12**。今次冇 LowLevel MCP；`CopyFromScreen` 唔可用後 driver 拒絕空白 fallback，冇 PNG／冇殘留 process，所以 route 保持 `in-progress`／`capture-blocked`。分支唔改 workflow／release policy，等 native-only release owner 受控整合。
+
 ## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
 
 **EN.** Phonetic Speller, Box & Banner Text, and HTML Entities now have dedicated C++/WinRT renderers over the shared standard-C++ `ReferenceText` core. They preserve three phonetic alphabets and managed UTF-16 code-unit row, digit, and option behavior; eight box/comment styles, three alignments, bounded padding, titles and multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local, and clipboard writes require explicit Copy.

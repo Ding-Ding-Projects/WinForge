@@ -8,6 +8,7 @@
 #include "LineProcessingTests.h"
 #include "TextAnalysisTests.h"
 #include "ReferenceTextTests.h"
+#include "SlugifyTests.h"
 #include "GuidGenTests.h"
 #include "PassGenTests.h"
 #include "PasswordStrengthTests.h"
@@ -223,10 +224,11 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L"module.phonetic") &&
         winforge::core::HasNativeRenderer(L"MODULE.BOXTEXT") &&
         winforge::core::HasNativeRenderer(L" module.htmlentities ") &&
+        winforge::core::HasNativeRenderer(L"MODULE.SLUGIFY") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
-    Expect(!winforge::core::HasNativeRenderer(L"module.slugify") &&
+    Expect(!winforge::core::HasNativeRenderer(L"module.smelter") &&
         !winforge::core::HasNativeRenderer(L"settings"),
         "native renderer contract keeps pending routes explicit");
 
@@ -301,6 +303,10 @@ int wmain(int argc, wchar_t** argv)
     auto const referenceTextCounts = RunReferenceTextTests();
     passed += referenceTextCounts.passed;
     failed += referenceTextCounts.failed;
+
+    auto const slugifyCounts = RunSlugifyTests();
+    passed += slugifyCounts.passed;
+    failed += slugifyCounts.failed;
 
     auto const uuidV7Counts = RunUuidV7Tests();
     passed += uuidV7Counts.passed;

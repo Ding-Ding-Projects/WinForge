@@ -61,6 +61,7 @@
     <ClCompile Include="LineProcessingTests.cpp" />
     <ClCompile Include="TextAnalysisTests.cpp" />
     <ClCompile Include="ReferenceTextTests.cpp" />
+    <ClCompile Include="SlugifyTests.cpp" />
     <ClCompile Include="GuidGenTests.cpp" />
     <ClCompile Include="PassGenTests.cpp" />
     <ClCompile Include="PasswordStrengthTests.cpp" />
@@ -88,6 +89,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\LineProcessing.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\TextAnalysis.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\ReferenceText.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\Slugify.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PassGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PasswordStrength.cpp" />
@@ -117,6 +119,7 @@
     <ClInclude Include="LineProcessingTests.h" />
     <ClInclude Include="TextAnalysisTests.h" />
     <ClInclude Include="ReferenceTextTests.h" />
+    <ClInclude Include="SlugifyTests.h" />
     <ClInclude Include="GuidGenTests.h" />
     <ClInclude Include="PassGenTests.h" />
     <ClInclude Include="PasswordStrengthTests.h" />
@@ -141,6 +144,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\LineProcessing.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\TextAnalysis.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ReferenceText.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\Slugify.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PassGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PasswordStrength.h" />

@@ -1,5 +1,9 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Current 2026-07-19 Slugify checkpoint / 2026-07-19 最新網址別名檢查點
+
+`slug`, `slugify`, and `module.slugify` now use a dedicated C++/WinRT Slugify page plus standard-C++ `Slugify` core. Managed line splitting, accent and Unicode options, separator/case, UTF-16 limit, preview, reset/localization lifecycle, and explicit-only Copy are preserved locally. Debug/Release builds exit 0 with 0 errors; core is **777/777** in each configuration including Slugify **18/18**; catalog parity covers 346 fixed routes plus five dynamic families; and focused UIA is **12/12** across all aliases. LowLevel MCP is unavailable; the required driver rejected a blank/near-uniform fallback and retained no PNG, so the route remains `in-progress` / `capture-blocked`. · `slug`、`slugify` 同 `module.slugify` 而家有專用 C++/WinRT 網址別名頁同標準 C++ `Slugify` core；managed 分行、重音／Unicode 選項、分隔符／大小寫、UTF-16 限制、預覽、重設／本地化生命週期同只限明確 Copy 全部本機保留。Debug／Release build 0 errors，core 各 **777/777**（Slugify **18/18**），catalog parity 覆蓋 346+5，三個 alias UIA **12/12**。LowLevel MCP 未可用，driver 拒絕空白 fallback 而冇保留 PNG，所以 route 保持 `in-progress`／`capture-blocked`。
+
 ## Current 2026-07-19 reference-text checkpoint / 2026-07-19 最新參考文字檢查點
 
 Phonetic Speller, Box & Banner Text, and HTML Entities now use dedicated C++/WinRT renderers over standard-C++ `ReferenceText`. They preserve the managed three-alphabet spelling options and UTF-16 code-unit rows; eight box/comment styles, alignment, bounded padding, titles and Unicode-aware layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local; clipboard writes are explicit-only. · 拼讀字母表、文字方框／橫幅同 HTML 實體而家用專用 C++/WinRT renderer 同標準 C++ `ReferenceText`；保留三種拼讀字母表同 managed UTF-16 code-unit 列、八種方框／註解風格同對齊／padding／標題／Unicode-aware 排版，以及具名／數字實體編碼解碼、無效 UTF-16 安全、managed 相容掃描同本機 50 項雙語參考。全部只喺本機做，剪貼簿只會喺明確 Copy 後改。

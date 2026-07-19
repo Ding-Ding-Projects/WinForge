@@ -7,6 +7,7 @@ param(
     [switch]$LineRoutesOnly,
     [switch]$TextAnalysisRoutesOnly,
     [switch]$ReferenceTextRoutesOnly,
+    [switch]$SlugifyRoutesOnly,
     [switch]$AllowClipboardMutation
 )
 
@@ -614,11 +615,13 @@ function Invoke-OwnedRoute {
         'nato', 'phonetic', 'module.phonetic',
         'boxtext', 'module.boxtext',
         'entities', 'htmlentities', 'module.htmlentities') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly) -and -not (
+    $isSlugifyRoute = @('slug', 'slugify', 'module.slugify') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $SlugifyRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
         ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
-        ($ReferenceTextRoutesOnly -and $isReferenceTextRoute))) {
+        ($ReferenceTextRoutesOnly -and $isReferenceTextRoute) -or
+        ($SlugifyRoutesOnly -and $isSlugifyRoute))) {
         return
     }
 
@@ -742,9 +745,9 @@ Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     $value.SetValue('module.unixperm')
     $implementedRoute = Wait-ForElement -Root $root -AutomationId 'NativeAllApps_module_unixperm'
     Assert-True -Condition ($implementedRoute.Current.Name.Contains('native implementation available')) -Name 'All Apps labels a dedicated native renderer as available'
-    $value.SetValue('module.slugify')
-    $pendingRoute = Wait-ForElement -Root $root -AutomationId 'NativeAllApps_module_slugify'
-    Assert-True -Condition ($pendingRoute.Current.Name.Contains('native implementation pending')) -Name 'All Apps keeps an unported route explicitly pending'
+    $value.SetValue('module.smelter')
+    $pendingRoute = Wait-ForElement -Root $root -AutomationId 'NativeAllApps_module_smelter'
+    Assert-True -Condition ($pendingRoute.Current.Name.Contains('native implementation pending')) -Name 'All Apps keeps a still-unported route explicitly pending'
 
     foreach ($id in @(
         'NativeAllAppsRegexMode',
@@ -3495,6 +3498,123 @@ Invoke-OwnedRoute -Route 'htmlentities' -ExpectedTitle 'HTML Entities' -Inspect 
 
 foreach ($alias in @('entities', 'htmlentities', 'module.htmlentities')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'HTML Entities'
+}
+
+Invoke-OwnedRoute -Route 'slugify' -ExpectedTitle 'Slugify' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeSlugifyImplementationStatus',
+        'NativeSlugifyInput',
+        'NativeSlugifySeparator',
+        'NativeSlugifyCase',
+        'NativeSlugifyMaxLength',
+        'NativeSlugifyStripDiacritics',
+        'NativeSlugifyCollapseRepeats',
+        'NativeSlugifyKeepUnicodeLetters',
+        'NativeSlugifyOutput',
+        'NativeSlugifyCopy',
+        'NativeSlugifyPreview',
+        'NativeSlugifyStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $slugFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifySeparator'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyCase'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyMaxLength'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyStripDiacritics'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyCollapseRepeats'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyKeepUnicodeLetters'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyPreview'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyStatus'))
+    Assert-True -Condition $slugFit `
+        -Name 'Slugify exposes accessible local controls without horizontal clipping'
+
+    $cafeTea = 'Caf' + ([char]0x00E9).ToString() + ' & Tea'
+    $previewArrow = ([char]0x2192).ToString()
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeSlugifyInput' -Value $cafeTea | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyOutput' -ExpectedValue 'cafe-tea' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSlugifyPreview' `
+        -Prefix ($cafeTea + '  ' + $previewArrow + '  cafe-tea') | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Slugify performs managed-compatible accent stripping, boundary cleanup, and live first-line preview'
+
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeSlugifySeparator') -Index 1
+    Select-ComboIndex -Combo (Wait-ForElement -Root $root -AutomationId 'NativeSlugifyCase') -Index 1
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyOutput' -ExpectedValue 'CAFE_TEA' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeSlugifyMaxLength' -Value '5' | Out-Null
+    # NumberBox commits a typed value when focus leaves its embedded edit control.
+    Set-ToggleState -Root $root -AutomationId 'NativeSlugifyCollapseRepeats' -IsOn $false | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyOutput' -ExpectedValue 'CAFE' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Slugify applies separator case and UTF-16 max-length options through native controls'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeSlugifyMaxLength' -Value '0' | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeSlugifyCollapseRepeats' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeSlugifyKeepUnicodeLetters' -IsOn $true | Out-Null
+    $chinese = ([char]0x4E2D).ToString() + ([char]0x6587).ToString()
+    $chineseCafe = $chinese + ' Caf' + ([char]0x00E9).ToString()
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeSlugifyInput' -Value $chineseCafe | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyOutput' -ExpectedValue ($chinese + '_CAFE') | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeSlugifyStripDiacritics' -IsOn $false | Out-Null
+    $chineseAccentedUpper = $chinese + '_CAF' + ([char]0x00C9).ToString()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyOutput' -ExpectedValue $chineseAccentedUpper | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Slugify keeps opted-in Unicode letters and can retain accents entirely in native code'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeSlugifyCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSlugifyStatus' `
+            -Prefix 'Slugs copied to the clipboard' | Out-Null
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSlugifyCopy' `
+            -Prefix 'Copied' | Out-Null
+        Assert-True -Condition $true -Name 'Slugify writes the clipboard only after explicit Copy'
+    }
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Slugify' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyOutput' -ExpectedValue $chineseAccentedUpper | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Slugify rerenders English labels while retaining its local text and options'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeSlugifyInput')) `
+        -Name 'Slugify releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.slugify' -ExpectedTitle 'Slugify'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeSlugifyMaxLength' -ExpectedValue '0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeSlugifyPreview' `
+        -Prefix '(type something above)' | Out-Null
+    $strip = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeSlugifyStripDiacritics').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $collapse = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeSlugifyCollapseRepeats').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    $unicode = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeSlugifyKeepUnicodeLetters').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $strip.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and
+        $collapse.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On -and
+        $unicode.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'Slugify resets the managed page defaults after in-process route re-entry'
+}
+
+foreach ($alias in @('slug', 'slugify', 'module.slugify')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Slugify'
 }
 
 Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {

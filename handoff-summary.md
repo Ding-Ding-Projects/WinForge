@@ -1,5 +1,15 @@
 # WinForge Full Development Handoff
 
+## 2026-07-19 native Slugify wave — focused routes green; visual capture blocked · 2026-07-19 原生網址別名批次 — 專項 route 通過；視覺擷取受阻
+
+- **Scope / 範圍：** `slug`, `slugify`, and `module.slugify` now have a dedicated C++/WinRT page backed by standard-C++ `Slugify`. It preserves managed CRLF/LF/CR block conversion, blank-line skipping, diacritic normalization, default ASCII and opt-in Unicode categories, separator/case/max-length rules, first nonblank-line preview, route-entry reset, language rerender retention, and explicit-only clipboard Copy.
+- **Inventory / 清單：** `HasNativeRenderer` and the provisional ledger account for **31/346 fixed routes**, leaving **315** fixed routes plus five dynamic families. The new row is `in-progress`; a renderer without valid visual evidence is never called complete.
+- **Evidence green / 已通過證據：** Debug and Release x64 native solution builds each exit 0 with 0 errors; Debug and Release core each pass **777/777**, including Slugify **18/18**; catalog parity covers 346 fixed routes plus five dynamic families; focused `-SlugifyRoutesOnly` UI Automation passes **12/12** across all three aliases and covers explicit clipboard Copy.
+- **Visual disposition / 視覺處置：** LowLevel MCP is not callable in this Codex session. The required repository-driver capture reached the fallback, reported `CopyFromScreen` unavailable, and rejected a blank/near-uniform `PrintWindow` client. No PNG was created, no worktree WinForge process remained, and no canonical screenshot changed. The ledger visual dimension is `capture-blocked`.
+- **Integration boundary / 整合界線：** feature-only work: no workflow, release, tag, GitHub, or `main` mutation. The isolated `codex/native-slugify` commit must be integrated under the release owner’s controlled native-only publishing flow.
+
+**粵語摘要：** 網址別名三個 alias 而家有專用原生 renderer 同 `Slugify` core；renderer 計 **31/346**，仲有 **315** 條固定 route 同五組家族。Debug／Release 0 errors、core 各 **777/777**（Slugify **18/18**）、catalog parity 同三個 alias UIA **12/12** 已通過。今次冇可呼叫 LowLevel MCP；driver 因 `CopyFromScreen` 唔可用而拒絕空白 fallback，冇 PNG／冇 worktree process／冇改 canonical 截圖，所以 visual 係 `capture-blocked`。呢個分支只改功能，唔改 workflow／release／GitHub／`main`，要由 release owner 受控整合。
+
 ## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
 
 - **Scope / 範圍：** dedicated C++/WinRT renderers for Phonetic Speller, Box & Banner Text, and HTML Entities, backed by the shared standard-C++ `ReferenceText` core. The wave preserves three phonetic alphabets, digits, uppercase/punctuation options, managed UTF-16 code-unit rows and spoken output; eight box/comment styles, three alignments, bounded padding, optional titles, multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local; clipboard writes require explicit Copy.

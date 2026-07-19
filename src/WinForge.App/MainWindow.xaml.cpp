@@ -1064,6 +1064,31 @@ namespace winrt::WinForge::implementation
         }
     }
 
+    void MainWindow::ReleaseSlugifyRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute != L"module.slugify" || nextRoute == L"module.slugify") return;
+
+        m_slugifyInputBox = nullptr;
+        m_slugifySeparatorBox = nullptr;
+        m_slugifyCaseBox = nullptr;
+        m_slugifyMaxLengthBox = nullptr;
+        m_slugifyDiacriticsBox = nullptr;
+        m_slugifyCollapseBox = nullptr;
+        m_slugifyUnicodeBox = nullptr;
+        m_slugifyOutputBox = nullptr;
+        m_slugifyPreviewText = nullptr;
+        m_slugifyStatus = nullptr;
+        std::wstring{}.swap(m_slugifyInput);
+        std::wstring{}.swap(m_slugifyOutput);
+        m_slugifySeparator = 0;
+        m_slugifyCase = 0;
+        m_slugifyMaxLength = 0.0;
+        m_slugifyStripDiacritics = true;
+        m_slugifyCollapseRepeats = true;
+        m_slugifyKeepUnicodeLetters = false;
+        m_slugifyRendering = false;
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -1082,6 +1107,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(L"search");
             ReleaseReferenceTextRouteState(L"search");
+            ReleaseSlugifyRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -1092,6 +1118,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(L"manual");
             ReleaseReferenceTextRouteState(L"manual");
+            ReleaseSlugifyRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -1104,6 +1131,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(normalized);
             ReleaseReferenceTextRouteState(normalized);
+            ReleaseSlugifyRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
@@ -1113,6 +1141,7 @@ namespace winrt::WinForge::implementation
 
         ReleaseTextAnalysisRouteState(module->id);
         ReleaseReferenceTextRouteState(module->id);
+        ReleaseSlugifyRouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
@@ -1209,6 +1238,17 @@ namespace winrt::WinForge::implementation
             m_htmlEntitiesOutput.clear();
             m_htmlEntitiesDecode = false;
             m_htmlEntitiesEscapeNonAscii = false;
+        }
+        else if (module->id == L"module.slugify")
+        {
+            m_slugifyInput.clear();
+            m_slugifyOutput.clear();
+            m_slugifySeparator = 0;
+            m_slugifyCase = 0;
+            m_slugifyMaxLength = 0.0;
+            m_slugifyStripDiacritics = true;
+            m_slugifyCollapseRepeats = true;
+            m_slugifyKeepUnicodeLetters = false;
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -1384,6 +1424,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.htmlentities")
         {
             RenderHtmlEntities();
+        }
+        else if (module->id == L"module.slugify")
+        {
+            RenderSlugify();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -6121,6 +6165,291 @@ namespace winrt::WinForge::implementation
         if (announce)
         {
             RaisePoliteLiveRegion(m_htmlEntitiesStatus);
+        }
+    }
+
+    void MainWindow::RenderSlugify()
+    {
+        using namespace winforge::core::slugify;
+        m_slugifyRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Slugify", L"網址別名" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Turn pasted titles into clean URL slugs. Convert one line at a time, choose the separator and case, and keep all text on this PC.",
+                L"將貼上嘅標題變成乾淨網址別名。每行獨立轉換、可揀分隔符同大小寫，而且所有文字都留喺你部電腦。" }.Pick(m_language));
+        page.MaxWidth(820);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeSlugifyPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native slug conversion", L"全原生網址別名轉換" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Unicode-aware normalization, diacritic handling, line conversion, and the preview run locally in native C++; Copy is always explicit.",
+            L"Unicode 正規化、去重音、逐行轉換同預覽全部用原生 C++ 喺本機執行；複製永遠要你明確撳掣。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeSlugifyImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(10);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Text (one slug per line)", L"文字（每行一個別名）" }.Pick(m_language),
+            14,
+            true);
+        input.Children().Append(inputLabel);
+        m_slugifyInputBox = TextBox();
+        m_slugifyInputBox.AcceptsReturn(true);
+        m_slugifyInputBox.TextWrapping(TextWrapping::Wrap);
+        m_slugifyInputBox.MinHeight(120);
+        m_slugifyInputBox.MaxHeight(300);
+        m_slugifyInputBox.Text(ToHString(TextBoxPresentation(m_slugifyInput)));
+        m_slugifyInputBox.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"e.g. Café & Tea / a second title", L"例如 Café 同 Tea／第二個標題" }.Pick(m_language)));
+        m_slugifyInputBox.IsSpellCheckEnabled(false);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_slugifyInputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_slugifyInputBox, L"NativeSlugifyInput");
+        AutomationProperties::SetLabeledBy(m_slugifyInputBox, inputLabel);
+        m_slugifyInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_slugifyRendering) return;
+            m_slugifyInput = ToWide(sender.as<TextBox>().Text());
+            RefreshSlugify();
+        });
+        input.Children().Append(m_slugifyInputBox);
+
+        auto separatorLabel = CreateText(
+            winforge::core::LocalizedText{ L"Separator", L"分隔符" }.Pick(m_language), 13, true);
+        input.Children().Append(separatorLabel);
+        m_slugifySeparatorBox = ComboBox();
+        m_slugifySeparatorBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        m_slugifySeparatorBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Hyphen ( - )", L"連字號（ - ）" }.Pick(m_language))));
+        m_slugifySeparatorBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Underscore ( _ )", L"底線（ _ ）" }.Pick(m_language))));
+        m_slugifySeparatorBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Dot ( . )", L"點（ . ）" }.Pick(m_language))));
+        m_slugifySeparatorBox.SelectedIndex(std::clamp(m_slugifySeparator, 0, 2));
+        AutomationProperties::SetAutomationId(m_slugifySeparatorBox, L"NativeSlugifySeparator");
+        AutomationProperties::SetLabeledBy(m_slugifySeparatorBox, separatorLabel);
+        m_slugifySeparatorBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_slugifyRendering) return;
+            m_slugifySeparator = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 2);
+            RefreshSlugify();
+        });
+        input.Children().Append(m_slugifySeparatorBox);
+
+        auto caseLabel = CreateText(
+            winforge::core::LocalizedText{ L"Case", L"大小寫" }.Pick(m_language), 13, true);
+        input.Children().Append(caseLabel);
+        m_slugifyCaseBox = ComboBox();
+        m_slugifyCaseBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        m_slugifyCaseBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"lowercase", L"細楷" }.Pick(m_language))));
+        m_slugifyCaseBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"UPPERCASE", L"大楷" }.Pick(m_language))));
+        m_slugifyCaseBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Keep as-is", L"維持原樣" }.Pick(m_language))));
+        m_slugifyCaseBox.SelectedIndex(std::clamp(m_slugifyCase, 0, 2));
+        AutomationProperties::SetAutomationId(m_slugifyCaseBox, L"NativeSlugifyCase");
+        AutomationProperties::SetLabeledBy(m_slugifyCaseBox, caseLabel);
+        m_slugifyCaseBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_slugifyRendering) return;
+            m_slugifyCase = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 2);
+            RefreshSlugify();
+        });
+        input.Children().Append(m_slugifyCaseBox);
+
+        auto maximumLabel = CreateText(
+            winforge::core::LocalizedText{ L"Max length (0 = unlimited)", L"最長長度（0 = 無限制）" }.Pick(m_language),
+            13,
+            true);
+        input.Children().Append(maximumLabel);
+        m_slugifyMaxLengthBox = NumberBox();
+        m_slugifyMaxLengthBox.Minimum(0);
+        m_slugifyMaxLengthBox.Maximum(500);
+        m_slugifyMaxLengthBox.Value(std::isfinite(m_slugifyMaxLength) ? m_slugifyMaxLength : 0.0);
+        m_slugifyMaxLengthBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_slugifyMaxLengthBox.HorizontalAlignment(HorizontalAlignment::Stretch);
+        AutomationProperties::SetAutomationId(m_slugifyMaxLengthBox, L"NativeSlugifyMaxLength");
+        AutomationProperties::SetLabeledBy(m_slugifyMaxLengthBox, maximumLabel);
+        m_slugifyMaxLengthBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_slugifyRendering) return;
+            auto const value = sender.Value();
+            m_slugifyMaxLength = std::isfinite(value) ? std::clamp(value, 0.0, 500.0) : 0.0;
+            RefreshSlugify();
+        });
+        input.Children().Append(m_slugifyMaxLengthBox);
+
+        m_slugifyDiacriticsBox = CheckBox();
+        m_slugifyDiacriticsBox.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Strip accents (café → cafe)", L"去除重音（café → cafe）" }.Pick(m_language))));
+        m_slugifyDiacriticsBox.IsChecked(
+            box_value(m_slugifyStripDiacritics).as<Windows::Foundation::IReference<bool>>());
+        AutomationProperties::SetAutomationId(m_slugifyDiacriticsBox, L"NativeSlugifyStripDiacritics");
+        m_slugifyDiacriticsBox.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_slugifyRendering) return;
+            m_slugifyStripDiacritics = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+            RefreshSlugify();
+        });
+        input.Children().Append(m_slugifyDiacriticsBox);
+
+        m_slugifyCollapseBox = CheckBox();
+        m_slugifyCollapseBox.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Collapse repeats", L"合併重複符號" }.Pick(m_language))));
+        m_slugifyCollapseBox.IsChecked(
+            box_value(m_slugifyCollapseRepeats).as<Windows::Foundation::IReference<bool>>());
+        AutomationProperties::SetAutomationId(m_slugifyCollapseBox, L"NativeSlugifyCollapseRepeats");
+        m_slugifyCollapseBox.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_slugifyRendering) return;
+            m_slugifyCollapseRepeats = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+            RefreshSlugify();
+        });
+        input.Children().Append(m_slugifyCollapseBox);
+
+        m_slugifyUnicodeBox = CheckBox();
+        m_slugifyUnicodeBox.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Keep Unicode letters (中文)", L"保留 Unicode 字母（中文）" }.Pick(m_language))));
+        m_slugifyUnicodeBox.IsChecked(
+            box_value(m_slugifyKeepUnicodeLetters).as<Windows::Foundation::IReference<bool>>());
+        AutomationProperties::SetAutomationId(m_slugifyUnicodeBox, L"NativeSlugifyKeepUnicodeLetters");
+        m_slugifyUnicodeBox.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_slugifyRendering) return;
+            m_slugifyKeepUnicodeLetters = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+            RefreshSlugify();
+        });
+        input.Children().Append(m_slugifyUnicodeBox);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border outputCard = MakeNativeCard();
+        StackPanel output;
+        output.Spacing(10);
+        auto outputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Slugs", L"別名" }.Pick(m_language), 15, true);
+        output.Children().Append(outputLabel);
+        m_slugifyOutputBox = TextBox();
+        m_slugifyOutputBox.IsReadOnly(true);
+        m_slugifyOutputBox.AcceptsReturn(true);
+        m_slugifyOutputBox.TextWrapping(TextWrapping::Wrap);
+        m_slugifyOutputBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_slugifyOutputBox.MinHeight(120);
+        m_slugifyOutputBox.MaxHeight(300);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_slugifyOutputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_slugifyOutputBox, L"NativeSlugifyOutput");
+        AutomationProperties::SetLabeledBy(m_slugifyOutputBox, outputLabel);
+        output.Children().Append(m_slugifyOutputBox);
+
+        auto copy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language),
+            L"NativeSlugifyCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_slugifyOutput));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                auto const copied = winforge::core::LocalizedText{
+                    L"Copied ✓", L"已複製 ✓" }.Pick(m_language);
+                auto button = sender.as<Button>();
+                button.Content(box_value(ToHString(copied)));
+                AutomationProperties::SetName(button, ToHString(copied));
+                AnnounceSlugifyStatus(winforge::core::LocalizedText{
+                    L"Slugs copied to the clipboard.", L"別名已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceSlugifyStatus(winforge::core::LocalizedText{
+                    L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+            }
+        });
+        output.Children().Append(copy);
+
+        auto previewLabel = CreateText(
+            winforge::core::LocalizedText{ L"Before → after (first line)", L"轉換前 → 後（第一行）" }.Pick(m_language),
+            13,
+            true);
+        output.Children().Append(previewLabel);
+        m_slugifyPreviewText = CreateText(L"", 13);
+        m_slugifyPreviewText.TextWrapping(TextWrapping::Wrap);
+        m_slugifyPreviewText.IsTextSelectionEnabled(true);
+        AutomationProperties::SetAutomationId(m_slugifyPreviewText, L"NativeSlugifyPreview");
+        AutomationProperties::SetLabeledBy(m_slugifyPreviewText, previewLabel);
+        output.Children().Append(m_slugifyPreviewText);
+
+        m_slugifyStatus = CreateText(L"", 12.5);
+        m_slugifyStatus.Opacity(0.82);
+        m_slugifyStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_slugifyStatus, L"NativeSlugifyStatus");
+        output.Children().Append(m_slugifyStatus);
+        outputCard.Child(output);
+        page.Children().Append(outputCard);
+
+        ShowPage(page);
+        m_slugifyRendering = false;
+        RefreshSlugify();
+    }
+
+    void MainWindow::RefreshSlugify()
+    {
+        using namespace winforge::core::slugify;
+        if (!m_slugifyOutputBox || !m_slugifyPreviewText || !m_slugifyStatus) return;
+
+        Options options;
+        options.separator = static_cast<Separator>(std::clamp(m_slugifySeparator, 0, 2));
+        options.letterCase = static_cast<LetterCase>(std::clamp(m_slugifyCase, 0, 2));
+        options.stripDiacritics = m_slugifyStripDiacritics;
+        options.collapseRepeats = m_slugifyCollapseRepeats;
+        options.keepUnicodeLetters = m_slugifyKeepUnicodeLetters;
+        options.maxLength = std::isfinite(m_slugifyMaxLength)
+            ? static_cast<int>(std::trunc(std::clamp(m_slugifyMaxLength, 0.0, 500.0)))
+            : 0;
+
+        m_slugifyOutput = SlugifyBlock(m_slugifyInput, options);
+        m_slugifyOutputBox.Text(ToHString(TextBoxPresentation(m_slugifyOutput)));
+        auto const preview = PreviewFirstLine(m_slugifyInput, options);
+        auto const previewText = !preview.hasInput
+            ? winforge::core::LocalizedText{ L"(type something above)", L"（喺上面輸入啲文字）" }.Pick(m_language)
+            : preview.input + L"  →  " + (preview.slug.empty()
+                ? winforge::core::LocalizedText{ L"(empty)", L"（空白）" }.Pick(m_language)
+                : preview.slug);
+        m_slugifyPreviewText.Text(ToHString(previewText));
+        AutomationProperties::SetName(m_slugifyPreviewText, ToHString(previewText));
+        AnnounceSlugifyStatus(winforge::core::LocalizedText{
+            L"Converted locally — nothing leaves your PC.",
+            L"已喺本機轉換 — 冇任何資料離開你部電腦。" }.Pick(m_language), false, false);
+    }
+
+    void MainWindow::AnnounceSlugifyStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_slugifyStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_slugifyStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_slugifyStatus.Text(ToHString(message));
+        m_slugifyStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_slugifyStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_slugifyStatus);
         }
     }
 
