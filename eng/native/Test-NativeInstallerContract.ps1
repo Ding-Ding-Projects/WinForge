@@ -260,10 +260,13 @@ $iss = [System.IO.File]::ReadAllText($issPath, [System.Text.Encoding]::UTF8)
 
 $nativeWorkflowPath = Join-Path $root '.github\workflows\native-release.yml'
 $siteDataWorkflowPath = Join-Path $root '.github\workflows\site-data.yml'
+$pagesWorkflowPath = Join-Path $root '.github\workflows\pages.yml'
 Require-File -Path $nativeWorkflowPath -Label 'Native release workflow'
 Require-File -Path $siteDataWorkflowPath -Label 'Site-data workflow'
+Require-File -Path $pagesWorkflowPath -Label 'GitHub Pages workflow'
 $nativeWorkflow = [System.IO.File]::ReadAllText($nativeWorkflowPath, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n").Replace("`r", "`n")
 $siteDataWorkflow = [System.IO.File]::ReadAllText($siteDataWorkflowPath, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n").Replace("`r", "`n")
+$pagesWorkflow = [System.IO.File]::ReadAllText($pagesWorkflowPath, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n").Replace("`r", "`n")
 
 $legacyManagedReleasePath = Join-Path $root '.github\workflows\release.yml'
 if (Test-Path -LiteralPath $legacyManagedReleasePath) {
@@ -834,7 +837,27 @@ $nativeHandoffStep = Get-WorkflowStep -Content $nativeWorkflow -Name 'Verify exa
 Require-Regex -Content $nativeHandoffStep -Pattern '(?m)^          if \(\$actualNames\.Count -ne 2 -or \(Compare-Object \$expectedNames \$actualNames\)\) \{[ \t]*$' -Label 'trusted exact two-file release handoff assertion'
 
 $siteDataCommitStep = Get-WorkflowStep -Content $siteDataWorkflow -Name 'Commit refreshed data if it changed' -Label 'site-data commit and dispatch'
+Require-Regex -Content $siteDataWorkflow -Pattern '(?m)^        uses: actions/checkout@v7[ \t]*$' -Label 'Node 24 site-data checkout action'
+Require-Regex -Content $siteDataWorkflow -Pattern '(?m)^        uses: actions/setup-dotnet@v6[ \t]*$' -Label 'Node 24 site-data setup-dotnet action'
+Require-Regex -Content $pagesWorkflow -Pattern '(?m)^        uses: actions/checkout@v7[ \t]*$' -Label 'Node 24 Pages checkout action'
+Require-Regex -Content $pagesWorkflow -Pattern '(?m)^        uses: actions/configure-pages@v6[ \t]*$' -Label 'Node 24 Pages configure action'
+Require-Regex -Content $pagesWorkflow -Pattern '(?m)^        uses: actions/upload-pages-artifact@v5[ \t]*$' -Label 'Node 24 Pages artifact action'
+Require-Regex -Content $pagesWorkflow -Pattern '(?m)^        uses: actions/deploy-pages@v5[ \t]*$' -Label 'Node 24 Pages deploy action'
+Reject-Regex -Content $siteDataCommitStep -Pattern '(?m)^          if \(-not \(git status --porcelain design/winforge-data\.js\)\) \{[ \t]*$' -Label 'pre-normalization site-data status truthiness gate'
+Require-Regex -Content $siteDataCommitStep -Pattern '(?ms)^          git add -- design/winforge-data\.js[ \t]*\r?\n          if \(\$LASTEXITCODE -ne 0\) \{ throw ''site-data staging failed'' \}[ \t]*\r?\n          git diff --cached --quiet -- design/winforge-data\.js[ \t]*\r?\n          \$stagedDiffExitCode = \$LASTEXITCODE[ \t]*\r?\n          if \(\$stagedDiffExitCode -eq 0\) \{\r?\n            Write-Host "No change to design/winforge-data\.js\."\r?\n            exit 0\r?\n          \}\r?\n          if \(\$stagedDiffExitCode -ne 1\) \{\r?\n            throw "site-data staged diff check failed with exit code \$stagedDiffExitCode"\r?\n          \}[ \t]*$' -Label 'post-normalization staged site-data three-way diff gate'
 Require-Regex -Content $siteDataCommitStep -Pattern '(?ms)^.*?^          git pull --rebase origin main[ \t]*\r?\n.*?^          \$pushedSha = \(git rev-parse HEAD\)\.Trim\(\)\.ToLowerInvariant\(\)[ \t]*\r?\n.*?^          git push origin HEAD:main[ \t]*\r?\n.*?^          gh workflow run native-release\.yml --ref main -f publish_release=true -f source_sha=\$pushedSha[ \t]*$' -Label 'exact post-rebase site-data SHA dispatch order'
+
+$siteDataStagedDiffFixtures = @(
+    [pscustomobject]@{ Name = 'normalized no-op exits cleanly'; ExitCode = 0; Outcome = 'skip' }
+    [pscustomobject]@{ Name = 'real staged data delta commits'; ExitCode = 1; Outcome = 'commit' }
+    [pscustomobject]@{ Name = 'staged diff command error fails closed'; ExitCode = 2; Outcome = 'fail' }
+)
+foreach ($fixture in $siteDataStagedDiffFixtures) {
+    $outcome = if ($fixture.ExitCode -eq 0) { 'skip' } elseif ($fixture.ExitCode -eq 1) { 'commit' } else { 'fail' }
+    if ($outcome -cne $fixture.Outcome) {
+        throw "Site-data staged diff self-test failed for $($fixture.Name): expected $($fixture.Outcome), got $outcome"
+    }
+}
 
 $requiredLiterals = @(
     '#define MyAppName "WinForge Native"',
