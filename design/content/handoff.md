@@ -1,6 +1,16 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
-## Native text-analysis collation and native-only release proof · 原生文字分析排序及原生-only 發佈證明
+## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
+
+**EN.** Phonetic Speller, Box & Banner Text, and HTML Entities now have dedicated C++/WinRT renderers over the shared standard-C++ `ReferenceText` core. They preserve three phonetic alphabets and managed UTF-16 code-unit row, digit, and option behavior; eight box/comment styles, three alignments, bounded padding, titles and multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local, and clipboard writes require explicit Copy.
+
+Renderer accounting is **30/346 fixed routes**, with **316 fixed routes** plus five dynamic families remaining; the ledger is **30 `in-progress` / 316 `not-started`**. Fresh Debug and Release x64 solution builds each exit 0 with 0 errors, Debug and Release core each pass **759/759**, catalog parity passes all 346 fixed routes plus five dynamic families, focused reference-text UIA passes **29/29** across eight aliases, and the full native shell passes **417/417 (417 passed, 0 failed)**. LowLevel Computer Use MCP is unavailable in this Codex session. The fresh post-integration `htmlentities` repository-driver retry found `CopyFromScreen` unavailable and rejected a blank/near-uniform `PrintWindow` client. No PNG was created or retained, no process remained, and no canonical screenshot changed, so visual evidence is `capture-blocked`.
+
+The handoff is feature-only: it changes no workflow or release policy, and controlled integration preserves that boundary while the native release gate supplies remote verification.
+
+**粵語.** 三項參考文字工具已有專用 C++/WinRT renderer 同 `ReferenceText` core；Renderer 計 **30/346**，仲有 **316** 條固定 route 同五組動態家族。最新 Debug／Release build 各 0 errors、兩個 core 各 **759/759**、catalog parity、八個 alias UIA **29/29** 同完整 native shell **417/417（417 passed、0 failed）** 已通過。今次 session 冇 LowLevel MCP；整合後最新 HTML driver 重試拒絕空白 fallback，冇建立或保留 PNG、冇殘留 process、冇改 canonical 截圖，所以 visual 係 `capture-blocked`。呢個 handoff 只改功能，唔改 workflow／release policy；受控整合會守住界線，再由 native release gate 做遙距驗證。
+
+## Historical native text-analysis collation wave — exhaustive shell green; visual capture blocked · 歷史原生文字分析排序批次 — 完整 shell 通過；視覺擷取受阻
 
 **EN.** Text Statistics, Word Frequency, and String Compare now have dedicated C++/WinRT renderers over the shared standard-C++ `TextAnalysis` core. The implementations preserve local UTF-16/CJK statistics, sentence/paragraph/average/time/Flesch/top-ten results; word/bigram/Unicode-scalar frequency, managed options/stop words, current-culture ordering, count/bar/percentage rows and exact CSV; and normalization, UTF-16, OSA/Jaro–Winkler/longest-common metrics, the greater-than-2,000 guard, subquadratic exact greedy Jaro, and route-exit cleanup. Word Frequency and String Compare write the clipboard only after explicit Copy; Text Statistics is side-effect free.
 

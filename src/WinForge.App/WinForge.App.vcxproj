@@ -141,6 +141,7 @@
     <ClInclude Include="..\WinForge.Core\DesignTools.h" />
     <ClInclude Include="..\WinForge.Core\LineProcessing.h" />
     <ClInclude Include="..\WinForge.Core\TextAnalysis.h" />
+    <ClInclude Include="..\WinForge.Core\ReferenceText.h" />
     <ClInclude Include="..\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\WinForge.Core\PassGen.h" />
     <ClInclude Include="..\WinForge.Core\PasswordStrength.h" />
@@ -197,6 +198,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\TextAnalysis.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\ReferenceText.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\GuidGen.cpp">

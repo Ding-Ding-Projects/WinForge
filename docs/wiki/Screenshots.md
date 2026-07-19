@@ -849,3 +849,8 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 - 僅啟動測試：擴充套件更新後，`cmdpalette` 已成功啟動。
 - 截圖嘗試：`CopyFromScreen` 未可用；`PrintWindow` 備援只產生單色畫面，所以呢個桌面工作階段未能擷取圖像。
 - 今次冇發佈替代嘅正式截圖，亦都冇聲稱已做視覺檢查。
+
+## Reference Text native capture status · 原生參考文字截圖狀態
+
+- Fresh post-integration `htmlentities` capture (2026-07-19): LowLevel Computer Use MCP was not callable in this Codex session. The process-owned native driver found `CopyFromScreen` unavailable and rejected its blank or near-uniform `PrintWindow` fallback. No PNG was created or retained, no canonical screenshot changed, and the three Reference Text routes remain `capture-blocked`.
+- 整合後最新 `htmlentities` 截圖（2026-07-19）：今次 Codex session 冇可呼叫嘅 LowLevel Computer Use MCP。只屬於本次程序嘅原生 driver 發現 `CopyFromScreen` 唔可用，並拒絕空白／近乎單色 `PrintWindow` fallback。冇建立或保留 PNG、冇改 canonical 截圖，三條 Reference Text route 保持 `capture-blocked`。
