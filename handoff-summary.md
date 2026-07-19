@@ -1,5 +1,15 @@
 # WinForge Full Development Handoff
 
+## Current 2026-07-19 native Namespaced UUID controlled integration — local gates green · 2026-07-19 原生具名空間 UUID 受控整合 — 本機 gate 已通過
+
+- **Scope / 範圍：** `uuid5`, `uuidv5`, and `module.uuidv5` are now a pure standard-C++/C++/WinRT RFC 4122 v3/v5 renderer: DNS/URL/OID/X500/custom namespaces, managed-compatible D/N/B/P/X parsing, UTF-16 replacement, U+180E parity, local bulk rows, language retention, route reset, and explicit-only Copy.
+- **Current evidence / 目前證據：** Debug and Release x64 native solution builds have 0 errors; both core suites pass **815/815**; focused UUID UIA passes **21/21**; catalog parity is **346 fixed routes + five dynamic families**, 319 registry records, and 346 ledger rows; and the native installer contract passes. Renderer accounting is **33/346 fixed routes**, **33 `in-progress` / 313 `not-started`**.
+- **Visual and release state / 視覺同發佈狀態：** no callable LowLevel MCP tool is exposed in this Codex session despite the local checkout. The fresh UUID driver capture and final aggregate shell are still required before the controlled `main` push; no visual success is claimed yet. This merge changes no workflow and preserves the C++-only release publisher.
+
+- **Final gate update / 最終 gate 更新：** the aggregate native shell now passes **469/469**. The fresh `uuid5` driver found `CopyFromScreen` unavailable and rejected the blank/near-uniform PrintWindow fallback; no PNG or root app process remains, so visual evidence is honestly `capture-blocked`. · 完整 native shell 而家通過 **469/469**。最新 `uuid5` driver 發現 `CopyFromScreen` 不可用並拒絕空白／近乎單色 PrintWindow fallback；冇 PNG 或 root app process，所以 visual 如實係 `capture-blocked`。
+
+**粵語摘要：** 三個 UUID alias 而家係純標準 C++／C++/WinRT RFC 4122 v3/v5 renderer，有 DNS／URL／OID／X500／自訂 namespace、managed 相容 D/N/B/P/X parser、UTF-16 replacement、U+180E parity、本機 bulk 行、語言保留、route reset 同只限明確 Copy。Debug／Release 0 errors、core 各 **815/815**、UUID UIA **21/21**、catalog parity 346+5／319 registry／346 ledger 同 installer contract 已通過；renderer 係 **33/346**（**33 `in-progress` / 313 `not-started`**）。雖然有本機 LowLevel checkout，今個 Codex session 冇可呼叫工具；最新 driver 擷取同完整 aggregate shell 未完成，未會聲稱 visual success。冇改 workflow，繼續由只限 C++ publisher 發佈。
+
 ## Current 2026-07-19 native Slugify controlled integration — hosted release proven · 2026-07-19 原生網址別名受控整合 — hosted 發佈已證明
 
 - **Scope / 範圍：** `slug`, `slugify`, and `module.slugify` are now a genuine C++/WinRT renderer over the standard-C++ `Slugify` core, integrated with existing native Reference Text and Morse routes. It preserves managed line/blank/diacritic/Unicode/separator/case/UTF-16-preview semantics, route lifecycle, all three language modes, and explicit-only clipboard Copy.

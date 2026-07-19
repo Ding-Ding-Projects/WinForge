@@ -17,6 +17,7 @@
 #include "UnixPermTests.h"
 #include "TextDiffTests.h"
 #include "UuidV7Tests.h"
+#include "UuidV5Tests.h"
 #include "RegexCheatTests.h"
 #include "SymbolsPaletteTests.h"
 #include "AppUninstallerTests.h"
@@ -227,6 +228,7 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L" module.htmlentities ") &&
         winforge::core::HasNativeRenderer(L"module.morse") &&
         winforge::core::HasNativeRenderer(L"MODULE.SLUGIFY") &&
+        winforge::core::HasNativeRenderer(L"MODULE.UUIDV5") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
@@ -317,6 +319,10 @@ int wmain(int argc, wchar_t** argv)
     auto const uuidV7Counts = RunUuidV7Tests();
     passed += uuidV7Counts.passed;
     failed += uuidV7Counts.failed;
+
+    auto const uuidV5Counts = RunUuidV5Tests();
+    passed += uuidV5Counts.passed;
+    failed += uuidV5Counts.failed;
 
     auto const regexSearchCounts = RunRegexSearchTests();
     passed += regexSearchCounts.passed;

@@ -15,6 +15,7 @@
 #include "../WinForge.Core/RomanNum.h"
 #include "../WinForge.Core/UnixPerm.h"
 #include "../WinForge.Core/UuidV7.h"
+#include "../WinForge.Core/UuidV5.h"
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageMutationCoordinator.h"
 #include "../WinForge.Core/PackageRuntime.h"
@@ -238,6 +239,14 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::Button m_morseStopButton{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_morseStatus{ nullptr };
         Microsoft::UI::Xaml::DispatcherTimer m_morseTimer{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_uuidV5NamespacePicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5CustomNamespaceInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_uuidV5VersionPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5NameInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5ResultOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5BulkInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5BulkOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_uuidV5Status{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_romanNumExtendedSwitch{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_romanNumNumberInput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_romanNumRomanOutput{ nullptr };
@@ -453,6 +462,14 @@ namespace winrt::WinForge::implementation
         int32_t m_morseFlashIndex{ -1 };
         bool m_morsePlaying{ false };
         bool m_morseRendering{ false };
+        int32_t m_uuidV5NamespaceIndex{ 0 };
+        int32_t m_uuidV5VersionIndex{ 0 };
+        std::wstring m_uuidV5CustomNamespaceValue{};
+        std::wstring m_uuidV5NameValue{};
+        std::wstring m_uuidV5ResultValue{};
+        std::wstring m_uuidV5BulkInputValue{};
+        std::wstring m_uuidV5BulkOutputValue{};
+        bool m_uuidV5Rendering{ false };
         bool m_romanNumExtended{ false };
         std::wstring m_romanNumNumberInputValue{};
         std::wstring m_romanNumRomanInputValue{};
@@ -701,6 +718,7 @@ namespace winrt::WinForge::implementation
         void ReleaseMorseRouteState(std::wstring_view nextRoute);
         void ResetMorseRouteState();
         void ReleaseSlugifyRouteState(std::wstring_view nextRoute);
+        void ReleaseUuidV5RouteState(std::wstring_view nextRoute);
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -866,6 +884,14 @@ namespace winrt::WinForge::implementation
         void AdvanceMorseFlash();
         void SetMorseLamp(bool on);
         void AnnounceMorseStatus(std::wstring_view message, bool warning = false);
+        void RenderUuidV5();
+        void RefreshUuidV5();
+        void GenerateUuidV5Bulk();
+        void CopyUuidV5Value(std::wstring_view value, std::wstring_view successMessage);
+        void AnnounceUuidV5Status(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = false);
         void RenderRomanNum();
         void RefreshRomanNum(bool refreshNumber = true, bool refreshRoman = true);
         void AnnounceRomanNumStatus(std::wstring_view message, bool warning = false);

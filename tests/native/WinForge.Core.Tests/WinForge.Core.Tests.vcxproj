@@ -70,6 +70,7 @@
     <ClCompile Include="UnixPermTests.cpp" />
     <ClCompile Include="TextDiffTests.cpp" />
     <ClCompile Include="UuidV7Tests.cpp" />
+    <ClCompile Include="UuidV5Tests.cpp" />
     <ClCompile Include="RegexSearchTests.cpp" />
     <ClCompile Include="RegexCheatTests.cpp" />
     <ClCompile Include="SymbolsPaletteTests.cpp" />
@@ -99,6 +100,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\UnixPerm.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\TextDiff.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\UuidV7.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\UuidV5.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RegexSearch.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RegexCheat.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\SymbolsPalette.cpp" />
@@ -130,6 +132,7 @@
     <ClInclude Include="UnixPermTests.h" />
     <ClInclude Include="TextDiffTests.h" />
     <ClInclude Include="UuidV7Tests.h" />
+    <ClInclude Include="UuidV5Tests.h" />
     <ClInclude Include="RegexSearchTests.h" />
     <ClInclude Include="RegexCheatTests.h" />
     <ClInclude Include="SymbolsPaletteTests.h" />
@@ -156,6 +159,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\UnixPerm.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\TextDiff.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\UuidV7.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\UuidV5.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearch.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearchSurface.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexCheat.h" />

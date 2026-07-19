@@ -5,6 +5,7 @@
 **粵語 —** WinForge 套件嘅活動式、會自己生長嘅待辦清單。每 30 分鐘嘅建置迴圈會讀呢個檔、**發掘新嘅真實功能再加落嚟**，跟住深度建置下一個未剔嘅項目再剔走。每項都附上真實機制（登錄檔、指令、深層連結、API 或者要包嘅引擎）。
 
 ## ✅ Done · 已完成
+- [x] **Native Namespaced UUID v3/v5 controlled integration (2026-07-19)** · 原生具名空間 UUID v3/v5 受控整合 — standard-C++ RFC 4122 MD5/SHA-1 core plus C++/WinRT renderer for `uuid5`/`uuidv5`/`module.uuidv5`; local-only DNS/URL/OID/X500/custom namespaces, managed D/N/B/P/X parsing, UTF-16 replacement, U+180E parity, bulk output, localization, lifecycle reset, and explicit-only Copy. Controlled-merge Debug/Release evidence is 0 errors / **815/815**, focused UIA **21/21**, full native shell **469/469**, catalog parity 346+5, and installer contract pass; renderer accounting is **33/346**. LowLevel MCP is not callable and the fresh driver rejected a blank fallback, so visual evidence remains `capture-blocked`; the native-only release push is next. · 標準 C++ RFC 4122 MD5／SHA-1 core 加 C++/WinRT renderer；受控 merge Debug／Release 0 errors、core 各 **815/815**、UUID UIA **21/21**、完整 native shell **469/469**、catalog parity 346+5、installer contract 同 **33/346** renderer 已通過。LowLevel MCP 不可呼叫而最新 driver 拒絕空白 fallback，所以 visual 保持 `capture-blocked`；下一步係只限原生 release push。
 - [x] **Windows 11 control module** · Windows 11 控制模組 — 169 tweaks / 13 categories
 - [x] **Git & GitHub module** · Git 與 GitHub 模組 — repo ops, chunked uploader, 111 git/gh operations
 - [x] **Maintenance & Diagnostics module** · 維護與診斷模組 — 102 real ops (services, disk health, SFC/DISM, drivers, updates, event logs, power reports)

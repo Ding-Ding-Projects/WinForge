@@ -25,6 +25,12 @@
 
 ## 🧱 Native C++ Rewrite · 原生 C++ 重寫
 
+### 2026-07-19 controlled native Namespaced UUID integration · 2026-07-19 受控原生具名空間 UUID 整合
+
+**EN —** `uuid5`, `uuidv5`, and `module.uuidv5` now use a genuine C++/WinRT page and the standard-C++ `UuidV5` core for local RFC 4122 v3/v5 generation, managed-compatible namespace parsing, bulk output, localization, reset, and explicit-only Copy. Fresh Debug/Release native builds have 0 errors; both cores are **815/815**, focused UUID UIA is **21/21**, the full native shell is **469/469**, catalog parity is **346 + 5**, and the native installer contract passes. Native renderer accounting is **33/346** (`33 in-progress / 313 not-started`); the C++-only release boundary is unchanged. LowLevel tools are unavailable in this session and the fresh driver rejected a blank frame, so visual evidence remains `capture-blocked`.
+
+**粵語 —** `uuid5`、`uuidv5` 同 `module.uuidv5` 而家用真正 C++/WinRT 頁同標準 C++ `UuidV5` core，喺本機產生 RFC 4122 v3/v5、managed 相容 namespace parser、bulk 輸出、本地化、重設同只限明確 Copy。最新 Debug／Release 原生 build 0 errors、core 各 **815/815**、UUID 專項 UIA **21/21**、完整 native shell **469/469**、catalog parity **346 + 5**、native installer contract 通過。原生 renderer 計 **33/346**（`33 in-progress / 313 not-started`）；只限 C++ 發佈界線冇變。今個 session 冇 LowLevel 工具而最新 driver 拒絕空白畫面，所以 visual 保持 `capture-blocked`。
+
 ### 2026-07-19 controlled native Slugify integration · 2026-07-19 受控原生網址別名整合
 
 **EN —** Slugify is now integrated with the native Reference Text and Morse renderers. The C++/WinRT page and standard-C++ core preserve managed line/diacritic/Unicode/separator/case/max-length/preview/reset/localization semantics and explicit-only Copy. Debug and Release native builds have 0 errors; both cores pass **801/801**; catalog parity is **346 + 5**; focused UIA is **29/29** Reference Text, **13/13** Morse, and **12/12** Slugify; the full native shell is **441/441**. This is **32/346** fixed native routes (`32 in-progress / 314 not-started`); screenshot evidence remains `capture-blocked` because the local LowLevel checkout is not callable and the driver rejected its blank fallback. The release boundary remains C++-only.
