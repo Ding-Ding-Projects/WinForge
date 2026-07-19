@@ -5,6 +5,7 @@
 **粵語 —** WinForge 套件嘅活動式、會自己生長嘅待辦清單。每 30 分鐘嘅建置迴圈會讀呢個檔、**發掘新嘅真實功能再加落嚟**，跟住深度建置下一個未剔嘅項目再剔走。每項都附上真實機制（登錄檔、指令、深層連結、API 或者要包嘅引擎）。
 
 ## ✅ Done · 已完成
+- [x] **Native Namespaced UUID v3/v5 feature slice (2026-07-19)** · 原生具名空間 UUID v3/v5 功能批次 — standard-C++ RFC 4122 MD5/SHA-1 core plus C++/WinRT renderer for `uuid5`/`uuidv5`/`module.uuidv5`; local-only DNS/URL/OID/X500/custom namespaces, managed D/N/B/P/X parsing, UTF-16 replacement, U+180E parity, bulk output, localization, lifecycle reset, and explicit-only Copy. Branch-local Debug/Release evidence is 0 errors / **773/773**, focused UIA **20/20**, full native shell **437/437**, catalog parity 346+5, installer contract pass; visual capture is honestly blocked and controlled main integration must rerun aggregate evidence. · 標準 C++ RFC 4122 MD5／SHA-1 core 加 C++/WinRT renderer，branch-local shell **437/437**，visual 受阻，整合後要重跑 aggregate 證據。
 - [x] **Windows 11 control module** · Windows 11 控制模組 — 169 tweaks / 13 categories
 - [x] **Git & GitHub module** · Git 與 GitHub 模組 — repo ops, chunked uploader, 111 git/gh operations
 - [x] **Maintenance & Diagnostics module** · 維護與診斷模組 — 102 real ops (services, disk health, SFC/DISM, drivers, updates, event logs, power reports)

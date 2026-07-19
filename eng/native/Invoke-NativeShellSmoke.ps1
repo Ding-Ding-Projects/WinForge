@@ -7,6 +7,7 @@ param(
     [switch]$LineRoutesOnly,
     [switch]$TextAnalysisRoutesOnly,
     [switch]$ReferenceTextRoutesOnly,
+    [switch]$UuidV5RoutesOnly,
     [switch]$AllowClipboardMutation
 )
 
@@ -614,11 +615,13 @@ function Invoke-OwnedRoute {
         'nato', 'phonetic', 'module.phonetic',
         'boxtext', 'module.boxtext',
         'entities', 'htmlentities', 'module.htmlentities') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly) -and -not (
+    $isUuidV5Route = @('uuid5', 'uuidv5', 'module.uuidv5') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $UuidV5RoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
         ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
-        ($ReferenceTextRoutesOnly -and $isReferenceTextRoute))) {
+        ($ReferenceTextRoutesOnly -and $isReferenceTextRoute) -or
+        ($UuidV5RoutesOnly -and $isUuidV5Route))) {
         return
     }
 
@@ -671,6 +674,25 @@ function Invoke-OwnedRoute {
         Get-Process -Id $process.Id -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
         try { Wait-Process -Id $process.Id -Timeout 3 -ErrorAction Stop } catch { }
     }
+}
+
+function Navigate-InProcessToUuidV5Route {
+    param(
+        [Parameter(Mandatory)]$Root
+    )
+
+    $allApps = Wait-ForElement -Root $Root -AutomationId 'NativeNav_shell_allapps'
+    $allAppsSelection = [System.Windows.Automation.SelectionItemPattern]$allApps.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $allAppsSelection.Select()
+    Wait-ForPageTitle -Root $Root -Prefix 'All Apps' | Out-Null
+
+    Set-ElementValueAndWait -Root $Root -AutomationId 'NativeAllAppsSearchBox' -Value 'uuidv5' | Out-Null
+    $uuidV5Item = Wait-ForElement -Root $Root -AutomationId 'NativeAllApps_module_uuidv5'
+    $uuidV5Selection = [System.Windows.Automation.SelectionItemPattern]$uuidV5Item.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $uuidV5Selection.Select()
+    Wait-ForPageTitle -Root $Root -Prefix 'Namespaced UUID' | Out-Null
 }
 
 Invoke-OwnedRoute -Route 'dashboard' -ExpectedTitle 'WinForge Native' -Inspect {
@@ -1870,6 +1892,169 @@ Invoke-OwnedRoute -Route 'uuidv7' -ExpectedTitle 'UUID v7' -Inspect {
 
 foreach ($alias in @('uuidv7', 'module.uuidv7')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'UUID v7'
+}
+
+Invoke-OwnedRoute -Route 'uuidv5' -ExpectedTitle 'Namespaced UUID' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeUuidV5ImplementationStatus',
+        'NativeUuidV5Namespace',
+        'NativeUuidV5Version',
+        'NativeUuidV5Name',
+        'NativeUuidV5Result',
+        'NativeUuidV5Copy',
+        'NativeUuidV5BulkInput',
+        'NativeUuidV5BulkGenerate',
+        'NativeUuidV5BulkOutput',
+        'NativeUuidV5BulkCopy',
+        'NativeUuidV5Status'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $uuidV5ControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Namespace'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Version'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Name'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Result'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Copy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5BulkInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5BulkGenerate'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5BulkOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5BulkCopy'))
+    Assert-True -Condition $uuidV5ControlsFit `
+        -Name 'Namespaced UUID exposes native controls, accessibility, and horizontal clipping safety'
+
+    $namespace = Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Namespace'
+    $version = Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Version'
+    $name = Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Name'
+    Assert-True -Condition ($namespace.Current.Name.StartsWith('UUID namespace', [StringComparison]::Ordinal)) `
+        -Name 'Namespaced UUID namespace picker has a localized accessible name'
+    Assert-True -Condition ($version.Current.Name.StartsWith('Name-based UUID version', [StringComparison]::Ordinal)) `
+        -Name 'Namespaced UUID version picker has a localized accessible name'
+    Assert-True -Condition ($name.Current.Name.StartsWith('Name to hash into a UUID', [StringComparison]::Ordinal)) `
+        -Name 'Namespaced UUID name input has a localized accessible name'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '4ebd0208-8328-5d69-8c44-ec50939c0967' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID computes the RFC v5 empty-name DNS value on its native default surface'
+
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeUuidV5Name' -Value 'www.widgets.com' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '21f7f8de-8051-5b89-8680-0195ef798b6a' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV5Status' -Prefix 'UUID v5' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID computes the RFC SHA-1 v5 DNS vector through the live native UI'
+
+    Select-ComboIndex -Combo $version -Index 1
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '3d813cbb-47fb-32ba-91df-831e1593ac29' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV5Status' -Prefix 'UUID v3' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID switches to the RFC MD5 v3 vector without changing the name'
+
+    Select-ComboIndex -Combo $namespace -Index 4
+    Wait-ForElementVisible -Root $root -AutomationId 'NativeUuidV5CustomNamespace' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV5Status' -Prefix 'Enter a valid custom namespace GUID' | Out-Null
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeUuidV5CustomNamespace' `
+        -Value '{6BA7B810-9DAD-11D1-80B4-00C04FD430C8}' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '3d813cbb-47fb-32ba-91df-831e1593ac29' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID accepts the managed braced GUID custom-namespace form'
+
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeUuidV5CustomNamespace' `
+        -Value '{ 0x000000006ba7b810, 0x+00009dad, 0x11d1, { 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8 } }' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '3d813cbb-47fb-32ba-91df-831e1593ac29' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID accepts the managed GUID X custom-namespace form'
+
+    $statusBeforeEmptyBulkCopy = (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Status').Current.Name
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV5BulkCopy'
+    Start-Sleep -Milliseconds 100
+    $statusAfterEmptyBulkCopy = (Wait-ForElement -Root $root -AutomationId 'NativeUuidV5Status').Current.Name
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5BulkOutput' -ExpectedValue '' | Out-Null
+    Assert-True -Condition ($statusAfterEmptyBulkCopy -eq $statusBeforeEmptyBulkCopy) `
+        -Name 'Namespaced UUID keeps the managed empty bulk-copy no-op without fabricating output or status'
+
+    $bulkInput = Wait-ForElement -Root $root -AutomationId 'NativeUuidV5BulkInput'
+    (Get-EditableValuePattern -Element $bulkInput).SetValue(" alpha `r`n`r beta `n")
+    Start-Sleep -Milliseconds 150
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV5BulkGenerate'
+    Wait-ForElementValueWhere -Root $root -AutomationId 'NativeUuidV5BulkOutput' `
+        -Description 'two managed-style v3 UUID bulk rows' `
+        -Predicate {
+            param($value)
+            return $value -match 'alpha  \u2192  [0-9a-f-]{36}' -and
+                $value -match 'beta  \u2192  [0-9a-f-]{36}'
+        } | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV5Status' -Prefix 'Generated 2 UUID(s).' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID trims nonblank mixed-newline bulk names through native controls'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV5Copy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV5Status' -Prefix 'Copied to clipboard.' | Out-Null
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeUuidV5BulkCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeUuidV5Status' -Prefix 'All rows copied.' | Out-Null
+        Assert-True -Condition $true `
+            -Name 'Namespaced UUID exposes clipboard success only after explicit Copy buttons'
+    }
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = @([char]0x7CB5, [char]0x8A9E) -join ''
+    $bilingualLabel = @([char]0x96D9, [char]0x8A9E) -join ''
+    $namespacedUuidCantonese = @([char]0x5177, [char]0x540D, [char]0x7A7A, [char]0x9593) -join ''
+    $middleDot = [char]0x00B7
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForPageTitle -Root $root -Prefix ($namespacedUuidCantonese + ' UUID') | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Name' -ExpectedValue 'www.widgets.com' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '3d813cbb-47fb-32ba-91df-831e1593ac29' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID localizes in Cantonese while preserving namespace version name and result state'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name ('Bilingual ' + $middleDot + ' ' + $bilingualLabel)
+    Wait-ForPageTitle -Root $root -Prefix ('Namespaced UUID ' + $middleDot + ' ' + $namespacedUuidCantonese + ' UUID') | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Name' -ExpectedValue 'www.widgets.com' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '3d813cbb-47fb-32ba-91df-831e1593ac29' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID exposes bilingual labels while preserving namespace version name and result state'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Namespaced UUID' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Name' -ExpectedValue 'www.widgets.com' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '3d813cbb-47fb-32ba-91df-831e1593ac29' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID returns to English while preserving namespace version name and result state'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeUuidV5Name')) `
+        -Name 'Namespaced UUID releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToUuidV5Route -Root $root
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Name' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5BulkInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5BulkOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeUuidV5Result' `
+        -ExpectedValue '4ebd0208-8328-5d69-8c44-ec50939c0967' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Namespaced UUID resets managed page state after in-process route re-entry'
+}
+
+foreach ($alias in @('uuid5', 'uuidv5', 'module.uuidv5')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Namespaced UUID'
 }
 
 Invoke-OwnedRoute -Route 'roman' -ExpectedTitle 'Roman Numerals' -Inspect {

@@ -1,5 +1,15 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## 2026-07-19 native Namespaced UUID v3/v5 wave · 2026-07-19 原生具名空間 UUID v3/v5 批次
+
+**EN.** `uuid5`, `uuidv5`, and `module.uuidv5` now open a genuine C++/WinRT Namespaced UUID page over standard-C++ `UuidV5`: RFC 4122 network-order v3/MD5 and v5/SHA-1 for DNS, URL, OID, X500, and custom namespaces; managed D/N/B/P/X parser behavior; UTF-16 replacement; exact managed U+180E whitespace parity; CRLF bulk output; lifecycle reset; and explicit-only clipboard effects.
+
+Renderer accounting is **31/346 fixed routes**, leaving **315** plus five dynamic families; Debug/Release builds each have 0 errors, core is **773/773** in each configuration including **14/14** UUID contracts, focused UIA is **20/20**, catalog parity is 346+5 / 319 registry entries / 22 categories / 346 ledger rows, and the installer contract passes. LowLevel MCP is unavailable; the required driver rejected a blank/near-uniform fallback after `CopyFromScreen` was unavailable, retaining no PNG and leaving no process. The route is `capture-blocked` / `in-progress`; the controlled main owner must rerun aggregate evidence after integration.
+
+The final branch-local native shell is **437/437 (437 passed, 0 failed)** and left no UUID-worktree app process; controlled rebase/integration must rerun it. · 最終 branch-local native shell 係 **437/437（437 passed、0 failed）**，冇殘留 UUID worktree app process；受控 rebase／整合後要再跑。
+
+**粵語.** `uuid5`、`uuidv5` 同 `module.uuidv5` 而家有真正 C++/WinRT 具名空間 UUID 頁加標準 C++ `UuidV5`；保留 RFC 4122 network-order v3／MD5、v5／SHA-1、managed D/N/B/P/X parser、UTF-16 replacement、U+180E 空白對等、CRLF bulk、lifecycle reset 同只限明確剪貼簿操作。Renderer 計 **31/346**，Debug／Release 0 errors、core 各 **773/773**（UUID **14/14**）、UIA **20/20**、catalog parity 同 installer contract 已通過。今次冇 LowLevel MCP，driver 拒絕空白 fallback，冇 PNG／冇殘留 process，所以 route 保持 `capture-blocked`／`in-progress`；受控 main owner 整合後要重跑 aggregate 證據。
+
 ## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
 
 **EN.** Phonetic Speller, Box & Banner Text, and HTML Entities now have dedicated C++/WinRT renderers over the shared standard-C++ `ReferenceText` core. They preserve three phonetic alphabets and managed UTF-16 code-unit row, digit, and option behavior; eight box/comment styles, three alignments, bounded padding, titles and multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local, and clipboard writes require explicit Copy.

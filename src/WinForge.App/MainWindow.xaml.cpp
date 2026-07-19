@@ -1064,6 +1064,22 @@ namespace winrt::WinForge::implementation
         }
     }
 
+    void MainWindow::ReleaseUuidV5RouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute == L"module.uuidv5" && nextRoute != L"module.uuidv5")
+        {
+            m_uuidV5NamespacePicker = nullptr;
+            m_uuidV5CustomNamespaceInput = nullptr;
+            m_uuidV5VersionPicker = nullptr;
+            m_uuidV5NameInput = nullptr;
+            m_uuidV5ResultOutput = nullptr;
+            m_uuidV5BulkInput = nullptr;
+            m_uuidV5BulkOutput = nullptr;
+            m_uuidV5Status = nullptr;
+            m_uuidV5Rendering = false;
+        }
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -1082,6 +1098,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(L"search");
             ReleaseReferenceTextRouteState(L"search");
+            ReleaseUuidV5RouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -1092,6 +1109,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(L"manual");
             ReleaseReferenceTextRouteState(L"manual");
+            ReleaseUuidV5RouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -1104,6 +1122,7 @@ namespace winrt::WinForge::implementation
         {
             ReleaseTextAnalysisRouteState(normalized);
             ReleaseReferenceTextRouteState(normalized);
+            ReleaseUuidV5RouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
@@ -1113,6 +1132,7 @@ namespace winrt::WinForge::implementation
 
         ReleaseTextAnalysisRouteState(module->id);
         ReleaseReferenceTextRouteState(module->id);
+        ReleaseUuidV5RouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
@@ -1209,6 +1229,16 @@ namespace winrt::WinForge::implementation
             m_htmlEntitiesOutput.clear();
             m_htmlEntitiesDecode = false;
             m_htmlEntitiesEscapeNonAscii = false;
+        }
+        else if (module->id == L"module.uuidv5")
+        {
+            m_uuidV5NamespaceIndex = 0;
+            m_uuidV5VersionIndex = 0;
+            m_uuidV5CustomNamespaceValue.clear();
+            m_uuidV5NameValue.clear();
+            m_uuidV5ResultValue.clear();
+            m_uuidV5BulkInputValue.clear();
+            m_uuidV5BulkOutputValue.clear();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -1336,6 +1366,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.uuidv7")
         {
             RenderUuidV7();
+        }
+        else if (module->id == L"module.uuidv5")
+        {
+            RenderUuidV5();
         }
         else if (module->id == L"module.romannum")
         {
@@ -8793,6 +8827,445 @@ namespace winrt::WinForge::implementation
         catch (...)
         {
             // Accessibility notification failure must not break UUID handling.
+        }
+    }
+
+    void MainWindow::RenderUuidV5()
+    {
+        using winforge::core::LocalizedText;
+
+        m_uuidV5Rendering = true;
+        auto page = CreatePage(
+            LocalizedText{ L"Namespaced UUID", L"具名空間 UUID" }.Pick(m_language),
+            LocalizedText{
+                L"Generate deterministic RFC 4122 name-based UUIDs. The same namespace, UTF-8 name, and version always produce the same local result.",
+                L"產生穩定嘅 RFC 4122 具名 UUID；同一個命名空間、UTF-8 名同版本，永遠會喺本機得出同一結果。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeUuidV5Page");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(LocalizedText{
+            L"Fully native name-based UUID generation", L"全原生具名 UUID 產生" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(LocalizedText{
+            L"C++ hashes RFC network-order namespace bytes plus the name's UTF-8 bytes with SHA-1 (v5) or MD5 (v3), then sets the RFC version and variant bits. Results stay local and the clipboard changes only after an explicit Copy.",
+            L"C++ 會將 RFC network-order 命名空間位元組加名稱嘅 UTF-8 位元組，用 SHA-1（v5）或者 MD5（v3）雜湊，再設定 RFC 版本同變體位元。結果只留喺本機，只有明確撳 Copy 先會改剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativeUuidV5ImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        Border optionsCard = MakeNativeCard();
+        StackPanel options;
+        options.Spacing(10);
+        options.Children().Append(CreateText(
+            LocalizedText{ L"Namespace and name", L"命名空間同名稱" }.Pick(m_language), 15, true));
+
+        auto namespaceLabel = CreateText(
+            LocalizedText{ L"Namespace", L"命名空間" }.Pick(m_language), 14, true);
+        options.Children().Append(namespaceLabel);
+        m_uuidV5NamespacePicker = ComboBox();
+        m_uuidV5NamespacePicker.MinWidth(280);
+        m_uuidV5NamespacePicker.MaxWidth(760);
+        m_uuidV5NamespacePicker.HorizontalAlignment(HorizontalAlignment::Stretch);
+        for (auto const& option : std::array<LocalizedText, 5>{
+            LocalizedText{ L"DNS  ·  6ba7b810-9dad-11d1-80b4-00c04fd430c8", L"DNS  ·  6ba7b810-9dad-11d1-80b4-00c04fd430c8" },
+            LocalizedText{ L"URL  ·  6ba7b811-9dad-11d1-80b4-00c04fd430c8", L"URL  ·  6ba7b811-9dad-11d1-80b4-00c04fd430c8" },
+            LocalizedText{ L"OID  ·  6ba7b812-9dad-11d1-80b4-00c04fd430c8", L"OID  ·  6ba7b812-9dad-11d1-80b4-00c04fd430c8" },
+            LocalizedText{ L"X500  ·  6ba7b814-9dad-11d1-80b4-00c04fd430c8", L"X500  ·  6ba7b814-9dad-11d1-80b4-00c04fd430c8" },
+            LocalizedText{ L"Custom namespace", L"自訂命名空間" },
+        })
+        {
+            m_uuidV5NamespacePicker.Items().Append(box_value(ToHString(option.Pick(m_language))));
+        }
+        m_uuidV5NamespacePicker.SelectedIndex(std::clamp(m_uuidV5NamespaceIndex, 0, 4));
+        AutomationProperties::SetAutomationId(m_uuidV5NamespacePicker, L"NativeUuidV5Namespace");
+        AutomationProperties::SetName(m_uuidV5NamespacePicker, ToHString(LocalizedText{
+            L"UUID namespace", L"UUID 命名空間" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_uuidV5NamespacePicker, namespaceLabel);
+        options.Children().Append(m_uuidV5NamespacePicker);
+
+        m_uuidV5CustomNamespaceInput = TextBox();
+        m_uuidV5CustomNamespaceInput.IsSpellCheckEnabled(false);
+        m_uuidV5CustomNamespaceInput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_uuidV5CustomNamespaceInput.PlaceholderText(L"00000000-0000-0000-0000-000000000000");
+        m_uuidV5CustomNamespaceInput.Text(ToHString(m_uuidV5CustomNamespaceValue));
+        m_uuidV5CustomNamespaceInput.Visibility(m_uuidV5NamespaceIndex == 4
+            ? Visibility::Visible
+            : Visibility::Collapsed);
+        AutomationProperties::SetAutomationId(m_uuidV5CustomNamespaceInput, L"NativeUuidV5CustomNamespace");
+        AutomationProperties::SetName(m_uuidV5CustomNamespaceInput, ToHString(LocalizedText{
+            L"Custom UUID namespace", L"自訂 UUID 命名空間" }.Pick(m_language)));
+        options.Children().Append(m_uuidV5CustomNamespaceInput);
+
+        auto versionLabel = CreateText(
+            LocalizedText{ L"Version", L"版本" }.Pick(m_language), 14, true);
+        options.Children().Append(versionLabel);
+        m_uuidV5VersionPicker = ComboBox();
+        m_uuidV5VersionPicker.MinWidth(220);
+        m_uuidV5VersionPicker.MaxWidth(420);
+        m_uuidV5VersionPicker.HorizontalAlignment(HorizontalAlignment::Left);
+        m_uuidV5VersionPicker.Items().Append(box_value(ToHString(LocalizedText{
+            L"v5  ·  SHA-1", L"v5  ·  SHA-1" }.Pick(m_language))));
+        m_uuidV5VersionPicker.Items().Append(box_value(ToHString(LocalizedText{
+            L"v3  ·  MD5", L"v3  ·  MD5" }.Pick(m_language))));
+        m_uuidV5VersionPicker.SelectedIndex(std::clamp(m_uuidV5VersionIndex, 0, 1));
+        AutomationProperties::SetAutomationId(m_uuidV5VersionPicker, L"NativeUuidV5Version");
+        AutomationProperties::SetName(m_uuidV5VersionPicker, ToHString(LocalizedText{
+            L"Name-based UUID version", L"具名 UUID 版本" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_uuidV5VersionPicker, versionLabel);
+        options.Children().Append(m_uuidV5VersionPicker);
+
+        auto nameLabel = CreateText(
+            LocalizedText{ L"Name", L"名稱" }.Pick(m_language), 14, true);
+        options.Children().Append(nameLabel);
+        m_uuidV5NameInput = TextBox();
+        m_uuidV5NameInput.Text(ToHString(m_uuidV5NameValue));
+        m_uuidV5NameInput.TextWrapping(TextWrapping::Wrap);
+        m_uuidV5NameInput.PlaceholderText(ToHString(LocalizedText{
+            L"For example: www.example.com", L"例如：www.example.com" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(m_uuidV5NameInput, L"NativeUuidV5Name");
+        AutomationProperties::SetName(m_uuidV5NameInput, ToHString(LocalizedText{
+            L"Name to hash into a UUID", L"要雜湊成 UUID 嘅名稱" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_uuidV5NameInput, nameLabel);
+        options.Children().Append(m_uuidV5NameInput);
+
+        auto resultLabel = CreateText(
+            LocalizedText{ L"Deterministic result", L"穩定結果" }.Pick(m_language), 14, true);
+        options.Children().Append(resultLabel);
+        m_uuidV5ResultOutput = TextBox();
+        m_uuidV5ResultOutput.IsReadOnly(true);
+        m_uuidV5ResultOutput.IsSpellCheckEnabled(false);
+        m_uuidV5ResultOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_uuidV5ResultOutput.Text(ToHString(m_uuidV5ResultValue));
+        AutomationProperties::SetAutomationId(m_uuidV5ResultOutput, L"NativeUuidV5Result");
+        AutomationProperties::SetName(m_uuidV5ResultOutput, ToHString(LocalizedText{
+            L"Generated namespaced UUID", L"已產生嘅具名 UUID" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_uuidV5ResultOutput, resultLabel);
+        options.Children().Append(m_uuidV5ResultOutput);
+
+        auto copyResult = Button();
+        copyResult.Content(box_value(ToHString(LocalizedText{ L"Copy", L"複製" }.Pick(m_language))));
+        copyResult.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(copyResult, L"NativeUuidV5Copy");
+        AutomationProperties::SetName(copyResult, ToHString(LocalizedText{
+            L"Copy generated namespaced UUID", L"複製已產生嘅具名 UUID" }.Pick(m_language)));
+        copyResult.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyUuidV5Value(
+                m_uuidV5ResultValue,
+                winforge::core::LocalizedText{ L"Copied to clipboard.", L"已複製到剪貼簿。" }.Pick(m_language));
+        });
+        options.Children().Append(copyResult);
+        optionsCard.Child(options);
+        page.Children().Append(optionsCard);
+
+        Border bulkCard = MakeNativeCard();
+        StackPanel bulk;
+        bulk.Spacing(10);
+        bulk.Children().Append(CreateText(
+            LocalizedText{ L"Bulk mode", L"批量模式" }.Pick(m_language), 15, true));
+        bulk.Children().Append(CreateText(
+            LocalizedText{
+                L"One name per line. Blank lines are skipped; each remaining name uses the namespace and version above.",
+                L"每行一個名；空白行會略過，其餘每個名都會用上面嘅命名空間同版本。" }.Pick(m_language), 12));
+
+        auto bulkInputLabel = CreateText(
+            LocalizedText{ L"Names", L"名稱" }.Pick(m_language), 14, true);
+        bulk.Children().Append(bulkInputLabel);
+        m_uuidV5BulkInput = TextBox();
+        m_uuidV5BulkInput.AcceptsReturn(true);
+        m_uuidV5BulkInput.TextWrapping(TextWrapping::Wrap);
+        m_uuidV5BulkInput.MinHeight(112);
+        m_uuidV5BulkInput.MaxHeight(200);
+        m_uuidV5BulkInput.Text(ToHString(TextBoxPresentation(m_uuidV5BulkInputValue)));
+        AutomationProperties::SetAutomationId(m_uuidV5BulkInput, L"NativeUuidV5BulkInput");
+        AutomationProperties::SetName(m_uuidV5BulkInput, ToHString(LocalizedText{
+            L"One UUID name per line", L"每行一個 UUID 名稱" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_uuidV5BulkInput, bulkInputLabel);
+        bulk.Children().Append(m_uuidV5BulkInput);
+
+        auto generateBulk = Button();
+        generateBulk.Content(box_value(ToHString(LocalizedText{ L"Generate", L"生成" }.Pick(m_language))));
+        generateBulk.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(generateBulk, L"NativeUuidV5BulkGenerate");
+        AutomationProperties::SetName(generateBulk, ToHString(LocalizedText{
+            L"Generate one namespaced UUID per nonblank line", L"每個非空白行生成一個具名 UUID" }.Pick(m_language)));
+        generateBulk.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            GenerateUuidV5Bulk();
+        });
+        bulk.Children().Append(generateBulk);
+
+        auto bulkOutputLabel = CreateText(
+            LocalizedText{ L"Generated rows", L"已生成列" }.Pick(m_language), 14, true);
+        bulk.Children().Append(bulkOutputLabel);
+        m_uuidV5BulkOutput = TextBox();
+        m_uuidV5BulkOutput.IsReadOnly(true);
+        m_uuidV5BulkOutput.IsSpellCheckEnabled(false);
+        m_uuidV5BulkOutput.AcceptsReturn(true);
+        m_uuidV5BulkOutput.TextWrapping(TextWrapping::NoWrap);
+        m_uuidV5BulkOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_uuidV5BulkOutput.Height(200);
+        m_uuidV5BulkOutput.Text(ToHString(TextBoxPresentation(m_uuidV5BulkOutputValue)));
+        AutomationProperties::SetAutomationId(m_uuidV5BulkOutput, L"NativeUuidV5BulkOutput");
+        AutomationProperties::SetName(m_uuidV5BulkOutput, ToHString(LocalizedText{
+            L"Generated UUID bulk rows", L"已產生嘅 UUID 批量列" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_uuidV5BulkOutput, bulkOutputLabel);
+        bulk.Children().Append(m_uuidV5BulkOutput);
+
+        auto copyBulk = Button();
+        copyBulk.Content(box_value(ToHString(LocalizedText{ L"Copy all", L"全部複製" }.Pick(m_language))));
+        copyBulk.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(copyBulk, L"NativeUuidV5BulkCopy");
+        AutomationProperties::SetName(copyBulk, ToHString(LocalizedText{
+            L"Copy every generated UUID row", L"複製所有已產生 UUID 列" }.Pick(m_language)));
+        copyBulk.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyUuidV5Value(
+                m_uuidV5BulkOutputValue,
+                winforge::core::LocalizedText{ L"All rows copied.", L"已全部複製。" }.Pick(m_language));
+        });
+        bulk.Children().Append(copyBulk);
+        bulkCard.Child(bulk);
+        page.Children().Append(bulkCard);
+
+        m_uuidV5Status = CreateText(L"", 12.5);
+        m_uuidV5Status.TextWrapping(TextWrapping::Wrap);
+        m_uuidV5Status.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_uuidV5Status, L"NativeUuidV5Status");
+        AutomationProperties::SetLiveSetting(
+            m_uuidV5Status,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        page.Children().Append(m_uuidV5Status);
+
+        m_uuidV5NamespacePicker.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_uuidV5Rendering) return;
+            m_uuidV5NamespaceIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 4);
+            if (m_uuidV5CustomNamespaceInput)
+            {
+                m_uuidV5CustomNamespaceInput.Visibility(m_uuidV5NamespaceIndex == 4
+                    ? Visibility::Visible
+                    : Visibility::Collapsed);
+            }
+            RefreshUuidV5();
+        });
+        m_uuidV5VersionPicker.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_uuidV5Rendering) return;
+            m_uuidV5VersionIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 1);
+            RefreshUuidV5();
+        });
+        m_uuidV5CustomNamespaceInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_uuidV5Rendering) return;
+            m_uuidV5CustomNamespaceValue = ToWide(sender.as<TextBox>().Text());
+            if (m_uuidV5NamespaceIndex == 4)
+            {
+                RefreshUuidV5();
+            }
+        });
+        m_uuidV5NameInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_uuidV5Rendering) return;
+            m_uuidV5NameValue = ToWide(sender.as<TextBox>().Text());
+            RefreshUuidV5();
+        });
+        m_uuidV5BulkInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_uuidV5Rendering) return;
+            m_uuidV5BulkInputValue = ToWide(sender.as<TextBox>().Text());
+        });
+
+        ShowPage(page);
+        m_uuidV5Rendering = false;
+        RefreshUuidV5();
+    }
+
+    void MainWindow::RefreshUuidV5()
+    {
+        if (!m_uuidV5ResultOutput || !m_uuidV5Status)
+        {
+            return;
+        }
+
+        winforge::core::uuidv5::NamespaceBytes nameSpace{};
+        bool namespaceIsValid = true;
+        switch (m_uuidV5NamespaceIndex)
+        {
+        case 0:
+            nameSpace = winforge::core::uuidv5::NamespaceDns;
+            break;
+        case 1:
+            nameSpace = winforge::core::uuidv5::NamespaceUrl;
+            break;
+        case 2:
+            nameSpace = winforge::core::uuidv5::NamespaceOid;
+            break;
+        case 3:
+            nameSpace = winforge::core::uuidv5::NamespaceX500;
+            break;
+        default:
+            namespaceIsValid = winforge::core::uuidv5::TryParseNamespace(
+                m_uuidV5CustomNamespaceValue,
+                nameSpace);
+            break;
+        }
+
+        if (!namespaceIsValid)
+        {
+            m_uuidV5ResultValue.clear();
+            m_uuidV5ResultOutput.Text(L"");
+            AutomationProperties::SetHelpText(m_uuidV5ResultOutput, L"");
+            AnnounceUuidV5Status(winforge::core::LocalizedText{
+                L"Enter a valid custom namespace GUID (e.g. 00000000-0000-0000-0000-000000000000).",
+                L"請輸入有效嘅自訂命名空間 GUID（例如 00000000-0000-0000-0000-000000000000）。" }.Pick(m_language), true);
+            return;
+        }
+
+        auto const version = m_uuidV5VersionIndex == 1
+            ? winforge::core::uuidv5::Version::V3
+            : winforge::core::uuidv5::Version::V5;
+        auto const computed = winforge::core::uuidv5::Compute(nameSpace, m_uuidV5NameValue, version);
+        if (!computed.ok)
+        {
+            m_uuidV5ResultValue.clear();
+            m_uuidV5ResultOutput.Text(L"");
+            AutomationProperties::SetHelpText(m_uuidV5ResultOutput, L"");
+            AnnounceUuidV5Status(winforge::core::LocalizedText{
+                L"Could not compute — check the inputs.",
+                L"整唔到 — 請檢查輸入。" }.Pick(m_language), true);
+            return;
+        }
+
+        m_uuidV5ResultValue = computed.uuid;
+        m_uuidV5ResultOutput.Text(ToHString(m_uuidV5ResultValue));
+        AutomationProperties::SetHelpText(m_uuidV5ResultOutput, ToHString(m_uuidV5ResultValue));
+        auto const versionText = version == winforge::core::uuidv5::Version::V3 ? L"3" : L"5";
+        AnnounceUuidV5Status(winforge::core::LocalizedText{
+            L"UUID v" + std::wstring(versionText) + L" — deterministic for this namespace + name.",
+            L"UUID v" + std::wstring(versionText) + L" — 呢個命名空間加名嘅穩定結果。" }.Pick(m_language));
+    }
+
+    void MainWindow::GenerateUuidV5Bulk()
+    {
+        winforge::core::uuidv5::NamespaceBytes nameSpace{};
+        bool namespaceIsValid = true;
+        switch (m_uuidV5NamespaceIndex)
+        {
+        case 0:
+            nameSpace = winforge::core::uuidv5::NamespaceDns;
+            break;
+        case 1:
+            nameSpace = winforge::core::uuidv5::NamespaceUrl;
+            break;
+        case 2:
+            nameSpace = winforge::core::uuidv5::NamespaceOid;
+            break;
+        case 3:
+            nameSpace = winforge::core::uuidv5::NamespaceX500;
+            break;
+        default:
+            namespaceIsValid = winforge::core::uuidv5::TryParseNamespace(
+                m_uuidV5CustomNamespaceValue,
+                nameSpace);
+            break;
+        }
+
+        if (!namespaceIsValid)
+        {
+            m_uuidV5BulkOutputValue.clear();
+            if (m_uuidV5BulkOutput)
+            {
+                m_uuidV5BulkOutput.Text(L"");
+                AutomationProperties::SetHelpText(m_uuidV5BulkOutput, L"");
+            }
+            AnnounceUuidV5Status(winforge::core::LocalizedText{
+                L"Enter a valid custom namespace GUID first.",
+                L"請先輸入有效嘅自訂命名空間 GUID。" }.Pick(m_language), true, true);
+            return;
+        }
+
+        try
+        {
+            auto const version = m_uuidV5VersionIndex == 1
+                ? winforge::core::uuidv5::Version::V3
+                : winforge::core::uuidv5::Version::V5;
+            auto const rows = winforge::core::uuidv5::ComputeBulk(
+                nameSpace,
+                m_uuidV5BulkInputValue,
+                version);
+            m_uuidV5BulkOutputValue.clear();
+            for (std::size_t index{}; index < rows.size(); ++index)
+            {
+                if (index > 0)
+                {
+                    m_uuidV5BulkOutputValue += L"\r\n";
+                }
+                m_uuidV5BulkOutputValue += rows[index];
+            }
+            if (m_uuidV5BulkOutput)
+            {
+                m_uuidV5BulkOutput.Text(ToHString(TextBoxPresentation(m_uuidV5BulkOutputValue)));
+                AutomationProperties::SetHelpText(m_uuidV5BulkOutput, ToHString(m_uuidV5BulkOutputValue));
+            }
+            AnnounceUuidV5Status(winforge::core::LocalizedText{
+                L"Generated " + std::to_wstring(rows.size()) + L" UUID(s).",
+                L"已生成 " + std::to_wstring(rows.size()) + L" 個 UUID。" }.Pick(m_language), false, true);
+        }
+        catch (...)
+        {
+            m_uuidV5BulkOutputValue.clear();
+            if (m_uuidV5BulkOutput)
+            {
+                m_uuidV5BulkOutput.Text(L"");
+                AutomationProperties::SetHelpText(m_uuidV5BulkOutput, L"");
+            }
+            AnnounceUuidV5Status(winforge::core::LocalizedText{
+                L"Bulk generation failed.", L"批量生成失敗。" }.Pick(m_language), true, true);
+        }
+    }
+
+    void MainWindow::CopyUuidV5Value(std::wstring_view value, std::wstring_view successMessage)
+    {
+        if (value.empty())
+        {
+            return;
+        }
+
+        try
+        {
+            Windows::ApplicationModel::DataTransfer::DataPackage package;
+            package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+            package.SetText(ToHString(value));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+            AnnounceUuidV5Status(successMessage, false, true);
+        }
+        catch (...)
+        {
+            AnnounceUuidV5Status(winforge::core::LocalizedText{
+                L"Copy failed.", L"複製失敗。" }.Pick(m_language), true, true);
+        }
+    }
+
+    void MainWindow::AnnounceUuidV5Status(std::wstring_view message, bool warning, bool announce)
+    {
+        if (!m_uuidV5Status) return;
+
+        m_uuidV5Status.Text(ToHString(message));
+        m_uuidV5Status.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_uuidV5Status, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_uuidV5Status,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_uuidV5Status);
         }
     }
 

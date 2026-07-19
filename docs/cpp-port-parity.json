@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-19T17:25:47Z",
+    "generatedAtUtc":  "2026-07-19T19:48:00Z",
     "baselineCommit":  "ce879cc6626eae328ec72e0143761c0edfbae340",
     "baselineCounts":  {
                            "routes":  346,
@@ -8267,25 +8267,40 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.Core/UuidV5.h",
+                                      "src/WinForge.Core/UuidV5.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/UuidV5Tests.h",
+                                      "tests/native/WinForge.Core.Tests/UuidV5Tests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
                        "risk":  "stateful",
-                       "expected":  "Namespaced UUID · 具名空間 UUID is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "expected":  "Namespaced UUID · 具名空間 UUID is a native standard-C++/C++/WinRT RFC 4122 v3/v5 generator, reachable through uuid5, uuidv5, and module.uuidv5, with managed-compatible namespace parsing, local bulk generation, localization, lifecycle reset, and explicit-only clipboard effects.",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-19T19:40:00Z",
+                                            "result":  "Native C++ RFC 4122 Namespaced UUID v3/v5 implemented. Debug and Release x64 solution builds exited 0 with 0 errors; each core executable passed 773/773 including 14/14 focused UUID v3/v5 contracts for RFC namespace vectors, MD5/SHA-1 padding boundaries, UTF-8 replacement, strict managed D/N/B/P/X namespace parsing, U+180E parity, and bulk output. Focused process-owned UI Automation passed 20/20 across uuid5, uuidv5, and module.uuidv5, covering vectors, parsing, empty bulk-copy no-op, localization, accessibility, clipping, route exit, and reset. The final branch-local native shell passed 437/437 and left no UUID-worktree app process. Catalog parity passed 346 fixed routes plus five dynamic families, 319 registry records, 22 categories, and 346 ledger rows; the native installer contract passed. LowLevel Computer Use MCP was not callable in this Codex session. The required native driver found CopyFromScreen unavailable and rejected a blank or near-uniform PrintWindow client; no PNG was created or retained, no process remained, and no canonical screenshot changed. Controlled main integration must rerun aggregate evidence after resolving concurrent native slices.",
+                                            "status":  "capture-blocked"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native UUID core emits RFC 4122 network-order v3 (MD5) and v5 (SHA-1) values for DNS, URL, OID, X500, and strict managed-compatible custom D/N/B/P/X namespaces; it replacement-encodes malformed UTF-16, uses the exact managed whitespace set (including retaining U+180E as name data), and never writes the clipboard except an explicit nonempty Copy. No CLR, managed executable, IPC, network, file, or OS mutation is used. LowLevel MCP was unavailable; the driver rejected a blank/near-uniform fallback and no PNG or substitute was retained. · 2026-07-19 · 進行中，只因最新視覺擷取受阻。原生 UUID core 會為 DNS、URL、OID、X500 同嚴格 managed 相容自訂 D/N/B/P/X namespace 產生 RFC 4122 network-order v3（MD5）同 v5（SHA-1）值；無效 UTF-16 會 replacement-encode，使用同 managed 完全一致嘅空白集合（U+180E 會保留做名稱資料），而且只會喺明確且非空嘅 Copy 寫剪貼簿。冇 CLR、受控程式、IPC、網絡、檔案或 OS mutation。LowLevel MCP 冇可呼叫工具；driver 拒絕空白／近乎單色 fallback，冇保留 PNG 或替代圖。"
                    },
                    {
                        "id":  "module.uuidv7",

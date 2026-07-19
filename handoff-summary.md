@@ -1,5 +1,16 @@
 # WinForge Full Development Handoff
 
+## 2026-07-19 native Namespaced UUID v3/v5 wave — focused routes green; visual capture blocked · 2026-07-19 原生具名空間 UUID v3/v5 批次 — 專項 route 通過；視覺擷取受阻
+
+- **Scope / 範圍：** `uuid5`, `uuidv5`, and `module.uuidv5` now use a dedicated C++/WinRT renderer over standard-C++ `UuidV5`: RFC 4122 network-order v3/MD5 and v5/SHA-1 for DNS/URL/OID/X500/custom namespaces, managed D/N/B/P/X parser behavior, UTF-16 replacement, exact managed whitespace including U+180E, managed trim/CRLF bulk output, localization retention, route-release/reset, and explicit-only clipboard effects.
+- **Inventory / 清單：** the feature-only branch moves renderer accounting to **31/346 fixed routes**, leaving **315** plus five dynamic families; the provisional ledger is **31 `in-progress` / 315 `not-started`**. The route is not called complete while visual evidence is blocked.
+- **Evidence green / 已通過證據：** fresh native Debug and Release x64 builds exit 0 with 0 errors; Debug and Release core each pass **773/773**, including **14/14** UUID contracts; focused `-UuidV5RoutesOnly` UI Automation passes **20/20** across all three aliases; catalog parity passes 346 fixed routes plus five dynamic families / 319 registry entries / 22 categories / 346 ledger rows; and `Test-NativeInstallerContract.ps1` passes.
+- **Full branch-local shell / 完整 branch-local shell：** the final native sweep passes **437/437 (437 passed, 0 failed)** and leaves no UUID-worktree process. It must be rerun after controlled rebase/integration; it is not main evidence yet.
+- **Visual disposition / 視覺處置：** LowLevel MCP is not callable in this Codex session. The required `driver.ps1 -Native -Page uuidv5 -WaitMs 16000` attempt found `CopyFromScreen` unavailable and rejected its blank/near-uniform `PrintWindow` fallback. No PNG was created or retained, no canonical image changed, and no UUID-worktree process remained.
+- **Integration boundary / 整合界線：** feature-only handoff; no workflow, release, tag, main, or branch-policy change. Rebase/integration belongs to the controlled main owner, who must rerun aggregate shell/release evidence after resolving concurrent native slices.
+
+**粵語摘要：** 具名空間 UUID 而家係原生 C++/WinRT renderer 加 `UuidV5` core；計數係 **31/346**，Debug／Release 0 errors、core 各 **773/773**（UUID **14/14**）、三個 alias UIA **20/20**、catalog parity 同 installer contract 已通過。今次 session 冇可呼叫 LowLevel MCP，driver 拒絕空白 fallback，冇 PNG／冇殘留 process／冇改 canonical 截圖，所以 visual 保持 `capture-blocked`。呢份 handoff 只改功能，唔改 workflow／release／main；受控 main owner 要整合後重跑 aggregate shell／release 證據。
+
 ## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
 
 - **Scope / 範圍：** dedicated C++/WinRT renderers for Phonetic Speller, Box & Banner Text, and HTML Entities, backed by the shared standard-C++ `ReferenceText` core. The wave preserves three phonetic alphabets, digits, uppercase/punctuation options, managed UTF-16 code-unit rows and spoken output; eight box/comment styles, three alignments, bounded padding, optional titles, multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local; clipboard writes require explicit Copy.

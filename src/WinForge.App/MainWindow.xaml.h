@@ -14,6 +14,7 @@
 #include "../WinForge.Core/RomanNum.h"
 #include "../WinForge.Core/UnixPerm.h"
 #include "../WinForge.Core/UuidV7.h"
+#include "../WinForge.Core/UuidV5.h"
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageMutationCoordinator.h"
 #include "../WinForge.Core/PackageRuntime.h"
@@ -223,6 +224,14 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_uuidV7LocalOutput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_uuidV7CanonicalOutput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_uuidV7Status{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_uuidV5NamespacePicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5CustomNamespaceInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_uuidV5VersionPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5NameInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5ResultOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5BulkInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_uuidV5BulkOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_uuidV5Status{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_romanNumExtendedSwitch{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_romanNumNumberInput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_romanNumRomanOutput{ nullptr };
@@ -418,6 +427,14 @@ namespace winrt::WinForge::implementation
         std::wstring m_uuidV7DecodeInputValue{};
         std::wstring m_uuidV7TimestampValue{};
         bool m_uuidV7Rendering{ false };
+        int32_t m_uuidV5NamespaceIndex{ 0 };
+        int32_t m_uuidV5VersionIndex{ 0 };
+        std::wstring m_uuidV5CustomNamespaceValue{};
+        std::wstring m_uuidV5NameValue{};
+        std::wstring m_uuidV5ResultValue{};
+        std::wstring m_uuidV5BulkInputValue{};
+        std::wstring m_uuidV5BulkOutputValue{};
+        bool m_uuidV5Rendering{ false };
         bool m_romanNumExtended{ false };
         std::wstring m_romanNumNumberInputValue{};
         std::wstring m_romanNumRomanInputValue{};
@@ -654,6 +671,7 @@ namespace winrt::WinForge::implementation
         void Navigate(std::wstring_view route, std::wstring_view argument = {}, bool deepLink = false);
         void ReleaseTextAnalysisRouteState(std::wstring_view nextRoute);
         void ReleaseReferenceTextRouteState(std::wstring_view nextRoute);
+        void ReleaseUuidV5RouteState(std::wstring_view nextRoute);
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -810,6 +828,14 @@ namespace winrt::WinForge::implementation
         void ClearUuidV7DecodeResults();
         void CopyUuidV7Value(std::wstring_view value, std::wstring_view successMessage);
         void AnnounceUuidV7Status(std::wstring_view message, bool warning = false);
+        void RenderUuidV5();
+        void RefreshUuidV5();
+        void GenerateUuidV5Bulk();
+        void CopyUuidV5Value(std::wstring_view value, std::wstring_view successMessage);
+        void AnnounceUuidV5Status(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = false);
         void RenderRomanNum();
         void RefreshRomanNum(bool refreshNumber = true, bool refreshRoman = true);
         void AnnounceRomanNumStatus(std::wstring_view message, bool warning = false);
