@@ -328,6 +328,15 @@ NativeTestCounts RunTextAnalysisTests()
 
     wordOptions = {};
     wordOptions.stripPunctuation = false;
+    auto const fullWidthLatinOrder = AnalyzeWordFrequency(L"\uFF41 \uFF21 a", wordOptions);
+    suite.Expect(JoinedTerms(fullWidthLatinOrder) == L"a|\uFF41|\uFF21",
+        "word frequency CurrentCultureIgnoreCase keeps Latin width significant while folding fullwidth case");
+    auto const kanaWidthOrder = AnalyzeWordFrequency(L"\uFF71 \u30A2 \u3042", wordOptions);
+    suite.Expect(JoinedTerms(kanaWidthOrder) == L"\u3042|\u30A2|\uFF71",
+        "word frequency CurrentCultureIgnoreCase distinguishes kana type and halfwidth Katakana");
+    auto const canonicalOrder = AnalyzeWordFrequency(L"e\u0301 \u00E9", wordOptions);
+    suite.Expect(JoinedTerms(canonicalOrder) == L"e\u0301|\u00E9",
+        "word frequency CurrentCultureIgnoreCase preserves stable order for canonical equivalents");
     auto cultureFrequency = AnalyzeWordFrequency(L"\u00E4 \u00E5 \u00E6 ae \u00DF ss a " + emoji, wordOptions);
     auto const cultureTermsPresent = cultureFrequency.rows.size() == 8 &&
         FindRow(cultureFrequency, L"\u00E4") && FindRow(cultureFrequency, L"\u00E5") &&

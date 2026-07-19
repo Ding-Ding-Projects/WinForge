@@ -15,16 +15,16 @@ on:
   push:
     branches: [main]
     paths:
-      - 'Services/ModuleRegistry.cs'
-      - 'Services/DocsExporter.cs'
-      - 'Catalog/**'
-      - 'Models/Core.cs'
-      - 'docs/wiki/**'
-      - 'docs/cpp-port-parity.json'
-      - 'src/WinForge.App/Resources/modules.json'
-      - 'eng/native/**'
-      - 'tools/regen-site-data.ps1'
-      - '.github/workflows/site-data.yml'
+      - "Services/ModuleRegistry.cs"
+      - "Services/DocsExporter.cs"
+      - "Catalog/**"
+      - "Models/Core.cs"
+      - "docs/wiki/**"
+      - "docs/cpp-port-parity.json"
+      - "src/WinForge.App/Resources/modules.json"
+      - "eng/native/**"
+      - "tools/regen-site-data.ps1"
+      - ".github/workflows/site-data.yml"
   workflow_dispatch:
 
 permissions:
@@ -40,12 +40,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET 11
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '11.0.x'
+          dotnet-version: "11.0.x"
 
       - name: Restore
         # The repository intentionally has separate managed and native solutions.
@@ -83,11 +83,20 @@ jobs:
         run: |
           git config user.name  "winforge-bot"
           git config user.email "winforge@users.noreply.github.com"
-          if (-not (git status --porcelain design/winforge-data.js)) {
+          # Stage first so Git applies the repository's line-ending normalization.
+          # A CRLF-only worktree observation can disappear from the index; only a
+          # real staged delta is eligible for a commit and follow-on release.
+          git add -- design/winforge-data.js
+          if ($LASTEXITCODE -ne 0) { throw 'site-data staging failed' }
+          git diff --cached --quiet -- design/winforge-data.js
+          $stagedDiffExitCode = $LASTEXITCODE
+          if ($stagedDiffExitCode -eq 0) {
             Write-Host "No change to design/winforge-data.js."
             exit 0
           }
-          git add design/winforge-data.js
+          if ($stagedDiffExitCode -ne 1) {
+            throw "site-data staged diff check failed with exit code $stagedDiffExitCode"
+          }
           git commit -m "chore: regenerate real site data from the app [auto]"
           if ($LASTEXITCODE -ne 0) { throw 'site-data commit failed' }
           # Rebase onto any commits that landed while we were building, then push.

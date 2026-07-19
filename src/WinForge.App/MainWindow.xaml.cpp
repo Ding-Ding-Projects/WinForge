@@ -4856,9 +4856,8 @@ namespace winrt::WinForge::implementation
         m_wordFreqTotals.Opacity(0.78);
         m_wordFreqTotals.TextWrapping(TextWrapping::Wrap);
         AutomationProperties::SetAutomationId(m_wordFreqTotals, L"NativeWordFreqTotals");
-        AutomationProperties::SetLiveSetting(
-            m_wordFreqTotals,
-            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        // Managed parity: this named summary stays queryable to assistive
+        // technology without announcing a polite live region on every edit.
         Grid::SetColumn(m_wordFreqTotals, 0);
         summary.Children().Append(m_wordFreqTotals);
         m_wordFreqCopyButton = MakeNativeButton(
@@ -4991,7 +4990,6 @@ namespace winrt::WinForge::implementation
                 FormatCurrentCount(m_wordFreqLast.uniqueTokens) + L"   詞彙多樣性：" + diversity + L"%" }.Pick(m_language);
         m_wordFreqTotals.Text(ToHString(totals));
         AutomationProperties::SetName(m_wordFreqTotals, ToHString(totals));
-        RaisePoliteLiveRegion(m_wordFreqTotals);
 
         m_wordFreqResults.Items().Clear();
         for (std::size_t index{}; index < m_wordFreqLast.rows.size(); ++index)
