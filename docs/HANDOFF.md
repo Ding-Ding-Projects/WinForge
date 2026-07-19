@@ -16,7 +16,7 @@ A complete map of every module/feature: what it does, how to open it, the page +
 - Launch a page directly: `WinForge.exe --page <id>` (see `docs/CLI.md` for every id) · master search: `--page search:<q>` · headless docs: `--export-docs docs\features`.
 - Window: **windowed by default (~82% screen), F11 toggles full screen** (saved). Closing **hides to the system tray** (right-click tray → Quit) so the background clipboard monitor keeps running.
 - Theme: Settings → App theme (Light/Dark/System), saved. Language: Settings → Language (Bilingual/Cantonese/English).
-- CI: `.github/workflows/release.yml` builds + publishes a **new GitHub Release on every push** (`v1.0.<run#>`) with a portable zip + Inno Setup installer (`installer/WinForge.iss`).
+- Native CI: `.github/workflows/native-release.yml` is the sole publisher and releases exactly two C++ assets: the portable ZIP and `WinForge-Native-Setup.exe`. Successful branch pushes publish native-only prereleases; the current `origin/main` tip publishes stable/latest; older exact-SHA `main` runs publish stable non-latest; pull requests validate without publishing.
 
 ## Suite modules · 套件模組
 

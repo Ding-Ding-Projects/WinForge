@@ -155,6 +155,88 @@ namespace
         return winforge::core::aspectratio::FormatDisplayNumber(value, digits, decimalSeparator);
     }
 
+    std::wstring FormatCurrentCount(int value)
+    {
+        auto const raw = std::to_wstring(value);
+        wchar_t decimalSeparator[8]{ L'.', L'\0' };
+        wchar_t groupSeparator[8]{ L',', L'\0' };
+        wchar_t groupingText[32]{ L'3', L';', L'0', L'\0' };
+        static_cast<void>(GetLocaleInfoEx(
+            LOCALE_NAME_USER_DEFAULT,
+            LOCALE_SDECIMAL,
+            decimalSeparator,
+            static_cast<int>(std::size(decimalSeparator))));
+        static_cast<void>(GetLocaleInfoEx(
+            LOCALE_NAME_USER_DEFAULT,
+            LOCALE_STHOUSAND,
+            groupSeparator,
+            static_cast<int>(std::size(groupSeparator))));
+        static_cast<void>(GetLocaleInfoEx(
+            LOCALE_NAME_USER_DEFAULT,
+            LOCALE_SGROUPING,
+            groupingText,
+            static_cast<int>(std::size(groupingText))));
+
+        UINT grouping{};
+        for (auto const ch : groupingText)
+        {
+            if (ch == L'\0') break;
+            if (ch >= L'1' && ch <= L'9') grouping = grouping * 10 + static_cast<UINT>(ch - L'0');
+        }
+        if (grouping == 0) grouping = 3;
+        DWORD negativeOrder{ 1 };
+        static_cast<void>(GetLocaleInfoEx(
+            LOCALE_NAME_USER_DEFAULT,
+            LOCALE_INEGNUMBER | LOCALE_RETURN_NUMBER,
+            reinterpret_cast<wchar_t*>(&negativeOrder),
+            static_cast<int>(sizeof(negativeOrder) / sizeof(wchar_t))));
+        NUMBERFMTW format{};
+        format.NumDigits = 0;
+        format.LeadingZero = 1;
+        format.Grouping = grouping;
+        format.lpDecimalSep = decimalSeparator;
+        format.lpThousandSep = groupSeparator;
+        format.NegativeOrder = negativeOrder;
+        wchar_t output[96]{};
+        auto const written = GetNumberFormatEx(
+            LOCALE_NAME_USER_DEFAULT,
+            0,
+            raw.c_str(),
+            &format,
+            output,
+            static_cast<int>(std::size(output)));
+        return written > 1 ? std::wstring{ output } : raw;
+    }
+
+    std::wstring FormatCurrentOneDecimal(double value)
+    {
+        if (!std::isfinite(value)) return L"NaN";
+        wchar_t separator[8]{};
+        auto const separatorLength = GetLocaleInfoEx(
+            LOCALE_NAME_USER_DEFAULT,
+            LOCALE_SDECIMAL,
+            separator,
+            static_cast<int>(std::size(separator)));
+        auto const decimalSeparator = separatorLength > 1
+            ? std::wstring_view{ separator, static_cast<std::size_t>(separatorLength - 1) }
+            : std::wstring_view{ L"." };
+        auto output = winforge::core::aspectratio::FormatDisplayNumber(value, 1, decimalSeparator);
+        if (output.find(decimalSeparator) == std::wstring::npos)
+        {
+            output.append(decimalSeparator);
+            output.push_back(L'0');
+        }
+        return output;
+    }
+
+    std::wstring FormatInvariantOneDecimal(double value)
+    {
+        if (!std::isfinite(value)) return L"NaN";
+        auto output = winforge::core::aspectratio::FormatDisplayNumber(value, 1, L".");
+        if (output.find(L'.') == std::wstring::npos) output += L".0";
+        return output;
+    }
+
     std::string ToUtf8(std::wstring_view value)
     {
         if (value.empty())
@@ -865,6 +947,69 @@ namespace winrt::WinForge::implementation
         navigate();
     }
 
+    void MainWindow::ReleaseTextAnalysisRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute == L"module.textstats" && nextRoute != L"module.textstats")
+        {
+            if (m_textStatsFrequencyList)
+            {
+                m_textStatsFrequencyList.Items().Clear();
+            }
+            m_textStatsInputBox = nullptr;
+            m_textStatsStopWordsBox = nullptr;
+            m_textStatsStatus = nullptr;
+            for (auto& row : m_textStatsMetricRows)
+            {
+                row = nullptr;
+            }
+            m_textStatsEaseHint = nullptr;
+            m_textStatsFrequencyList = nullptr;
+            m_textStatsFrequencyEmpty = nullptr;
+            std::wstring{}.swap(m_textStatsInput);
+            m_textStatsRendering = false;
+        }
+        else if (m_currentRoute == L"module.wordfreq" && nextRoute != L"module.wordfreq")
+        {
+            if (m_wordFreqResults)
+            {
+                m_wordFreqResults.Items().Clear();
+            }
+            m_wordFreqInputBox = nullptr;
+            m_wordFreqModeBox = nullptr;
+            m_wordFreqMinLengthBox = nullptr;
+            m_wordFreqCaseBox = nullptr;
+            m_wordFreqPunctuationBox = nullptr;
+            m_wordFreqStopWordsBox = nullptr;
+            m_wordFreqTotals = nullptr;
+            m_wordFreqCopyButton = nullptr;
+            m_wordFreqResults = nullptr;
+            std::wstring{}.swap(m_wordFreqInput);
+            decltype(m_wordFreqLast.rows){}.swap(m_wordFreqLast.rows);
+            m_wordFreqLast.totalTokens = 0;
+            m_wordFreqLast.uniqueTokens = 0;
+            m_wordFreqLast.diversity = 0.0;
+            m_wordFreqRendering = false;
+        }
+        else if (m_currentRoute == L"module.stringcompare" && nextRoute != L"module.stringcompare")
+        {
+            if (m_stringCompareMetrics)
+            {
+                m_stringCompareMetrics.Children().Clear();
+            }
+            m_stringCompareInputA = nullptr;
+            m_stringCompareInputB = nullptr;
+            m_stringCompareCaseSwitch = nullptr;
+            m_stringCompareWhitespaceSwitch = nullptr;
+            m_stringCompareMetrics = nullptr;
+            m_stringCompareStatus = nullptr;
+            std::wstring{}.swap(m_stringCompareA);
+            std::wstring{}.swap(m_stringCompareB);
+            decltype(m_stringCompareLastRows){}.swap(m_stringCompareLastRows);
+            m_stringCompareTruncationWarningActive = false;
+            m_stringCompareRendering = false;
+        }
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -881,6 +1026,7 @@ namespace winrt::WinForge::implementation
         };
         if (normalized == L"search")
         {
+            ReleaseTextAnalysisRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -889,6 +1035,7 @@ namespace winrt::WinForge::implementation
         }
         if (normalized == L"manual" && !argument.empty())
         {
+            ReleaseTextAnalysisRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -899,12 +1046,15 @@ namespace winrt::WinForge::implementation
         auto const* module = deepLink ? FindLaunchModule(normalized) : FindModule(normalized);
         if (!module)
         {
+            ReleaseTextAnalysisRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
             RenderUnknown(normalized);
             return;
         }
+
+        ReleaseTextAnalysisRouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
@@ -950,6 +1100,33 @@ namespace winrt::WinForge::implementation
             m_textWrapIndent = 4.0;
             m_textWrapStatusEn = L"Ready.";
             m_textWrapStatusZh = L"準備就緒。";
+        }
+        else if (module->id == L"module.textstats")
+        {
+            std::wstring{}.swap(m_textStatsInput);
+            m_textStatsIgnoreStopWords = false;
+        }
+        else if (module->id == L"module.wordfreq")
+        {
+            std::wstring{}.swap(m_wordFreqInput);
+            m_wordFreqMode = 0;
+            m_wordFreqMinLength = 1.0;
+            m_wordFreqCaseInsensitive = true;
+            m_wordFreqStripPunctuation = true;
+            m_wordFreqRemoveStopWords = false;
+            decltype(m_wordFreqLast.rows){}.swap(m_wordFreqLast.rows);
+            m_wordFreqLast.totalTokens = 0;
+            m_wordFreqLast.uniqueTokens = 0;
+            m_wordFreqLast.diversity = 0.0;
+        }
+        else if (module->id == L"module.stringcompare")
+        {
+            std::wstring{}.swap(m_stringCompareA);
+            std::wstring{}.swap(m_stringCompareB);
+            m_stringCompareIgnoreCase = false;
+            m_stringCompareIgnoreWhitespace = false;
+            decltype(m_stringCompareLastRows){}.swap(m_stringCompareLastRows);
+            m_stringCompareTruncationWarningActive = false;
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -1101,6 +1278,18 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.textwrap")
         {
             RenderTextWrap();
+        }
+        else if (module->id == L"module.textstats")
+        {
+            RenderTextStats();
+        }
+        else if (module->id == L"module.wordfreq")
+        {
+            RenderWordFrequency();
+        }
+        else if (module->id == L"module.stringcompare")
+        {
+            RenderStringCompare();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -4259,6 +4448,869 @@ namespace winrt::WinForge::implementation
             box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
         AutomationProperties::SetName(m_textWrapStatus, ToHString(message));
         RaisePoliteLiveRegion(m_textWrapStatus);
+    }
+
+    void MainWindow::RenderTextStats()
+    {
+        m_textStatsRendering = true;
+
+        auto page = CreatePage(
+            L"Text Statistics · 文字統計",
+            winforge::core::LocalizedText{
+                L"Paste or type any text to get live counts, reading and speaking time, and readability scores — no data leaves your PC.",
+                L"貼上或者打任何文字，即時睇字數、閱讀同朗讀時間，仲有可讀性評分 — 全部喺你部機度計，唔會外傳。" }.Pick(m_language));
+        page.MaxWidth(820);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeTextStatsPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native text statistics", L"全原生文字統計" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"UTF-16 counts, managed-compatible tokenization, readability, timings, and top-word ranking run locally in standard C++.",
+            L"UTF-16 統計、相容 managed 版嘅斷詞、可讀性、時間同常用字排名全部用標準 C++ 喺本機執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeTextStatsImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(10);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Your text", L"你嘅文字" }.Pick(m_language), 15, true);
+        input.Children().Append(inputLabel);
+        m_textStatsInputBox = TextBox();
+        m_textStatsInputBox.AcceptsReturn(true);
+        m_textStatsInputBox.Text(ToHString(TextBoxPresentation(m_textStatsInput)));
+        m_textStatsInputBox.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"Type or paste text here…", L"喺呢度打字或者貼上文字…" }.Pick(m_language)));
+        m_textStatsInputBox.TextWrapping(TextWrapping::Wrap);
+        m_textStatsInputBox.Height(200);
+        m_textStatsInputBox.IsSpellCheckEnabled(false);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textStatsInputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_textStatsInputBox, L"NativeTextStatsInput");
+        AutomationProperties::SetName(m_textStatsInputBox, ToHString(winforge::core::LocalizedText{
+            L"Text Statistics input", L"文字統計輸入" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_textStatsInputBox, inputLabel);
+        m_textStatsInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_textStatsRendering) return;
+            m_textStatsInput = ToWide(sender.as<TextBox>().Text());
+            RefreshTextStats();
+        });
+        input.Children().Append(m_textStatsInputBox);
+
+        m_textStatsStopWordsBox = CheckBox();
+        m_textStatsStopWordsBox.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Ignore common stop-words in frequency", L"字頻忽略常見虛詞" }.Pick(m_language))));
+        m_textStatsStopWordsBox.IsChecked(
+            box_value(m_textStatsIgnoreStopWords).as<Windows::Foundation::IReference<bool>>());
+        AutomationProperties::SetAutomationId(m_textStatsStopWordsBox, L"NativeTextStatsIgnoreStopWords");
+        AutomationProperties::SetName(m_textStatsStopWordsBox, ToHString(winforge::core::LocalizedText{
+            L"Ignore common stop-words in frequency", L"字頻忽略常見虛詞" }.Pick(m_language)));
+        m_textStatsStopWordsBox.Click([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_textStatsRendering) return;
+            m_textStatsIgnoreStopWords = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+            RefreshTextStats();
+        });
+        input.Children().Append(m_textStatsStopWordsBox);
+
+        m_textStatsStatus = CreateText(L"", 12);
+        m_textStatsStatus.Opacity(0.78);
+        AutomationProperties::SetAutomationId(m_textStatsStatus, L"NativeTextStatsStatus");
+        input.Children().Append(m_textStatsStatus);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border statsCard = MakeNativeCard();
+        StackPanel stats;
+        stats.Spacing(10);
+        stats.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Statistics", L"統計" }.Pick(m_language), 15, true));
+        Grid metrics;
+        metrics.ColumnSpacing(18);
+        metrics.RowSpacing(6);
+        for (int column{}; column < 2; ++column)
+        {
+            ColumnDefinition definition;
+            definition.Width(GridLengthHelper::FromValueAndType(1.0, GridUnitType::Star));
+            metrics.ColumnDefinitions().Append(definition);
+        }
+        for (int row{}; row < 6; ++row) metrics.RowDefinitions().Append(RowDefinition());
+        constexpr std::array<std::wstring_view, 12> metricIds{
+            L"NativeTextStatsCharacters",
+            L"NativeTextStatsCharactersNoSpaces",
+            L"NativeTextStatsWords",
+            L"NativeTextStatsUniqueWords",
+            L"NativeTextStatsSentences",
+            L"NativeTextStatsParagraphs",
+            L"NativeTextStatsAverageWordLength",
+            L"NativeTextStatsAverageSentenceLength",
+            L"NativeTextStatsReadingTime",
+            L"NativeTextStatsSpeakingTime",
+            L"NativeTextStatsReadingEase",
+            L"NativeTextStatsGrade",
+        };
+        for (std::size_t index{}; index < m_textStatsMetricRows.size(); ++index)
+        {
+            auto row = CreateText(L"", 14);
+            row.TextWrapping(TextWrapping::Wrap);
+            AutomationProperties::SetAutomationId(row, ToHString(metricIds[index]));
+            Grid::SetRow(row, static_cast<int32_t>(index / 2));
+            Grid::SetColumn(row, static_cast<int32_t>(index % 2));
+            metrics.Children().Append(row);
+            m_textStatsMetricRows[index] = row;
+        }
+        stats.Children().Append(metrics);
+        m_textStatsEaseHint = CreateText(L"", 12);
+        m_textStatsEaseHint.Opacity(0.78);
+        AutomationProperties::SetAutomationId(m_textStatsEaseHint, L"NativeTextStatsEaseHint");
+        stats.Children().Append(m_textStatsEaseHint);
+        statsCard.Child(stats);
+        page.Children().Append(statsCard);
+
+        Border frequencyCard = MakeNativeCard();
+        StackPanel frequency;
+        frequency.Spacing(8);
+        frequency.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Top words", L"最常用字" }.Pick(m_language), 15, true));
+        m_textStatsFrequencyList = ListView();
+        m_textStatsFrequencyList.SelectionMode(ListViewSelectionMode::None);
+        m_textStatsFrequencyList.MaxHeight(320);
+        m_textStatsFrequencyList.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_textStatsFrequencyList, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_textStatsFrequencyList, L"NativeTextStatsFrequencyList");
+        AutomationProperties::SetName(m_textStatsFrequencyList, ToHString(winforge::core::LocalizedText{
+            L"Top words", L"最常用字" }.Pick(m_language)));
+        frequency.Children().Append(m_textStatsFrequencyList);
+        m_textStatsFrequencyEmpty = CreateText(L"", 12);
+        m_textStatsFrequencyEmpty.Opacity(0.78);
+        AutomationProperties::SetAutomationId(m_textStatsFrequencyEmpty, L"NativeTextStatsFrequencyEmpty");
+        frequency.Children().Append(m_textStatsFrequencyEmpty);
+        frequencyCard.Child(frequency);
+        page.Children().Append(frequencyCard);
+
+        ShowPage(page);
+        m_textStatsRendering = false;
+        RefreshTextStats();
+    }
+
+    void MainWindow::RefreshTextStats()
+    {
+        if (!m_textStatsStatus || !m_textStatsFrequencyList) return;
+        using namespace winforge::core::textanalysis;
+        auto const value = AnalyzeTextStats(m_textStatsInput, m_textStatsIgnoreStopWords, 10);
+        auto const pick = [this](std::wstring en, std::wstring zh)
+        {
+            return winforge::core::LocalizedText{ std::move(en), std::move(zh) }.Pick(m_language);
+        };
+        auto const count = [](int number) { return FormatCurrentCount(number); };
+        std::array<std::wstring, 12> rows{
+            pick(L"Characters: " + count(value.characters), L"字元：" + count(value.characters)),
+            pick(L"Characters (no spaces): " + count(value.charactersNoSpaces), L"字元（不含空格）：" + count(value.charactersNoSpaces)),
+            pick(L"Words: " + count(value.words), L"字數：" + count(value.words)),
+            pick(L"Unique words: " + count(value.uniqueWords), L"不重複字：" + count(value.uniqueWords)),
+            pick(L"Sentences: " + count(value.sentences), L"句數：" + count(value.sentences)),
+            pick(L"Paragraphs: " + count(value.paragraphs), L"段落：" + count(value.paragraphs)),
+            pick(L"Avg word length: " + FormatCurrentOneDecimal(value.avgWordLength), L"平均字長：" + FormatCurrentOneDecimal(value.avgWordLength)),
+            pick(L"Avg sentence length: " + FormatCurrentOneDecimal(value.avgSentenceLength) + L" words", L"平均句長：" + FormatCurrentOneDecimal(value.avgSentenceLength) + L" 字"),
+            pick(L"Reading time (~200 wpm): " + FormatDuration(value.readingMinutes), L"閱讀時間（約 200 字/分）：" + FormatDuration(value.readingMinutes)),
+            pick(L"Speaking time (~130 wpm): " + FormatDuration(value.speakingMinutes), L"朗讀時間（約 130 字/分）：" + FormatDuration(value.speakingMinutes)),
+            pick(L"Flesch Reading Ease: " + FormatCurrentOneDecimal(value.fleschReadingEase), L"Flesch 易讀度：" + FormatCurrentOneDecimal(value.fleschReadingEase)),
+            pick(L"Flesch–Kincaid grade: " + FormatCurrentOneDecimal(value.fleschKincaidGrade), L"Flesch–Kincaid 年級：" + FormatCurrentOneDecimal(value.fleschKincaidGrade)),
+        };
+        for (std::size_t index{}; index < rows.size(); ++index)
+        {
+            if (!m_textStatsMetricRows[index]) continue;
+            m_textStatsMetricRows[index].Text(ToHString(rows[index]));
+            AutomationProperties::SetName(m_textStatsMetricRows[index], ToHString(rows[index]));
+        }
+
+        std::wstring hint;
+        if (value.words > 0)
+        {
+            if (value.fleschReadingEase >= 90) hint = pick(L"Very easy — 5th grade.", L"非常易讀 — 約小五程度。");
+            else if (value.fleschReadingEase >= 70) hint = pick(L"Easy — 6th–7th grade.", L"易讀 — 約小六至中一程度。");
+            else if (value.fleschReadingEase >= 60) hint = pick(L"Plain English — 8th–9th grade.", L"淺白 — 約中二至中三程度。");
+            else if (value.fleschReadingEase >= 50) hint = pick(L"Fairly hard — 10th–12th grade.", L"略難 — 約高中程度。");
+            else if (value.fleschReadingEase >= 30) hint = pick(L"Difficult — college level.", L"困難 — 約大學程度。");
+            else hint = pick(L"Very difficult — graduate level.", L"非常困難 — 約研究生程度。");
+        }
+        m_textStatsEaseHint.Text(ToHString(hint));
+        AutomationProperties::SetName(m_textStatsEaseHint, ToHString(hint));
+
+        m_textStatsFrequencyList.Items().Clear();
+        for (std::size_t index{}; index < value.topWords.size(); ++index)
+        {
+            auto const& entry = value.topWords[index];
+            Grid row;
+            ColumnDefinition termColumn;
+            termColumn.Width(GridLengthHelper::FromValueAndType(1.0, GridUnitType::Star));
+            row.ColumnDefinitions().Append(termColumn);
+            row.ColumnDefinitions().Append(ColumnDefinition());
+            auto term = CreateText(entry.word, 14);
+            term.FontWeight(Microsoft::UI::Text::FontWeights::Normal());
+            Grid::SetColumn(term, 0);
+            row.Children().Append(term);
+            auto total = CreateText(std::to_wstring(entry.count), 14, true);
+            total.Opacity(0.78);
+            Grid::SetColumn(total, 1);
+            row.Children().Append(total);
+            ListViewItem item;
+            item.Content(row);
+            item.Padding(Thickness{ 8, 4, 8, 4 });
+            item.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+            auto const name = entry.word + L" · " + std::to_wstring(entry.count);
+            AutomationProperties::SetAutomationId(
+                item,
+                ToHString(L"NativeTextStatsTopWord" + std::to_wstring(index)));
+            AutomationProperties::SetName(item, ToHString(name));
+            m_textStatsFrequencyList.Items().Append(item);
+        }
+        auto const empty = value.topWords.empty()
+            ? pick(L"No words yet — start typing above.", L"仲未有字 — 喺上面開始打字。")
+            : L"";
+        m_textStatsFrequencyEmpty.Text(ToHString(empty));
+        AutomationProperties::SetName(m_textStatsFrequencyEmpty, ToHString(empty));
+
+        auto const status = value.words > 0
+            ? pick(L"Updated live.", L"已即時更新。")
+            : pick(L"Ready.", L"準備就緒。");
+        m_textStatsStatus.Text(ToHString(status));
+        AutomationProperties::SetName(m_textStatsStatus, ToHString(status));
+    }
+
+    void MainWindow::RenderWordFrequency()
+    {
+        m_wordFreqRendering = true;
+        auto const title = m_language == winforge::core::LanguageMode::Cantonese
+            ? std::wstring{ L"詞頻統計 · Word Frequency" }
+            : std::wstring{ L"Word Frequency · 詞頻統計" };
+        auto page = CreatePage(
+            title,
+            winforge::core::LocalizedText{
+                L"Paste any text and see which words, word-pairs or characters appear most. Ranked with counts, bars and percentages — copy the table as CSV.",
+                L"貼入任何文字，睇下邊啲詞、詞組或者字元出現得最多。附上次數、長條同百分比排名 — 可以複製成 CSV。" }.Pick(m_language));
+        page.MaxWidth(820);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeWordFreqPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native frequency analysis", L"全原生詞頻分析" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Word, bigram, and Unicode-scalar character tokenization, ranking, percentages, and CSV generation run locally in standard C++. Clipboard access only follows the explicit Copy action.",
+            L"詞語、詞組同 Unicode scalar 字元斷詞、排名、百分比同 CSV 生成全部用標準 C++ 喺本機執行；只有明確撳 Copy 先會存取剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeWordFreqImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(12);
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Text to analyze", L"要分析嘅文字" }.Pick(m_language), 15, true);
+        input.Children().Append(inputLabel);
+        m_wordFreqInputBox = TextBox();
+        m_wordFreqInputBox.AcceptsReturn(true);
+        m_wordFreqInputBox.Text(ToHString(TextBoxPresentation(m_wordFreqInput)));
+        m_wordFreqInputBox.TextWrapping(TextWrapping::Wrap);
+        m_wordFreqInputBox.MinHeight(140);
+        m_wordFreqInputBox.MaxHeight(240);
+        m_wordFreqInputBox.IsSpellCheckEnabled(false);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_wordFreqInputBox, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_wordFreqInputBox, L"NativeWordFreqInput");
+        AutomationProperties::SetName(m_wordFreqInputBox, ToHString(winforge::core::LocalizedText{
+            L"Word Frequency input", L"詞頻統計輸入" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_wordFreqInputBox, inputLabel);
+        m_wordFreqInputBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_wordFreqRendering) return;
+            m_wordFreqInput = ToWide(sender.as<TextBox>().Text());
+            RefreshWordFrequency();
+        });
+        input.Children().Append(m_wordFreqInputBox);
+
+        Grid modeRow;
+        modeRow.ColumnSpacing(10);
+        ColumnDefinition modeLabelColumn;
+        modeLabelColumn.Width(GridLengthHelper::Auto());
+        modeRow.ColumnDefinitions().Append(modeLabelColumn);
+        modeRow.ColumnDefinitions().Append(ColumnDefinition());
+        auto modeLabel = CreateText(
+            winforge::core::LocalizedText{ L"Count by", L"統計對象" }.Pick(m_language), 14);
+        modeLabel.VerticalAlignment(VerticalAlignment::Center);
+        Grid::SetColumn(modeLabel, 0);
+        modeRow.Children().Append(modeLabel);
+        m_wordFreqModeBox = ComboBox();
+        m_wordFreqModeBox.MinWidth(220);
+        m_wordFreqModeBox.HorizontalAlignment(HorizontalAlignment::Left);
+        m_wordFreqModeBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Words", L"詞語" }.Pick(m_language))));
+        m_wordFreqModeBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Bigrams (word pairs)", L"詞組（兩字）" }.Pick(m_language))));
+        m_wordFreqModeBox.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Characters", L"字元" }.Pick(m_language))));
+        m_wordFreqModeBox.SelectedIndex(m_wordFreqMode);
+        AutomationProperties::SetAutomationId(m_wordFreqModeBox, L"NativeWordFreqMode");
+        AutomationProperties::SetName(m_wordFreqModeBox, ToHString(winforge::core::LocalizedText{
+            L"Frequency counting mode", L"詞頻統計模式" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_wordFreqModeBox, modeLabel);
+        m_wordFreqModeBox.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_wordFreqRendering) return;
+            m_wordFreqMode = std::max(0, sender.as<ComboBox>().SelectedIndex());
+            RefreshWordFrequency();
+        });
+        Grid::SetColumn(m_wordFreqModeBox, 1);
+        modeRow.Children().Append(m_wordFreqModeBox);
+        input.Children().Append(modeRow);
+
+        Grid lengthRow;
+        lengthRow.ColumnSpacing(10);
+        ColumnDefinition lengthLabelColumn;
+        lengthLabelColumn.Width(GridLengthHelper::Auto());
+        lengthRow.ColumnDefinitions().Append(lengthLabelColumn);
+        lengthRow.ColumnDefinitions().Append(ColumnDefinition());
+        auto minLengthLabel = CreateText(
+            winforge::core::LocalizedText{ L"Minimum length", L"最短長度" }.Pick(m_language), 14);
+        minLengthLabel.VerticalAlignment(VerticalAlignment::Center);
+        Grid::SetColumn(minLengthLabel, 0);
+        lengthRow.Children().Append(minLengthLabel);
+        m_wordFreqMinLengthBox = NumberBox();
+        m_wordFreqMinLengthBox.Minimum(1);
+        m_wordFreqMinLengthBox.Maximum(20);
+        m_wordFreqMinLengthBox.Value(m_wordFreqMinLength);
+        m_wordFreqMinLengthBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_wordFreqMinLengthBox.MinWidth(130);
+        m_wordFreqMinLengthBox.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(m_wordFreqMinLengthBox, L"NativeWordFreqMinLength");
+        AutomationProperties::SetName(m_wordFreqMinLengthBox, ToHString(winforge::core::LocalizedText{
+            L"Minimum token length", L"最短 token 長度" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_wordFreqMinLengthBox, minLengthLabel);
+        m_wordFreqMinLengthBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+        {
+            if (m_wordFreqRendering) return;
+            m_wordFreqMinLength = sender.Value();
+            RefreshWordFrequency();
+        });
+        Grid::SetColumn(m_wordFreqMinLengthBox, 1);
+        lengthRow.Children().Append(m_wordFreqMinLengthBox);
+        input.Children().Append(lengthRow);
+
+        auto appendOption = [this, &input](
+            CheckBox& target,
+            bool value,
+            std::wstring_view text,
+            std::wstring_view automationId,
+            bool MainWindow::* state)
+        {
+            target = CheckBox();
+            target.Content(box_value(ToHString(text)));
+            target.IsChecked(box_value(value).as<Windows::Foundation::IReference<bool>>());
+            AutomationProperties::SetAutomationId(target, ToHString(automationId));
+            AutomationProperties::SetName(target, ToHString(text));
+            target.Click([this, state](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                if (m_wordFreqRendering) return;
+                this->*state = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+                RefreshWordFrequency();
+            });
+            input.Children().Append(target);
+        };
+        appendOption(
+            m_wordFreqCaseBox,
+            m_wordFreqCaseInsensitive,
+            winforge::core::LocalizedText{
+                L"Case-insensitive (fold to lowercase)", L"唔分大細楷（轉細楷）" }.Pick(m_language),
+            L"NativeWordFreqCaseInsensitive",
+            &MainWindow::m_wordFreqCaseInsensitive);
+        appendOption(
+            m_wordFreqPunctuationBox,
+            m_wordFreqStripPunctuation,
+            winforge::core::LocalizedText{ L"Strip punctuation", L"去除標點" }.Pick(m_language),
+            L"NativeWordFreqStripPunctuation",
+            &MainWindow::m_wordFreqStripPunctuation);
+        appendOption(
+            m_wordFreqStopWordsBox,
+            m_wordFreqRemoveStopWords,
+            winforge::core::LocalizedText{
+                L"Remove common stop-words (English)", L"移除常見停用詞（英文）" }.Pick(m_language),
+            L"NativeWordFreqRemoveStopWords",
+            &MainWindow::m_wordFreqRemoveStopWords);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Grid summary;
+        summary.ColumnSpacing(12);
+        summary.ColumnDefinitions().Append(ColumnDefinition());
+        ColumnDefinition copyColumn;
+        copyColumn.Width(GridLengthHelper::Auto());
+        summary.ColumnDefinitions().Append(copyColumn);
+        m_wordFreqTotals = CreateText(L"", 13);
+        m_wordFreqTotals.Opacity(0.78);
+        m_wordFreqTotals.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_wordFreqTotals, L"NativeWordFreqTotals");
+        AutomationProperties::SetLiveSetting(
+            m_wordFreqTotals,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        Grid::SetColumn(m_wordFreqTotals, 0);
+        summary.Children().Append(m_wordFreqTotals);
+        m_wordFreqCopyButton = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy as CSV", L"複製為 CSV" }.Pick(m_language),
+            L"NativeWordFreqCopy");
+        m_wordFreqCopyButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            try
+            {
+                auto const csv = winforge::core::textanalysis::ToWordFrequencyCsv(m_wordFreqLast);
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.SetText(ToHString(csv));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                auto const copied = winforge::core::LocalizedText{
+                    L"Copied!", L"已複製！" }.Pick(m_language);
+                m_wordFreqCopyButton.Content(box_value(ToHString(copied)));
+                AutomationProperties::SetName(m_wordFreqCopyButton, ToHString(copied));
+            }
+            catch (...)
+            {
+                // Managed parity: a clipboard failure does not interrupt analysis.
+            }
+        });
+        Grid::SetColumn(m_wordFreqCopyButton, 1);
+        summary.Children().Append(m_wordFreqCopyButton);
+        page.Children().Append(summary);
+
+        Border resultCard = MakeNativeCard();
+        resultCard.Padding(Thickness{ 4 });
+        m_wordFreqResults = ListView();
+        m_wordFreqResults.SelectionMode(ListViewSelectionMode::None);
+        m_wordFreqResults.MaxHeight(520);
+        m_wordFreqResults.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_wordFreqResults, ScrollBarVisibility::Auto);
+        AutomationProperties::SetAutomationId(m_wordFreqResults, L"NativeWordFreqResults");
+        AutomationProperties::SetName(m_wordFreqResults, ToHString(winforge::core::LocalizedText{
+            L"Ranked frequency results", L"詞頻排名結果" }.Pick(m_language)));
+        m_wordFreqResults.ContainerContentChanging([this](ListViewBase const&, ContainerContentChangingEventArgs const& args)
+        {
+            if (args.InRecycleQueue()) return;
+            auto const index = static_cast<std::size_t>(args.ItemIndex());
+            auto const container = args.ItemContainer();
+            if (!container || index >= m_wordFreqLast.rows.size()) return;
+            auto const& item = m_wordFreqLast.rows[index];
+            Grid row;
+            row.Padding(Thickness{ 6, 4, 6, 4 });
+            row.ColumnSpacing(10);
+            for (auto const width : std::array<double, 2>{ 40.0, 150.0 })
+            {
+                ColumnDefinition definition;
+                definition.Width(GridLengthHelper::FromPixels(width));
+                row.ColumnDefinitions().Append(definition);
+            }
+            row.ColumnDefinitions().Append(ColumnDefinition());
+            for (auto const width : std::array<double, 2>{ 56.0, 62.0 })
+            {
+                ColumnDefinition definition;
+                definition.Width(GridLengthHelper::FromPixels(width));
+                row.ColumnDefinitions().Append(definition);
+            }
+            auto rank = CreateText(std::to_wstring(item.rank), 13);
+            rank.Opacity(0.75);
+            Grid::SetColumn(rank, 0);
+            row.Children().Append(rank);
+            auto term = CreateText(item.term, 14, true);
+            term.TextTrimming(TextTrimming::CharacterEllipsis);
+            term.TextWrapping(TextWrapping::NoWrap);
+            Grid::SetColumn(term, 1);
+            row.Children().Append(term);
+            ProgressBar bar;
+            bar.Minimum(0);
+            bar.Maximum(220);
+            bar.Value(item.barWidth);
+            bar.Height(12);
+            bar.VerticalAlignment(VerticalAlignment::Center);
+            bar.HorizontalAlignment(HorizontalAlignment::Stretch);
+            Grid::SetColumn(bar, 2);
+            row.Children().Append(bar);
+            auto total = CreateText(std::to_wstring(item.count), 13);
+            total.HorizontalAlignment(HorizontalAlignment::Right);
+            Grid::SetColumn(total, 3);
+            row.Children().Append(total);
+            auto percent = CreateText(item.percent, 13);
+            percent.Opacity(0.75);
+            percent.HorizontalAlignment(HorizontalAlignment::Right);
+            Grid::SetColumn(percent, 4);
+            row.Children().Append(percent);
+            container.Content(row);
+            container.Padding(Thickness{});
+            container.MinHeight(0);
+            container.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(
+                container,
+                ToHString(L"NativeWordFreqRow" + std::to_wstring(index)));
+            AutomationProperties::SetName(
+                container,
+                ToHString(std::to_wstring(item.rank) + L" · " + item.term + L" · " +
+                    std::to_wstring(item.count) + L" · " + item.percent));
+        });
+        resultCard.Child(m_wordFreqResults);
+        page.Children().Append(resultCard);
+
+        ShowPage(page);
+        m_wordFreqRendering = false;
+        RefreshWordFrequency();
+    }
+
+    void MainWindow::RefreshWordFrequency()
+    {
+        if (!m_wordFreqTotals || !m_wordFreqResults) return;
+        using namespace winforge::core::textanalysis;
+        auto const minLength = std::isfinite(m_wordFreqMinLength)
+            ? std::clamp(static_cast<int>(m_wordFreqMinLength), 1, 20)
+            : 1;
+        WordFrequencyOptions options;
+        options.mode = m_wordFreqMode == 1
+            ? FrequencyMode::Bigrams
+            : (m_wordFreqMode == 2 ? FrequencyMode::Characters : FrequencyMode::Words);
+        options.caseInsensitive = m_wordFreqCaseInsensitive;
+        options.minLength = minLength;
+        options.stripPunctuation = m_wordFreqStripPunctuation;
+        options.removeStopWords = m_wordFreqRemoveStopWords;
+        m_wordFreqLast = AnalyzeWordFrequency(m_wordFreqInput, options);
+
+        auto const diversity = FormatCurrentOneDecimal(m_wordFreqLast.diversity * 100.0);
+        auto const totals = winforge::core::LocalizedText{
+            L"Total: " + FormatCurrentCount(m_wordFreqLast.totalTokens) + L"   Unique: " +
+                FormatCurrentCount(m_wordFreqLast.uniqueTokens) + L"   Lexical diversity: " + diversity + L"%",
+            L"總數：" + FormatCurrentCount(m_wordFreqLast.totalTokens) + L"   不重複：" +
+                FormatCurrentCount(m_wordFreqLast.uniqueTokens) + L"   詞彙多樣性：" + diversity + L"%" }.Pick(m_language);
+        m_wordFreqTotals.Text(ToHString(totals));
+        AutomationProperties::SetName(m_wordFreqTotals, ToHString(totals));
+        RaisePoliteLiveRegion(m_wordFreqTotals);
+
+        m_wordFreqResults.Items().Clear();
+        for (std::size_t index{}; index < m_wordFreqLast.rows.size(); ++index)
+        {
+            m_wordFreqResults.Items().Append(box_value(static_cast<int32_t>(index)));
+        }
+    }
+
+    void MainWindow::RenderStringCompare()
+    {
+        m_stringCompareRendering = true;
+        auto page = CreatePage(
+            L"String Compare · 字串相似度",
+            winforge::core::LocalizedText{
+                L"Compare two strings and see how similar they are — edit distance, similarity %, and several classic string metrics. Everything is computed locally, live as you type.",
+                L"比較兩段文字，睇下佢哋有幾似 — 編輯距離、相似度百分比同幾個經典字串指標。全部喺本機即時計算，一邊打一邊出。" }.Pick(m_language));
+        page.MaxWidth(760);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeStringComparePage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native string comparison", L"全原生字串比較" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Normalization, Levenshtein, Damerau–Levenshtein, Hamming, Jaro–Winkler, longest-common metrics, and report generation run locally in standard C++.",
+            L"正規化、Levenshtein、Damerau–Levenshtein、Hamming、Jaro–Winkler、最長共同指標同報告生成全部用標準 C++ 喺本機執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeStringCompareImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border inputCard = MakeNativeCard();
+        StackPanel input;
+        input.Spacing(12);
+        auto appendInput = [this, &input](
+            TextBox& target,
+            std::wstring const& value,
+            std::wstring_view labelText,
+            std::wstring_view accessibleName,
+            std::wstring_view automationId,
+            std::wstring MainWindow::* state)
+        {
+            StackPanel group;
+            group.Spacing(4);
+            auto label = CreateText(labelText, 13, true);
+            group.Children().Append(label);
+            target = TextBox();
+            target.AcceptsReturn(true);
+            target.Text(ToHString(TextBoxPresentation(value)));
+            target.TextWrapping(TextWrapping::Wrap);
+            target.MinHeight(72);
+            target.IsSpellCheckEnabled(false);
+            ScrollViewer::SetVerticalScrollBarVisibility(target, ScrollBarVisibility::Auto);
+            AutomationProperties::SetAutomationId(target, ToHString(automationId));
+            AutomationProperties::SetName(target, ToHString(accessibleName));
+            AutomationProperties::SetLabeledBy(target, label);
+            target.TextChanged([this, state](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                if (m_stringCompareRendering) return;
+                this->*state = ToWide(sender.as<TextBox>().Text());
+                RefreshStringCompare();
+            });
+            group.Children().Append(target);
+            input.Children().Append(group);
+        };
+        appendInput(
+            m_stringCompareInputA,
+            m_stringCompareA,
+            winforge::core::LocalizedText{ L"String A", L"字串 A" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"String A", L"字串 A" }.Pick(m_language),
+            L"NativeStringCompareInputA",
+            &MainWindow::m_stringCompareA);
+        appendInput(
+            m_stringCompareInputB,
+            m_stringCompareB,
+            winforge::core::LocalizedText{ L"String B", L"字串 B" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"String B", L"字串 B" }.Pick(m_language),
+            L"NativeStringCompareInputB",
+            &MainWindow::m_stringCompareB);
+
+        Grid toggles;
+        toggles.ColumnSpacing(16);
+        for (int column{}; column < 2; ++column)
+        {
+            ColumnDefinition definition;
+            definition.Width(GridLengthHelper::FromValueAndType(1.0, GridUnitType::Star));
+            toggles.ColumnDefinitions().Append(definition);
+        }
+        auto appendToggle = [this, &toggles](
+            ToggleSwitch& target,
+            bool value,
+            std::wstring_view header,
+            std::wstring_view automationId,
+            int column,
+            bool MainWindow::* state)
+        {
+            target = ToggleSwitch();
+            target.Header(box_value(ToHString(header)));
+            target.OnContent(box_value(L""));
+            target.OffContent(box_value(L""));
+            target.IsOn(value);
+            AutomationProperties::SetAutomationId(target, ToHString(automationId));
+            AutomationProperties::SetName(target, ToHString(header));
+            target.Toggled([this, state](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                if (m_stringCompareRendering) return;
+                this->*state = sender.as<ToggleSwitch>().IsOn();
+                RefreshStringCompare();
+            });
+            Grid::SetColumn(target, column);
+            toggles.Children().Append(target);
+        };
+        appendToggle(
+            m_stringCompareCaseSwitch,
+            m_stringCompareIgnoreCase,
+            winforge::core::LocalizedText{ L"Case-insensitive", L"唔理大小寫" }.Pick(m_language),
+            L"NativeStringCompareIgnoreCase",
+            0,
+            &MainWindow::m_stringCompareIgnoreCase);
+        appendToggle(
+            m_stringCompareWhitespaceSwitch,
+            m_stringCompareIgnoreWhitespace,
+            winforge::core::LocalizedText{ L"Ignore whitespace", L"唔理空白字元" }.Pick(m_language),
+            L"NativeStringCompareIgnoreWhitespace",
+            1,
+            &MainWindow::m_stringCompareIgnoreWhitespace);
+        input.Children().Append(toggles);
+        inputCard.Child(input);
+        page.Children().Append(inputCard);
+
+        Border metricsCard = MakeNativeCard();
+        StackPanel content;
+        content.Spacing(12);
+        Grid heading;
+        heading.ColumnDefinitions().Append(ColumnDefinition());
+        ColumnDefinition actionColumn;
+        actionColumn.Width(GridLengthHelper::Auto());
+        heading.ColumnDefinitions().Append(actionColumn);
+        auto metricsTitle = CreateText(
+            winforge::core::LocalizedText{ L"Metrics", L"指標" }.Pick(m_language), 15, true);
+        metricsTitle.VerticalAlignment(VerticalAlignment::Center);
+        Grid::SetColumn(metricsTitle, 0);
+        heading.Children().Append(metricsTitle);
+        auto copy = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy report", L"複製報告" }.Pick(m_language),
+            L"NativeStringCompareCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            try
+            {
+                auto const report = winforge::core::textanalysis::BuildStringComparisonReport(
+                    m_stringCompareLastRows);
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.SetText(ToHString(report));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceStringCompareStatus(winforge::core::LocalizedText{
+                    L"Report copied to the clipboard.", L"報告已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceStringCompareStatus(winforge::core::LocalizedText{
+                    L"Could not copy the report.", L"複製唔到報告。" }.Pick(m_language), true);
+            }
+        });
+        Grid::SetColumn(copy, 1);
+        heading.Children().Append(copy);
+        content.Children().Append(heading);
+        m_stringCompareMetrics = StackPanel();
+        m_stringCompareMetrics.Spacing(2);
+        AutomationProperties::SetAutomationId(m_stringCompareMetrics, L"NativeStringCompareMetrics");
+        content.Children().Append(m_stringCompareMetrics);
+        m_stringCompareStatus = CreateText(L"", 12);
+        m_stringCompareStatus.Opacity(0.78);
+        m_stringCompareStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_stringCompareStatus, L"NativeStringCompareStatus");
+        content.Children().Append(m_stringCompareStatus);
+        metricsCard.Child(content);
+        page.Children().Append(metricsCard);
+
+        ShowPage(page);
+        m_stringCompareRendering = false;
+        RefreshStringCompare();
+    }
+
+    void MainWindow::RefreshStringCompare()
+    {
+        if (!m_stringCompareMetrics || !m_stringCompareStatus) return;
+        using namespace winforge::core::textanalysis;
+        auto const value = ComputeStringComparison(
+            m_stringCompareA,
+            m_stringCompareB,
+            m_stringCompareIgnoreCase,
+            m_stringCompareIgnoreWhitespace);
+        auto const pick = [this](std::wstring en, std::wstring zh)
+        {
+            return winforge::core::LocalizedText{ std::move(en), std::move(zh) }.Pick(m_language);
+        };
+        m_stringCompareLastRows.clear();
+        std::vector<std::wstring> ids;
+        auto append = [this, &ids](std::wstring id, std::wstring label, std::wstring metric)
+        {
+            ids.push_back(std::move(id));
+            m_stringCompareLastRows.emplace_back(std::move(label), std::move(metric));
+        };
+        append(
+            L"NativeStringCompareLength",
+            pick(L"Length A / B", L"長度 A / B"),
+            std::to_wstring(value.lenA) + L" / " + std::to_wstring(value.lenB));
+        if (value.truncated)
+        {
+            append(
+                L"NativeStringCompareLevenshtein",
+                pick(L"Levenshtein distance", L"Levenshtein 編輯距離"),
+                pick(L"skipped", L"已略過"));
+            append(
+                L"NativeStringCompareSimilarity",
+                pick(L"Similarity", L"相似度"),
+                L"n/a");
+            append(
+                L"NativeStringCompareDamerau",
+                pick(L"Damerau–Levenshtein", L"Damerau–Levenshtein 距離"),
+                pick(L"skipped", L"已略過"));
+            auto const announceWarning = !m_stringCompareTruncationWarningActive;
+            m_stringCompareTruncationWarningActive = true;
+            AnnounceStringCompareStatus(pick(
+                L"One or both strings exceed 2,000 characters — the distance metrics are skipped to stay responsive. Hamming and Jaro–Winkler are still shown.",
+                L"其中一段（或兩段）超過 2,000 個字元 — 為咗保持流暢，略過咗距離指標。Hamming 同 Jaro–Winkler 照樣顯示。"), true, announceWarning);
+        }
+        else
+        {
+            m_stringCompareTruncationWarningActive = false;
+            append(
+                L"NativeStringCompareLevenshtein",
+                pick(L"Levenshtein distance", L"Levenshtein 編輯距離"),
+                std::to_wstring(value.levenshtein));
+            append(
+                L"NativeStringCompareSimilarity",
+                pick(L"Similarity", L"相似度"),
+                std::isnan(value.similarityPct)
+                    ? L"n/a"
+                    : FormatInvariantOneDecimal(value.similarityPct) + L"%");
+            append(
+                L"NativeStringCompareDamerau",
+                pick(L"Damerau–Levenshtein", L"Damerau–Levenshtein 距離"),
+                std::to_wstring(value.damerau));
+            AnnounceStringCompareStatus(pick(
+                L"Computed locally — nothing leaves your PC.",
+                L"喺本機計算 — 冇任何資料離開你部電腦。"), false, false);
+        }
+        append(
+            L"NativeStringCompareHamming",
+            pick(L"Hamming distance", L"Hamming 距離"),
+            value.hamming < 0
+                ? pick(L"n/a (lengths differ)", L"n/a（長度唔同）")
+                : std::to_wstring(value.hamming));
+        append(
+            L"NativeStringCompareJaroWinkler",
+            pick(L"Jaro–Winkler similarity", L"Jaro–Winkler 相似度"),
+            std::isnan(value.jaroWinkler)
+                ? L"n/a"
+                : FormatInvariantOneDecimal(value.jaroWinkler * 100.0) + L"%");
+        if (!value.truncated)
+        {
+            append(
+                L"NativeStringCompareLongestSubstring",
+                pick(L"Longest common substring", L"最長共同子字串"),
+                std::to_wstring(value.longestCommonSubstring));
+            append(
+                L"NativeStringCompareLongestSubsequence",
+                pick(L"Longest common subsequence", L"最長共同子序列"),
+                std::to_wstring(value.longestCommonSubsequence));
+        }
+
+        m_stringCompareMetrics.Children().Clear();
+        for (std::size_t index{}; index < m_stringCompareLastRows.size(); ++index)
+        {
+            auto const& [labelValue, metricValue] = m_stringCompareLastRows[index];
+            Grid row;
+            row.Padding(Thickness{ 0, 3, 0, 3 });
+            row.ColumnDefinitions().Append(ColumnDefinition());
+            ColumnDefinition valueColumn;
+            valueColumn.Width(GridLengthHelper::Auto());
+            row.ColumnDefinitions().Append(valueColumn);
+            auto label = CreateText(labelValue, 14);
+            label.Opacity(0.78);
+            label.TextWrapping(TextWrapping::Wrap);
+            AutomationProperties::SetAutomationId(label, ToHString(ids[index]));
+            AutomationProperties::SetName(label, ToHString(labelValue + L": " + metricValue));
+            Grid::SetColumn(label, 0);
+            row.Children().Append(label);
+            auto metric = CreateText(metricValue, 14, true);
+            metric.FontFamily(Media::FontFamily(L"Consolas"));
+            metric.Margin(Thickness{ 12, 0, 0, 0 });
+            Grid::SetColumn(metric, 1);
+            row.Children().Append(metric);
+            m_stringCompareMetrics.Children().Append(row);
+        }
+    }
+
+    void MainWindow::AnnounceStringCompareStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_stringCompareStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_stringCompareStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_stringCompareStatus.Text(ToHString(message));
+        m_stringCompareStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_stringCompareStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_stringCompareStatus);
+        }
     }
 
     void MainWindow::RenderAspectRatio()

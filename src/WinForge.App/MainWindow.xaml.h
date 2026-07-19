@@ -21,6 +21,7 @@
 #include "../WinForge.Core/RegexCheat.h"
 #include "../WinForge.Core/SymbolsPalette.h"
 #include "../WinForge.Core/TextDiff.h"
+#include "../WinForge.Core/TextAnalysis.h"
 #include "../WinForge.Core/AppUninstaller.h"
 #include "../WinForge.Core/RegexSearch.h"
 #include "../WinForge.Core/RegexSearchSurface.h"
@@ -262,6 +263,28 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_textWrapOutputBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_textWrapReadout{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_textWrapStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_textStatsInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_textStatsStopWordsBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_textStatsStatus{ nullptr };
+        std::array<Microsoft::UI::Xaml::Controls::TextBlock, 12> m_textStatsMetricRows{};
+        Microsoft::UI::Xaml::Controls::TextBlock m_textStatsEaseHint{ nullptr };
+        Microsoft::UI::Xaml::Controls::ListView m_textStatsFrequencyList{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_textStatsFrequencyEmpty{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_wordFreqInputBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_wordFreqModeBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_wordFreqMinLengthBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_wordFreqCaseBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_wordFreqPunctuationBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_wordFreqStopWordsBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_wordFreqTotals{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_wordFreqCopyButton{ nullptr };
+        Microsoft::UI::Xaml::Controls::ListView m_wordFreqResults{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_stringCompareInputA{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_stringCompareInputB{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_stringCompareCaseSwitch{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_stringCompareWhitespaceSwitch{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_stringCompareMetrics{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_stringCompareStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -447,6 +470,24 @@ namespace winrt::WinForge::implementation
         std::wstring m_textWrapStatusEn{ L"Ready." };
         std::wstring m_textWrapStatusZh{ L"準備就緒。" };
         bool m_textWrapRendering{ false };
+        std::wstring m_textStatsInput{};
+        bool m_textStatsIgnoreStopWords{ false };
+        bool m_textStatsRendering{ false };
+        std::wstring m_wordFreqInput{};
+        int32_t m_wordFreqMode{ 0 };
+        double m_wordFreqMinLength{ 1.0 };
+        bool m_wordFreqCaseInsensitive{ true };
+        bool m_wordFreqStripPunctuation{ true };
+        bool m_wordFreqRemoveStopWords{ false };
+        bool m_wordFreqRendering{ false };
+        winforge::core::textanalysis::WordFrequencyResult m_wordFreqLast{};
+        std::wstring m_stringCompareA{};
+        std::wstring m_stringCompareB{};
+        bool m_stringCompareIgnoreCase{ false };
+        bool m_stringCompareIgnoreWhitespace{ false };
+        bool m_stringCompareRendering{ false };
+        bool m_stringCompareTruncationWarningActive{ false };
+        std::vector<std::pair<std::wstring, std::wstring>> m_stringCompareLastRows;
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -570,6 +611,7 @@ namespace winrt::WinForge::implementation
         void BuildShell();
         void BuildPrimaryNavigation();
         void Navigate(std::wstring_view route, std::wstring_view argument = {}, bool deepLink = false);
+        void ReleaseTextAnalysisRouteState(std::wstring_view nextRoute);
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -752,6 +794,16 @@ namespace winrt::WinForge::implementation
         void RefreshTextWrapReadout();
         void ApplyTextWrap(TextWrapAction action);
         void AnnounceTextWrapStatus(std::wstring_view message, bool warning = false);
+        void RenderTextStats();
+        void RefreshTextStats();
+        void RenderWordFrequency();
+        void RefreshWordFrequency();
+        void RenderStringCompare();
+        void RefreshStringCompare();
+        void AnnounceStringCompareStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
         void RenderAspectRatio();
         void RefreshAspectRatio(bool adoptSimplifiedRatio = true);
         void RefreshAspectScale();

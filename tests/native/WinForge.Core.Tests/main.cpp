@@ -6,6 +6,7 @@
 #include "DesignTools.h"
 #include "DesignToolsTests.h"
 #include "LineProcessingTests.h"
+#include "TextAnalysisTests.h"
 #include "GuidGenTests.h"
 #include "PassGenTests.h"
 #include "PasswordStrengthTests.h"
@@ -288,6 +289,10 @@ int wmain(int argc, wchar_t** argv)
     auto const lineProcessingCounts = RunLineProcessingTests();
     passed += lineProcessingCounts.passed;
     failed += lineProcessingCounts.failed;
+
+    auto const textAnalysisCounts = RunTextAnalysisTests();
+    passed += textAnalysisCounts.passed;
+    failed += textAnalysisCounts.failed;
 
     auto const uuidV7Counts = RunUuidV7Tests();
     passed += uuidV7Counts.passed;

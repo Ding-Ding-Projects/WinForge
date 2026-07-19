@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-19T00:53:44Z",
+    "generatedAtUtc":  "2026-07-19T03:56:04Z",
     "baselineCommit":  "ce879cc6626eae328ec72e0143761c0edfbae340",
     "baselineCounts":  {
                            "routes":  346,
@@ -7074,25 +7074,67 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
-                                  ],
+                                       "src/WinForge.App/Resources/modules.json",
+                                       "src/WinForge.App/MainWindow.xaml.h",
+                                       "src/WinForge.App/MainWindow.xaml.cpp",
+                                       "src/WinForge.Core/RouteIndex.h",
+                                       "src/WinForge.Core/RouteIndex.cpp",
+                                       "src/WinForge.Core/TextAnalysis.h",
+                                       "src/WinForge.Core/TextAnalysis.cpp",
+                                       "tests/native/WinForge.Core.Tests/TextAnalysisTests.h",
+                                       "tests/native/WinForge.Core.Tests/TextAnalysisTests.cpp",
+                                       "tests/native/WinForge.Core.Tests/main.cpp",
+                                       "eng/native/Invoke-NativeShellSmoke.ps1",
+                                       "Pages/StringCompareModule.xaml",
+                                       "Pages/StringCompareModule.xaml.cs",
+                                       "Services/StringCompareService.cs",
+                                       "tools/Generate-WikiFeatureDocs.ps1",
+                                       "README.md",
+                                       "docs/Native-Cpp-Rewrite.md",
+                                       "docs/wiki/Native-Cpp-Rewrite.md",
+                                       "design/content/Native-Cpp-Rewrite.md",
+                                       "design/content/wiki/Native-Cpp-Rewrite.md",
+                                       "docs/wiki/features/text-tools/stringcompare.md",
+                                       "docs/wiki/Screenshots.md",
+                                       "docs/Native-Installer-CI.md",
+                                       "handoff-summary.md",
+                                       "design/content/handoff.md",
+                                       "AGENT_MEMORY.md",
+                                       ".github/workflows/native-release.yml",
+                                       "eng/native/Test-NativeInstallerContract.ps1",
+                                       "installer/WinForge.Native.iss"
+                                   ],
                        "risk":  "stateful",
                        "expected":  "String Compare · 字串相似度 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "behavior-pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-19T03:40:53Z",
+                                           "result":  "Dedicated C++/WinRT String Compare is backed by standard-C++ TextAnalysis and preserves normalization, UTF-16 length/Hamming metrics, optimal-string-alignment distance, Jaro-Winkler, longest common substring/subsequence, and the managed greater-than-2,000 guard. Exact greedy Jaro matching is optimized subquadratically and route-exit cleanup releases retained strings, controls, vectors, and rows. Native Debug and Release builds each exited 0; both core executables passed 714/714 including Text Analysis 84/84; managed StructuredTextTools.Tests passed 7/7; catalog parity covered 346 fixed routes plus five dynamic families; the managed Debug x64 solution build exited 0 with 0 errors; and focused -TextAnalysisRoutesOnly UI Automation passed 40/40 across seven aliases, including similarity, stringcompare, and module.stringcompare. The default-safe focused run did not mutate the clipboard; Copy remains an explicit-only opt-in action.",
+                                           "status":  "behavior-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T03:40:53Z",
+                                           "result":  "Final exhaustive native shell passed 388/388 (388 passed, 0 failed) on final source after the Text Diff height assertion was made DPI-aware; the focused utility rerun passed 39/39. Visual capture evidence is recorded in the following attempt.",
+                                           "status":  "test-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T03:56:04Z",
+                                           "result":  "LowLevel Computer Use MCP 1.28.1 created winforge-stringcompare-capture, launched similarity as PID 26228, and resolved WinUIDesktopWin32WindowClass HWND 49153286 at 1980x1320. Full 1980x1320 and client-only 1958x1264 screenshots reported rendered_ok=true, but original inspection showed frame-only white content and pixel audit found the client was exactly one RGB color (255,255,255). The repository driver independently ran similarity with -Native -WaitMs 16000 and exited 1: CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session. Both invalid MCP PNGs were removed, the driver retained no invalid file, PID 26228 was force-terminated, the named desktop closed successfully, no WinForge process remained, and no canonical screenshot changed.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中. Debug/Release build, 714/714 core, Text Analysis 84/84, managed 7/7, catalog parity, managed 0-error build, seven-alias UIA 40/40, utility 39/39, exhaustive shell 388/388 (388 passed, 0 failed), safe local behavior, subquadratic exact greedy Jaro, route-exit cleanup, and explicit-only clipboard policy are green. MCP and driver independently launched the canonical page but produced inspected pure-white/blank clients; invalid images, exact PID, and private desktop were cleaned and no canonical screenshot changed. Visual is conclusively capture-blocked, so the row remains in-progress. 專項同完整行為證據已通過；MCP 同 driver 獨立開到頁面但擷取係檢查過嘅純白／空白 client，無效圖、PID 同 private desktop 已清理，冇改 canonical 截圖。Visual 最終係 capture-blocked，row 保持 in-progress。"
                    },
                    {
                        "id":  "module.stringinspector",
@@ -7596,25 +7638,67 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
-                                  ],
+                                       "src/WinForge.App/Resources/modules.json",
+                                       "src/WinForge.App/MainWindow.xaml.h",
+                                       "src/WinForge.App/MainWindow.xaml.cpp",
+                                       "src/WinForge.Core/RouteIndex.h",
+                                       "src/WinForge.Core/RouteIndex.cpp",
+                                       "src/WinForge.Core/TextAnalysis.h",
+                                       "src/WinForge.Core/TextAnalysis.cpp",
+                                       "tests/native/WinForge.Core.Tests/TextAnalysisTests.h",
+                                       "tests/native/WinForge.Core.Tests/TextAnalysisTests.cpp",
+                                       "tests/native/WinForge.Core.Tests/main.cpp",
+                                       "eng/native/Invoke-NativeShellSmoke.ps1",
+                                       "Pages/TextStatsModule.xaml",
+                                       "Pages/TextStatsModule.xaml.cs",
+                                       "Services/TextStatsService.cs",
+                                       "tools/Generate-WikiFeatureDocs.ps1",
+                                       "README.md",
+                                       "docs/Native-Cpp-Rewrite.md",
+                                       "docs/wiki/Native-Cpp-Rewrite.md",
+                                       "design/content/Native-Cpp-Rewrite.md",
+                                       "design/content/wiki/Native-Cpp-Rewrite.md",
+                                       "docs/wiki/features/text-tools/textstats.md",
+                                       "docs/wiki/Screenshots.md",
+                                       "docs/Native-Installer-CI.md",
+                                       "handoff-summary.md",
+                                       "design/content/handoff.md",
+                                       "AGENT_MEMORY.md",
+                                       ".github/workflows/native-release.yml",
+                                       "eng/native/Test-NativeInstallerContract.ps1",
+                                       "installer/WinForge.Native.iss"
+                                   ],
                        "risk":  "stateful",
                        "expected":  "Text Statistics · 文字統計 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "behavior-pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-19T03:40:53Z",
+                                           "result":  "Dedicated C++/WinRT Text Statistics is backed by standard-C++ TextAnalysis and preserves managed UTF-16/CJK-aware word, sentence, paragraph, average-length, reading/speaking-time, Flesch-readability, and top-ten-word contracts. Native Debug and Release builds each exited 0; both core executables passed 714/714 including Text Analysis 84/84; managed StructuredTextTools.Tests passed 7/7; catalog parity covered 346 fixed routes plus five dynamic families; the managed Debug x64 solution build exited 0 with 0 errors; and focused -TextAnalysisRoutesOnly UI Automation passed 40/40 across seven aliases, including textstats and module.textstats. The feature is local-only and has no clipboard, file, network, process, or operating-system side effect.",
+                                           "status":  "behavior-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T03:40:53Z",
+                                           "result":  "Final exhaustive native shell passed 388/388 (388 passed, 0 failed) on final source after the Text Diff height assertion was made DPI-aware; the focused utility rerun passed 39/39. Visual capture evidence is recorded in the following attempt.",
+                                           "status":  "test-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T03:56:04Z",
+                                           "result":  "LowLevel Computer Use MCP 1.28.1 created winforge-textstats-capture, launched textstats as PID 24016, and resolved WinUIDesktopWin32WindowClass HWND 49022214 at 1980x1320. Full 1980x1320 and client-only 1958x1264 screenshots reported rendered_ok=true, but original inspection showed frame-only white content and pixel audit found the client was exactly one RGB color (255,255,255). The repository driver independently ran textstats with -Native -WaitMs 16000 and exited 1: CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session. Both invalid MCP PNGs were removed, the driver retained no invalid file, PID 24016 was force-terminated, the named desktop closed successfully, no WinForge process remained, and no canonical screenshot changed.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中. Debug/Release build, 714/714 core, Text Analysis 84/84, managed 7/7, catalog parity, managed 0-error build, seven-alias UIA 40/40, utility 39/39, exhaustive shell 388/388 (388 passed, 0 failed), and side-effect-free local behavior are green. MCP and driver independently launched the canonical page but produced inspected pure-white/blank clients; invalid images, exact PID, and private desktop were cleaned and no canonical screenshot changed. Visual is conclusively capture-blocked, so the row remains in-progress. 專項同完整行為證據已通過；MCP 同 driver 獨立開到頁面但擷取係檢查過嘅純白／空白 client，無效圖、PID 同 private desktop 已清理，冇改 canonical 截圖。Visual 最終係 capture-blocked，row 保持 in-progress。"
                    },
                    {
                        "id":  "module.texttemplate",
@@ -8608,25 +8692,67 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
-                                  ],
+                                       "src/WinForge.App/Resources/modules.json",
+                                       "src/WinForge.App/MainWindow.xaml.h",
+                                       "src/WinForge.App/MainWindow.xaml.cpp",
+                                       "src/WinForge.Core/RouteIndex.h",
+                                       "src/WinForge.Core/RouteIndex.cpp",
+                                       "src/WinForge.Core/TextAnalysis.h",
+                                       "src/WinForge.Core/TextAnalysis.cpp",
+                                       "tests/native/WinForge.Core.Tests/TextAnalysisTests.h",
+                                       "tests/native/WinForge.Core.Tests/TextAnalysisTests.cpp",
+                                       "tests/native/WinForge.Core.Tests/main.cpp",
+                                       "eng/native/Invoke-NativeShellSmoke.ps1",
+                                       "Pages/WordFreqModule.xaml",
+                                       "Pages/WordFreqModule.xaml.cs",
+                                       "Services/WordFreqService.cs",
+                                       "tools/Generate-WikiFeatureDocs.ps1",
+                                       "README.md",
+                                       "docs/Native-Cpp-Rewrite.md",
+                                       "docs/wiki/Native-Cpp-Rewrite.md",
+                                       "design/content/Native-Cpp-Rewrite.md",
+                                       "design/content/wiki/Native-Cpp-Rewrite.md",
+                                       "docs/wiki/features/text-tools/wordfreq.md",
+                                       "docs/wiki/Screenshots.md",
+                                       "docs/Native-Installer-CI.md",
+                                       "handoff-summary.md",
+                                       "design/content/handoff.md",
+                                       "AGENT_MEMORY.md",
+                                       ".github/workflows/native-release.yml",
+                                       "eng/native/Test-NativeInstallerContract.ps1",
+                                       "installer/WinForge.Native.iss"
+                                   ],
                        "risk":  "stateful",
                        "expected":  "Word Frequency · 詞頻統計 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "behavior-pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                       {
+                                           "atUtc":  "2026-07-19T03:40:53Z",
+                                           "result":  "Dedicated C++/WinRT Word Frequency is backed by standard-C++ TextAnalysis and preserves word, bigram, and Unicode-scalar modes, managed options and stop-word behavior, current-culture ordering, exact count/bar/percentage rows, and managed-compatible CSV output. Native Debug and Release builds each exited 0; both core executables passed 714/714 including Text Analysis 84/84; managed StructuredTextTools.Tests passed 7/7; catalog parity covered 346 fixed routes plus five dynamic families; the managed Debug x64 solution build exited 0 with 0 errors; and focused -TextAnalysisRoutesOnly UI Automation passed 40/40 across seven aliases, including wordfreq and module.wordfreq. The default-safe focused run did not mutate the clipboard; Copy remains an explicit-only opt-in action.",
+                                           "status":  "behavior-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T03:40:53Z",
+                                           "result":  "Final exhaustive native shell passed 388/388 (388 passed, 0 failed) on final source after the Text Diff height assertion was made DPI-aware; the focused utility rerun passed 39/39. Visual capture evidence is recorded in the following attempt.",
+                                           "status":  "test-pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-19T03:56:04Z",
+                                           "result":  "LowLevel Computer Use MCP 1.28.1 created winforge-wordfreq-capture, launched wordfreq as PID 20180, and resolved WinUIDesktopWin32WindowClass HWND 49087750 at 1980x1320. Full 1980x1320 and client-only 1958x1264 screenshots reported rendered_ok=true, but original inspection showed frame-only white content and pixel audit found the client was exactly one RGB color (255,255,255). The repository driver independently ran wordfreq with -Native -WaitMs 16000 and exited 1: CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session. Both invalid MCP PNGs were removed, the driver retained no invalid file, PID 20180 was force-terminated, the named desktop closed successfully, no WinForge process remained, and no canonical screenshot changed.",
+                                           "status":  "capture-blocked"
+                                       }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-18 · IN PROGRESS / 進行中. Debug/Release build, 714/714 core, Text Analysis 84/84, managed 7/7, catalog parity, managed 0-error build, seven-alias UIA 40/40, utility 39/39, exhaustive shell 388/388 (388 passed, 0 failed), current-culture ranking, exact CSV, safe local behavior, and explicit-only clipboard policy are green. MCP and driver independently launched the canonical page but produced inspected pure-white/blank clients; invalid images, exact PID, and private desktop were cleaned and no canonical screenshot changed. Visual is conclusively capture-blocked, so the row remains in-progress. 專項同完整行為證據已通過；MCP 同 driver 獨立開到頁面但擷取係檢查過嘅純白／空白 client，無效圖、PID 同 private desktop 已清理，冇改 canonical 截圖。Visual 最終係 capture-blocked，row 保持 in-progress。"
                    },
                    {
                        "id":  "module.workspaces",
