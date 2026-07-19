@@ -58,6 +58,7 @@
     <ClCompile Include="CheckDigitTests.cpp" />
     <ClCompile Include="CodecTests.cpp" />
     <ClCompile Include="DesignToolsTests.cpp" />
+    <ClCompile Include="LineProcessingTests.cpp" />
     <ClCompile Include="GuidGenTests.cpp" />
     <ClCompile Include="PassGenTests.cpp" />
     <ClCompile Include="PasswordStrengthTests.cpp" />
@@ -82,6 +83,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\Codec.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\DesignTools.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\LineProcessing.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PassGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PasswordStrength.cpp" />
@@ -108,6 +110,7 @@
     <ClInclude Include="CheckDigitTests.h" />
     <ClInclude Include="CodecTests.h" />
     <ClInclude Include="DesignToolsTests.h" />
+    <ClInclude Include="LineProcessingTests.h" />
     <ClInclude Include="GuidGenTests.h" />
     <ClInclude Include="PassGenTests.h" />
     <ClInclude Include="PasswordStrengthTests.h" />
@@ -129,6 +132,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\Codec.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\DesignTools.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\LineProcessing.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PassGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PasswordStrength.h" />

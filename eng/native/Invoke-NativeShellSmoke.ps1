@@ -3,7 +3,8 @@ param(
     [string]$RepoRoot,
     [string]$ExecutablePath,
     [int]$TimeoutMs = 10000,
-    [switch]$UtilityRoutesOnly
+    [switch]$UtilityRoutesOnly,
+    [switch]$LineRoutesOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -514,10 +515,17 @@ function Invoke-OwnedRoute {
         [scriptblock]$Inspect
     )
 
-    if ($UtilityRoutesOnly -and (@(
+    $isUtilityRoute = @(
         'textdiff', 'module.textdiff',
         'aspect', 'aspectratio', 'module.aspectratio',
-        'cssunits', 'module.cssunits') -notcontains $Route)) {
+        'cssunits', 'module.cssunits') -contains $Route
+    $isLineRoute = @(
+        'lines', 'linetools', 'module.linetools',
+        'textsort', 'module.textsort',
+        'textwrap', 'module.textwrap') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly) -and -not (
+        ($UtilityRoutesOnly -and $isUtilityRoute) -or
+        ($LineRoutesOnly -and $isLineRoute))) {
         return
     }
 
@@ -1906,10 +1914,11 @@ function Navigate-InProcessToRoute {
     $dashboardSelection.Select()
     Wait-ForPageTitle -Root $Root -Prefix 'WinForge Native' | Out-Null
 
-    $shellSearch = Wait-ForElement -Root $Root -AutomationId 'NativeShellSearchBox'
-    if ($shellSearch.Current.IsOffscreen) {
+    $shellSearch = Find-ByAutomationId -Root $Root -AutomationId 'NativeShellSearchBox'
+    if (-not $shellSearch -or $shellSearch.Current.IsOffscreen) {
         Invoke-ElementByAutomationId -Root $Root -AutomationId 'TogglePaneButton'
     }
+    $shellSearch = Wait-ForElement -Root $Root -AutomationId 'NativeShellSearchBox'
     Set-EditableValueAndWait -Root $Root -AutomationId 'NativeShellSearchBox' -Value $Route | Out-Null
     Invoke-ElementByAutomationId -Root $Root -AutomationId 'NativeShellSearchExecute'
     $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
@@ -2169,6 +2178,522 @@ Invoke-OwnedRoute -Route 'textdiff' -ExpectedTitle 'Text Diff' -Inspect {
 }
 
 Invoke-OwnedRoute -Route 'module.textdiff' -ExpectedTitle 'Text Diff'
+
+Invoke-OwnedRoute -Route 'lines' -ExpectedTitle 'Line Tools' -Inspect {
+    param($root, $title)
+
+    $lineToolsIds = @(
+        'NativeLineToolsImplementationStatus',
+        'NativeLineToolsInput',
+        'NativeLineToolsCounts',
+        'NativeLineToolsPrefix',
+        'NativeLineToolsSuffix',
+        'NativeLineToolsDelimiter',
+        'NativeLineToolsNumberDot',
+        'NativeLineToolsNumberParen',
+        'NativeLineToolsRemoveNumbers',
+        'NativeLineToolsAddPrefix',
+        'NativeLineToolsAddSuffix',
+        'NativeLineToolsQuotes',
+        'NativeLineToolsJoin',
+        'NativeLineToolsSplit',
+        'NativeLineToolsReverseChars',
+        'NativeLineToolsSort',
+        'NativeLineToolsReverseOrder',
+        'NativeLineToolsShuffle',
+        'NativeLineToolsDedupe',
+        'NativeLineToolsRemoveEmpty',
+        'NativeLineToolsTrim',
+        'NativeLineToolsOutput',
+        'NativeLineToolsCopy',
+        'NativeLineToolsStatus'
+    )
+    foreach ($id in $lineToolsIds) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $lineToolsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsPrefix'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsSuffix'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsDelimiter'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsNumberDot'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsSplit'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsTrim'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeLineToolsCopy'))
+    Assert-True -Condition $lineToolsFit `
+        -Name 'Line Tools exposes native editors, actions, accessibility, and horizontal clipping safety'
+
+    $lineInput = Wait-ForElement -Root $root -AutomationId 'NativeLineToolsInput'
+    $lineOutput = Wait-ForElement -Root $root -AutomationId 'NativeLineToolsOutput'
+    Assert-True -Condition (
+        $lineInput.Current.Name.StartsWith('Line Tools input', [StringComparison]::Ordinal) -and
+        $lineOutput.Current.Name.StartsWith('Line Tools output', [StringComparison]::Ordinal)) `
+        -Name 'Line Tools input and output editors expose localized accessible names'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsPrefix' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsSuffix' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsDelimiter' -ExpectedValue ', ' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeLineToolsCounts' `
+        -Prefix '0 lines' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeLineToolsStatus' `
+        -Prefix 'Ready.' | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools starts with managed-parity empty editors, delimiter, counts, and status'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeLineToolsStatus' `
+        -Prefix 'Nothing to copy yet.' | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools refuses an empty clipboard write with an explicit status'
+
+    # WinUI's UIA provider exposes multiline TextBox values with lone CR separators.
+    $newLine = "`r"
+    $threeLines = @('alpha', '', 'Beta') -join $newLine
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' -Value $threeLines | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeLineToolsCounts' `
+        -Prefix '3 lines' | Out-Null
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsNumberDot'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('1. alpha', '2. ', '3. Beta') -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsNumberParen'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('1) alpha', '2) ', '3) Beta') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools numbers every line with both managed formats, including blank lines'
+
+    $unicodeDigit = [char]0x06F3
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' `
+        -Value (@('1. alpha', '2) beta', "$unicodeDigit`: gamma") -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsRemoveNumbers'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('alpha', 'beta', 'gamma') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools removes ASCII and Unicode decimal line-number prefixes'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' -Value $threeLines | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsPrefix' -Value '> ' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsAddPrefix'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('> alpha', '> ', '> Beta') -join $newLine) | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsSuffix' -Value '!' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsAddSuffix'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('alpha!', '!', 'Beta!') -join $newLine) | Out-Null
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsQuotes'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('"alpha"', '""', '"Beta"') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools applies prefix, suffix, and quote transforms to every line'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsDelimiter' -Value ' | ' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsJoin'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue 'alpha |  | Beta' | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsDelimiter' -Value ', ' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' -Value 'alpha, beta, gamma' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsSplit'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('alpha', 'beta', 'gamma') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools joins and splits with the literal delimiter'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' `
+        -Value (@('abc', 'de') -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsReverseChars'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('cba', 'ed') -join $newLine) | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' `
+        -Value (@('gamma', 'alpha', 'Beta') -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsSort'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('alpha', 'Beta', 'gamma') -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsReverseOrder'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('Beta', 'alpha', 'gamma') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools reverses characters, sorts ordinal-ignore-case, and reverses input order'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' `
+        -Value (@('Alpha', 'alpha', 'beta') -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsDedupe'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('Alpha', 'beta') -join $newLine) | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' `
+        -Value (@('alpha', '   ', 'beta') -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsRemoveEmpty'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('alpha', 'beta') -join $newLine) | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' `
+        -Value (@('  alpha  ', "`tbeta`t") -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsTrim'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' `
+        -ExpectedValue (@('alpha', 'beta') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools deduplicates first-win, removes whitespace-only lines, and trims line edges'
+
+    $shuffleInput = @('alpha', 'beta', 'gamma') -join $newLine
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeLineToolsInput' -Value $shuffleInput | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsShuffle'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeLineToolsStatus' `
+        -Prefix 'Shuffled' | Out-Null
+    $shuffleOutput = (Get-EditableValuePattern -Element (
+        Wait-ForElement -Root $root -AutomationId 'NativeLineToolsOutput')).Current.Value
+    $shuffleLines = @($shuffleOutput -split "`r`n|`r|`n")
+    $shuffleMembersMatch = @(Compare-Object @('alpha', 'beta', 'gamma') ($shuffleLines | Sort-Object)).Count -eq 0
+    Assert-True -Condition ($shuffleLines.Count -eq 3 -and $shuffleMembersMatch) `
+        -Name 'Line Tools shuffles without losing or adding lines'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeLineToolsCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeLineToolsStatus' `
+        -Prefix 'Output copied to the clipboard.' | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools copies populated output only through the explicit Copy action'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsInput' -ExpectedValue $shuffleInput | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsPrefix' -ExpectedValue '> ' | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' -ExpectedValue $shuffleOutput | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools localizes in place while preserving input, settings, and output'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.linetools' -ExpectedTitle 'Line Tools'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsPrefix' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsSuffix' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeLineToolsDelimiter' -ExpectedValue ', ' | Out-Null
+    Assert-True -Condition $true -Name 'Line Tools resets managed page state after in-process route re-entry'
+}
+
+foreach ($alias in @('linetools', 'module.linetools')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Line Tools'
+}
+
+Invoke-OwnedRoute -Route 'textsort' -ExpectedTitle 'Line Sort & Dedupe' -Inspect {
+    param($root, $title)
+
+    $textSortIds = @(
+        'NativeTextSortImplementationStatus',
+        'NativeTextSortMode',
+        'NativeTextSortCaseInsensitive',
+        'NativeTextSortDedupe',
+        'NativeTextSortTrimCompare',
+        'NativeTextSortReverse',
+        'NativeTextSortShuffle',
+        'NativeTextSortRemoveBlank',
+        'NativeTextSortTrimEach',
+        'NativeTextSortApply',
+        'NativeTextSortReshuffle',
+        'NativeTextSortCopy',
+        'NativeTextSortClear',
+        'NativeTextSortStats',
+        'NativeTextSortInput',
+        'NativeTextSortOutput'
+    )
+    foreach ($id in $textSortIds) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $textSortFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextSortMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextSortCaseInsensitive'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextSortTrimCompare'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextSortRemoveBlank'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextSortApply'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextSortClear'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextSortInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextSortOutput'))
+    Assert-True -Condition $textSortFit `
+        -Name 'Text Sort exposes native options, editors, actions, accessibility, and horizontal clipping safety'
+
+    $sortInput = Wait-ForElement -Root $root -AutomationId 'NativeTextSortInput'
+    $sortOutput = Wait-ForElement -Root $root -AutomationId 'NativeTextSortOutput'
+    Assert-True -Condition (
+        $sortInput.Current.Name.StartsWith('Text Sort input', [StringComparison]::Ordinal) -and
+        $sortOutput.Current.Name.StartsWith('Text Sort output', [StringComparison]::Ordinal)) `
+        -Name 'Text Sort editors expose localized accessible names'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextSortStats' `
+        -Prefix 'Lines in: 0' | Out-Null
+    $defaultTogglesOff = $true
+    foreach ($id in @(
+        'NativeTextSortCaseInsensitive', 'NativeTextSortDedupe', 'NativeTextSortTrimCompare',
+        'NativeTextSortReverse', 'NativeTextSortShuffle', 'NativeTextSortRemoveBlank',
+        'NativeTextSortTrimEach')) {
+        $toggle = [System.Windows.Automation.TogglePattern](
+            Wait-ForElement -Root $root -AutomationId $id).GetCurrentPattern(
+                [System.Windows.Automation.TogglePattern]::Pattern)
+        if ($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::Off) {
+            $defaultTogglesOff = $false
+        }
+    }
+    Assert-True -Condition $defaultTogglesOff `
+        -Name 'Text Sort starts ascending with all seven managed option defaults off'
+
+    $newLine = "`r"
+    $modePicker = Wait-ForElement -Root $root -AutomationId 'NativeTextSortMode'
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextSortInput' `
+        -Value (@('c', 'a', 'b') -join $newLine) | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('a', 'b', 'c') -join $newLine) | Out-Null
+    Select-ComboIndex -Combo $modePicker -Index 0
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('c', 'a', 'b') -join $newLine) | Out-Null
+    Select-ComboIndex -Combo $modePicker -Index 2
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('c', 'b', 'a') -join $newLine) | Out-Null
+    Select-ComboIndex -Combo $modePicker -Index 3
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextSortInput' `
+        -Value (@('file10', 'file2', 'file1') -join $newLine) | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('file1', 'file2', 'file10') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Text Sort exercises keep-order, ascending, descending, and natural sort modes'
+
+    $modePicker = Wait-ForElement -Root $root -AutomationId 'NativeTextSortMode'
+    Select-ComboIndex -Combo $modePicker -Index 1
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextSortInput' `
+        -Value (@('alpha', 'Beta') -join $newLine) | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('Beta', 'alpha') -join $newLine) | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeTextSortCaseInsensitive' -IsOn $true | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('alpha', 'Beta') -join $newLine) | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextSortInput' `
+        -Value (@('alpha', ' alpha ', 'beta') -join $newLine) | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeTextSortDedupe' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeTextSortTrimCompare' -IsOn $true | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('alpha', 'beta') -join $newLine) | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextSortStats' `
+        -Prefix 'Lines in: 3   ' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Text Sort applies ordinal ignore-case and trim-before-compare first-win deduplication'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextSortInput' `
+        -Value (@('  Beta  ', 'alpha', 'ALPHA', '   ', 'gamma') -join $newLine) | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeTextSortRemoveBlank' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeTextSortTrimEach' -IsOn $true | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('alpha', 'Beta', 'gamma') -join $newLine) | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextSortStats' `
+        -Prefix 'Lines in: 5   ' | Out-Null
+
+    Set-ToggleState -Root $root -AutomationId 'NativeTextSortReverse' -IsOn $true | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('gamma', 'Beta', 'alpha') -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextSortApply'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' `
+        -ExpectedValue (@('gamma', 'Beta', 'alpha') -join $newLine) | Out-Null
+
+    Set-ToggleState -Root $root -AutomationId 'NativeTextSortShuffle' -IsOn $true | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextSortReshuffle'
+    $sortShuffleOutput = (Get-EditableValuePattern -Element (
+        Wait-ForElement -Root $root -AutomationId 'NativeTextSortOutput')).Current.Value
+    $sortShuffleLines = @($sortShuffleOutput -split "`r`n|`r|`n")
+    $sortShuffleMembersMatch = @(
+        Compare-Object @('alpha', 'Beta', 'gamma') ($sortShuffleLines | Sort-Object)).Count -eq 0
+    Assert-True -Condition ($sortShuffleLines.Count -eq 3 -and $sortShuffleMembersMatch) `
+        -Name 'Text Sort Apply and Re-shuffle recompute without losing cleaned lines'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextSortCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextSortStats' `
+        -Prefix 'Copied to clipboard.' | Out-Null
+    Assert-True -Condition $true -Name 'Text Sort copies output only through its explicit Copy action'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortInput' `
+        -ExpectedValue (@('  Beta  ', 'alpha', 'ALPHA', '   ', 'gamma') -join $newLine) | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    $shuffleToggle = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeTextSortShuffle').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($shuffleToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) `
+        -Name 'Text Sort localizes in place while preserving input and option state'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextSortClear'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' -ExpectedValue '' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextSortCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextSortStats' `
+        -Prefix 'Copied to clipboard.' | Out-Null
+    Assert-True -Condition $true -Name 'Text Sort Clear preserves options and Copy accepts the managed empty result'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.textsort' -ExpectedTitle 'Line Sort & Dedupe'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextSortOutput' -ExpectedValue '' | Out-Null
+    $resetTogglesOff = $true
+    foreach ($id in @(
+        'NativeTextSortCaseInsensitive', 'NativeTextSortDedupe', 'NativeTextSortTrimCompare',
+        'NativeTextSortReverse', 'NativeTextSortShuffle', 'NativeTextSortRemoveBlank',
+        'NativeTextSortTrimEach')) {
+        $toggle = [System.Windows.Automation.TogglePattern](
+            Wait-ForElement -Root $root -AutomationId $id).GetCurrentPattern(
+                [System.Windows.Automation.TogglePattern]::Pattern)
+        if ($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::Off) {
+            $resetTogglesOff = $false
+        }
+    }
+    Assert-True -Condition $resetTogglesOff `
+        -Name 'Text Sort resets managed page state after in-process route re-entry'
+}
+
+Invoke-OwnedRoute -Route 'module.textsort' -ExpectedTitle 'Line Sort & Dedupe'
+
+Invoke-OwnedRoute -Route 'textwrap' -ExpectedTitle 'Text Wrap' -Inspect {
+    param($root, $title)
+
+    $textWrapIds = @(
+        'NativeTextWrapImplementationStatus',
+        'NativeTextWrapInput',
+        'NativeTextWrapWidth',
+        'NativeTextWrapReadout',
+        'NativeTextWrapBreakLong',
+        'NativeTextWrapPrefix',
+        'NativeTextWrapIndent',
+        'NativeTextWrapHardWrap',
+        'NativeTextWrapUnwrap',
+        'NativeTextWrapReflow',
+        'NativeTextWrapAddPrefix',
+        'NativeTextWrapHangingIndent',
+        'NativeTextWrapOutput',
+        'NativeTextWrapCopy',
+        'NativeTextWrapStatus'
+    )
+    foreach ($id in $textWrapIds) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $textWrapFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapWidth'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapBreakLong'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapPrefix'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapIndent'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapHardWrap'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapHangingIndent'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapCopy'))
+    Assert-True -Condition $textWrapFit `
+        -Name 'Text Wrap exposes native editors, options, actions, accessibility, and horizontal clipping safety'
+
+    $wrapInput = Wait-ForElement -Root $root -AutomationId 'NativeTextWrapInput'
+    $wrapOutput = Wait-ForElement -Root $root -AutomationId 'NativeTextWrapOutput'
+    Assert-True -Condition (
+        $wrapInput.Current.Name.StartsWith('Text Wrap input', [StringComparison]::Ordinal) -and
+        $wrapOutput.Current.Name.StartsWith('Text Wrap output', [StringComparison]::Ordinal)) `
+        -Name 'Text Wrap editors expose localized accessible names'
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapWidth' -ExpectedValue '72' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapPrefix' -ExpectedValue '> ' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapIndent' -ExpectedValue '4' | Out-Null
+    $breakLong = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeTextWrapBreakLong').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextWrapReadout' `
+        -Prefix 'Target 72 cols' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextWrapStatus' `
+        -Prefix 'Ready.' | Out-Null
+    Assert-True -Condition ($breakLong.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'Text Wrap starts with the managed 72-column, prefix, indent, and break-word defaults'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextWrapStatus' `
+        -Prefix 'Nothing to copy.' | Out-Null
+    Assert-True -Condition $true -Name 'Text Wrap refuses an empty clipboard write with an explicit status'
+
+    $newLine = "`r"
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextWrapWidth' -Value '10' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapInput').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextWrapReadout' `
+        -Prefix 'Target 10 cols' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextWrapInput' -Value 'alpha beta gamma' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapHardWrap'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' `
+        -ExpectedValue (@('alpha beta', 'gamma') -join $newLine) | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextWrapReadout' `
+        -Prefix 'Target 10 cols' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextWrapStatus' `
+        -Prefix 'Hard-wrapped.' | Out-Null
+    Assert-True -Condition $true -Name 'Text Wrap hard-wraps greedily and updates its live measurement readout'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextWrapWidth' -Value '5' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextWrapInput' -Value 'abcdefghijkl' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapHardWrap'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' -ExpectedValue 'abcdefghijkl' | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeTextWrapBreakLong' -IsOn $true | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapHardWrap'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' `
+        -ExpectedValue (@('abcde', 'fghij', 'kl') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Text Wrap preserves or chunks over-width words according to the explicit option'
+
+    Set-ToggleState -Root $root -AutomationId 'NativeTextWrapBreakLong' -IsOn $false | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextWrapInput' `
+        -Value (@('alpha beta', 'gamma') -join $newLine) | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapUnwrap'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' `
+        -ExpectedValue 'alpha beta gamma' | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextWrapWidth' -Value '10' | Out-Null
+    (Wait-ForElement -Root $root -AutomationId 'NativeTextWrapInput').SetFocus()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextWrapReadout' `
+        -Prefix 'Target 10 cols' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapReflow'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' `
+        -ExpectedValue (@('alpha beta', 'gamma') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Text Wrap unwraps and reflows from the original input contract'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextWrapPrefix' -Value '> ' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapAddPrefix'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' `
+        -ExpectedValue (@('> alpha beta', '> gamma') -join $newLine) | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeTextWrapIndent' -Value '4' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapHangingIndent'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' `
+        -ExpectedValue (@('> alpha beta', '    > gamma') -join $newLine) | Out-Null
+    Assert-True -Condition $true -Name 'Text Wrap chains prefix and hanging-indent actions from populated output'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeTextWrapCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeTextWrapStatus' `
+        -Prefix 'Copied to clipboard.' | Out-Null
+    Assert-True -Condition $true -Name 'Text Wrap copies populated output only through its explicit Copy action'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapInput' `
+        -ExpectedValue (@('alpha beta', 'gamma') -join $newLine) | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' `
+        -ExpectedValue (@('> alpha beta', '    > gamma') -join $newLine) | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapWidth' -ExpectedValue '10' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Text Wrap localizes in place while preserving input, options, and chained output'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.textwrap' -ExpectedTitle 'Text Wrap'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapInput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapWidth' -ExpectedValue '72' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapPrefix' -ExpectedValue '> ' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeTextWrapIndent' -ExpectedValue '4' | Out-Null
+    $breakLong = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeTextWrapBreakLong').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($breakLong.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) `
+        -Name 'Text Wrap resets managed page state after in-process route re-entry'
+}
+
+Invoke-OwnedRoute -Route 'module.textwrap' -ExpectedTitle 'Text Wrap'
 
 Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {
     param($root, $title)

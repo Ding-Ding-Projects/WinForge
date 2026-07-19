@@ -5,6 +5,7 @@
 #include "CodecTests.h"
 #include "DesignTools.h"
 #include "DesignToolsTests.h"
+#include "LineProcessingTests.h"
 #include "GuidGenTests.h"
 #include "PassGenTests.h"
 #include "PasswordStrengthTests.h"
@@ -214,6 +215,9 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L"MODULE.TEXTDIFF") &&
         winforge::core::HasNativeRenderer(L"module.aspectratio") &&
         winforge::core::HasNativeRenderer(L"module.cssunits") &&
+        winforge::core::HasNativeRenderer(L" module.linetools ") &&
+        winforge::core::HasNativeRenderer(L"MODULE.TEXTSORT") &&
+        winforge::core::HasNativeRenderer(L"module.textwrap") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
@@ -280,6 +284,10 @@ int wmain(int argc, wchar_t** argv)
     auto const designToolsCounts = RunDesignToolsTests();
     passed += designToolsCounts.passed;
     failed += designToolsCounts.failed;
+
+    auto const lineProcessingCounts = RunLineProcessingTests();
+    passed += lineProcessingCounts.passed;
+    failed += lineProcessingCounts.failed;
 
     auto const uuidV7Counts = RunUuidV7Tests();
     passed += uuidV7Counts.passed;

@@ -41,6 +41,14 @@ namespace winforge::core::textdiff
         bool ignoreWhitespace = false,
         bool ignoreCase = false);
 
+    // Shared invariant, non-expanding UTF-16 uppercase operations. Text Diff's
+    // oracle uses ToUpperInvariant directly. The OrdinalIgnoreCase equality key
+    // differs only for U+017F; sibling sorters additionally apply CoreLib's
+    // scalar-aware valid-surrogate ordering to these folded keys.
+    [[nodiscard]] std::wstring ToUpperInvariantKey(std::wstring_view input);
+    [[nodiscard]] wchar_t ToUpperInvariantCodeUnit(wchar_t input) noexcept;
+    [[nodiscard]] std::wstring FoldOrdinalIgnoreCase(std::wstring_view input);
+
     // Emits the oracle's unified-style representation, including its fixed header.
     // Errors are contained and return an empty string.
     [[nodiscard]] std::wstring ToUnifiedDiff(DiffResult const& result);
