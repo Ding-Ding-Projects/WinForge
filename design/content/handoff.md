@@ -1,5 +1,11 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## 2026-07-19 native Percentage Calculator slice — focused routes green; visual capture blocked · 2026-07-19 原生百分比計算器批次 — 專項 route 通過；視覺擷取受阻
+
+**EN.** `percent`, `percentage`, and `module.percentcalc` now use a dedicated C++/WinRT Percentage Calculator backed by standard-C++ `PercentCalc`. The slice preserves six managed calculation cards, locale/invariant number parsing, six-place away-from-zero display rounding, banker's tip splitting, guarded invalid/zero-denominator results, route lifecycle reset, and explicit-only clipboard Copy. Renderer accounting is **31/346** (**31 `in-progress` / 315 `not-started`**) plus five dynamic families. Native Debug/Release builds exit 0 with 0 errors; both core suites are **796/796** including Percent Calculator **37/37**; catalog parity is 346+5; and focused three-alias UIA is **13/13**. LowLevel MCP is unavailable; the native driver rejected its blank/near-uniform fallback, so no PNG/canonical screenshot changed and visual remains `capture-blocked`.
+
+**粵語.** `percent`、`percentage` 同 `module.percentcalc` 而家用專用 C++/WinRT 百分比計算器同標準 C++ `PercentCalc`。六張 managed 計算卡、目前文化／invariant 解析、六位向遠離零捨入、小費 banker's rounding、受保護錯誤、route reset 同只限明確 Copy 都有保留。Renderer 係 **31/346**（**31 `in-progress`／315 `not-started`**）加五組動態家族；Debug／Release 0 errors、core 各 **796/796**（包括 **37/37**）、catalog parity 346+5、三個 alias UIA **13/13**。今次冇 LowLevel MCP，driver 拒絕空白／近乎單色 fallback，冇 PNG／冇 canonical 截圖變更，visual 保持 `capture-blocked`。分支只改功能，唔改 workflow／release policy，等受控整合。
+
 ## 2026-07-19 native reference-text wave — focused routes green; visual capture blocked · 2026-07-19 原生參考文字批次 — 專項 route 通過；視覺擷取受阻
 
 **EN.** Phonetic Speller, Box & Banner Text, and HTML Entities now have dedicated C++/WinRT renderers over the shared standard-C++ `ReferenceText` core. They preserve three phonetic alphabets and managed UTF-16 code-unit row, digit, and option behavior; eight box/comment styles, three alignments, bounded padding, titles and multiline/tab-aware Unicode layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local, and clipboard writes require explicit Copy.

@@ -1,5 +1,11 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Current 2026-07-19 Percentage Calculator slice / 2026-07-19 最新百分比計算器批次
+
+`percent`, `percentage`, and `module.percentcalc` now open the dedicated C++/WinRT Percentage Calculator over standard-C++ `PercentCalc`, preserving all six managed cards, locale/invariant parsing, six-place away-from-zero display rounding, banker's tip split, guarded errors, route-state reset, and explicit-only clipboard Copy. · `percent`、`percentage` 同 `module.percentcalc` 而家開專用 C++/WinRT 百分比計算器同標準 C++ `PercentCalc`，保留六張 managed 卡、目前文化／invariant 解析、六位向遠離零捨入、小費 banker's rounding、受保護錯誤、route state reset 同只限明確 Copy。
+
+Renderer accounting is **31/346** (**31 `in-progress` / 315 `not-started`**) plus five dynamic families; Debug/Release builds are 0 errors, core is **796/796** including Percent Calculator **37/37**, catalog parity is 346+5, and focused UIA is **13/13** across the three aliases. LowLevel MCP is unavailable; the native driver rejected its blank/near-uniform fallback after `CopyFromScreen` was unavailable. No PNG/canonical screenshot changed, so visual stays `capture-blocked`. · Renderer 係 **31/346**（**31 `in-progress`／315 `not-started`**）加五組動態家族；Debug／Release 0 errors、core **796/796**（包括 Percent Calculator **37/37**）、catalog parity 346+5、三個 alias UIA **13/13**。今次冇 LowLevel MCP；native driver 因 `CopyFromScreen` 唔可用而拒絕空白／近乎單色 fallback；冇 PNG／冇 canonical 截圖變更，所以 visual 保持 `capture-blocked`。
+
 ## Current 2026-07-19 reference-text checkpoint / 2026-07-19 最新參考文字檢查點
 
 Phonetic Speller, Box & Banner Text, and HTML Entities now use dedicated C++/WinRT renderers backed by standard-C++ `ReferenceText`. The routes preserve three phonetic alphabets and managed UTF-16 code-unit rows; eight box/comment styles with alignment, bounded padding, titles and Unicode-aware layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. They are local-only and write the clipboard only after explicit Copy. · 拼讀字母表、文字方框／橫幅同 HTML 實體而家用專用 C++/WinRT renderer 同標準 C++ `ReferenceText`；保留三種拼讀字母表、同 managed 版一致嘅 UTF-16 code-unit 列、八種方框／註解風格、對齊／padding／標題／Unicode-aware 排版，以及具名／數字實體編碼解碼、無效 UTF-16 安全、managed 相容掃描同本機 50 項雙語參考。全部只喺本機做，只有明確 Copy 先會寫剪貼簿。

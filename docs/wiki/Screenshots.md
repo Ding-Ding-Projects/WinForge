@@ -854,3 +854,8 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 - Fresh post-integration `htmlentities` capture (2026-07-19): LowLevel Computer Use MCP was not callable in this Codex session. The process-owned native driver found `CopyFromScreen` unavailable and rejected its blank or near-uniform `PrintWindow` fallback. No PNG was created or retained, no canonical screenshot changed, and the three Reference Text routes remain `capture-blocked`.
 - 整合後最新 `htmlentities` 截圖（2026-07-19）：今次 Codex session 冇可呼叫嘅 LowLevel Computer Use MCP。只屬於本次程序嘅原生 driver 發現 `CopyFromScreen` 唔可用，並拒絕空白／近乎單色 `PrintWindow` fallback。冇建立或保留 PNG、冇改 canonical 截圖，三條 Reference Text route 保持 `capture-blocked`。
+
+## Percentage Calculator native capture status · 原生百分比計算器截圖狀態
+
+- Fresh `percent` capture (2026-07-19): LowLevel Computer Use MCP was not callable in this Codex session. The repository-native driver found `CopyFromScreen` unavailable and rejected its blank or near-uniform `PrintWindow` fallback. No PNG was created or retained, no canonical screenshot changed, and `percent` / `percentage` / `module.percentcalc` remain `capture-blocked`.
+- 最新 `percent` 截圖（2026-07-19）：今次 Codex session 冇可呼叫嘅 LowLevel Computer Use MCP。repository-native driver 發現 `CopyFromScreen` 唔可用，並拒絕空白／近乎單色 `PrintWindow` fallback。冇建立或保留 PNG、冇改 canonical 截圖，`percent`／`percentage`／`module.percentcalc` 保持 `capture-blocked`。

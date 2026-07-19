@@ -5917,25 +5917,37 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/PercentCalc.h",
+                                      "src/WinForge.Core/PercentCalc.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/PercentCalcTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/wiki/features/calculators-numbers/percent.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Percentage Calculator · 百分比計算器 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-19T18:49:56Z",
+                                            "result":  "Dedicated native C++/WinRT Percentage Calculator and standard-C++ PercentCalc core preserve the managed six-card behavior: percent-of, what-percent, percentage change, increase/decrease, tip split, and ratio simplification. Inputs accept current-culture decimal separators with an invariant-dot fallback; display rounds six places away from zero; tip splitting preserves banker's rounding; and copy is an explicit-only clipboard action. Native Debug and Release x64 solution builds exited 0 with 0 errors; Debug and Release core each passed 796/796 including Percent Calculator 37/37; catalog parity covered 346 fixed routes plus five dynamic families; and focused -PercentCalcRoutesOnly UI Automation passed 13/13 across percent, percentage, and module.percentcalc, including English/Cantonese rerender, state reset, narrow bounds, guarded errors, and clipboard policy. LowLevel MCP is not callable in this Codex session. The native repository driver attempted percent but CopyFromScreen was unavailable and its PrintWindow fallback was blank or near-uniform, so no PNG was created or retained and no canonical screenshot changed.",
+                                            "status":  "capture-blocked"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中. Fresh Debug/Release 0-error builds, core 796/796 each including Percent Calculator 37/37, catalog parity, focused UIA 13/13, explicit-only clipboard policy, and docs evidence pass are green. LowLevel MCP is unavailable and the fresh native driver rejected its blank/near-uniform fallback, so no PNG or canonical screenshot changed. Visual remains capture-blocked; the route is not called complete. Debug／Release build、core 各 796/796（包括 Percent Calculator 37/37）、catalog parity、專項 UIA 13/13、只限明確 Copy 嘅剪貼簿政策同文件證據已通過。今次冇可呼叫 LowLevel MCP，driver 拒絕空白／近乎單色 fallback，冇 PNG／冇 canonical 截圖變更，所以 visual 保持 capture-blocked，route 唔會當完成。"
                    },
                    {
                        "id":  "module.pgadmin",

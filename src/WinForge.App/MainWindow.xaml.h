@@ -7,6 +7,7 @@
 #include "../WinForge.Core/Codec.h"
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/DesignTools.h"
+#include "../WinForge.Core/PercentCalc.h"
 #include "../WinForge.Core/GuidGen.h"
 #include "../WinForge.Core/LineProcessing.h"
 #include "../WinForge.Core/PassGen.h"
@@ -308,6 +309,28 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBlock m_htmlEntitiesOutputCount{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_htmlEntitiesReferenceRows{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_htmlEntitiesStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC1X{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC1Y{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC2X{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC2Y{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC3A{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC3B{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC4Y{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC4X{ nullptr };
+        Microsoft::UI::Xaml::Controls::RadioButton m_percentC4Increase{ nullptr };
+        Microsoft::UI::Xaml::Controls::RadioButton m_percentC4Decrease{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC5Bill{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC5Tip{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC5Split{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC6A{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC6B{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC1Output{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC2Output{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC3Output{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC4Output{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC5Output{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_percentC6Output{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_percentStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -529,6 +552,27 @@ namespace winrt::WinForge::implementation
         bool m_htmlEntitiesDecode{ false };
         bool m_htmlEntitiesEscapeNonAscii{ false };
         bool m_htmlEntitiesRendering{ false };
+        std::wstring m_percentC1XValue{};
+        std::wstring m_percentC1YValue{};
+        std::wstring m_percentC2XValue{};
+        std::wstring m_percentC2YValue{};
+        std::wstring m_percentC3AValue{};
+        std::wstring m_percentC3BValue{};
+        std::wstring m_percentC4YValue{};
+        std::wstring m_percentC4XValue{};
+        std::wstring m_percentC5BillValue{};
+        std::wstring m_percentC5TipValue{};
+        std::wstring m_percentC5SplitValue{ L"1" };
+        std::wstring m_percentC6AValue{};
+        std::wstring m_percentC6BValue{};
+        std::wstring m_percentC1CopyValue{};
+        std::wstring m_percentC2CopyValue{};
+        std::wstring m_percentC3CopyValue{};
+        std::wstring m_percentC4CopyValue{};
+        std::wstring m_percentC5CopyValue{};
+        std::wstring m_percentC6CopyValue{};
+        bool m_percentIncrease{ true };
+        bool m_percentRendering{ false };
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -654,6 +698,7 @@ namespace winrt::WinForge::implementation
         void Navigate(std::wstring_view route, std::wstring_view argument = {}, bool deepLink = false);
         void ReleaseTextAnalysisRouteState(std::wstring_view nextRoute);
         void ReleaseReferenceTextRouteState(std::wstring_view nextRoute);
+        void ReleasePercentCalcRouteState(std::wstring_view nextRoute);
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -864,6 +909,13 @@ namespace winrt::WinForge::implementation
             std::wstring_view message,
             bool warning = false,
             bool announce = true);
+        void RenderPercentCalc();
+        void RefreshPercentCalc();
+        void AnnouncePercentCalcStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
+        void CopyPercentCalcValue(std::wstring_view value);
         void RenderAspectRatio();
         void RefreshAspectRatio(bool adoptSimplifiedRatio = true);
         void RefreshAspectScale();

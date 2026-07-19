@@ -5,6 +5,7 @@
 #include "CodecTests.h"
 #include "DesignTools.h"
 #include "DesignToolsTests.h"
+#include "PercentCalcTests.h"
 #include "LineProcessingTests.h"
 #include "TextAnalysisTests.h"
 #include "ReferenceTextTests.h"
@@ -223,6 +224,7 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L"module.phonetic") &&
         winforge::core::HasNativeRenderer(L"MODULE.BOXTEXT") &&
         winforge::core::HasNativeRenderer(L" module.htmlentities ") &&
+        winforge::core::HasNativeRenderer(L"module.percentcalc") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
@@ -289,6 +291,10 @@ int wmain(int argc, wchar_t** argv)
     auto const designToolsCounts = RunDesignToolsTests();
     passed += designToolsCounts.passed;
     failed += designToolsCounts.failed;
+
+    auto const percentCalcCounts = RunPercentCalcTests();
+    passed += percentCalcCounts.passed;
+    failed += percentCalcCounts.failed;
 
     auto const lineProcessingCounts = RunLineProcessingTests();
     passed += lineProcessingCounts.passed;

@@ -58,6 +58,7 @@
     <ClCompile Include="CheckDigitTests.cpp" />
     <ClCompile Include="CodecTests.cpp" />
     <ClCompile Include="DesignToolsTests.cpp" />
+    <ClCompile Include="PercentCalcTests.cpp" />
     <ClCompile Include="LineProcessingTests.cpp" />
     <ClCompile Include="TextAnalysisTests.cpp" />
     <ClCompile Include="ReferenceTextTests.cpp" />
@@ -85,6 +86,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\Codec.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\DesignTools.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PercentCalc.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\LineProcessing.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\TextAnalysis.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\ReferenceText.cpp" />
@@ -114,6 +116,7 @@
     <ClInclude Include="CheckDigitTests.h" />
     <ClInclude Include="CodecTests.h" />
     <ClInclude Include="DesignToolsTests.h" />
+    <ClInclude Include="PercentCalcTests.h" />
     <ClInclude Include="LineProcessingTests.h" />
     <ClInclude Include="TextAnalysisTests.h" />
     <ClInclude Include="ReferenceTextTests.h" />
@@ -138,6 +141,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\Codec.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\DesignTools.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PercentCalc.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\LineProcessing.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\TextAnalysis.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ReferenceText.h" />

@@ -1,5 +1,11 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
+## Current 2026-07-19 Percentage Calculator slice / 2026-07-19 最新百分比計算器批次
+
+`percent`, `percentage`, and `module.percentcalc` now open the native C++/WinRT Percentage Calculator backed by standard-C++ `PercentCalc`. The six managed cards, locale/invariant numeric parsing, six-place away-from-zero display rounding, banker's tip split, guarded errors, lifecycle reset, and explicit-only Copy are preserved. · `percent`、`percentage` 同 `module.percentcalc` 而家開原生 C++/WinRT 百分比計算器，由標準 C++ `PercentCalc` 支援；六張 managed 卡、目前文化／invariant 數字解析、六位向遠離零捨入、小費 banker's rounding、受保護錯誤、lifecycle reset 同只限明確 Copy 都有保留。
+
+Renderer accounting is **31/346** (**31 `in-progress` / 315 `not-started`**) plus five dynamic families. Debug/Release builds are 0 errors; core is **796/796** in both configurations including Percent Calculator **37/37**; catalog parity is 346+5; and focused three-alias UIA is **13/13**. LowLevel MCP is unavailable and the native driver rejected its blank/near-uniform fallback, so no PNG/canonical screenshot changed and the visual ledger is `capture-blocked`. · Renderer 係 **31/346**（**31 `in-progress`／315 `not-started`**）加五組動態家族；Debug／Release 0 errors、core 各 **796/796**（包括 Percent Calculator **37/37**）、catalog parity 346+5、三個 alias UIA **13/13**。今次冇 LowLevel MCP，native driver 拒絕空白／近乎單色 fallback，冇 PNG／冇 canonical 截圖變更，所以 visual 係 `capture-blocked`。
+
 ## Current 2026-07-19 reference-text checkpoint / 2026-07-19 最新參考文字檢查點
 
 Phonetic Speller, Box & Banner Text, and HTML Entities now use dedicated C++/WinRT renderers over standard-C++ `ReferenceText`. They preserve the managed three-alphabet spelling options and UTF-16 code-unit rows; eight box/comment styles, alignment, bounded padding, titles and Unicode-aware layout; and named/numeric entity encode/decode behavior, invalid UTF-16 safety, managed-compatible scanning and a local 50-row bilingual reference. All processing is local; clipboard writes are explicit-only. · 拼讀字母表、文字方框／橫幅同 HTML 實體而家用專用 C++/WinRT renderer 同標準 C++ `ReferenceText`；保留三種拼讀字母表同 managed UTF-16 code-unit 列、八種方框／註解風格同對齊／padding／標題／Unicode-aware 排版，以及具名／數字實體編碼解碼、無效 UTF-16 安全、managed 相容掃描同本機 50 項雙語參考。全部只喺本機做，剪貼簿只會喺明確 Copy 後改。
