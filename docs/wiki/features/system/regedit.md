@@ -10,7 +10,7 @@
 | Category · 分類 | System · 系統 |
 | Page class · 頁面類別 | <code>RegistryEditor</code> |
 | Page XAML · 頁面 XAML | <code>Pages/RegistryEditor.xaml</code> |
-| Button docs · 按鈕文件 | 4 |
+| Button docs · 按鈕文件 | 5 |
 
 ## What It Covers · 功能範圍
 
@@ -22,7 +22,8 @@
 
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
-| [NewBtn](../../buttons/system/regedit/001-newbtn.md) | `Button` | `NewBtn` | `New_Click` |
-| [EditBtn](../../buttons/system/regedit/002-editbtn.md) | `Button` | `EditBtn` | `Edit_Click` |
-| [DeleteBtn](../../buttons/system/regedit/003-deletebtn.md) | `Button` | `DeleteBtn` | `Delete_Click` |
-| [RefreshBtn](../../buttons/system/regedit/004-refreshbtn.md) | `Button` | `RefreshBtn` | `Refresh_Click` |
+| [GoBtn](../../buttons/system/regedit/001-gobtn.md) | `Button` | `GoBtn` | `Go_Click` |
+| [NewBtn](../../buttons/system/regedit/002-newbtn.md) | `Button` | `NewBtn` | `New_Click` |
+| [EditBtn](../../buttons/system/regedit/003-editbtn.md) | `Button` | `EditBtn` | `Edit_Click` |
+| [DeleteBtn](../../buttons/system/regedit/004-deletebtn.md) | `Button` | `DeleteBtn` | `Delete_Click` |
+| [RefreshBtn](../../buttons/system/regedit/005-refreshbtn.md) | `Button` | `RefreshBtn` | `Refresh_Click` |

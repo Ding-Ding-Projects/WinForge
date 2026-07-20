@@ -13,7 +13,7 @@
 | [API Client · REST API 用戶端](apps-git-git/api.md) | `module.apiclient` | `api` | 14 |
 | [App Launcher · 原生 App 啟動器](apps-git-git/applauncher.md) | `module.applauncher` | `applauncher` | 1 |
 | [App Uninstaller · 應用程式解除安裝](apps-git-git/uninstall.md) | `module.uninstall` | `uninstall` | 2 |
-| [AWS CLI · AWS 命令列](apps-git-git/aws.md) | `module.aws` | `aws` | 14 |
+| [AWS Manager · AWS 管理中心](apps-git-git/aws.md) | `module.aws` | `aws` | 38 |
 | [Bitwarden Vault · Bitwarden 密碼庫](apps-git-git/bitwarden.md) | `module.bitwarden` | `bitwarden` | 2 |
 | [Cloudflare & Tunnel · Cloudflare 與 Tunnel](apps-git-git/cloudflare.md) | `module.cloudflare` | `cloudflare` | 0 |
 | [Command Not Found · 搵唔到指令](apps-git-git/cmdnotfound.md) | `module.cmdnotfound` | `cmdnotfound` | 8 |
@@ -42,7 +42,7 @@
 | [Native OSS Clones · 開源原生分頁](apps-git-git/ossapps.md) | `module.ossapps` | `ossapps` | 1 |
 | [Native Torrent · 原生種子下載](apps-git-git/torrent.md) | `module.torrent` | `torrent` | 8 |
 | [Ollama · 本地大模型](apps-git-git/ollama.md) | `module.ollama` | `ollama` | 13 |
-| [Package Manager · 套件管理](apps-git-git/packages.md) | `module.packages` | `packages` | 9 |
+| [Package Manager · 套件管理](apps-git-git/packages.md) | `module.packages` | `packages` | 10 |
 | [Packer (Image Builder) · Packer（映像建置器）](apps-git-git/packer.md) | `module.packer` | `packer` | 14 |
 | [Postgres Tool · Postgres 工具 / pgAdmin](apps-git-git/pgadmin.md) | `module.pgadmin` | `pgadmin` | 12 |
 | [Proxmox VE · Proxmox VE 虛擬化](apps-git-git/proxmox.md) | `module.proxmox` | `proxmox` | 10 |
@@ -99,6 +99,7 @@
 | [Regex Cheatsheet · 正則速查](dev-helpers/regexcheat.md) | `module.regexcheat` | `regexcheat` | 0 |
 | [Regex Tester · 正則表達式測試](dev-helpers/regextester.md) | `module.regextester` | `regextester` | 0 |
 | [Semver Range Tester · 語意化版本範圍測試器](dev-helpers/semverrange.md) | `module.semverrange` | `semverrange` | 3 |
+| [Visual Studio Installer · Visual Studio 安裝器](dev-helpers/vsinstaller.md) | `module.vsinstaller` | `vsinstaller` | 0 |
 | [Ascii85 / Base85 · Ascii85 / 八十五進位編碼](encoding-ids-codes/ascii85.md) | `module.ascii85` | `ascii85` | 5 |
 | [Barcode Generator · 條碼產生器](encoding-ids-codes/barcode.md) | `module.barcode` | `barcode` | 2 |
 | [Base32 / 58 / 85 · Base32 / 58 / 85 編解碼](encoding-ids-codes/base32.md) | `module.base32` | `base32` | 4 |
@@ -185,7 +186,7 @@
 | [Blender (3D / Render) · Blender（3D／算圖）](media-capture/blender.md) | `module.blender` | `blender` | 23 |
 | [Capture Studio · 擷取工作室](media-capture/capture.md) | `module.capture` | `capture` | 7 |
 | [Color Picker · 螢幕取色](media-capture/colorpicker.md) | `module.colorpicker` | `colorpicker` | 5 |
-| [Crop And Lock · 裁切與鎖定](media-capture/cropandlock.md) | `module.cropandlock` | `cropandlock` | 7 |
+| [Crop And Lock · 裁切與鎖定](media-capture/cropandlock.md) | `module.cropandlock` | `cropandlock` | 9 |
 | [Document Converter · 文件轉換器](media-capture/libreoffice.md) | `module.libreoffice` | `libreoffice` | 11 |
 | [GIF Studio · 螢幕轉 GIF](media-capture/giflab.md) | `module.giflab` | `giflab` | 10 |
 | [Image Editor · 點陣圖影像編輯器](media-capture/imageeditor.md) | `module.imageeditor` | `imageeditor` | 29 |
@@ -198,6 +199,7 @@
 | [Screen Ruler · 螢幕間尺](media-capture/screenruler.md) | `module.screenruler` | `screenruler` | 6 |
 | [Text Extractor (OCR) · 原生文字辨識](media-capture/ocr.md) | `module.textocr` | `ocr` | 5 |
 | [Time & Unit Tools · 時間與單位工具](media-capture/time.md) | `module.timeunit` | `time` | 2 |
+| [Video Conference Mute · 視像會議靜音](media-capture/videoconference.md) | `module.videoconference` | `videoconference` | 7 |
 | [Volume Mixer · 音量混合器](media-capture/mixer.md) | `module.mixer` | `mixer` | 2 |
 | [ZoomIt · 螢幕放大與標註](media-capture/zoomit.md) | `module.zoomit` | `zoomit` | 4 |
 | [DNS Lookup · DNS 查詢](network-tools/dnslookup.md) | `module.dnslookup` | `dnslookup` | 1 |
@@ -234,7 +236,7 @@
 | [Nuclear Reactor · 核反應堆](suite/reactor.md) | `module.reactor` | `reactor` | 19 |
 | [Reactor Settings · 反應堆設定](suite/reactorsettings.md) | `module.reactorsettings` | `reactorsettings` | 3 |
 | [Battery & Thermal · 電池與散熱](system/battery.md) | `module.battery` | `battery` | 2 |
-| [Clipboard · 剪貼簿](system/clipboard.md) | `module.clipboard` | `clipboard` | 1 |
+| [Clipboard · 剪貼簿](system/clipboard.md) | `module.clipboard` | `clipboard` | 3 |
 | [Connections · 連線](system/connections.md) | `module.connections` | `connections` | 3 |
 | [Devices · 裝置](system/devices.md) | `module.devices` | `devices` | 2 |
 | [Environment Variables · 環境變數](system/envvars.md) | `module.envvars` | `envvars` | 4 |
@@ -243,7 +245,7 @@
 | [Nmap Scanner · 網絡掃描](system/nmap.md) | `module.nmap` | `nmap` | 3 |
 | [Packet Capture · 封包擷取](system/wireshark.md) | `module.wireshark` | `wireshark` | 14 |
 | [Process Explorer · 程序總管](system/procexp.md) | `module.procexp` | `procexp` | 6 |
-| [Registry Editor · 登錄編輯器](system/regedit.md) | `module.regedit` | `regedit` | 4 |
+| [Registry Editor · 登錄編輯器](system/regedit.md) | `module.regedit` | `regedit` | 5 |
 | [Scheduled Tasks · 排程工作](system/tasks.md) | `module.tasks` | `tasks` | 2 |
 | [Services · 服務](system/services.md) | `module.services` | `services` | 2 |
 | [Settings & Control Panel · 設定與控制台](system/settingshub.md) | `module.settingshub` | `settingshub` | 0 |
@@ -288,7 +290,7 @@
 | [Advanced Paste · 進階貼上](tweaks-input/advancedpaste.md) | `module.advancedpaste` | `advancedpaste` | 2 |
 | [AltSnap · Alt 拖曳視窗](tweaks-input/altsnap.md) | `module.altsnap` | `altsnap` | 10 |
 | [Awake · 保持喚醒](tweaks-input/awake.md) | `module.awake` | `awake` | 0 |
-| [Command Palette · 指令面板](tweaks-input/cmdpalette.md) | `module.cmdpalette` | `cmdpalette` | 1 |
+| [Command Palette · 指令面板](tweaks-input/cmdpalette.md) | `module.cmdpalette` | `cmdpalette` | 8 |
 | [Context Menu · 右鍵選單](tweaks-input/contextmenu.md) | `module.contextmenu` | `contextmenu` | 5 |
 | [Explorer Right-Click · 檔案總管右鍵選單](tweaks-input/shellmenu.md) | `module.shellmenu` | `shellmenu` | 4 |
 | [FancyZones · 視窗分區](tweaks-input/fancyzones.md) | `module.fancyzones` | `fancyzones` | 3 |
@@ -304,7 +306,8 @@
 | [Mouse Without Borders · 無界滑鼠](tweaks-input/mwb.md) | `module.mwb` | `mwb` | 4 |
 | [Nilesoft Shell · Nilesoft 右鍵選單](tweaks-input/nilesoftshell.md) | `module.nilesoftshell` | `nilesoftshell` | 13 |
 | [PA Announcements · 喇叭語音廣播](tweaks-input/announce.md) | `module.announcements` | `announce` | 3 |
-| [PowerToys Extras · PowerToys 額外工具](tweaks-input/powertoys.md) | `module.powertoys` | `powertoys` | 11 |
+| [Power Display · 顯示器控制](tweaks-input/powerdisplay.md) | `module.powerdisplay` | `powerdisplay` | 0 |
+| [PowerToys Extras · PowerToys 額外工具](tweaks-input/powertoys.md) | `module.powertoys` | `powertoys` | 33 |
 | [Quick Accent · 快速重音符](tweaks-input/quickaccent.md) | `module.quickaccent` | `quickaccent` | 0 |
 | [Rainmeter Widgets · Rainmeter 桌面小工具](tweaks-input/rainmeter.md) | `module.rainmeter` | `rainmeter` | 10 |
 | [Shortcut Guide · 快捷鍵指南](tweaks-input/shortcutguide.md) | `module.shortcutguide` | `shortcutguide` | 1 |

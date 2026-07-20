@@ -478,8 +478,7 @@ foreach ($file in $sourceFiles) {
 }
 
 $testProjects = @(
-    Get-ChildItem -LiteralPath (Join-Path $repo 'tests') -Recurse -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.Extension -in @('.csproj', '.vcxproj') } |
+    Get-ChildItem -LiteralPath (Join-Path $repo 'tests') -Recurse -Filter '*.csproj' -File -ErrorAction SilentlyContinue |
         ForEach-Object { Get-RepoRelativePath -FullPath $_.FullName -Root $repo } |
         Sort-Object
 )

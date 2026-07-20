@@ -1,39 +1,49 @@
 # Package Manager · 套件管理
 
-![Managed production Package Manager reference · 受控正式版套件管理參考](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
+![Package Manager · 套件管理](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
-> The displayed image is the shipping managed .NET product, not native visual evidence. On 2026-07-16, the required native driver separately attempted Discover, Updates, Installed, and Operations at `-WaitMs 16000`; `CopyFromScreen` was unavailable and every `PrintWindow` fallback was blank or near-uniform. LowLevel MCP then launched all four routes on an isolated desktop and captured their 1980×1320 HWNDs; every inspected full-window frame had only a title bar and blank client surface. No native screenshot is published for this checkpoint. · 呢張展示圖片係發佈中受控 .NET 產品，唔係原生視覺證據。2026-07-16，必需原生 driver 分別用 `-WaitMs 16000` 嘗試 Discover、Updates、Installed 同 Operations；`CopyFromScreen` 用唔到，而且每個 `PrintWindow` fallback 都係空白／接近單色。LowLevel MCP 跟住喺隔離 desktop 開啟四條 route 並擷取佢哋 1980×1320 HWND；每張檢查過嘅完整視窗 frame 都只得 title bar 同空白 client surface。呢個 checkpoint 冇發佈原生截圖。
+WinForge's canonical .NET Package Manager is an in-app workspace for discovering, installing, updating, reviewing, and removing packages across Windows package engines. Open it with `WinForge.exe --page packages`.
 
-## Current native C++ status · 目前原生 C++ 狀態
+WinForge 正式 .NET 套件管理器係 app 內工作區，可以經多個 Windows 套件引擎搜尋、安裝、更新、檢視同移除套件。用 `WinForge.exe --page packages` 開啟。
 
-The shipping managed Package Manager remains production. The native C++20/C++/WinRT implementation is real but incomplete: it exposes nine views and eleven manager adapters, safe read-only Discover/Updates/Installed queries, Details and Sources probes, local update rules, native JSON preferences, and the bounded v3 metadata Bundle workspace. · 發佈中受控 Package Manager 仍然係正式版。原生 C++20/C++/WinRT 實作係真實但未完整：有九個 view、十一個管理器 adapter、安全只讀 Discover／Updates／Installed 查詢、Details 同 Sources 探測、本機更新規則、原生 JSON 偏好同有界 v3 metadata Bundle 工作區。
+## Workspaces · 工作區
 
-One cached Discover, Updates, or Installed row can create a redacted reviewed Install/Update/Uninstall argv plan in AwaitingConsent. A separate Confirm action is required before its exact validated argv enters the serial normal-integrity coordinator. Selected cached rows and current eligible Review Update all rows can instead submit one all-or-nothing batch of at most 25 full redacted argv plans; the batch card shows every command before its one separate confirmation queues them serially, cancellation stops the active command and cancels the remainder, and retry never replays a successful child. The coordinator has a 50-record in-memory cap, a five-minute runtime limit, and fail-closed rejection of elevation, hooks, unsafe IDs, custom mutation arguments, and oversized previews. · 一條已快取 Discover、Updates 或 Installed 資料列可以喺 AwaitingConsent 建立已遮蔽嘅已檢視安裝／更新／解除安裝 argv 計劃。要由另一個 Confirm 動作先可以將準確已驗證 argv 放入串行正常 integrity 協調器。所選快取資料列同目前合資格嘅檢視全部更新資料列可以改為提交一個全有或全無、最多 25 條完整已遮蔽 argv 計劃嘅批次；批次卡會喺唯一一次確認按串行次序排隊之前展示每個指令，取消會停止執行中指令並取消其餘指令，重試亦絕對唔會重播成功子項。協調器有 50 條記憶體上限、五分鐘 runtime 上限，同對提升權限、hooks、唔安全 ID、自訂修改參數同過長預覽嘅 fail-closed 拒絕。
+| View · 檢視 | Managed behavior · 正式功能 |
+|---|---|
+| **Discover · 搜尋安裝** | Search selected engines, filter results, inspect details, and explicitly install selected packages. · 搜尋已揀引擎、篩選結果、睇詳細資料，再明確安裝所選套件。 |
+| **Updates · 可更新** | Enumerate updates, inspect package details, update selected items, and apply ignore/pin/snooze rules. · 列出更新、睇詳細資料、更新所選項目，同套用忽略／釘選／暫停規則。 |
+| **Installed · 已安裝** | Review installed packages and explicitly choose supported package operations. · 檢視已安裝套件，再明確揀支援嘅套件操作。 |
+| **Bundles · 套件清單** | Build, edit, import, export, and review portable package sets. · 建立、編輯、匯入、匯出同檢視可攜套件清單。 |
+| **Sources · 來源** | Review and manage supported feeds, buckets, and repositories. · 檢視同管理支援嘅 feed、bucket 同 repository。 |
+| **Ignored · 已忽略** | Review and remove version pins, all-version ignores, and timed snoozes. · 檢視同移除版本釘選、全部版本忽略同限時暫停。 |
+| **Setup · 設定引擎** | Check package-engine availability and review bootstrap/dependency setup. · 檢查套件引擎可用性，同檢視 bootstrap／dependency 設定。 |
+| **Settings · 設定** | Persist schedules, notifications, manager paths, proxy, backup, and install defaults. · 保存排程、通知、管理器路徑、proxy、backup 同安裝預設。 |
+| **Operations · 操作記錄** | Track queued, active, completed, failed, and cancelled package work. · 追蹤排隊、執行中、完成、失敗同已取消套件工作。 |
 
-The coordinator retains the redacted reviewed argv plus request/lifecycle metadata in memory. Existing Operations history receives one bounded redacted lifecycle event; third-party stdout, stderr, and runtime diagnostics are withheld. A batch has no child-level Confirm/Cancel/Retry bypass: its own accessible card presents every full preview and controls the whole reviewed plan atomically. · 協調器會喺記憶體保留已遮蔽已檢視 argv 連同要求／生命週期 metadata。現有 Operations 歷史會收到一條有界已遮蔽生命週期事件；第三方 stdout、stderr 同執行時診斷會略去。批次冇子項 Confirm／Cancel／Retry 繞過：佢自己嘅無障礙卡會展示每個完整預覽，並原子地控制整個已檢視計劃。
+## Package engines · 套件引擎
 
-## PCRE2 cached Discover regex · PCRE2 已快取 Discover 正規表示式
+The workspace supports WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows PowerShell Gallery, PowerShell 7 PSResourceGet, Cargo, Bun, and vcpkg where the corresponding engine is available.
 
-PCRE2-16 regex is a separate bounded, non-JIT local filter over cached Discover rows. It never reaches argv or HTTPS, disables external Search while active, and a native guard rejects query launch. `NativePackageQueryAudit` changes only for a real CLI/HTTPS query, so UI Automation can prove regex filtering does not fan out. The full builder validates before Apply, always switches to Discover, and retains only a completed Discover-search cache rather than stale Updates/Installed rows. Exact is full-match; Similar and ignore-special normalization are unavailable in regex mode. · PCRE2-16 regex 係已快取 Discover 資料列上獨立、有界、非 JIT 嘅本機篩選。佢絕對唔會去 argv 或 HTTPS、啟用時會停用外部 Search，而且原生 guard 會拒絕開查詢。`NativePackageQueryAudit` 只會喺真正 CLI／HTTPS 查詢時改，所以 UI Automation 可以證明 regex 篩選冇 fan out。完整 builder 會喺 Apply 前驗證、永遠切去 Discover，而且只保留已完成 Discover 搜尋快取，而唔會保留舊 Updates／Installed 資料列。Exact 係 full-match；regex 模式冇 Similar 同忽略特殊字元正規化。
+當相應引擎可用時，工作區支援 WinGet、Scoop、Chocolatey、pip、npm、.NET tools、Windows PowerShell Gallery、PowerShell 7 PSResourceGet、Cargo、Bun 同 vcpkg。
 
-## Native Setup review · 原生 Setup 檢視
+## Safety and failure behavior · 安全同失敗行為
 
-The native Setup page now offers a fixed, review-only Winget allowlist rather than a script installer: seven engine bootstrap IDs and 14 curated dependency IDs, with all 11 manager rows visible. Winget, Scoop, PowerShell Gallery, and vcpkg remain manual-only. Every review stays inert until a distinct Operations confirmation; arbitrary commands, remote scripts, custom arguments, hooks, unsafe/local sources, and elevation fail closed. Debug/Release pass **389/389** and isolated LowLevel MCP UI Automation passes **216/216** with Setup accessibility, deferred-consent, no-process-start, provenance, and horizontal-bound checks. Fresh 852×880 full-window and 836×841 client-only Setup captures were blank and discarded, so visual status is `capture-blocked`.
+- Package mutations are explicit; review surfaces must not silently execute a package command. · 套件修改一定要明確；檢視介面唔可以靜默執行套件指令。
+- WinForge refuses interactive package execution while elevated when its normal-integrity boundary cannot be maintained. · WinForge 提權時，如果保持唔到正常 integrity 界線，就會拒絕互動套件執行。
+- Manager availability is probed before dependent actions are enabled. A missing engine is shown as a setup dependency, not treated as success. · 啟用相依動作前會先探測管理器；欠缺引擎會顯示成設定 dependency，唔會當成功。
+- User-facing errors remain redacted and must not expose credentials, tokens, or unsafe command construction. · 對使用者顯示嘅錯誤要遮蔽，唔可以洩露認證資料、token 或唔安全 command 組合。
+- Cancellation and retry apply to owned package operations; WinForge must not terminate unrelated external processes. · 取消同重試只適用於 WinForge 自己嘅套件操作，唔可以終止不相關外部 process。
 
-原生 Setup 頁而家提供固定、只供檢視嘅 Winget allowlist，唔係 script installer：七個 engine bootstrap ID 同 14 個 curated dependency ID，全部 11 個 manager 行都可見。Winget、Scoop、PowerShell Gallery 同 vcpkg 仍然係 manual-only。每次檢視都係 inert，必須去 Operations 再做獨立確認；任意 command、remote script、自訂參數、hooks、唔安全／local source 同 elevation 都會 fail closed。Debug／Release 通過 **389/389**，隔離 LowLevel MCP UI Automation 通過 **216/216**，有 Setup accessibility、延後同意、唔會啟動 process、provenance 同橫向裁剪檢查。新鮮 852×880 full-window 同 836×841 client-only Setup 擷取都係空白並已丟棄，所以 visual status 係 `capture-blocked`。
+## Configuration · 設定
 
-## Safety and evidence · 安全同證據
+Package Manager preferences are stored through the application's normal settings/persistence services. Secrets or credentials must use the existing DPAPI-backed stores and must never be written to logs, screenshots, command lines, URLs, or repository files.
 
-- Debug and Release native tests: **389/389** each (343 core route/package-manager checks + 46 parser checks), including **42/42** focused batch-coordinator checks plus regex-builder recipe/assertion and search-surface contract vectors. · Debug 同 Release 原生測試：各自 **389/389**（343 個 core route／package-manager 檢查加 46 個 parser 檢查），包括 **42/42** 個專項批次協調器檢查、regex-builder recipe／assertion 同搜尋位置合約 vectors。
-- Elevated process-owned UI Automation smoke: **171/171**, including all eleven manager filters, cache-only regex/no-query assertions, deterministic builder-to-Discover routing, batch-consent policy, and Package Manager horizontal-bound checks. · 提權、自有 process UI Automation smoke：**171/171**，包括全部十一個管理器篩選、只限快取 regex／唔開查詢 assertion、確定性 builder-to-Discover 導覽、批次確認政策同 Package Manager 水平邊界檢查。
-- Catalog parity: 346 fixed routes, five dynamic families, 319 registry records, and 22 categories. · 目錄對等：346 條固定路線、五組動態家族、319 條 registry 記錄同 22 個分類。
-- Normal-integrity external query/mutation proof remains blocked because this session is elevated; the runtime fails closed. · 正常 integrity 外部查詢／修改證明仍受阻，因為呢個 session 已提權；runtime 會 fail closed。
-- Visual evidence is capture-blocked, not a visual pass. The managed image above remains clearly labelled as managed only. · 視覺證據係 capture-blocked，唔係 visual pass。上面受控圖片已清楚標示只屬受控版。
+套件管理器偏好會經 app 正常 settings／persistence service 保存。秘密或認證資料一定要用既有 DPAPI store，絕對唔可以寫入 log、截圖、command line、URL 或 repository file。
 
-## Remaining UniGetUI-informed gaps · 尚欠 UniGetUI 參考缺口
+## Independent C++ port · 獨立 C++ 移植版
 
-Elevation mediation, normal-integrity live proof, full bundle interoperability, Setup/bootstrap, scheduler and notifications, broad per-manager settings, backup/restore, rich manager-specific Details/actions, downloads/source tracking, and authenticated API/CLI/headless/widget surfaces remain pending. The vendored `ThirdParty/UniGetUI` source is an MIT-licensed behavior/provenance reference only and is excluded from the native runtime. · 提升權限調停、正常 integrity 即時證明、完整 Bundle 互通、Setup／bootstrap、排程同通知、廣泛逐管理器設定、備份／還原、豐富逐管理器 Details／動作、下載／來源追蹤同已驗證 API／CLI／headless／widget 介面仍待完成。vendor 嘅 `ThirdParty/UniGetUI` 原始碼只係 MIT 授權行為／來源參考，並已排除喺原生 runtime 之外。
+The experimental C++ Package Manager work and its historical parity evidence now belong to [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). They are not the shipping behavior documented on this page.
 
-## Deep links · 深層連結
+實驗性 C++ 套件管理工作同歷史 parity 證據而家屬於 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，唔係呢頁記錄嘅正式 app 行為。
 
-Use `package-*` or `packages-*` with `discover`, `updates`, `installed`, `bundles`, `sources`, `ignored`, `setup`, `settings`, or `operations`; routing availability does not by itself claim feature parity. · 可以用 `package-*` 或 `packages-*` 配合 `discover`、`updates`、`installed`、`bundles`、`sources`、`ignored`、`setup`、`settings` 或 `operations`；有 route 本身唔代表功能對等。
+[← Wiki Home](#/wiki/Home)

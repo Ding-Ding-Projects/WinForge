@@ -1,43 +1,12 @@
 # WinForge Exhaustive Smoke Campaign · WinForge 全面冒煙驗證
 
-Supersession — 2026-07-17: This dated campaign is retained as historical evidence only. The current native baseline is Debug/Release core **417/417** with six regex surfaces (including Symbols Palette and cached App Uninstaller). LowLevel off-screen UI verification is presently blocked by a blank WinUI client frame and absent `NativePageTitle` after 30 seconds; it does not fall back to a visible desktop.
-
-取代說明 — 2026-07-17：呢個有日期的 campaign 只保留作歷史證據。現時 native 基線係 Debug/Release core **417/417**，並有六個 regex surface（包括 Symbols Palette 同 cached App Uninstaller）。LowLevel off-screen UI 驗證目前被空白 WinUI client frame 同 30 秒後仍缺少的 `NativePageTitle` 阻塞；不會回退去可見桌面。
-
-
-## 2026-07-16 Native Symbols Palette evidence · 原生特殊符號調色盤證據
-
-- **Route / Route：** symbols, glyphs, and module.symbols resolve to the C++/WinRT Symbols Palette.
-- **Behavior / 行為：** 226 local glyphs in nine bilingual categories; literal-default and bounded-PCRE2 filtering; invalid regex preserves prior results; Copy is explicit; Regex Builder returns to the correct local-only search target.
-- **Gates / 閘門：** Debug and Release core tests: 411/411. Owned LowLevel MCP native UI Automation: 238/238.
-- **Screenshot / 截圖：** capture-blocked, not visually passed. CopyFromScreen was unavailable and the blank or near-uniform PrintWindow fallback was rejected; no stale image was kept.
-
+**Repository scope · 儲存庫範圍：** This historical campaign records the canonical .NET WinUI 3 app. C++/WinRT smoke evidence now lives in [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). · 呢份歷史 campaign 記錄正式 .NET WinUI 3 app；C++/WinRT smoke 證據而家放喺 [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)。
 
 **Status · 狀態：** Baseline active · 基線已啟動
-
-> **Coverage correction · 覆蓋修正：** The 323-route figures on this historical campaign page describe the exact legacy manifest used for those batches. The corrected current whole-shell contract is **346 fixed routes plus five dynamic route families** because that manifest omitted 22 runtime category routes and Settings. Historical results remain valid only for their recorded subset. · 呢個歷史 campaign 頁面嘅 323-route 數字係當時 batches 所用舊 manifest 嘅準確記錄。修正後目前全 shell 合約係 **346 條固定路線加五組動態路線**，因為嗰份 manifest 漏咗 22 條執行時分類路線同 Settings。歷史結果只對佢記錄嘅子集有效。
 
 **EN —** This page records the repeatable evidence model for whole-app WinForge verification. It is deliberately a coverage ledger, not a marketing feature count: a route is complete only when its applicable routing, build, test, launch, visual, behavior, side-effect, and documentation evidence is recorded.
 
 **粵語 —** 呢一頁記錄點樣可以重複做到成個 WinForge app 驗證。佢係涵蓋證據清單，唔係宣傳用功能數字：每條 route 只有喺適用嘅 routing、build、test、launch、visual、behavior、副作用同文件證據都記錄好先算完成。
-
-## 2026-07-16 Native Regex Tester all-match and replacement evidence · 2026-07-16 原生 Regex Tester all-match 及 replacement 證據
-
-**EN —** The native `module.regextester` continuation now enumerates up to **100** bounded non-overlapping matches with named capture metadata, safely advances zero-length results, and shares one bounded deadline across the enumeration. The direct tester defaults case-sensitive; the target-aware builder carries PCRE2 `(x)` extended-whitespace and `(n)` named-capture-only flags to Shell, All Apps, cache-only Package Discover, and Regex Cheatsheet. Its intentionally local replacement subset is `$$`, existing `$0`–`$99`, and `${name}`; invalid replacement text and the 32 KiB output cap fail closed. Debug and Release each passed **403/403**. The isolated LowLevel MCP headless process-owned UI Automation campaign passed **226/226**, covering flags, match rows, named captures, valid/invalid replacement preview, the output cap, target Apply, accessibility, and clipping. The inspected 852×880 full-window and 836×841 client-only captures were blank and discarded, so the route is `capture-blocked` rather than visual-pass.
-
-**粵語 —** 原生 `module.regextester` 延續而家會列舉最多 **100** 個有界非重疊相符，連命名 capture metadata；零長度結果會安全前進，而且全程共用一個有界 deadline。直接 Tester 預設係 case-sensitive；target-aware builder 會將 PCRE2 `(x)` 忽略 pattern 空白同 `(n)` 只保留命名 capture 旗標帶去 Shell、All Apps、只限快取嘅 Package Discover 同 Regex Cheatsheet。本機 replacement 子集刻意只係 `$$`、存在嘅 `$0`–`$99` 同 `${name}`；無效 replacement 同 32 KiB output cap 都會 fail closed。Debug 同 Release 各自通過 **403/403**。isolated LowLevel MCP 無頭、自有 process UI Automation campaign 通過 **226/226**，覆蓋旗標、match rows、命名 capture、有效／無效 replacement preview、output cap、target Apply、accessibility 同 clipping。檢查過嘅 852×880 full-window 同 836×841 client-only 截圖係空白並已丟棄，所以 route 係 `capture-blocked`，唔係 visual-pass。
-
-## 2026-07-16 Native regex search-surface and builder evidence · 2026-07-16 原生 regex 搜尋位置同建立器證據
-
-**EN —** `RegexSearchSurface.h` proves the complete current native search set is Shell catalog, All Apps, and cached Package Discover; each uses bounded PCRE2-16. The full four-step builder now has safe escaped recipes, route/package/version starters, assertions, capture preview, invalid-Apply blocking, and deterministic Package Discover targeting. Debug and Release each pass **389/389** (343 core + 46 parser); catalog parity passes 346 fixed routes plus five dynamic families; the elevated process-owned UI Automation sweep passes **171/171**, including recipes, assertions, invalid Apply, Shell/All Apps target apply, and the cache-only no-query Package Discover regression. The driver launched Dashboard, All Apps, Regex Tester, and Package Discover at `-WaitMs 16000`, but `CopyFromScreen` was unavailable and every PrintWindow fallback was blank/near-uniform. LowLevel MCP independently launched Regex Tester on an isolated desktop; its inspected 1980×1320 full-window frame had only a title bar and blank client surface, so the PNG was discarded and visual evidence is `capture-blocked`.
-
-**粵語 —** `RegexSearchSurface.h` 證明而家完整原生搜尋集合係 Shell 目錄、所有 app 同已快取 Package Discover；每個都用有界 PCRE2-16。完整四步建立器而家有安全已 escape recipe、路線／套件／版本起始式、assertion、capture 預覽、無效 Apply 阻擋同確定性 Package Discover 目標。Debug 同 Release 各自通過 **389/389**（343 個 core + 46 個 parser）；目錄對等通過 346 條固定路線加五組動態家族；提權、自有 process UI Automation sweep 通過 **171/171**，包括 recipe、assertion、無效 Apply、Shell／All Apps 目標套用同只限快取／唔開查詢 Package Discover 回歸。driver 用 `-WaitMs 16000` 開啟 Dashboard、所有 app、Regex Tester 同 Package Discover，但 `CopyFromScreen` 用唔到，而且每個 PrintWindow fallback 都係空白／接近單色。LowLevel MCP 亦喺隔離 desktop 開啟 Regex Tester；檢查過嘅 1980×1320 完整視窗 frame 只得 title bar 同空白 client surface，所以 PNG 已丟棄，視覺證據係 `capture-blocked`。
-
-## 2026-07-16 Native Package Manager batch evidence · 2026-07-16 原生 Package Manager 批次證據
-
-**EN —** The native Package Manager’s bounded batch-review slice is retained in the complete Debug and Release suites at **389/389** each (343 core + 46 parser), including **42/42** focused Package Mutation Coordinator checks. Catalog parity passes 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows. The elevated process-owned shell UI Automation sweep passes **171/171**; it verifies the static batch-consent policy and horizontal bounds, but did not invoke a live package mutation because the session is elevated and the runtime fails closed. The historical Package Manager capture attempts remain blank/near-uniform and `capture-blocked`.
-
-**粵語 —** 原生 Package Manager 有界批次檢視批次會保留喺完整 Debug 同 Release suite，各自通過 **389/389**（343 個 core + 46 個 parser），包括 **42/42** 個 Package Mutation Coordinator 專項檢查。目錄對等通過 346 條固定路線、五組動態家族、319 條 registry 記錄、22 個分類同 346 條 ledger rows。提權、自有 process shell UI Automation sweep 通過 **171/171**；佢驗證靜態批次確認政策同水平邊界，但冇呼叫即時套件修改，因為 session 已提權而 runtime 會 fail closed。歷史 Package Manager 擷取嘗試仍然係空白／接近單色兼 `capture-blocked`。
 
 ## Baseline Snapshot · 基線快照
 

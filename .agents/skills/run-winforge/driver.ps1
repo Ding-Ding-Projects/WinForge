@@ -1,5 +1,5 @@
 <#
-  run-winforge driver — build / launch / screenshot either WinForge implementation.
+  run-winforge driver — build / launch / screenshot canonical managed WinForge.
 
   WinForge is a .NET (net11.0-windows) WinUI 3 desktop app. It cannot run framework-dependent
   here (no matching desktop runtime installed -> it shows a "You must install .NET" dialog), so
@@ -11,12 +11,10 @@
 
   Usage (run from the repo root):
     powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Page reactor -Out shot.png
-    powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Native -Page dashboard -Out native-dash.png -Publish
 #>
 param(
   [string]$Page = "dashboard",          # deep-link alias (see MainWindow.ApplyStartPage), e.g. reactor, monitor, docker
   [string]$Out  = "winforge-shot.png",  # output PNG path
-  [switch]$Native,                       # build and launch the genuine C++/WinRT rewrite
   [switch]$Publish,                      # force a fresh self-contained publish
   [int]$WaitMs  = 12000,                 # ms to wait for the window to render before capturing
   [switch]$NoCapture                     # verify a dedicated launched window without foregrounding or screenshot capture
@@ -25,52 +23,7 @@ $ErrorActionPreference = "Stop"
 # repo root = three levels up from .agents/skills/run-winforge/
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 $managedExe = Join-Path $root "bin\x64\Debug\net11.0-windows10.0.26100.0\win-x64\publish\WinForge.exe"
-$nativeExe = Join-Path $root "src\WinForge.App\bin\x64\Debug\WinForge.exe"
-
-if ($Native) {
-  $exe = $nativeExe
-  if ($Publish -or -not (Test-Path -LiteralPath $exe)) {
-    $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-    if (-not (Test-Path -LiteralPath $vswhere)) {
-      throw "Visual Studio Installer's vswhere.exe was not found; native WinForge requires MSVC with C++ UWP tools."
-    }
-
-    $installations = @(& $vswhere -products * -all -prerelease -format json | ConvertFrom-Json) |
-      Sort-Object -Property installationVersion -Descending
-    $nativeToolchain = $null
-    foreach ($installation in $installations) {
-      $msbuild = Join-Path $installation.installationPath "MSBuild\Current\Bin\amd64\MSBuild.exe"
-      if (-not (Test-Path -LiteralPath $msbuild)) { continue }
-
-      $vcRoot = Join-Path $installation.installationPath "MSBuild\Microsoft\VC"
-      $toolsets = @(Get-ChildItem -Path $vcRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-        Get-ChildItem -Path (Join-Path $_.FullName "Application Type\Windows Store\10.0\Platforms\x64\PlatformToolsets") -Directory -ErrorAction SilentlyContinue
-      })
-      if ($toolsets.Count -eq 0) { continue }
-
-      $preferred = $toolsets | Where-Object Name -eq "v143" | Select-Object -First 1
-      if (-not $preferred) { $preferred = $toolsets | Sort-Object Name -Descending | Select-Object -First 1 }
-      $nativeToolchain = [pscustomobject]@{ MSBuild = $msbuild; Toolset = $preferred.Name }
-      break
-    }
-    if (-not $nativeToolchain) {
-      throw "No MSVC installation with x64 C++ UWP/WinUI build tools was found."
-    }
-
-    Write-Host "Restoring native packages with $($nativeToolchain.MSBuild) ($($nativeToolchain.Toolset))..."
-    & $nativeToolchain.MSBuild (Join-Path $root "WinForge.Native.sln") /t:Restore /p:RestorePackagesConfig=true `
-      /p:Configuration=Debug /p:Platform=x64 "/p:PlatformToolset=$($nativeToolchain.Toolset)" /m /v:minimal
-    if ($LASTEXITCODE -ne 0) { throw "native NuGet restore failed with exit code $LASTEXITCODE" }
-
-    Write-Host "Building the self-contained native C++ app..."
-    & $nativeToolchain.MSBuild (Join-Path $root "WinForge.Native.sln") /p:Configuration=Debug /p:Platform=x64 `
-      "/p:PlatformToolset=$($nativeToolchain.Toolset)" /m /v:minimal
-    if ($LASTEXITCODE -ne 0) { throw "native C++ build failed with exit code $LASTEXITCODE" }
-    if (-not (Test-Path -LiteralPath $exe)) { throw "native build did not produce $exe" }
-  }
-}
-else {
-  $exe = $managedExe
+$exe = $managedExe
   # WinForge targets net11.0. Prefer the user-local .NET 11 SDK when a system
   # dotnet installation is older; propagate its root so child build tools resolve
   # the matching runtime as well.
@@ -111,7 +64,6 @@ else {
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE" }
     if (-not (Test-Path -LiteralPath $exe)) { throw "publish did not produce $exe" }
   }
-}
 
 Add-Type -AssemblyName System.Drawing
 Add-Type @"

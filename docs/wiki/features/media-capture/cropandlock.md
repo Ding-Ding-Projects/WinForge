@@ -10,7 +10,7 @@
 | Category · 分類 | Media & Capture · 媒體與擷取 |
 | Page class · 頁面類別 | <code>CropAndLockModule</code> |
 | Page XAML · 頁面 XAML | <code>Pages/CropAndLockModule.xaml</code> |
-| Button docs · 按鈕文件 | 7 |
+| Button docs · 按鈕文件 | 9 |
 
 ## What It Covers · 功能範圍
 
@@ -24,8 +24,10 @@
 |---|---|---|---|
 | [ThumbHkBtn](../../buttons/media-capture/cropandlock/001-thumbhkbtn.md) | `Button` | `ThumbHkBtn` | `ThumbHk_Click` |
 | [CropHkBtn](../../buttons/media-capture/cropandlock/002-crophkbtn.md) | `Button` | `CropHkBtn` | `CropHk_Click` |
-| [RefreshBtn](../../buttons/media-capture/cropandlock/003-refreshbtn.md) | `Button` | `RefreshBtn` | `Refresh_Click` |
-| [ThumbBtn](../../buttons/media-capture/cropandlock/004-thumbbtn.md) | `Button` | `ThumbBtn` | `Thumb_Click` |
-| [CropBtn](../../buttons/media-capture/cropandlock/005-cropbtn.md) | `Button` | `CropBtn` | `Crop_Click` |
-| [CloseAllBtn](../../buttons/media-capture/cropandlock/006-closeallbtn.md) | `Button` | `CloseAllBtn` | `CloseAll_Click` |
-| [CloseOne_Click](../../buttons/media-capture/cropandlock/007-closeone-click.md) | `Button` | `` | `CloseOne_Click` |
+| [ScreenshotHkBtn](../../buttons/media-capture/cropandlock/003-screenshothkbtn.md) | `Button` | `ScreenshotHkBtn` | `ScreenshotHk_Click` |
+| [RefreshBtn](../../buttons/media-capture/cropandlock/004-refreshbtn.md) | `Button` | `RefreshBtn` | `Refresh_Click` |
+| [ThumbBtn](../../buttons/media-capture/cropandlock/005-thumbbtn.md) | `Button` | `ThumbBtn` | `Thumb_Click` |
+| [CropBtn](../../buttons/media-capture/cropandlock/006-cropbtn.md) | `Button` | `CropBtn` | `Crop_Click` |
+| [ScreenshotBtn](../../buttons/media-capture/cropandlock/007-screenshotbtn.md) | `Button` | `ScreenshotBtn` | `Screenshot_Click` |
+| [CloseAllBtn](../../buttons/media-capture/cropandlock/008-closeallbtn.md) | `Button` | `CloseAllBtn` | `CloseAll_Click` |
+| [CloseOne_Click](../../buttons/media-capture/cropandlock/009-closeone-click.md) | `Button` | `` | `CloseOne_Click` |

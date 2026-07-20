@@ -14,9 +14,9 @@
 
 ## What It Covers · 功能範圍
 
-**EN —** Mouse Utilities is registered in WinForge search and navigation with these keywords: <code>mouse utilities utils powertoys find my mouse findmymouse spotlight sonar double ctrl shake highlighter highlight click circle crosshairs crosshair lines pointer jump teleport screenshot overlay hook cursor locate ring 滑鼠 工具 搵滑鼠 聚光燈 標示 點擊 十字線 指標 跳轉 傳送 截圖 覆蓋層 游標 光圈</code>.
+**EN —** Mouse Utilities is registered in WinForge search and navigation with these keywords: <code>mouse utilities utils powertoys find my mouse findmymouse spotlight sonar double ctrl shake highlighter highlight click circle crosshairs crosshair lines pointer jump teleport cursorwrap cursor wrap edge wrap monitor horizontal vertical ctrl shift active display screenshot overlay hook cursor locate ring grab and move grabmove window drag resize alt windows modifier geometry excluded app fullscreen game 滑鼠 工具 搵滑鼠 聚光燈 標示 點擊 十字線 指標 跳轉 傳送 游標環繞 環繞 邊緣 螢幕 橫向 直向 截圖 覆蓋層 游標 光圈 拖曳 視窗 移動 縮放 修飾鍵 座標 排除 應用程式 遊戲</code>.
 
-**粵語 —** 滑鼠工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>mouse utilities utils powertoys find my mouse findmymouse spotlight sonar double ctrl shake highlighter highlight click circle crosshairs crosshair lines pointer jump teleport screenshot overlay hook cursor locate ring 滑鼠 工具 搵滑鼠 聚光燈 標示 點擊 十字線 指標 跳轉 傳送 截圖 覆蓋層 游標 光圈</code>。
+**粵語 —** 滑鼠工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>mouse utilities utils powertoys find my mouse findmymouse spotlight sonar double ctrl shake highlighter highlight click circle crosshairs crosshair lines pointer jump teleport cursorwrap cursor wrap edge wrap monitor horizontal vertical ctrl shift active display screenshot overlay hook cursor locate ring grab and move grabmove window drag resize alt windows modifier geometry excluded app fullscreen game 滑鼠 工具 搵滑鼠 聚光燈 標示 點擊 十字線 指標 跳轉 傳送 游標環繞 環繞 邊緣 螢幕 橫向 直向 截圖 覆蓋層 游標 光圈 拖曳 視窗 移動 縮放 修飾鍵 座標 排除 應用程式 遊戲</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

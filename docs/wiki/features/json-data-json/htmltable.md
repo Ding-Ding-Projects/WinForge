@@ -18,24 +18,6 @@
 
 **粵語 —** HTML 表格轉換 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>html table csv tsv markdown convert thead tbody tr td parse generate 表格 轉換 逗號 標記 解析 產生</code>。
 
-## Startup Reliability · 啟動可靠性
-
-**EN —** The self-contained runtime reproducibly rejected direct
-`ToggleSwitch.IsOn` Boolean literals while constructing this page. Header-row
-and cell-escaping defaults now initialize in managed code after
-`InitializeComponent`, under the existing event-suppression guard. The visible
-defaults and conversion behavior are unchanged.
-
-**粵語 —** self-contained runtime 喺建立呢頁時可以重現地拒絕 direct
-`ToggleSwitch.IsOn` Boolean literal。標題行同儲存格轉義預設而家喺
-`InitializeComponent` 後、既有 event-suppression guard 入面用 managed code 初始化；
-畫面預設同轉換行為不變。
-
-**Verification · 驗證 —** `--page htmltable` first reproduced the parser crash;
-a fresh self-contained launch passed after the repair. Screenshot capture is
-still blocked in this desktop session because `CopyFromScreen` returns
-`The handle is invalid`; this is launch evidence, not a visual-pass claim.
-
 ## Buttons And Controls · 按鈕與控制項
 
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |

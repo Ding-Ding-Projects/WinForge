@@ -12,12 +12,11 @@
        ModuleRegistry + Categories + TweakCatalog (meta / categories / modules),
     3. reads the canonical authored wiki sections (wikiIndex / wiki) from
        docs/wiki (wiki content is docs, not app data),
-    4. merges the native C++ route/parity metadata without overstating parity,
-    5. writes `window.WINFORGE_DATA = {...};` to design/winforge-data.js.
+    4. writes `window.WINFORGE_DATA = {...};` to design/winforge-data.js.
 
   -DocsOnly preserves the committed managed-app export and refreshes only the
-  authored wiki plus native migration metadata. It is intended for documentation
-  and native-only changes, where publishing the managed oracle adds no new data.
+  authored wiki. It is intended for documentation-only changes, where publishing
+  the managed application adds no new data.
 
   Simulators (Reactor / FuelFactory / CakeFarm) are untouched - they generate their
   own valid .fuel / .cake files and don't read this data.
@@ -156,34 +155,6 @@ function Get-JsonField($source, [string]$name) {
   return $source.$name
 }
 
-# Native migration counts are generated from the live managed-source inventory,
-# while parity status comes only from the explicit evidence ledger. The Pages site
-# therefore cannot confuse a routable shell scaffold with a completed feature port.
-$nativeCatalogPath = Join-Path $root 'src/WinForge.App/Resources/modules.json'
-$nativeLedgerPath = Join-Path $root 'docs/cpp-port-parity.json'
-if (-not (Test-Path -LiteralPath $nativeCatalogPath)) { throw "Native catalog not found: $nativeCatalogPath" }
-if (-not (Test-Path -LiteralPath $nativeLedgerPath)) { throw "Native parity ledger not found: $nativeLedgerPath" }
-$nativeCatalog = ConvertFrom-PortableJson -Json ([System.IO.File]::ReadAllText($nativeCatalogPath, [System.Text.Encoding]::UTF8))
-$nativeLedger = ConvertFrom-PortableJson -Json ([System.IO.File]::ReadAllText($nativeLedgerPath, [System.Text.Encoding]::UTF8))
-$nativeCatalogCounts = Get-JsonField $nativeCatalog 'counts'
-$nativeRoutes = @(Get-JsonField $nativeLedger 'routes')
-$nativeDynamicRoutes = @(Get-JsonField $nativeLedger 'dynamicRoutes')
-$nativeRouteCount = [int](Get-JsonField $nativeCatalogCounts 'routes')
-$nativeDynamicRouteFamilyCount = [int](Get-JsonField $nativeCatalogCounts 'dynamicRouteFamilies')
-if ($nativeRoutes.Count -ne $nativeRouteCount) {
-  throw "Native ledger has $($nativeRoutes.Count) fixed routes; catalog declares $nativeRouteCount."
-}
-if ($nativeDynamicRoutes.Count -ne $nativeDynamicRouteFamilyCount) {
-  throw "Native ledger has $($nativeDynamicRoutes.Count) dynamic families; catalog declares $nativeDynamicRouteFamilyCount."
-}
-$nativeRoutePassCount = @($nativeRoutes | Where-Object { (Get-JsonField $_ 'status') -eq 'pass' }).Count
-$nativeDynamicRoutePassCount = @($nativeDynamicRoutes | Where-Object { (Get-JsonField $_ 'status') -eq 'pass' }).Count
-$nativeEvidenceStarted = @($nativeRoutes + $nativeDynamicRoutes | Where-Object { (Get-JsonField $_ 'status') -ne 'not-started' }).Count
-$nativeRewriteStatus = if (
-  $nativeRoutePassCount -eq $nativeRouteCount -and
-  $nativeDynamicRoutePassCount -eq $nativeDynamicRouteFamilyCount
-) { 'complete' } elseif ($nativeEvidenceStarted -gt 0) { 'in-progress' } else { 'foundation' }
-
 # Read the canonical wiki Markdown from docs/wiki so GitHub Pages never preserves stale
 # embedded wiki text from an older winforge-data.js.
 $wikiDir = Join-Path $root 'docs/wiki'
@@ -221,12 +192,6 @@ $merged = [ordered]@{
     categoryCount = Get-JsonField $realMeta 'categoryCount'
     moduleCount   = Get-JsonField $realMeta 'moduleCount'
     wikiCount     = $wikiCount
-    nativeRewriteStatus = $nativeRewriteStatus
-    nativeRouteCount = $nativeRouteCount
-    nativeDynamicRouteFamilyCount = $nativeDynamicRouteFamilyCount
-    nativeAliasCount = [int](Get-JsonField $nativeCatalogCounts 'aliases')
-    nativeRoutePassCount = $nativeRoutePassCount
-    nativeDynamicRoutePassCount = $nativeDynamicRoutePassCount
   }
   categories = $realCategories
   modules    = $realModules
@@ -247,4 +212,3 @@ $moduleCount = Get-JsonField $realMeta 'moduleCount'
 $categoryCount = Get-JsonField $realMeta 'categoryCount'
 $featureCount = Get-JsonField $realMeta 'totalFeatures'
 Write-Host ('Wrote {0} - {1} modules, {2} categories, {3} features, {4} wiki pages.' -f $data, $moduleCount, $categoryCount, $featureCount, $wikiCount)
-Write-Host ('Native rewrite: {0}; {1}/{2} fixed routes and {3}/{4} dynamic families at parity pass.' -f $nativeRewriteStatus, $nativeRoutePassCount, $nativeRouteCount, $nativeDynamicRoutePassCount, $nativeDynamicRouteFamilyCount)

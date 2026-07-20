@@ -8,9 +8,13 @@ description: "Run when verifying WinForge comprehensively: inventory every regis
 ## Purpose
 
 Use this skill for an evidence-backed, repeatable verification campaign of the
-WinForge WinUI application. It turns the live registry, navigation mappings,
-XAML pages, services, tests, and documentation into an explicit coverage
-ledger. It never calls a feature tested merely because the app builds.
+canonical managed .NET/WinUI WinForge application. It turns the live registry,
+navigation mappings, XAML pages, services, tests, and documentation into an
+explicit coverage ledger. The separate WinForge-Native rewrite is out of
+scope. Repository `native/` companion programs remain in scope when they are
+reachable through the managed `CompanionAppService`; they are product features,
+not the relocated rewrite. This skill never calls a feature tested merely
+because the app builds.
 
 This skill is deliberately conservative around user-machine side effects.
 Exercise every UI and safe functional path; use dry-run, fixture, validation,
@@ -64,7 +68,7 @@ or reason they are excluded. A green build is only compilation evidence.
 Run the supplied extractor from the repository root:
 
 ~~~powershell
-powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.codex\skills\winforge-exhaustive-smoke\scripts\New-WinForgeSmokeInventory.ps1" -RepoRoot . -OutputDirectory artifacts\smoke\<campaign-id>
+powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\New-WinForgeSmokeInventory.ps1 -RepoRoot . -OutputDirectory artifacts\smoke\<campaign-id>
 ~~~
 
 It writes manifest.json, manifest.csv, and summary.md. Review the
