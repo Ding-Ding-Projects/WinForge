@@ -410,81 +410,72 @@ foreach ($fixture in $publisherDenyFixtures.GetEnumerator()) {
     }
 }
 
-$reviewedNativeReleaseEditLines = @(
-    '& gh release edit $tag --latest --prerelease=false --draft=false',
-    '& gh release edit $candidateTag --latest --prerelease=false --draft=false'
-) | Sort-Object
-$reviewedNativeReleaseEditLinePattern = '(?im)^[ \t]*&[ \t]+gh[ \t]+release[ \t]+edit[ \t]+\$(?:tag|candidateTag)[ \t]+--latest[ \t]+--prerelease=false[ \t]+--draft=false[ \t]*$'
+$trustedNativeDirectCreatePattern = '(?im)^[ \t]*\$createOutput[ \t]*=[ \t]*\(&[ \t]+gh[ \t]+@releaseArgs[ \t]+2>&1[ \t]*\|[ \t]*Out-String\)[ \t]*$'
+$trustedNativeLatestEditPattern = '(?ms)^[ \t]*Invoke-GhWithRetry[ \t]+-Description[ \t]+"native Latest promotion for \$tag"[ \t]+`\r?\n[ \t]+-Arguments[ \t]+@\(''release'', ''edit'', \$tag, ''--latest'', ''--prerelease=false'', ''--draft=false''\)[ \t]*\|[ \t]*Out-Null[ \t]*$'
+$trustedNativeAssetUploadPattern = '(?ms)^[ \t]*Invoke-GhWithRetry[ \t]+-Description[ \t]+"native release asset reconciliation for \$missingAssetName"[ \t]+`\r?\n[ \t]+-Arguments[ \t]+@\(''release'', ''upload'', \$tag, \$missingAssetPath, ''--clobber''\)[ \t]*\|[ \t]*Out-Null[ \t]*$'
+$trustedNativeHelperMutationPattern = '(?ms)^[ \t]*Invoke-GhWithRetry[^\r\n]*\r?\n[ \t]+-Arguments[ \t]+@\(''release'', ''(?:edit|upload)''[^\r\n]*\)[^\r\n]*$'
 
-function Assert-ReviewedNativeReleaseEditLines {
+function Assert-TrustedNativeReleaseMutationSurface {
     param(
         [Parameter(Mandatory)][string]$Content,
         [Parameter(Mandatory)][string]$Label
     )
 
-    $actualLines = @([System.Text.RegularExpressions.Regex]::Matches(
+    # Fixtures can inherit the checkout's CRLF while workflow text is normalized
+    # at read time. Keep the release-mutation assertions line-ending invariant.
+    $Content = $Content.Replace("`r`n", "`n").Replace("`r", "`n")
+
+    $publisherMatches = [System.Text.RegularExpressions.Regex]::Matches(
         (Get-PublisherScanContent -Content $Content),
-        '(?im)^[ \t]*&[ \t]+gh[ \t]+release[ \t]+edit\b[^\r\n]*$',
-        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant) | ForEach-Object {
-        $_.Value.Trim()
-    } | Sort-Object)
-    if ($actualLines.Count -ne $reviewedNativeReleaseEditLines.Count -or
-        (Compare-Object -ReferenceObject $reviewedNativeReleaseEditLines -DifferenceObject $actualLines -CaseSensitive)) {
-        throw "$Label must contain exactly the two reviewed stable Latest edits; found: $($actualLines -join '; ')"
+        $releasePublisherPattern,
+        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+    if ($publisherMatches.Count -ne 1 -or
+        $publisherMatches[0].Value -notmatch '(?i)^&\s*gh\s+@releaseArgs$') {
+        throw "$Label must expose exactly one direct native release-create command; found $($publisherMatches.Count)."
     }
-    foreach ($line in $actualLines) {
+
+    $createMatches = [System.Text.RegularExpressions.Regex]::Matches(
+        $Content,
+        $trustedNativeDirectCreatePattern,
+        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+    if ($createMatches.Count -ne 1) {
+        throw "$Label must perform exactly one non-retried native release-create attempt; found $($createMatches.Count)."
+    }
+
+    $helperMutations = [System.Text.RegularExpressions.Regex]::Matches(
+        $Content,
+        $trustedNativeHelperMutationPattern,
+        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+    if ($helperMutations.Count -ne 2) {
+        throw "$Label must contain exactly the reviewed native Latest-edit and missing-asset upload helper mutations; found $($helperMutations.Count)."
+    }
+    foreach ($expectedPattern in @($trustedNativeLatestEditPattern, $trustedNativeAssetUploadPattern)) {
         if (-not [System.Text.RegularExpressions.Regex]::IsMatch(
-                $line,
-                $reviewedNativeReleaseEditLinePattern,
+                $Content,
+                $expectedPattern,
                 [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)) {
-            throw "$Label contains an unreviewed Latest edit: $line"
+            throw "$Label is missing a reviewed idempotent native release mutation."
         }
     }
-}
 
-foreach ($fixture in @(
-    '& gh release edit $tag --latest',
-    '& gh release edit $tag --latest --prerelease=false',
-    '& gh release edit $tag --latest --draft=false',
-    '& gh release edit $tag --latest --prerelease=true --draft=false',
-    '& gh release edit $tag --latest --prerelease=false --draft=true'
-)) {
-    if ([System.Text.RegularExpressions.Regex]::IsMatch(
-            $fixture,
-            $reviewedNativeReleaseEditLinePattern,
-            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)) {
-        throw "Reviewed Latest-edit pattern accepted unsafe self-test fixture: $fixture"
-    }
-}
-foreach ($fixture in $reviewedNativeReleaseEditLines) {
-    if (-not [System.Text.RegularExpressions.Regex]::IsMatch(
-            $fixture,
-            $reviewedNativeReleaseEditLinePattern,
-            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)) {
-        throw "Reviewed Latest-edit pattern rejected safe self-test fixture: $fixture"
-    }
+    Reject-Regex -Content $Content -Pattern '(?ms)Invoke-GhWithRetry[^\r\n]*\r?\n[ \t]+-Arguments[ \t]+@\(''release'', ''create''' -Label "$Label blind release-create retry"
+    Require-Regex -Content $Content -Pattern '(?m)^\s*\$existingRelease = Get-ReleaseByTagWithRetry -Tag \$tag -WaitForVisibility[ \t]*$' -Label "$Label ambiguous-create visibility reconciliation"
 }
 
 $trustedPublisherFixture = @'
-& gh @releaseArgs
-if ($isCurrentMainTip) {
-    & gh release edit $tag --latest --prerelease=false --draft=false
+$existingRelease = Get-ReleaseByTagWithRetry -Tag $tag
+if ($null -eq $existingRelease) {
+  $createOutput = (& gh @releaseArgs 2>&1 | Out-String)
+  if ($LASTEXITCODE -ne 0) {
+    $existingRelease = Get-ReleaseByTagWithRetry -Tag $tag -WaitForVisibility
+  }
 }
-if ($needsRecovery) {
-    & gh release edit $candidateTag --latest --prerelease=false --draft=false
-}
+Invoke-GhWithRetry -Description "native Latest promotion for $tag" `
+  -Arguments @('release', 'edit', $tag, '--latest', '--prerelease=false', '--draft=false') | Out-Null
+Invoke-GhWithRetry -Description "native release asset reconciliation for $missingAssetName" `
+  -Arguments @('release', 'upload', $tag, $missingAssetPath, '--clobber') | Out-Null
 '@
-$trustedPublisherFixtureMatches = [System.Text.RegularExpressions.Regex]::Matches(
-    (Get-PublisherScanContent -Content $trustedPublisherFixture),
-    $releasePublisherPattern,
-    [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
-if ($trustedPublisherFixtureMatches.Count -ne 3 -or
-    $trustedPublisherFixtureMatches[0].Value -notmatch '(?i)^&\s*gh\s+@releaseArgs$' -or
-    $trustedPublisherFixtureMatches[1].Value -notmatch '(?i)^gh\s+release\s+edit$' -or
-    $trustedPublisherFixtureMatches[2].Value -notmatch '(?i)^gh\s+release\s+edit$') {
-    throw 'Release-publisher pattern no longer recognizes exactly the reviewed native create + two stable Latest-edit mutations.'
-}
-Assert-ReviewedNativeReleaseEditLines -Content $trustedPublisherFixture -Label 'Trusted publisher self-test fixture'
+Assert-TrustedNativeReleaseMutationSurface -Content $trustedPublisherFixture -Label 'Trusted publisher self-test fixture'
 
 $publisherAllowFixtures = [ordered]@{
     'gh release view' = 'gh release view v1.2.3'
@@ -542,13 +533,7 @@ foreach ($workflowFile in @(Get-ChildItem -LiteralPath $workflowRoot -File | Whe
         $releasePublisherPattern,
         [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
     if ($workflowFile.FullName -eq $nativeWorkflowPath) {
-        if ($publisherMatches.Count -ne 3 -or
-            $publisherMatches[0].Value -notmatch '(?i)^&\s*gh\s+@releaseArgs$' -or
-            $publisherMatches[1].Value -notmatch '(?i)^gh\s+release\s+edit$' -or
-            $publisherMatches[2].Value -notmatch '(?i)^gh\s+release\s+edit$') {
-            throw "Native workflow must contain exactly the reviewed create + two stable Latest-edit mutations; found $($publisherMatches.Count)."
-        }
-        Assert-ReviewedNativeReleaseEditLines -Content $workflowContent -Label 'Native workflow'
+        Assert-TrustedNativeReleaseMutationSurface -Content $workflowContent -Label 'Native workflow'
     }
     elseif ($publisherMatches.Count -ne 0) {
         throw "Only native-release.yml may publish a GitHub release; rejected $($publisherMatches.Count) publisher(s) in $($workflowFile.Name)."
@@ -573,6 +558,7 @@ foreach ($scriptFile in @(Get-ChildItem -LiteralPath $root -Recurse -File -Error
 
 Require-Regex -Content $nativeWorkflow -Pattern '(?m)^on:\r?\n  push:\r?\n  pull_request:\r?\n    branches: \[main\]\r?\n  workflow_dispatch:[ \t]*$' -Label 'unfiltered every-push native trigger'
 Require-Regex -Content $nativeWorkflow -Pattern '(?m)^      source_sha:\r?\n        description:.*\r?\n        required: false\r?\n        default: ""\r?\n        type: string[ \t]*$' -Label 'optional exact source_sha dispatch input'
+Require-Regex -Content $nativeWorkflow -Pattern '(?m)^      release_version:\r?\n        description:.*\r?\n        required: false\r?\n        default: ""\r?\n        type: string[ \t]*$' -Label 'optional immutable release_version dispatch input'
 Require-Regex -Content $nativeWorkflow -Pattern '(?m)^permissions:\r?\n  contents: read[ \t]*$' -Label 'read-only workflow default token'
 
 $requiredNativeActionCounts = [ordered]@{
@@ -622,19 +608,9 @@ Reject-Regex -Content (Get-PublisherScanContent -Content $nativeBuildJob) -Patte
 
 $nativeReleaseJob = Get-WorkflowJob -Content $nativeWorkflow -Name 'release-native' -Label 'trusted native release'
 Require-Regex -Content $nativeReleaseJob -Pattern '(?m)^    needs: build-test-package[ \t]*$' -Label 'trusted release dependency on successful package job'
-Require-Regex -Content $nativeReleaseJob -Pattern '(?m)^    if: github\.event_name == ''push'' \|\| \(github\.event_name == ''workflow_dispatch'' && inputs\.publish_release == true\)[ \t]*$' -Label 'trusted every-push/manual release condition'
+Require-Regex -Content $nativeReleaseJob -Pattern '(?m)^    if: \$\{\{ needs\.build-test-package\.result == ''success'' && \(github\.event_name == ''push'' \|\| \(github\.event_name == ''workflow_dispatch'' && inputs\.publish_release == true\)\) \}\}[ \t]*$' -Label 'test-gated every-push/manual release condition'
 Require-Regex -Content $nativeReleaseJob -Pattern '(?m)^    permissions:\r?\n      contents: write[ \t]*$' -Label 'write token isolated to trusted release job'
-$trustedPublisherMatches = [System.Text.RegularExpressions.Regex]::Matches(
-    (Get-PublisherScanContent -Content $nativeReleaseJob),
-    $releasePublisherPattern,
-    [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
-if ($trustedPublisherMatches.Count -ne 3 -or
-    $trustedPublisherMatches[0].Value -notmatch '(?i)^&\s*gh\s+@releaseArgs$' -or
-    $trustedPublisherMatches[1].Value -notmatch '(?i)^gh\s+release\s+edit$' -or
-    $trustedPublisherMatches[2].Value -notmatch '(?i)^gh\s+release\s+edit$') {
-    throw "Trusted native release job must contain exactly the reviewed create + two stable Latest-edit mutations; found $($trustedPublisherMatches.Count)."
-}
-Assert-ReviewedNativeReleaseEditLines -Content $nativeReleaseJob -Label 'Trusted native release job'
+Assert-TrustedNativeReleaseMutationSurface -Content $nativeReleaseJob -Label 'Trusted native release job'
 
 $resolveSourceStep = Get-WorkflowStep -Content $nativeWorkflow -Name 'Resolve immutable source commit' -Label 'native source resolver'
 Require-Regex -Content $resolveSourceStep -Pattern '(?m)^        id: source[ \t]*$' -Label 'native source output step ID'
@@ -653,6 +629,10 @@ Require-Regex -Content $verifySourceStep -Pattern '(?m)^            git fetch --
 Require-Regex -Content $verifySourceStep -Pattern '(?m)^            git merge-base --is-ancestor \$expectedSha refs/remotes/origin/main[ \t]*$' -Label 'dispatched source main-ancestor verification'
 
 $nativeRuntimeStep = Get-WorkflowStep -Content $nativeWorkflow -Name 'Stage native runtime' -Label 'native runtime staging'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          EVENT_NAME: \$\{\{ github\.event_name \}\}[ \t]*$' -Label 'runtime event-name wiring for native tags'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          EVENT_REF_NAME: \$\{\{ github\.ref_name \}\}[ \t]*$' -Label 'runtime ref-name wiring for native tags'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          EVENT_REF_TYPE: \$\{\{ github\.ref_type \}\}[ \t]*$' -Label 'runtime ref-type wiring for native tags'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          REQUESTED_RELEASE_VERSION: \$\{\{ inputs\.release_version \}\}[ \t]*$' -Label 'runtime requested-version wiring'
 Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          \$blockedExtensions = @\(''\.pdb'', ''\.ilk'', ''\.lib'', ''\.exp''\)[ \t]*$' -Label 'native build/link artifact denylist'
 Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^            ''WinForge\.dll'',[ \t]*$' -Label 'managed oracle assembly denylist'
 Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^            ''WinForgeLauncher\.exe'',[ \t]*$' -Label 'managed launcher denylist'
@@ -661,6 +641,12 @@ Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^            ''coreclr\.
 Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^              \$segments -contains ''updater-runtime''[ \t]*$' -Label 'managed updater directory denylist'
 Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          Copy-Item -LiteralPath ''THIRD-PARTY-NOTICES\.txt'' -Destination \$staging -Force[ \t]*$' -Label 'staged third-party notices'
 Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          "dir=\$staging" \| Out-File -FilePath \$env:GITHUB_OUTPUT -Append -Encoding utf8[ \t]*$' -Label 'clean staged runtime output'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          \$pushedNativeTagVersion = if \([ \t]*$' -Label 'pushed-native-tag version derivation'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^            \(\[string\]\$env:EVENT_REF_NAME\)\.StartsWith\(''native-v'', \[StringComparison\]::Ordinal\)[ \t]*$' -Label 'runtime native-tag prefix gate'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^            \(\[string\]\$env:EVENT_REF_NAME\)\.Substring\(''native-v''\.Length\)[ \t]*$' -Label 'runtime native-tag version extraction'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          if \(\$requestedVersion -and \$pushedNativeTagVersion -and \$requestedVersion -cne \$pushedNativeTagVersion\) \{[ \t]*$' -Label 'reject conflicting pushed-tag and requested versions'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          elseif \(\$pushedNativeTagVersion\) \{[ \t]*$' -Label 'pushed-native-tag version precedence'
+Require-Regex -Content $nativeRuntimeStep -Pattern '(?m)^          if \(\$version -notmatch ''\^\[1-9\]\[0-9\]\*\\\.\[0-9\]\+\\\.\[0-9\]\+\$''\) \{[ \t]*$' -Label 'numeric semantic native version validation'
 
 $nativeCheckoutReleaseStep = Get-WorkflowStep -Content $nativeWorkflow -Name 'Checkout exact native release source' -Label 'trusted exact-source checkout'
 Require-Regex -Content $nativeCheckoutReleaseStep -Pattern '(?m)^          fetch-depth: 0[ \t]*$' -Label 'trusted release full-history checkout'
@@ -724,53 +710,6 @@ foreach ($fixture in $latestPostconditionFixtures) {
     }
 }
 
-$latestRecoveryFixtures = @(
-    [pscustomobject]@{ Name = 'non-current valid native Latest accepted'; LatestValid = $true; CandidateValid = $false; MainStable = $true; Outcome = 'accept' }
-    [pscustomobject]@{ Name = 'managed Latest restores verified candidate'; LatestValid = $false; CandidateValid = $true; MainStable = $true; Outcome = 'restore' }
-    [pscustomobject]@{ Name = 'no verified candidate fails'; LatestValid = $false; CandidateValid = $false; MainStable = $true; Outcome = 'fail' }
-    [pscustomobject]@{ Name = 'main race before accepting Latest fails'; LatestValid = $true; CandidateValid = $true; MainStable = $false; Outcome = 'fail' }
-    [pscustomobject]@{ Name = 'main race before recovery fails'; LatestValid = $false; CandidateValid = $true; MainStable = $false; Outcome = 'fail' }
-)
-foreach ($fixture in $latestRecoveryFixtures) {
-    $outcome = if (-not $fixture.MainStable) {
-        'fail'
-    }
-    elseif ($fixture.LatestValid) {
-        'accept'
-    }
-    elseif ($fixture.CandidateValid) {
-        'restore'
-    }
-    else {
-        'fail'
-    }
-    if ($outcome -cne $fixture.Outcome) {
-        throw "Native Latest recovery self-test failed for $($fixture.Name): expected $($fixture.Outcome), got $outcome"
-    }
-}
-
-$candidateDiscoveryAttemptsFixture = 90
-$candidateDiscoveryDelaySecondsFixture = 10
-$candidateDiscoveryWindowSeconds = ($candidateDiscoveryAttemptsFixture - 1) * $candidateDiscoveryDelaySecondsFixture
-if ($candidateDiscoveryWindowSeconds -lt (6 * 60)) {
-    throw "Native Latest candidate discovery window does not cover a full hosted native build: $candidateDiscoveryWindowSeconds seconds"
-}
-if ($candidateDiscoveryWindowSeconds -gt (15 * 60)) {
-    throw "Native Latest candidate discovery window is not bounded to fifteen minutes: $candidateDiscoveryWindowSeconds seconds"
-}
-$candidateDiscoveryTimingFixtures = @(
-    [pscustomobject]@{ Name = 'concurrent full native build candidate is observed'; AvailableAfterSeconds = 6 * 60; ShouldRestore = $true }
-    [pscustomobject]@{ Name = 'candidate beyond bounded discovery window fails'; AvailableAfterSeconds = $candidateDiscoveryWindowSeconds + 1; ShouldRestore = $false }
-    [pscustomobject]@{ Name = 'no candidate at bounded discovery window fails'; AvailableAfterSeconds = $null; ShouldRestore = $false }
-)
-foreach ($fixture in $candidateDiscoveryTimingFixtures) {
-    $candidateObserved = $null -ne $fixture.AvailableAfterSeconds -and
-        $fixture.AvailableAfterSeconds -le $candidateDiscoveryWindowSeconds
-    if ($candidateObserved -ne $fixture.ShouldRestore) {
-        throw "Native Latest candidate discovery timing self-test failed for $($fixture.Name): expected $($fixture.ShouldRestore), got $candidateObserved"
-    }
-}
-
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          EXPECTED_SOURCE_SHA: \$\{\{ needs\.build-test-package\.outputs\.source_sha \}\}[ \t]*$' -Label 'native release expected SHA environment'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          NATIVE_VERSION: \$\{\{ needs\.build-test-package\.outputs\.version \}\}[ \t]*$' -Label 'native release version environment'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$usePushedNativeTag = \$env:EVENT_NAME -eq ''push'' -and[ \t]*$' -Label 'native-tag event discrimination'
@@ -789,38 +728,32 @@ Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$isMainChann
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$isCurrentMainTip = \$isMainChannel -and \$expectedSha -eq \$currentMainSha[ \t]*$' -Label 'exact current-main-tip release gate'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?ms)^          if \(\$isMainChannel\) \{\r?\n            \$releaseArgs \+= ''--latest=false''\r?\n          \}\r?\n          else \{\r?\n            \$releaseArgs \+= ''--prerelease''\r?\n          \}[ \t]*$' -Label 'stable main creation without implicit Latest and branch-prerelease modes'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?ms)^          \$releaseArgs = @\(\r?\n            ''release'', ''create'', \$tag,\r?\n            \$portableAsset,\r?\n            \$installerAsset,\r?\n            ''--target'', \$expectedSha,\r?\n            ''--title'', \$title,\r?\n            ''--notes'', \$notes\r?\n          \)[ \t]*$' -Label 'exact native release assets and immutable target arguments'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          & gh @releaseArgs[ \t]*$' -Label 'sole native release publisher invocation'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?ms)^          if \(\$isCurrentMainTip\) \{\r?\n            git fetch --no-tags origin ''\+refs/heads/main:refs/remotes/origin/main''\r?\n            if \(\$LASTEXITCODE -ne 0\) \{ throw ''could not refresh origin/main before native Latest promotion'' \}\r?\n            \$promotionMainSha = \(git rev-parse refs/remotes/origin/main\)\.Trim\(\)\.ToLowerInvariant\(\)\r?\n            if \(\$LASTEXITCODE -ne 0 -or \$promotionMainSha -notmatch ''\^\[0-9a-f\]\{40\}\$''\) \{\r?\n              throw "could not resolve origin/main before native Latest promotion: \$promotionMainSha"\r?\n            \}\r?\n            if \(\$expectedSha -ne \$promotionMainSha\) \{\r?\n              throw "refusing stale native Latest promotion: expected \$expectedSha, current main is \$promotionMainSha"\r?\n            \}\r?\n            & gh release edit \$tag --latest --prerelease=false --draft=false\r?\n            if \(\$LASTEXITCODE -ne 0\) \{ throw "native Latest promotion failed: \$tag" \}\r?\n          \}[ \t]*$' -Label 'fresh-tip-gated stable current-main Latest mutation'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$refJson = \(& gh api "repos/\$env:GITHUB_REPOSITORY/git/ref/tags/\$tag" \| Out-String\)[ \t]*$' -Label 'native created-tag lookup'
+Require-Regex -Content $nativeReleaseStep -Pattern $trustedNativeDirectCreatePattern -Label 'sole non-retried native release publisher invocation'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              \[switch\]\$WaitForVisibility[ \t]*$' -Label 'ambiguous-create delayed-visibility mode'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                if \(-not \$WaitForVisibility\) \{ return \$null \}[ \t]*$' -Label 'ordinary absent-release lookup behavior'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                Write-Warning "Native release ''\$Tag'' is not visible yet on attempt \$attempt/\$\{Attempts\}\."[ \t]*$' -Label 'ambiguous-create visibility retry warning'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              \$existingRelease = Get-ReleaseByTagWithRetry -Tag \$tag -WaitForVisibility[ \t]*$' -Label 'ambiguous-create exact-tag visibility reconciliation'
+Require-Regex -Content $nativeReleaseStep -Pattern $trustedNativeLatestEditPattern -Label 'fresh-tip-gated stable current-main Latest mutation'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$refJson = Invoke-GhWithRetry -Description "native release tag lookup for \$tag" `[ \t]*$' -Label 'retrying native created-tag lookup'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          for \(\$depth = 0; \$object\.type -eq ''tag''; \$depth\+\+\) \{[ \t]*$' -Label 'native annotated-tag dereference'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          if \(\$actualSha -ne \$expectedSha\) \{[ \t]*$' -Label 'native exact tag provenance assertion'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$releaseJson = \(& gh api "repos/\$env:GITHUB_REPOSITORY/releases/tags/\$tag" \| Out-String\)[ \t]*$' -Label 'created native release API readback'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$releaseJson = Invoke-GhWithRetry -Description "native release readback for \$tag" `[ \t]*$' -Label 'retrying created native release API readback'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$expectedPrerelease = -not \$isMainChannel[ \t]*$' -Label 'branch prerelease and main stable postcondition mode'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          if \(\$releaseErrors\.Count -ne 0\) \{[ \t]*$' -Label 'created native release fail-closed postcondition'
+Require-Regex -Content $nativeReleaseStep -Pattern $trustedNativeAssetUploadPattern -Label 'idempotent missing-native-asset reconciliation'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          function Get-NativeLatestPostconditionErrors \{[ \t]*$' -Label 'native Latest invariant validator'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              ''\^native-v\(\?<version>\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\)\$'',[ \t]*$' -Label 'versioned native Latest tag requirement'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            if \(\[bool\]\$Release\.draft\) \{[ \t]*$' -Label 'Latest non-draft requirement'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            if \(\[bool\]\$Release\.prerelease\) \{[ \t]*$' -Label 'Latest stable non-prerelease requirement'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                ''WinForge-Native-Setup\.exe'',[ \t]*$' -Label 'Latest exact native installer asset requirement'
 Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                "WinForge-native-x64-\$\(\$nativeTag\.Groups\[''version''\]\.Value\)\.zip"[ \t]*$' -Label 'Latest version-matched native portable asset requirement'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?ms)^          \$latestExpectedTag = if \(\$isCurrentMainTip\) \{ \$tag \} else \{ '''' \}\r?\n          \$latestObservationAttempts = if \(\$isCurrentMainTip\) \{ 12 \} else \{ 1 \}[ \t]*$' -Label 'current-main exact-tag polling and non-current first observation'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                \$latestErrors = @\(Get-NativeLatestPostconditionErrors `[ \t]*$' -Label 'Latest endpoint native invariant validation'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          if \(\$isCurrentMainTip -and -not \$latestVerified\) \{[ \t]*$' -Label 'current-main Latest fail-closed postcondition'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          if \(-not \$isCurrentMainTip -and -not \$latestVerified\) \{[ \t]*$' -Label 'non-current invalid-Latest recovery gate'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            \$candidateDiscoveryAttempts = 90[ \t]*$' -Label 'named bounded candidate discovery attempts'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            \$candidateDiscoveryDelaySeconds = 10[ \t]*$' -Label 'named bounded candidate discovery delay'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            for \(\$attempt = 1; \$attempt -le \$candidateDiscoveryAttempts; \$attempt\+\+\) \{[ \t]*$' -Label 'bounded concurrent native candidate discovery covers full native build'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              \$releasesJson = \(& gh api "repos/\$env:GITHUB_REPOSITORY/releases\?per_page=100" \| Out-String\)[ \t]*$' -Label 'bounded native release candidate listing'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                    if \(\[string\]\$candidateRelease\.tag_name -ceq \$tag\) \{ continue \}[ \t]*$' -Label 'never recover with the non-current run release'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                    \$candidateErrors = @\(Get-NativeLatestPostconditionErrors `[ \t]*$' -Label 'stable native current-main recovery candidate validation'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?ms)^              if \(\$attempt -lt \$candidateDiscoveryAttempts\) \{\r?\n                Start-Sleep -Seconds \$candidateDiscoveryDelaySeconds\r?\n              \}[ \t]*$' -Label 'guarded bounded native candidate discovery delay'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              throw "native Latest recovery found no safe candidate after \$candidateDiscoveryAttempts attempts: \$candidateFailure"[ \t]*$' -Label 'recovery failure reports named attempt bound'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            & gh release edit \$candidateTag --latest --prerelease=false --draft=false[ \t]*$' -Label 'exact stable native Latest recovery mutation'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^                  \$recoveryErrors = @\(Get-NativeLatestPostconditionErrors `[ \t]*$' -Label 'recovered Latest exact API postcondition'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              throw "native Latest recovery postcondition failed for \$\{candidateTag\}: \$recoveryFailure"[ \t]*$' -Label 'recovery endpoint fail-closed postcondition'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          if \(-not \$latestVerified\) \{ throw ''native Latest invariant was not established'' \}[ \t]*$' -Label 'repository-wide Latest invariant terminal gate'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$verificationMainSha = \(git rev-parse refs/remotes/origin/main\)\.Trim\(\)\.ToLowerInvariant\(\)[ \t]*$' -Label 'final fresh main resolution'
-Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              \$verificationMainSha -ne \$requiredLatestMainSha\) \{[ \t]*$' -Label 'final main-race rejection'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          \$latestObservationAttempts = 12[ \t]*$' -Label 'bounded Latest observation count'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              \$latestJson = Invoke-GhWithRetry -Description "native Latest readback for \$tag" `[ \t]*$' -Label 'retrying Latest endpoint readback'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^          if \(-not \$latestVerified\) \{[ \t]*$' -Label 'Latest postcondition failure gate'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            \$finalMainSha = \(git rev-parse refs/remotes/origin/main\)\.Trim\(\)\.ToLowerInvariant\(\)[ \t]*$' -Label 'final fresh main resolution'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^            if \(\$finalMainSha -ne \$expectedSha\) \{[ \t]*$' -Label 'newer-main ownership handoff after Latest race'
+Require-Regex -Content $nativeReleaseStep -Pattern '(?m)^              exit 0[ \t]*$' -Label 'newer-main non-Latest success exit'
+Reject-Regex -Content $nativeReleaseStep -Pattern '(?i)\$(?:candidate|recovery)|candidateDiscovery|recoveryCandidate|candidateTag' -Label 'obsolete cross-commit Latest recovery path'
 
 $nativeAssetStageStep = Get-WorkflowStep -Content $nativeWorkflow -Name 'Stage exact native release assets' -Label 'exact native asset staging'
 Require-Regex -Content $nativeAssetStageStep -Pattern '(?m)^          if \(\$actualNames\.Count -ne 2 -or \(Compare-Object \$expectedNames \$actualNames\)\) \{[ \t]*$' -Label 'exact two-file package handoff assertion'
@@ -843,9 +776,16 @@ Require-Regex -Content $pagesWorkflow -Pattern '(?m)^        uses: actions/check
 Require-Regex -Content $pagesWorkflow -Pattern '(?m)^        uses: actions/configure-pages@v6[ \t]*$' -Label 'Node 24 Pages configure action'
 Require-Regex -Content $pagesWorkflow -Pattern '(?m)^        uses: actions/upload-pages-artifact@v5[ \t]*$' -Label 'Node 24 Pages artifact action'
 Require-Regex -Content $pagesWorkflow -Pattern '(?m)^        uses: actions/deploy-pages@v5[ \t]*$' -Label 'Node 24 Pages deploy action'
+Require-Regex -Content $siteDataWorkflow -Pattern '(?ms)^concurrency:\r?\n  group: site-data\r?\n.*?^  cancel-in-progress: false[ \t]*$' -Label 'non-canceling site-data delivery queue'
 Reject-Regex -Content $siteDataCommitStep -Pattern '(?m)^          if \(-not \(git status --porcelain design/winforge-data\.js\)\) \{[ \t]*$' -Label 'pre-normalization site-data status truthiness gate'
 Require-Regex -Content $siteDataCommitStep -Pattern '(?ms)^          git add -- design/winforge-data\.js[ \t]*\r?\n          if \(\$LASTEXITCODE -ne 0\) \{ throw ''site-data staging failed'' \}[ \t]*\r?\n          git diff --cached --quiet -- design/winforge-data\.js[ \t]*\r?\n          \$stagedDiffExitCode = \$LASTEXITCODE[ \t]*\r?\n          if \(\$stagedDiffExitCode -eq 0\) \{\r?\n            Write-Host "No change to design/winforge-data\.js\."\r?\n            exit 0\r?\n          \}\r?\n          if \(\$stagedDiffExitCode -ne 1\) \{\r?\n            throw "site-data staged diff check failed with exit code \$stagedDiffExitCode"\r?\n          \}[ \t]*$' -Label 'post-normalization staged site-data three-way diff gate'
-Require-Regex -Content $siteDataCommitStep -Pattern '(?ms)^.*?^          git pull --rebase origin main[ \t]*\r?\n.*?^          \$pushedSha = \(git rev-parse HEAD\)\.Trim\(\)\.ToLowerInvariant\(\)[ \t]*\r?\n.*?^          git push origin HEAD:main[ \t]*\r?\n.*?^          gh workflow run native-release\.yml --ref main -f publish_release=true -f source_sha=\$pushedSha[ \t]*$' -Label 'exact post-rebase site-data SHA dispatch order'
+Require-Regex -Content $siteDataCommitStep -Pattern '(?ms)^.*?^          git pull --rebase origin main[ \t]*\r?\n.*?^          \$pushedSha = \(git rev-parse HEAD\)\.Trim\(\)\.ToLowerInvariant\(\)[ \t]*\r?\n.*?^          git push origin HEAD:main[ \t]*$' -Label 'exact post-rebase site-data SHA push order'
+Require-Regex -Content $siteDataCommitStep -Pattern '(?m)^          \$releaseVersion = "1\.0\.\$env:GITHUB_RUN_ID"[ \t]*$' -Label 'stable site-data release version'
+Require-Regex -Content $siteDataCommitStep -Pattern '(?ms)^          \$dispatchArgs = @\(\r?\n            ''workflow'', ''run'', ''native-release\.yml'',\r?\n            ''--ref'', ''main'',\r?\n            ''-f'', ''publish_release=true'',\r?\n            ''-f'', "source_sha=\$pushedSha",\r?\n            ''-f'', "release_version=\$releaseVersion"\r?\n          \)[ \t]*$' -Label 'exact site-data native release dispatch arguments'
+Require-Regex -Content $siteDataCommitStep -Pattern '(?m)^          for \(\$attempt = 1; \$attempt -le 5; \$attempt\+\+\) \{[ \t]*$' -Label 'bounded site-data native-release dispatch retry'
+Require-Regex -Content $siteDataCommitStep -Pattern '(?m)^            \$dispatchOutput = \(& gh @dispatchArgs 2>&1 \| Out-String\)[ \t]*$' -Label 'site-data dispatch command'
+Require-Regex -Content $siteDataCommitStep -Pattern '(?m)^            Write-Warning "Native release dispatch attempt \$attempt/5 failed: \$lastDispatchFailure"[ \t]*$' -Label 'site-data dispatch retry diagnostic'
+Require-Regex -Content $siteDataCommitStep -Pattern '(?m)^            throw "native release dispatch failed after 5 attempts: \$lastDispatchFailure"[ \t]*$' -Label 'site-data dispatch fails closed'
 
 $siteDataStagedDiffFixtures = @(
     [pscustomobject]@{ Name = 'normalized no-op exits cleanly'; ExitCode = 0; Outcome = 'skip' }

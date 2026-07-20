@@ -878,3 +878,10 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 - Fresh post-integration `htmlentities` capture (2026-07-19): LowLevel Computer Use MCP was not callable in this Codex session. The process-owned native driver found `CopyFromScreen` unavailable and rejected its blank or near-uniform `PrintWindow` fallback. No PNG was created or retained, no canonical screenshot changed, and the three Reference Text routes remain `capture-blocked`.
 - 整合後最新 `htmlentities` 截圖（2026-07-19）：今次 Codex session 冇可呼叫嘅 LowLevel Computer Use MCP。只屬於本次程序嘅原生 driver 發現 `CopyFromScreen` 唔可用，並拒絕空白／近乎單色 `PrintWindow` fallback。冇建立或保留 PNG、冇改 canonical 截圖，三條 Reference Text route 保持 `capture-blocked`。
+
+## Percentage Calculator native capture status · 原生百分比計算器截圖狀態
+
+- Fresh `percent` capture (2026-07-20): LowLevel Computer Use MCP was not callable in this Codex session. `CopyFromScreen` was unavailable, but the repository-native driver captured a valid 1962×1311 `PrintWindow` frame. It was visually inspected and promoted to `docs/screenshot-percent.png` and this wiki-local copy, so `percent` / `percentage` / `module.percentcalc` now have current visual-pass evidence.
+- 最新 `percent` 截圖（2026-07-20）：今次 Codex session 冇可呼叫嘅 LowLevel Computer Use MCP。`CopyFromScreen` 唔可用，但 repository-native driver 用 `PrintWindow` 擷取到有效嘅 1962×1311 畫面。已檢視並升格做 `docs/screenshot-percent.png` 同呢份 wiki 本機副本，所以 `percent`／`percentage`／`module.percentcalc` 而家有目前 visual-pass 證據。
+
+![Percentage Calculator · 百分比計算器](images/screenshot-percent.png)

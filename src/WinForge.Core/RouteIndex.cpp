@@ -9,7 +9,7 @@ namespace winforge::core
 {
     bool HasNativeRenderer(std::wstring_view canonicalRoute)
     {
-        constexpr std::array<std::wstring_view, 37> implemented{
+        constexpr std::array<std::wstring_view, 38> implemented{
             L"dashboard",
             L"shell.allapps",
             L"about",
@@ -44,6 +44,7 @@ namespace winforge::core
             L"module.unitprice",
             L"module.baseconvert",
             L"module.asciitable",
+            L"module.percentcalc",
             L"module.regextester",
             L"module.regexcheat",
             L"module.symbols",

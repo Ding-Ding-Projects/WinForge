@@ -33,7 +33,9 @@ permissions:
 
 concurrency:
   group: site-data
-  cancel-in-progress: true
+  # A run may push generated data before dispatching its matching native release.
+  # Keep queued runs alive so every successful base-repository push gets a release.
+  cancel-in-progress: false
 
 jobs:
   regen:
@@ -111,5 +113,31 @@ jobs:
           # GITHUB_TOKEN pushes do not emit another push workflow. workflow_dispatch
           # is the supported recursion-safe exception, and this runs only after a
           # real generated-data commit reaches main.
-          gh workflow run native-release.yml --ref main -f publish_release=true -f source_sha=$pushedSha
-          if ($LASTEXITCODE -ne 0) { throw 'native release dispatch failed after site-data push' }
+          # GITHUB_RUN_ID is stable if this site-data workflow is retried. Every
+          # dispatch therefore reconciles to the same tag even if GitHub accepted a
+          # request before returning a transient API error.
+          $releaseVersion = "1.0.$env:GITHUB_RUN_ID"
+          $dispatchArgs = @(
+            'workflow', 'run', 'native-release.yml',
+            '--ref', 'main',
+            '-f', 'publish_release=true',
+            '-f', "source_sha=$pushedSha",
+            '-f', "release_version=$releaseVersion"
+          )
+          $dispatchSucceeded = $false
+          $lastDispatchFailure = ''
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            $dispatchOutput = (& gh @dispatchArgs 2>&1 | Out-String)
+            if ($LASTEXITCODE -eq 0) {
+              $dispatchSucceeded = $true
+              break
+            }
+            $lastDispatchFailure = $dispatchOutput.Trim()
+            Write-Warning "Native release dispatch attempt $attempt/5 failed: $lastDispatchFailure"
+            if ($attempt -lt 5) {
+              Start-Sleep -Seconds ([int][Math]::Min(30, [Math]::Pow(2, $attempt)))
+            }
+          }
+          if (-not $dispatchSucceeded) {
+            throw "native release dispatch failed after 5 attempts: $lastDispatchFailure"
+          }

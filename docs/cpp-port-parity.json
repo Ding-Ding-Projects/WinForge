@@ -6019,25 +6019,51 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/PercentCalc.h",
+                                      "src/WinForge.Core/PercentCalc.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "tests/native/WinForge.Core.Tests/PercentCalcTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "docs/Native-Percentage-Calculator.md",
+                                      "docs/wiki/Native-Percentage-Calculator.md",
+                                      "design/content/Native-Percentage-Calculator.md",
+                                      "design/content/wiki/Native-Percentage-Calculator.md",
+                                      "docs/wiki/features/calculators-numbers/percent.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Percentage Calculator · 百分比計算器 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "pass",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-19T18:49:56Z",
+                                            "result":  "Dedicated native C++/WinRT Percentage Calculator and standard-C++ PercentCalc core preserve the managed six-card behavior: percent-of, what-percent, percentage change, increase/decrease, tip split, and ratio simplification. Inputs accept current-culture decimal separators with an invariant-dot fallback; display rounds six places away from zero; tip splitting preserves banker's rounding; and copy is an explicit-only clipboard action. Native Debug and Release x64 solution builds exited 0 with 0 errors; Debug and Release core each passed 796/796 including Percent Calculator 37/37; catalog parity covered 346 fixed routes plus five dynamic families; and focused -PercentCalcRoutesOnly UI Automation passed 13/13 across percent, percentage, and module.percentcalc, including English/Cantonese rerender, state reset, narrow bounds, guarded errors, and clipboard policy. LowLevel MCP is not callable in this Codex session. The native repository driver attempted percent but CopyFromScreen was unavailable and its PrintWindow fallback was blank or near-uniform, so no PNG was created or retained and no canonical screenshot changed.",
+                                            "status":  "capture-blocked"
+                                        },
+                                        {
+                                            "atUtc":  "2026-07-20T00:46:40Z",
+                                            "result":  "Controlled main integration revalidated the genuine native C++/WinRT Percentage Calculator and standard-C++ PercentCalc core. Fresh Debug and Release x64 solution builds exited 0 with 0 errors; both core suites passed 915/915 including Percentage Calculator 37/37; catalog parity covered 346 fixed routes plus five dynamic families, 319 registry records, and 346 ledger rows; the installer contract passed; and focused -PercentCalcRoutesOnly -AllowClipboardMutation UI Automation passed 14/14 across percent, percentage, and module.percentcalc, including localized state retention, guarded errors, reset, bounds, and explicit-only clipboard Copy. LowLevel MCP is not callable in this session. CopyFromScreen was unavailable, but the repository driver obtained a valid 1962x1311 PrintWindow fallback, visually inspected it, and promoted docs/screenshot-percent.png plus docs/wiki/images/screenshot-percent.png as current evidence. The sole C++ release publisher is now test-gated and retry-hardened without adding managed assets; earlier hosted GitHub API-outage repairs remain pending after the controlled push.",
+                                            "status":  "pass"
+                                        },
+                                        {
+                                            "atUtc":  "2026-07-20T01:23:12Z",
+                                            "result":  "Post-integration validation rebuilt the native Debug and Release x64 solutions with 0 errors, reran both 915/915 native core suites including Percentage Calculator 37/37, catalog parity (346 fixed routes plus five dynamic families, 319 registry, 346 ledger rows), and the native installer contract. The release workflow YAML and every embedded PowerShell block parse locally. Its C++-only publisher is explicitly test-gated, uses one immutable retry tag, reconciles an ambiguously-created tag only after bounded visibility reads, and allows only current-main to own Latest. The earlier hosted GitHub API-outage release repairs remain pending until this controlled push reaches main. LowLevel MCP is still not callable; the valid inspected screenshot from the preceding attempt remains the current visual evidence.",
+                                            "status":  "pass"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-20 · IN PROGRESS / 進行中. Controlled integration has fresh Debug/Release 0-error builds, core 915/915 each including Percent Calculator 37/37, catalog parity, installer contract, focused UIA 14/14, explicit-only clipboard policy, and current documentation evidence. LowLevel MCP is unavailable, but the fresh driver PrintWindow fallback was valid, visually inspected, and promoted to the canonical screenshot; visual is pass. The route remains in-progress until the complete native migration reaches every route. 受控整合有最新 Debug／Release 0-error build、core 各 915/915（包括 Percent Calculator 37/37）、catalog parity、installer contract、專項 UIA 14/14、只限明確 Copy 嘅剪貼簿政策同目前文件證據。LowLevel MCP 未可用，但最新 driver PrintWindow fallback 有效、已檢視同升格做 canonical 截圖，所以 visual 係 pass。喺完整原生遷移到晒所有 route 前，呢條 route 仍然係 in-progress。"
                    },
                    {
                        "id":  "module.pgadmin",

@@ -2,9 +2,13 @@
 
 > Native installer CI · The C++20 installer is contract-checked before packaging, after Inno Setup compilation, and after silent install; see [Native Installer CI](docs/Native-Installer-CI.md). 原生安裝程式 CI 會檢查封裝前、編譯後同靜默安裝後嘅合約。
 
+> Native release reliability · The sole C++ publisher is test-gated, retry-safe, exact-asset verified, and current-main-only for Latest; hosted outage repairs remain pending after this push. See [Native Release Reliability](docs/Native-Release-Reliability.md). · 原生發佈可靠性：唯一 C++ publisher 一定要測試成功、retry 安全、驗確切 asset，Latest 只畀 current-main；今次 push 後會 repair 之前 hosted outage。
+
 > Native update · Symbols Palette is now a tested C++/WinRT page: 226 local glyphs in nine bilingual categories, literal-default and opt-in bounded-PCRE2 filtering, explicit clipboard Copy, and aliases symbols/glyphs/module.symbols. See [Native Symbols Palette](docs/Native-Symbols-Palette.md).
 
 > Native update · Morse Code is now a tested C++/WinRT page with managed-compatible encode/decode, timing flash playback, explicit Copy, and aliases morse/module.morse. See [Native Morse Code](docs/Native-Morse-Code.md). · 原生更新 · Morse Code 而家係已測試嘅 C++/WinRT 頁面，有 managed 相容嘅編碼／解碼、計時閃燈播放、明確 Copy 同 morse/module.morse 別名。見 [Native Morse Code](docs/Native-Morse-Code.md)。
+
+> Native update · Percentage Calculator is now a tested C++/WinRT page backed by standard-C++ `PercentCalc`: six local percentage/ratio cards, managed-equivalent parsing and rounding, reset/localization, and explicit-only Copy across percent/percentage/module.percentcalc. See [Native Percentage Calculator](docs/Native-Percentage-Calculator.md). · 原生更新 · 百分比計算器而家係已測試嘅 C++/WinRT 頁面，六張本機百分比／比例卡、相容解析取捨、重設／本地化同只限明確 Copy 已涵蓋三個 alias。見 [原生百分比計算器](docs/Native-Percentage-Calculator.md)。
 
 # WinForge · 視窗鑄造
 

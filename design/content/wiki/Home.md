@@ -11,6 +11,8 @@
 | [Native C++ Rewrite](Native-Cpp-Rewrite.md) | Honest C++ migration scope, evidence, blockers, and cutover gates · 如實 C++ 遷移範圍、證據、阻礙同切換閘門 |
 | [Native Base Converter](#/wiki/Native-Base-Converter) | Controlled C++ Base Converter integration and evidence boundary · 受控 C++ 進位轉換整合同證據界線 |
 | [Native ASCII Table](#/wiki/Native-Ascii-Table) | Controlled C++ ASCII and explicit Latin-1 reference integration · 受控 C++ ASCII／明確 Latin-1 參考整合 |
+| [Native Percentage Calculator](#/wiki/Native-Percentage-Calculator) | Controlled C++ percentage and ratio calculator integration · 受控 C++ 百分比／比例計算器整合 |
+| [Native Release Reliability](#/wiki/Native-Release-Reliability) | C++-only release delivery, retries, and repair status · 只限 C++ 發佈、retry 同 repair 狀態 |
 | [Native Morse Code](#/wiki/Native-Morse-Code) | Native Morse encoding, decoding, and flash-playback evidence · 原生摩斯電碼編碼、解碼同閃燈播放證據 |
 | [Reactor Hub](#/wiki/Reactor-Hub) | Reactor manual, procedures, safety, fuel, waste, and tests · 反應堆手冊、程序、安全、燃料、廢料同測試 |
 | [Generated References](#/wiki/Generated-References) | One page per feature and one page per button/control · 每功能一頁、每按鈕／控制項一頁 |
@@ -28,6 +30,8 @@
 - [Native C++ Rewrite](Native-Cpp-Rewrite.md) · 原生 C++ 重寫
 - [Native Base Converter](#/wiki/Native-Base-Converter) · 原生進位轉換
 - [Native ASCII Table](#/wiki/Native-Ascii-Table) · 原生 ASCII 表
+- [Native Percentage Calculator](#/wiki/Native-Percentage-Calculator) · 原生百分比計算器
+- [Native Release Reliability](#/wiki/Native-Release-Reliability) · 原生發佈可靠性
 - [AWS Manager](AWS-Manager.md) · AWS 管理中心
 - [AI Agents](AI-Agents.md) · AI 代理
 - [Cake Factory & Farm](Cake-Factory-and-Farm.md) · 蛋糕工廠與農場

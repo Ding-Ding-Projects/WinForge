@@ -29,6 +29,7 @@
 #include <functional>
 #include <fstream>
 #include <future>
+#include <initializer_list>
 #include <commdlg.h>
 #include <iterator>
 #include <limits>
@@ -236,6 +237,46 @@ namespace
         auto output = winforge::core::aspectratio::FormatDisplayNumber(value, 1, L".");
         if (output.find(L'.') == std::wstring::npos) output += L".0";
         return output;
+    }
+
+    std::wstring CurrentDecimalSeparator()
+    {
+        wchar_t separator[8]{};
+        auto const length = GetLocaleInfoEx(
+            LOCALE_NAME_USER_DEFAULT,
+            LOCALE_SDECIMAL,
+            separator,
+            static_cast<int>(std::size(separator)));
+        return length > 1
+            ? std::wstring{ separator, static_cast<std::size_t>(length - 1) }
+            : std::wstring{ L"." };
+    }
+
+    bool IsPercentWhitespace(wchar_t value) noexcept
+    {
+        return (value >= L'\u0009' && value <= L'\u000D') || value == L'\u0020' || value == L'\u0085' ||
+            value == L'\u00A0' || value == L'\u1680' ||
+            (value >= L'\u2000' && value <= L'\u200A') || value == L'\u2028' ||
+            value == L'\u2029' || value == L'\u202F' || value == L'\u205F' ||
+            value == L'\u3000';
+    }
+
+    bool AnyPercentInputBlank(std::initializer_list<std::wstring_view> values) noexcept
+    {
+        for (auto const value : values)
+        {
+            auto blank = true;
+            for (auto const character : value)
+            {
+                if (!IsPercentWhitespace(character))
+                {
+                    blank = false;
+                    break;
+                }
+            }
+            if (blank) return true;
+        }
+        return false;
     }
 
     std::string ToUtf8(std::wstring_view value)
@@ -1279,6 +1320,61 @@ namespace winrt::WinForge::implementation
         m_asciiTableRendering = false;
     }
 
+    void MainWindow::ReleasePercentCalcRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute == L"module.percentcalc" && nextRoute != L"module.percentcalc")
+        {
+            ResetPercentCalcRouteState();
+        }
+    }
+
+    void MainWindow::ResetPercentCalcRouteState()
+    {
+        m_percentC1X = nullptr;
+        m_percentC1Y = nullptr;
+        m_percentC2X = nullptr;
+        m_percentC2Y = nullptr;
+        m_percentC3A = nullptr;
+        m_percentC3B = nullptr;
+        m_percentC4Y = nullptr;
+        m_percentC4X = nullptr;
+        m_percentC4Increase = nullptr;
+        m_percentC4Decrease = nullptr;
+        m_percentC5Bill = nullptr;
+        m_percentC5Tip = nullptr;
+        m_percentC5Split = nullptr;
+        m_percentC6A = nullptr;
+        m_percentC6B = nullptr;
+        m_percentC1Output = nullptr;
+        m_percentC2Output = nullptr;
+        m_percentC3Output = nullptr;
+        m_percentC4Output = nullptr;
+        m_percentC5Output = nullptr;
+        m_percentC6Output = nullptr;
+        m_percentStatus = nullptr;
+        std::wstring{}.swap(m_percentC1XValue);
+        std::wstring{}.swap(m_percentC1YValue);
+        std::wstring{}.swap(m_percentC2XValue);
+        std::wstring{}.swap(m_percentC2YValue);
+        std::wstring{}.swap(m_percentC3AValue);
+        std::wstring{}.swap(m_percentC3BValue);
+        std::wstring{}.swap(m_percentC4YValue);
+        std::wstring{}.swap(m_percentC4XValue);
+        std::wstring{}.swap(m_percentC5BillValue);
+        std::wstring{}.swap(m_percentC5TipValue);
+        m_percentC5SplitValue = L"1";
+        std::wstring{}.swap(m_percentC6AValue);
+        std::wstring{}.swap(m_percentC6BValue);
+        std::wstring{}.swap(m_percentC1CopyValue);
+        std::wstring{}.swap(m_percentC2CopyValue);
+        std::wstring{}.swap(m_percentC3CopyValue);
+        std::wstring{}.swap(m_percentC4CopyValue);
+        std::wstring{}.swap(m_percentC5CopyValue);
+        std::wstring{}.swap(m_percentC6CopyValue);
+        m_percentIncrease = true;
+        m_percentRendering = false;
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -1304,6 +1400,7 @@ namespace winrt::WinForge::implementation
             ReleaseUnitPriceRouteState(L"search");
             ReleaseBaseConvertRouteState(L"search");
             ReleaseAsciiTableRouteState(L"search");
+            ReleasePercentCalcRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -1321,6 +1418,7 @@ namespace winrt::WinForge::implementation
             ReleaseUnitPriceRouteState(L"manual");
             ReleaseBaseConvertRouteState(L"manual");
             ReleaseAsciiTableRouteState(L"manual");
+            ReleasePercentCalcRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -1340,6 +1438,7 @@ namespace winrt::WinForge::implementation
             ReleaseUnitPriceRouteState(normalized);
             ReleaseBaseConvertRouteState(normalized);
             ReleaseAsciiTableRouteState(normalized);
+            ReleasePercentCalcRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
@@ -1356,6 +1455,7 @@ namespace winrt::WinForge::implementation
         ReleaseUnitPriceRouteState(module->id);
         ReleaseBaseConvertRouteState(module->id);
         ReleaseAsciiTableRouteState(module->id);
+        ReleasePercentCalcRouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
@@ -1504,6 +1604,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.asciitable")
         {
             ResetAsciiTableRouteState();
+        }
+        else if (module->id == L"module.percentcalc")
+        {
+            ResetPercentCalcRouteState();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -1707,6 +1811,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.asciitable")
         {
             RenderAsciiTable();
+        }
+        else if (module->id == L"module.percentcalc")
+        {
+            RenderPercentCalc();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -8478,7 +8586,347 @@ namespace winrt::WinForge::implementation
         }
     }
 
-   void MainWindow::RenderAspectRatio()
+    void MainWindow::RenderPercentCalc()
+    {
+        m_percentRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Percentage Calculator", L"百分比計算器" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Everyday percentage and ratio maths: percentages, change, increase or decrease, tip splitting, and ratio simplification. Every result stays on this PC.",
+                L"日常百分比同比例運算：百分比、變化率、加減百分比、貼士分帳同埋比例化簡。全部結果都留喺你部電腦。" }.Pick(m_language));
+        page.MaxWidth(860);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativePercentCalcPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native percentage and ratio math", L"全原生百分比同比例運算" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Locale-aware parsing, six live calculations, managed-compatible rounding, and explicit-only clipboard copy run in standard C++.",
+            L"本機語系剖析、六張即時計算卡、同 managed 相容嘅捨入，同只限明確複製剪貼簿全部由標準 C++ 執行。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativePercentCalcImplementationStatus");
+        page.Children().Append(implementation);
+
+        auto addInput = [this](
+            StackPanel const& content,
+            TextBox& target,
+            std::wstring MainWindow::* state,
+            std::wstring_view label,
+            std::wstring_view placeholder,
+            std::wstring_view automationId)
+        {
+            auto caption = CreateText(label, 13, true);
+            caption.TextWrapping(TextWrapping::Wrap);
+            content.Children().Append(caption);
+            target = TextBox();
+            target.Text(ToHString(this->*state));
+            target.PlaceholderText(ToHString(placeholder));
+            target.HorizontalAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(target, ToHString(automationId));
+            AutomationProperties::SetName(target, ToHString(label));
+            AutomationProperties::SetLabeledBy(target, caption);
+            target.TextChanged([this, state](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+            {
+                if (m_percentRendering) return;
+                this->*state = ToWide(sender.as<TextBox>().Text());
+                RefreshPercentCalc();
+            });
+            content.Children().Append(target);
+        };
+
+        auto addOutput = [this](StackPanel const& content, TextBox& target, std::wstring_view automationId)
+        {
+            auto caption = CreateText(winforge::core::LocalizedText{ L"Result", L"結果" }.Pick(m_language), 13, true);
+            content.Children().Append(caption);
+            target = TextBox();
+            target.IsReadOnly(true);
+            target.TextWrapping(TextWrapping::Wrap);
+            target.MinHeight(40);
+            target.HorizontalAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(target, ToHString(automationId));
+            AutomationProperties::SetLabeledBy(target, caption);
+            content.Children().Append(target);
+        };
+
+        auto addCopy = [this](StackPanel const& content, std::wstring MainWindow::* value, std::wstring_view automationId)
+        {
+            auto copy = MakeNativeButton(
+                winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language),
+                automationId);
+            copy.Click([this, value](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                CopyPercentCalcValue(this->*value);
+            });
+            content.Children().Append(copy);
+        };
+
+        Border card1 = MakeNativeCard();
+        StackPanel content1;
+        content1.Spacing(8);
+        content1.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"X% of Y", L"Y 嘅 X%" }.Pick(m_language), 15, true));
+        addInput(content1, m_percentC1X, &MainWindow::m_percentC1XValue,
+            winforge::core::LocalizedText{ L"X (%)", L"X（%）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"X (%)", L"X（%）" }.Pick(m_language), L"NativePercentCalcC1X");
+        addInput(content1, m_percentC1Y, &MainWindow::m_percentC1YValue,
+            L"Y", L"Y", L"NativePercentCalcC1Y");
+        addOutput(content1, m_percentC1Output, L"NativePercentCalcC1Output");
+        addCopy(content1, &MainWindow::m_percentC1CopyValue, L"NativePercentCalcC1Copy");
+        card1.Child(content1);
+        page.Children().Append(card1);
+
+        Border card2 = MakeNativeCard();
+        StackPanel content2;
+        content2.Spacing(8);
+        content2.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"X is what % of Y", L"X 係 Y 嘅百分之幾" }.Pick(m_language), 15, true));
+        addInput(content2, m_percentC2X, &MainWindow::m_percentC2XValue, L"X", L"X", L"NativePercentCalcC2X");
+        addInput(content2, m_percentC2Y, &MainWindow::m_percentC2YValue, L"Y", L"Y", L"NativePercentCalcC2Y");
+        addOutput(content2, m_percentC2Output, L"NativePercentCalcC2Output");
+        addCopy(content2, &MainWindow::m_percentC2CopyValue, L"NativePercentCalcC2Copy");
+        card2.Child(content2);
+        page.Children().Append(card2);
+
+        Border card3 = MakeNativeCard();
+        StackPanel content3;
+        content3.Spacing(8);
+        content3.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"% change from A to B", L"由 A 到 B 嘅變化率" }.Pick(m_language), 15, true));
+        addInput(content3, m_percentC3A, &MainWindow::m_percentC3AValue,
+            winforge::core::LocalizedText{ L"A (from)", L"A（由）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"A (from)", L"A（由）" }.Pick(m_language), L"NativePercentCalcC3A");
+        addInput(content3, m_percentC3B, &MainWindow::m_percentC3BValue,
+            winforge::core::LocalizedText{ L"B (to)", L"B（到）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"B (to)", L"B（到）" }.Pick(m_language), L"NativePercentCalcC3B");
+        addOutput(content3, m_percentC3Output, L"NativePercentCalcC3Output");
+        addCopy(content3, &MainWindow::m_percentC3CopyValue, L"NativePercentCalcC3Copy");
+        card3.Child(content3);
+        page.Children().Append(card3);
+
+        Border card4 = MakeNativeCard();
+        StackPanel content4;
+        content4.Spacing(8);
+        content4.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Increase / decrease Y by X%", L"將 Y 加 / 減 X%" }.Pick(m_language), 15, true));
+        addInput(content4, m_percentC4Y, &MainWindow::m_percentC4YValue, L"Y", L"Y", L"NativePercentCalcC4Y");
+        addInput(content4, m_percentC4X, &MainWindow::m_percentC4XValue,
+            winforge::core::LocalizedText{ L"X (%)", L"X（%）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"X (%)", L"X（%）" }.Pick(m_language), L"NativePercentCalcC4X");
+        auto direction = CreateText(
+            winforge::core::LocalizedText{ L"Direction", L"方向" }.Pick(m_language), 13, true);
+        content4.Children().Append(direction);
+        m_percentC4Increase = RadioButton();
+        m_percentC4Increase.GroupName(L"NativePercentCalcDirection");
+        m_percentC4Increase.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Increase", L"加" }.Pick(m_language))));
+        m_percentC4Increase.IsChecked(m_percentIncrease);
+        AutomationProperties::SetAutomationId(m_percentC4Increase, L"NativePercentCalcC4Increase");
+        AutomationProperties::SetLabeledBy(m_percentC4Increase, direction);
+        m_percentC4Increase.Checked([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_percentRendering) return;
+            m_percentIncrease = true;
+            RefreshPercentCalc();
+        });
+        content4.Children().Append(m_percentC4Increase);
+        m_percentC4Decrease = RadioButton();
+        m_percentC4Decrease.GroupName(L"NativePercentCalcDirection");
+        m_percentC4Decrease.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Decrease", L"減" }.Pick(m_language))));
+        m_percentC4Decrease.IsChecked(!m_percentIncrease);
+        AutomationProperties::SetAutomationId(m_percentC4Decrease, L"NativePercentCalcC4Decrease");
+        AutomationProperties::SetLabeledBy(m_percentC4Decrease, direction);
+        m_percentC4Decrease.Checked([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_percentRendering) return;
+            m_percentIncrease = false;
+            RefreshPercentCalc();
+        });
+        content4.Children().Append(m_percentC4Decrease);
+        addOutput(content4, m_percentC4Output, L"NativePercentCalcC4Output");
+        addCopy(content4, &MainWindow::m_percentC4CopyValue, L"NativePercentCalcC4Copy");
+        card4.Child(content4);
+        page.Children().Append(card4);
+
+        Border card5 = MakeNativeCard();
+        StackPanel content5;
+        content5.Spacing(8);
+        content5.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Tip splitter (bill, tip %, split)", L"貼士分帳（帳單、貼士 %、人數）" }.Pick(m_language), 15, true));
+        addInput(content5, m_percentC5Bill, &MainWindow::m_percentC5BillValue,
+            winforge::core::LocalizedText{ L"Bill", L"帳單" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Bill", L"帳單" }.Pick(m_language), L"NativePercentCalcC5Bill");
+        addInput(content5, m_percentC5Tip, &MainWindow::m_percentC5TipValue,
+            winforge::core::LocalizedText{ L"Tip %", L"貼士 %" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Tip %", L"貼士 %" }.Pick(m_language), L"NativePercentCalcC5Tip");
+        addInput(content5, m_percentC5Split, &MainWindow::m_percentC5SplitValue,
+            winforge::core::LocalizedText{ L"People", L"人數" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"People", L"人數" }.Pick(m_language), L"NativePercentCalcC5Split");
+        addOutput(content5, m_percentC5Output, L"NativePercentCalcC5Output");
+        addCopy(content5, &MainWindow::m_percentC5CopyValue, L"NativePercentCalcC5Copy");
+        card5.Child(content5);
+        page.Children().Append(card5);
+
+        Border card6 = MakeNativeCard();
+        StackPanel content6;
+        content6.Spacing(8);
+        content6.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Ratio simplify (a : b)", L"比例化簡（a : b）" }.Pick(m_language), 15, true));
+        addInput(content6, m_percentC6A, &MainWindow::m_percentC6AValue, L"a", L"a", L"NativePercentCalcC6A");
+        addInput(content6, m_percentC6B, &MainWindow::m_percentC6BValue, L"b", L"b", L"NativePercentCalcC6B");
+        addOutput(content6, m_percentC6Output, L"NativePercentCalcC6Output");
+        addCopy(content6, &MainWindow::m_percentC6CopyValue, L"NativePercentCalcC6Copy");
+        card6.Child(content6);
+        page.Children().Append(card6);
+
+        m_percentStatus = CreateText(L"", 12.5);
+        m_percentStatus.Opacity(0.82);
+        m_percentStatus.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_percentStatus, L"NativePercentCalcStatus");
+        page.Children().Append(m_percentStatus);
+
+        ShowPage(page);
+        m_percentRendering = false;
+        RefreshPercentCalc();
+    }
+
+    void MainWindow::RefreshPercentCalc()
+    {
+        using namespace winforge::core::percentcalc;
+        if (!m_percentC1Output || !m_percentC2Output || !m_percentC3Output || !m_percentC4Output ||
+            !m_percentC5Output || !m_percentC6Output || !m_percentStatus)
+        {
+            return;
+        }
+
+        auto const decimalSeparator = CurrentDecimalSeparator();
+        auto const bad = winforge::core::LocalizedText{
+            L"Check the numbers.", L"睇下啲數字啱唔啱。" }.Pick(m_language);
+        auto setOutput = [](TextBox const& target, std::wstring const& value)
+        {
+            target.Text(ToHString(TextBoxPresentation(value)));
+            AutomationProperties::SetName(target, ToHString(value));
+        };
+
+        auto c1 = PercentOf(m_percentC1XValue, m_percentC1YValue, decimalSeparator);
+        m_percentC1CopyValue = c1.ok ? c1.value : L"";
+        setOutput(m_percentC1Output, c1.ok
+            ? L"= " + c1.value
+            : (AnyPercentInputBlank({ m_percentC1XValue, m_percentC1YValue }) ? L"" : bad));
+
+        auto c2 = WhatPercent(m_percentC2XValue, m_percentC2YValue, decimalSeparator);
+        m_percentC2CopyValue = c2.ok ? c2.value : L"";
+        setOutput(m_percentC2Output, c2.ok
+            ? L"= " + c2.value
+            : (AnyPercentInputBlank({ m_percentC2XValue, m_percentC2YValue })
+                ? L""
+                : winforge::core::LocalizedText{ L"Y cannot be zero.", L"Y 唔可以係零。" }.Pick(m_language)));
+
+        auto c3 = PercentChange(m_percentC3AValue, m_percentC3BValue, decimalSeparator);
+        m_percentC3CopyValue = c3.ok ? c3.value : L"";
+        setOutput(m_percentC3Output, c3.ok
+            ? L"= " + c3.value
+            : (AnyPercentInputBlank({ m_percentC3AValue, m_percentC3BValue })
+                ? L""
+                : winforge::core::LocalizedText{
+                    L"Starting value A cannot be zero.", L"起始值 A 唔可以係零。" }.Pick(m_language)));
+
+        auto c4 = AdjustBy(m_percentC4YValue, m_percentC4XValue, m_percentIncrease, decimalSeparator);
+        m_percentC4CopyValue = c4.ok ? c4.value : L"";
+        setOutput(m_percentC4Output, c4.ok
+            ? L"= " + c4.value
+            : (AnyPercentInputBlank({ m_percentC4YValue, m_percentC4XValue }) ? L"" : bad));
+
+        auto c5 = Tip(m_percentC5BillValue, m_percentC5TipValue, m_percentC5SplitValue, decimalSeparator);
+        if (c5.ok)
+        {
+            m_percentC5CopyValue = winforge::core::LocalizedText{
+                L"Tip " + Format(c5.tipAmount, decimalSeparator) + L" · Total " +
+                    Format(c5.total, decimalSeparator) + L" · Each " + Format(c5.perPerson, decimalSeparator),
+                L"貼士 " + Format(c5.tipAmount, decimalSeparator) + L" · 合計 " +
+                    Format(c5.total, decimalSeparator) + L" · 每人 " + Format(c5.perPerson, decimalSeparator) }.Pick(m_language);
+            setOutput(m_percentC5Output, m_percentC5CopyValue);
+        }
+        else
+        {
+            m_percentC5CopyValue.clear();
+            setOutput(m_percentC5Output, AnyPercentInputBlank({
+                m_percentC5BillValue, m_percentC5TipValue, m_percentC5SplitValue })
+                ? L""
+                : winforge::core::LocalizedText{
+                    L"Check bill, tip % and people (≥ 1).", L"睇下帳單、貼士 % 同人數（≥ 1）。" }.Pick(m_language));
+        }
+
+        auto c6 = SimplifyRatio(m_percentC6AValue, m_percentC6BValue, decimalSeparator);
+        if (c6.ok)
+        {
+            m_percentC6CopyValue = std::to_wstring(c6.a) + L" : " + std::to_wstring(c6.b);
+            setOutput(m_percentC6Output, L"= " + m_percentC6CopyValue);
+        }
+        else
+        {
+            m_percentC6CopyValue.clear();
+            setOutput(m_percentC6Output, AnyPercentInputBlank({ m_percentC6AValue, m_percentC6BValue })
+                ? L""
+                : winforge::core::LocalizedText{
+                    L"Enter two numbers (not both zero).", L"輸入兩個數字（唔可以兩個都係零）。" }.Pick(m_language));
+        }
+
+        AnnouncePercentCalcStatus(winforge::core::LocalizedText{
+            L"Results update locally as you type. Copy changes the clipboard only when selected.",
+            L"你一打字就會喺本機更新結果；只會喺你揀複製時先改剪貼簿。" }.Pick(m_language), false, false);
+    }
+
+    void MainWindow::CopyPercentCalcValue(std::wstring_view value)
+    {
+        if (value.empty())
+        {
+            AnnouncePercentCalcStatus(winforge::core::LocalizedText{
+                L"Nothing to copy yet.", L"暫時冇嘢可以複製。" }.Pick(m_language), true);
+            return;
+        }
+        try
+        {
+            Windows::ApplicationModel::DataTransfer::DataPackage package;
+            package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+            package.SetText(ToHString(value));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+            AnnouncePercentCalcStatus(winforge::core::LocalizedText{
+                L"Copied to the clipboard.", L"已複製到剪貼簿。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnouncePercentCalcStatus(winforge::core::LocalizedText{
+                L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::AnnouncePercentCalcStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_percentStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_percentStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_percentStatus.Text(ToHString(message));
+        m_percentStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_percentStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_percentStatus);
+        }
+    }
+
+    void MainWindow::RenderAspectRatio()
     {
         using namespace winforge::core::aspectratio;
         m_aspectRendering = true;

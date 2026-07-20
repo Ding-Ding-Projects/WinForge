@@ -1,5 +1,9 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## Native Percentage Calculator · 原生百分比計算器
+
+`percent`, `percentage`, and `module.percentcalc` now render genuinely in C++/WinRT over standard-C++ `PercentCalc`: six local cards, managed-equivalent parsing/Unicode trimming/rounding, language-state retention, reset, accessibility, and explicit-only Copy. Debug/Release builds are 0-error; cores are **915/915** (Percentage **37/37**); focused UIA is **14/14**; catalog parity and installer contract pass; and accounting is **38/346**. LowLevel MCP is unavailable as a callable tool, but the valid 1962×1311 driver PrintWindow capture was visually inspected and promoted, so visual evidence is `pass`. The sole C++ publisher is test-gated and retry-hardened with no managed assets; hosted API-outage repairs remain pending after this controlled push. · 三個 alias 而家係真正 C++/WinRT 加標準 C++ `PercentCalc`：六張本機卡、相容解析／Unicode 修剪／取捨、語言狀態、重設、無障礙同只限明確 Copy。Debug／Release 0 errors、core **915/915**（Percentage **37/37**）、UIA **14/14**、catalog parity／installer contract 通過、計數 **38/346**。LowLevel MCP 未可呼叫，但有效 driver PrintWindow 截圖已檢視同升格，所以 visual 係 `pass`。唯一 C++ publisher 已有測試 gate 同 retry 加固，冇 managed asset；controlled push 後仲要 repair hosted API outage。
+
 A complete map of every module/feature: what it does, how to open it, the page + service files, and the
 **real engine it wraps**. WinForge is a bilingual (English + 粵語) WinUI 3 / .NET 11 suite for Windows 11.
 **No redirects** — every shipping feature runs in-app and wraps a real engine/API. A genuine C++20/C++/WinRT rewrite now lives beside this managed oracle; its foundation is routable and verified, but feature parity remains evidence-gated and is not yet claimed.

@@ -14,6 +14,7 @@ param(
     [switch]$UnitPriceRoutesOnly,
     [switch]$BaseConvertRoutesOnly,
     [switch]$AsciiTableRoutesOnly,
+    [switch]$PercentCalcRoutesOnly,
     [switch]$AllowClipboardMutation
 )
 
@@ -628,7 +629,8 @@ function Invoke-OwnedRoute {
     $isUnitPriceRoute = @('priceper', 'unitprice', 'module.unitprice') -contains $Route
     $isBaseConvertRoute = @('baseconvert', 'module.baseconvert') -contains $Route
     $isAsciiTableRoute = @('ascii', 'asciitable', 'module.asciitable') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $BmiRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly -or $BaseConvertRoutesOnly -or $AsciiTableRoutesOnly) -and -not (
+    $isPercentCalcRoute = @('percent', 'percentage', 'module.percentcalc') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $BmiRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly -or $BaseConvertRoutesOnly -or $AsciiTableRoutesOnly -or $PercentCalcRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
         ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
@@ -639,7 +641,8 @@ function Invoke-OwnedRoute {
         ($UuidV5RoutesOnly -and $isUuidV5Route) -or
         ($UnitPriceRoutesOnly -and $isUnitPriceRoute) -or
         ($BaseConvertRoutesOnly -and $isBaseConvertRoute) -or
-        ($AsciiTableRoutesOnly -and $isAsciiTableRoute))) {
+        ($AsciiTableRoutesOnly -and $isAsciiTableRoute) -or
+        ($PercentCalcRoutesOnly -and $isPercentCalcRoute))) {
         return
     }
 
@@ -4560,6 +4563,123 @@ Invoke-OwnedRoute -Route 'asciitable' -ExpectedTitle 'ASCII Table' -Inspect {
 
 foreach ($alias in @('ascii', 'asciitable', 'module.asciitable')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'ASCII Table'
+}
+
+Invoke-OwnedRoute -Route 'percent' -ExpectedTitle 'Percentage Calculator' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativePercentCalcImplementationStatus',
+        'NativePercentCalcC1X', 'NativePercentCalcC1Y', 'NativePercentCalcC1Output', 'NativePercentCalcC1Copy',
+        'NativePercentCalcC2X', 'NativePercentCalcC2Y', 'NativePercentCalcC2Output', 'NativePercentCalcC2Copy',
+        'NativePercentCalcC3A', 'NativePercentCalcC3B', 'NativePercentCalcC3Output', 'NativePercentCalcC3Copy',
+        'NativePercentCalcC4Y', 'NativePercentCalcC4X', 'NativePercentCalcC4Increase', 'NativePercentCalcC4Decrease',
+        'NativePercentCalcC4Output', 'NativePercentCalcC4Copy',
+        'NativePercentCalcC5Bill', 'NativePercentCalcC5Tip', 'NativePercentCalcC5Split',
+        'NativePercentCalcC5Output', 'NativePercentCalcC5Copy',
+        'NativePercentCalcC6A', 'NativePercentCalcC6B', 'NativePercentCalcC6Output', 'NativePercentCalcC6Copy',
+        'NativePercentCalcStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $percentControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativePercentCalcC1X'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePercentCalcC1Y'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePercentCalcC4Increase'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePercentCalcC4Decrease'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePercentCalcC5Split'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePercentCalcC6Output'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePercentCalcC6Copy'))
+    Assert-True -Condition $percentControlsFit `
+        -Name 'Percentage Calculator exposes native controls, accessibility, and horizontal clipping safety'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Percentage Calculator' | Out-Null
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC1X' -Value '12.5%' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC1Y' -Value '80' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC1Output' -ExpectedValue '= 10' | Out-Null
+    Assert-True -Condition $true -Name 'Percentage Calculator computes X percent of Y through native controls'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC2X' -Value '5' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC2Y' -Value '20' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC2Output' -ExpectedValue '= 25%' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC3A' -Value '80' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC3B' -Value '100' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC3Output' -ExpectedValue '= +25%' | Out-Null
+    Assert-True -Condition $true -Name 'Percentage Calculator calculates percent share and signed change locally'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC4Y' -Value '200' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC4X' -Value '10' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC4Output' -ExpectedValue '= 220' | Out-Null
+    $decrease = [System.Windows.Automation.SelectionItemPattern](
+        Wait-ForElement -Root $root -AutomationId 'NativePercentCalcC4Decrease').GetCurrentPattern(
+            [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $decrease.Select()
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC4Output' -ExpectedValue '= 180' | Out-Null
+    Assert-True -Condition $true -Name 'Percentage Calculator changes the native increase-or-decrease direction'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC5Bill' -Value '100' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC5Tip' -Value '15' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC5Split' -Value '4' | Out-Null
+    $middleDot = [char]0x00B7
+    $tipExpected = "Tip 15 $middleDot Total 115 $middleDot Each 28.75"
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC5Output' `
+        -ExpectedValue $tipExpected | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC6A' -Value '1920' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC6B' -Value '1080' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC6Output' -ExpectedValue '= 16 : 9' | Out-Null
+    Assert-True -Condition $true -Name 'Percentage Calculator handles tip splitting and GCD ratio simplification'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC2Y' -Value '0' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC2Output' -ExpectedValue 'Y cannot be zero.' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC5Split' -Value '0' | Out-Null
+    $greaterOrEqual = [char]0x2265
+    $invalidTipExpected = "Check bill, tip % and people ($greaterOrEqual 1)."
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC5Output' `
+        -ExpectedValue $invalidTipExpected | Out-Null
+    Assert-True -Condition $true -Name 'Percentage Calculator reports guarded zero denominators and invalid split counts'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativePercentCalcC1Copy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePercentCalcStatus' `
+            -Prefix 'Copied to the clipboard.' | Out-Null
+        Assert-True -Condition $true -Name 'Percentage Calculator writes the clipboard only after explicit Copy'
+    }
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC2Y' -Value '20' | Out-Null
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativePercentCalcC5Split' -Value '4' | Out-Null
+    $cantoneseLabel = @([char]0x7CB5, [char]0x8A9E) -join ''
+    $percentLabel = @([char]0x767E, [char]0x5206, [char]0x6BD4) -join ''
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForPageTitle -Root $root -Prefix $percentLabel | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC1Output' -ExpectedValue '= 10' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC5Bill' -ExpectedValue '100' | Out-Null
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Percentage Calculator' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC5Output' `
+        -ExpectedValue $tipExpected | Out-Null
+    Assert-True -Condition $true -Name 'Percentage Calculator localizes in place while retaining input and calculation state'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativePercentCalcC1X')) `
+        -Name 'Percentage Calculator releases its observable page controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.percentcalc' -ExpectedTitle 'Percentage Calculator'
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC1X' -ExpectedValue '' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC5Split' -ExpectedValue '1' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePercentCalcC6Output' -ExpectedValue '' | Out-Null
+    Assert-True -Condition $true -Name 'Percentage Calculator resets managed page state after in-process route re-entry'
+}
+
+foreach ($alias in @('percent', 'percentage', 'module.percentcalc')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Percentage Calculator'
 }
 
 Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {

@@ -16,6 +16,11 @@ on:
         required: false
         default: ""
         type: string
+      release_version:
+        description: "Optional immutable native delivery version (A.B.C) / 可選：不可變原生發佈版本"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -159,6 +164,11 @@ jobs:
       - name: Stage native runtime · 整理原生 runtime
         id: runtime
         shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF_NAME: ${{ github.ref_name }}
+          EVENT_REF_TYPE: ${{ github.ref_type }}
+          REQUESTED_RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           $source = Resolve-Path 'src\WinForge.App\bin\x64\Release'
           if (-not (Test-Path (Join-Path $source 'WinForge.exe'))) { throw 'native WinForge.exe missing' }
@@ -201,7 +211,32 @@ jobs:
           Copy-Item -LiteralPath 'THIRD-PARTY-NOTICES.txt' -Destination $staging -Force
           if (-not (Test-Path (Join-Path $staging 'WinForge.exe'))) { throw 'staged native WinForge.exe missing' }
           "dir=$staging" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          $version = "1.0.${{ github.run_number }}"
+          $requestedVersion = ([string]$env:REQUESTED_RELEASE_VERSION).Trim()
+          $pushedNativeTagVersion = if (
+            $env:EVENT_NAME -eq 'push' -and
+            $env:EVENT_REF_TYPE -eq 'tag' -and
+            ([string]$env:EVENT_REF_NAME).StartsWith('native-v', [StringComparison]::Ordinal)
+          ) {
+            ([string]$env:EVENT_REF_NAME).Substring('native-v'.Length)
+          }
+          else {
+            ''
+          }
+          if ($requestedVersion -and $pushedNativeTagVersion -and $requestedVersion -cne $pushedNativeTagVersion) {
+            throw "requested native release version '$requestedVersion' conflicts with pushed tag '$env:EVENT_REF_NAME'"
+          }
+          $version = if ($requestedVersion) {
+            $requestedVersion
+          }
+          elseif ($pushedNativeTagVersion) {
+            $pushedNativeTagVersion
+          }
+          else {
+            "1.0.${{ github.run_number }}"
+          }
+          if ($version -notmatch '^[1-9][0-9]*\.[0-9]+\.[0-9]+$') {
+            throw "invalid native release version: $version"
+          }
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "WINFORGE_NATIVE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
@@ -314,7 +349,7 @@ jobs:
   release-native:
     name: Publish trusted native C++ release · 發佈可信原生 C++ 版本
     needs: build-test-package
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+    if: ${{ needs.build-test-package.result == 'success' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)) }}
     runs-on: windows-2022
     permissions:
       contents: write
@@ -376,7 +411,7 @@ jobs:
           $usePushedNativeTag = $env:EVENT_NAME -eq 'push' -and
             $env:EVENT_REF_TYPE -eq 'tag' -and
             ([string]$env:EVENT_REF_NAME).StartsWith('native-v', [StringComparison]::Ordinal)
-          $tag = if ($usePushedNativeTag) { $env:EVENT_REF_NAME } else { "native-v1.0.${{ github.run_number }}" }
+          $tag = if ($usePushedNativeTag) { $env:EVENT_REF_NAME } else { "native-v$env:NATIVE_VERSION" }
           $notes = "Native C++20/WinUI 3 build from commit $expectedSha.`n原生 C++20/WinUI 3 建置，來自 commit $expectedSha。"
           $portableAsset = "release-assets/WinForge-native-x64-$env:NATIVE_VERSION.zip"
           $installerAsset = 'release-assets/WinForge-Native-Setup.exe'
@@ -463,6 +498,59 @@ jobs:
             return @($errors)
           }
 
+          function Invoke-GhWithRetry {
+            param(
+              [Parameter(Mandatory)][string]$Description,
+              [Parameter(Mandatory)][string[]]$Arguments,
+              [int]$Attempts = 6
+            )
+
+            $lastFailure = ''
+            for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+              $output = (& gh @Arguments 2>&1 | Out-String)
+              if ($LASTEXITCODE -eq 0) { return $output }
+
+              $lastFailure = $output.Trim()
+              Write-Warning "$Description failed on attempt $attempt/${Attempts}: $lastFailure"
+              if ($attempt -lt $Attempts) {
+                Start-Sleep -Seconds ([Math]::Min(20, 2 * [int][Math]::Pow(2, $attempt - 1)))
+              }
+            }
+            throw "$Description failed after ${Attempts} attempts: $lastFailure"
+          }
+
+          function Get-ReleaseByTagWithRetry {
+            param(
+              [Parameter(Mandatory)][string]$Tag,
+              [int]$Attempts = 6,
+              [switch]$WaitForVisibility
+            )
+
+            $lastFailure = ''
+            for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+              $output = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag" 2>&1 | Out-String)
+              if ($LASTEXITCODE -eq 0) {
+                return ($output | ConvertFrom-Json -ErrorAction Stop)
+              }
+
+              $lastFailure = $output.Trim()
+              if ($lastFailure -match '(HTTP 404|Not Found|"status"\s*:\s*404)') {
+                if (-not $WaitForVisibility) { return $null }
+                Write-Warning "Native release '$Tag' is not visible yet on attempt $attempt/${Attempts}."
+                if ($attempt -lt $Attempts) {
+                  Start-Sleep -Seconds ([Math]::Min(20, 2 * [int][Math]::Pow(2, $attempt - 1)))
+                  continue
+                }
+                return $null
+              }
+              Write-Warning "Native release lookup for '$Tag' failed on attempt $attempt/${Attempts}: $lastFailure"
+              if ($attempt -lt $Attempts) {
+                Start-Sleep -Seconds ([Math]::Min(20, 2 * [int][Math]::Pow(2, $attempt - 1)))
+              }
+            }
+            throw "could not read native release '$Tag' after ${Attempts} attempts: $lastFailure"
+          }
+
           # Refresh main immediately before creation to classify this run. Every
           # stable main release starts with --latest=false; only the current tip
           # may be promoted after a second fresh origin/main check.
@@ -496,12 +584,28 @@ jobs:
           # Pin the release tag to the immutable commit that produced these artifacts.
           # Otherwise a concurrent main update can move the default target away
           # from the source SHA even though the release notes identify this run.
-          & gh @releaseArgs
-          if ($LASTEXITCODE -ne 0) { throw "native release creation failed: $tag" }
+          $existingRelease = Get-ReleaseByTagWithRetry -Tag $tag
+          if ($null -eq $existingRelease) {
+            # Do not retry `gh release create`: a 503 or lost response may mean
+            # GitHub accepted it. Re-read once with bounded retry and let the
+            # exact tag/provenance/asset checks below decide whether it is safe.
+            $createOutput = (& gh @releaseArgs 2>&1 | Out-String)
+            if ($LASTEXITCODE -ne 0) {
+              $existingRelease = Get-ReleaseByTagWithRetry -Tag $tag -WaitForVisibility
+              if ($null -eq $existingRelease) {
+                throw "native release creation failed for ${tag}: $($createOutput.Trim())"
+              }
+              Write-Warning "Native release create returned an error, but '$tag' exists; reconciling exact postconditions."
+            }
+          }
+          else {
+            Write-Host "Native release '$tag' already exists; reconciling exact postconditions."
+          }
 
           # `gh release create --latest` has returned success without moving the
           # REST /releases/latest pointer. The official edit command is therefore
           # the only promotion path, and it never uploads another asset.
+          $shouldVerifyLatest = $false
           if ($isCurrentMainTip) {
             git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
             if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before native Latest promotion' }
@@ -510,19 +614,23 @@ jobs:
               throw "could not resolve origin/main before native Latest promotion: $promotionMainSha"
             }
             if ($expectedSha -ne $promotionMainSha) {
-              throw "refusing stale native Latest promotion: expected $expectedSha, current main is $promotionMainSha"
+              Write-Host "Native release $tag is intentionally non-Latest because main advanced to $promotionMainSha."
             }
-            & gh release edit $tag --latest --prerelease=false --draft=false
-            if ($LASTEXITCODE -ne 0) { throw "native Latest promotion failed: $tag" }
+            else {
+              Invoke-GhWithRetry -Description "native Latest promotion for $tag" `
+                -Arguments @('release', 'edit', $tag, '--latest', '--prerelease=false', '--draft=false') | Out-Null
+              $shouldVerifyLatest = $true
+            }
           }
+          else { Write-Host "Native release $tag is intentionally non-Latest because it is not the current main tip." }
 
-          $refJson = (& gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" | Out-String)
-          if ($LASTEXITCODE -ne 0) { throw "could not resolve native release tag: $tag" }
+          $refJson = Invoke-GhWithRetry -Description "native release tag lookup for $tag" `
+            -Arguments @('api', "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag")
           $object = ($refJson | ConvertFrom-Json).object
           for ($depth = 0; $object.type -eq 'tag'; $depth++) {
             if ($depth -ge 8) { throw "native release tag dereference exceeded eight levels: $tag" }
-            $tagJson = (& gh api $object.url | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "could not dereference annotated native tag: $tag" }
+            $tagJson = Invoke-GhWithRetry -Description "native annotated tag lookup for $tag" `
+              -Arguments @('api', [string]$object.url)
             $object = ($tagJson | ConvertFrom-Json).object
           }
           if ($object.type -ne 'commit') { throw "native release tag does not resolve to a commit: $tag ($($object.type))" }
@@ -531,10 +639,33 @@ jobs:
             throw "native release provenance mismatch for ${tag}: expected $expectedSha, got $actualSha"
           }
 
-          $releaseJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | Out-String)
-          if ($LASTEXITCODE -ne 0) { throw "could not read native release by tag: $tag" }
+          $releaseJson = Invoke-GhWithRetry -Description "native release readback for $tag" `
+            -Arguments @('api', "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag")
           $release = $releaseJson | ConvertFrom-Json -ErrorAction Stop
           $expectedPrerelease = -not $isMainChannel
+          $actualAssetNames = @($release.assets | ForEach-Object { [string]$_.name })
+          $missingAssetNames = @($expectedAssetNames | Where-Object { $actualAssetNames -notcontains $_ })
+          $unexpectedAssetNames = @($actualAssetNames | Where-Object { $expectedAssetNames -notcontains $_ })
+          $releaseMetadataMatches =
+            ([string]$release.tag_name -ceq $tag) -and
+            (([string]$release.target_commitish).Trim().ToLowerInvariant() -ceq $expectedSha) -and
+            (-not [bool]$release.draft) -and
+            ([bool]$release.prerelease -eq $expectedPrerelease)
+          if ($releaseMetadataMatches -and $unexpectedAssetNames.Count -eq 0 -and $missingAssetNames.Count -gt 0) {
+            $assetPaths = @{
+              ([System.IO.Path]::GetFileName($installerAsset)) = $installerAsset
+              ([System.IO.Path]::GetFileName($portableAsset)) = $portableAsset
+            }
+            foreach ($missingAssetName in $missingAssetNames) {
+              $missingAssetPath = [string]$assetPaths[$missingAssetName]
+              if (-not $missingAssetPath) { throw "no native handoff path is available for missing asset: $missingAssetName" }
+              Invoke-GhWithRetry -Description "native release asset reconciliation for $missingAssetName" `
+                -Arguments @('release', 'upload', $tag, $missingAssetPath, '--clobber') | Out-Null
+            }
+            $releaseJson = Invoke-GhWithRetry -Description "native release reconciled readback for $tag" `
+              -Arguments @('api', "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag")
+            $release = $releaseJson | ConvertFrom-Json -ErrorAction Stop
+          }
           $releaseErrors = @(Get-ReleasePostconditionErrors `
             -Release $release `
             -ExpectedTag $tag `
@@ -545,169 +676,55 @@ jobs:
             throw "native release postcondition failed for ${tag}: $($releaseErrors -join '; ')"
           }
 
-          # Every release run owns the repository-wide Latest invariant. Pin the
-          # required target to a fresh origin/main SHA before observing or repairing it.
-          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
-          if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before native Latest invariant check' }
-          $requiredLatestMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $requiredLatestMainSha -notmatch '^[0-9a-f]{40}$') {
-            throw "could not resolve origin/main for native Latest invariant: $requiredLatestMainSha"
-          }
-          if ($isCurrentMainTip -and $expectedSha -ne $requiredLatestMainSha) {
-            throw "native main advanced before Latest verification: expected $expectedSha, current main is $requiredLatestMainSha"
+          # Older main/tag runs must finish after their own immutable release is
+          # proven. The exact source-specific current-main run owns Latest, so an
+          # earlier run cannot block on or repair a newer generated-data commit.
+          if (-not $shouldVerifyLatest) {
+            Write-Host "Verified native release $tag -> $actualSha; intentionally non-Latest."
+            exit 0
           }
 
+          # Only a release that was current at the final promotion check owns the
+          # Latest pointer. Observe GitHub's eventual consistency without letting a
+          # newer main commit turn this successfully created immutable release into
+          # a failure or an unsafe cross-commit recovery attempt.
           $latestVerified = $false
-          $verifiedLatestTag = ''
           $latestFailure = 'Latest endpoint was not checked'
-          $latestExpectedTag = if ($isCurrentMainTip) { $tag } else { '' }
-          $latestObservationAttempts = if ($isCurrentMainTip) { 12 } else { 1 }
+          $latestObservationAttempts = 12
           for ($attempt = 1; $attempt -le $latestObservationAttempts; $attempt++) {
-            $latestJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | Out-String)
-            if ($LASTEXITCODE -ne 0) {
-              $latestFailure = "Latest endpoint request failed on attempt $attempt"
+            try {
+              $latestJson = Invoke-GhWithRetry -Description "native Latest readback for $tag" `
+                -Arguments @('api', "repos/$env:GITHUB_REPOSITORY/releases/latest") `
+                -Attempts 1
+              $latestRelease = $latestJson | ConvertFrom-Json -ErrorAction Stop
+              $latestErrors = @(Get-NativeLatestPostconditionErrors `
+                -Release $latestRelease `
+                -ExpectedSha $expectedSha `
+                -ExpectedTag $tag)
+              if ($latestErrors.Count -eq 0) {
+                $latestVerified = $true
+                break
+              }
+              $latestFailure = $latestErrors -join '; '
             }
-            else {
-              try {
-                $latestRelease = $latestJson | ConvertFrom-Json -ErrorAction Stop
-                $latestErrors = @(Get-NativeLatestPostconditionErrors `
-                  -Release $latestRelease `
-                  -ExpectedSha $requiredLatestMainSha `
-                  -ExpectedTag $latestExpectedTag)
-                if (-not $isCurrentMainTip -and [string]$latestRelease.tag_name -ceq $tag) {
-                  $latestErrors += "non-current release must never become Latest: $tag"
-                }
-                if ($latestErrors.Count -eq 0) {
-                  $latestVerified = $true
-                  $verifiedLatestTag = [string]$latestRelease.tag_name
-                  break
-                }
-                $latestFailure = $latestErrors -join '; '
-              }
-              catch {
-                $latestFailure = "Latest endpoint returned invalid JSON: $($_.Exception.Message)"
-              }
+            catch {
+              $latestFailure = $_.Exception.Message
             }
             if ($attempt -lt $latestObservationAttempts) { Start-Sleep -Seconds 2 }
           }
 
-          if ($isCurrentMainTip -and -not $latestVerified) {
+          if (-not $latestVerified) {
+            git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+            if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main after native Latest observation' }
+            $finalMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
+            if ($LASTEXITCODE -ne 0 -or $finalMainSha -notmatch '^[0-9a-f]{40}$') {
+              throw "could not resolve origin/main after native Latest observation: $finalMainSha"
+            }
+            if ($finalMainSha -ne $expectedSha) {
+              Write-Host "Verified native release $tag -> $actualSha; main advanced to $finalMainSha, so a newer run owns Latest."
+              exit 0
+            }
             throw "native Latest postcondition failed for $tag after $latestObservationAttempts attempts: $latestFailure"
           }
 
-          if (-not $isCurrentMainTip -and -not $latestVerified) {
-            # A branch/tag/older-main run may repair a bad or managed Latest only
-            # by selecting a separate, stable native release for the pinned main SHA.
-            $candidateDiscoveryAttempts = 90
-            $candidateDiscoveryDelaySeconds = 10
-            $recoveryCandidate = $null
-            $candidateFailure = $latestFailure
-            for ($attempt = 1; $attempt -le $candidateDiscoveryAttempts; $attempt++) {
-              git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
-              if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main while discovering native Latest candidate' }
-              $candidateMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
-              if ($LASTEXITCODE -ne 0 -or $candidateMainSha -notmatch '^[0-9a-f]{40}$') {
-                throw "could not resolve origin/main while discovering native Latest candidate: $candidateMainSha"
-              }
-              if ($candidateMainSha -ne $requiredLatestMainSha) {
-                throw "origin/main advanced during native Latest recovery: expected $requiredLatestMainSha, got $candidateMainSha"
-              }
-
-              $releasesJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" | Out-String)
-              if ($LASTEXITCODE -ne 0) {
-                $candidateFailure = "release-list request failed on attempt $attempt"
-              }
-              else {
-                try {
-                  $releases = @($releasesJson | ConvertFrom-Json -ErrorAction Stop)
-                  foreach ($candidateRelease in $releases) {
-                    if ([string]$candidateRelease.tag_name -ceq $tag) { continue }
-                    $candidateErrors = @(Get-NativeLatestPostconditionErrors `
-                      -Release $candidateRelease `
-                      -ExpectedSha $requiredLatestMainSha)
-                    if ($candidateErrors.Count -eq 0) {
-                      $recoveryCandidate = $candidateRelease
-                      break
-                    }
-                  }
-                  if ($null -ne $recoveryCandidate) { break }
-                  $candidateFailure = "no verified stable native release targets $requiredLatestMainSha"
-                }
-                catch {
-                  $candidateFailure = "release list returned invalid JSON: $($_.Exception.Message)"
-                }
-              }
-              if ($attempt -lt $candidateDiscoveryAttempts) {
-                Start-Sleep -Seconds $candidateDiscoveryDelaySeconds
-              }
-            }
-            if ($null -eq $recoveryCandidate) {
-              throw "native Latest recovery found no safe candidate after $candidateDiscoveryAttempts attempts: $candidateFailure"
-            }
-
-            $candidateTag = [string]$recoveryCandidate.tag_name
-            git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
-            if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before native Latest recovery' }
-            $recoveryMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
-            if ($LASTEXITCODE -ne 0 -or $recoveryMainSha -notmatch '^[0-9a-f]{40}$' -or
-                $recoveryMainSha -ne $requiredLatestMainSha) {
-              throw "origin/main changed before native Latest recovery: expected $requiredLatestMainSha, got $recoveryMainSha"
-            }
-
-            $candidateJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$candidateTag" | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "could not re-read native Latest recovery candidate: $candidateTag" }
-            $recoveryCandidate = $candidateJson | ConvertFrom-Json -ErrorAction Stop
-            $candidateErrors = @(Get-NativeLatestPostconditionErrors `
-              -Release $recoveryCandidate `
-              -ExpectedSha $requiredLatestMainSha `
-              -ExpectedTag $candidateTag)
-            if ($candidateErrors.Count -ne 0 -or $candidateTag -ceq $tag) {
-              throw "native Latest recovery candidate became unsafe: $($candidateErrors -join '; ')"
-            }
-
-            & gh release edit $candidateTag --latest --prerelease=false --draft=false
-            if ($LASTEXITCODE -ne 0) { throw "native Latest recovery edit failed: $candidateTag" }
-
-            $recoveryVerified = $false
-            $recoveryFailure = 'Latest endpoint did not expose the recovery candidate'
-            for ($attempt = 1; $attempt -le 12; $attempt++) {
-              $latestJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | Out-String)
-              if ($LASTEXITCODE -ne 0) {
-                $recoveryFailure = "Latest recovery endpoint request failed on attempt $attempt"
-              }
-              else {
-                try {
-                  $latestRelease = $latestJson | ConvertFrom-Json -ErrorAction Stop
-                  $recoveryErrors = @(Get-NativeLatestPostconditionErrors `
-                    -Release $latestRelease `
-                    -ExpectedSha $requiredLatestMainSha `
-                    -ExpectedTag $candidateTag)
-                  if ($recoveryErrors.Count -eq 0) {
-                    $recoveryVerified = $true
-                    $latestVerified = $true
-                    $verifiedLatestTag = $candidateTag
-                    break
-                  }
-                  $recoveryFailure = $recoveryErrors -join '; '
-                }
-                catch {
-                  $recoveryFailure = "Latest recovery endpoint returned invalid JSON: $($_.Exception.Message)"
-                }
-              }
-              if ($attempt -lt 12) { Start-Sleep -Seconds 2 }
-            }
-            if (-not $recoveryVerified) {
-              throw "native Latest recovery postcondition failed for ${candidateTag}: $recoveryFailure"
-            }
-          }
-
-          if (-not $latestVerified) { throw 'native Latest invariant was not established' }
-          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
-          if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before accepting native Latest invariant' }
-          $verificationMainSha = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $verificationMainSha -notmatch '^[0-9a-f]{40}$' -or
-              $verificationMainSha -ne $requiredLatestMainSha) {
-            throw "origin/main changed before accepting native Latest invariant: expected $requiredLatestMainSha, got $verificationMainSha"
-          }
-
-          Write-Host "Verified native release $tag -> $actualSha; Latest=$verifiedLatestTag -> $verificationMainSha"
+          Write-Host "Verified native release $tag -> $actualSha; Latest=$tag"
