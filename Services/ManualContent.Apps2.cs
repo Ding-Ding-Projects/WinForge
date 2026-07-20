@@ -395,14 +395,15 @@ public static partial class ManualContent
         {
             Tag = "module.aws", Glyph = "",
             TitleEn = "AWS Manager", TitleZh = "AWS 管理中心",
-            SummaryEn = "An AWS Console-style manager with unified account context, resource discovery, a 149-service catalog, native S3 controls, Cloud Control lifecycle APIs, and an optional CLI workbench.",
-            SummaryZh = "AWS Console 式管理中心，整合帳戶情境、資源探索、149 個服務目錄、原生 S3 控制、Cloud Control 生命週期 API，同選用 CLI 工作台。",
+            SummaryEn = "An AWS Console-style manager with isolated account context, resource discovery, a 149-service catalog, native S3 and EC2 controls, Cloud Control lifecycle APIs, and an optional CLI workbench.",
+            SummaryZh = "AWS Console 式管理中心，整合隔離帳戶情境、資源探索、149 個服務目錄、原生 S3 同 EC2 控制、Cloud Control 生命週期 API，同選用 CLI 工作台。",
             StepsEn = new[]
             {
                 "Choose a shared AWS Profile and Region in the top context bar, then use Who am I to verify the account before changing resources.",
                 "Use Console home and All resources to search Resource Explorer inventory; if it is unavailable, WinForge labels the narrower tag-inventory fallback.",
                 "Open All services to browse 149 curated services plus live services discovered from the installed AWS CLI. Most services currently use the shared resource workspace.",
                 "Use the native S3 workspace for buckets, objects, transfers, versioning, encryption, public-access settings, policies, lifecycle, CORS and tags.",
+                "Use the native EC2 workspace to filter and inspect instances in the selected Region. Start, stop and reboot require review; termination requires the exact instance ID.",
                 "Open CLI workbench only when you need exact command coverage, streaming output, generated forms, history or favorites.",
             },
             StepsZh = new[]
@@ -411,11 +412,12 @@ public static partial class ManualContent
                 "用 Console 首頁同所有資源搜尋 Resource Explorer 清單；如果用唔到，WinForge 會清楚標示範圍較窄嘅標籤清單後備。",
                 "開所有服務，瀏覽 149 個精選服務同由已安裝 AWS CLI 即時探索嘅服務。其他大部分服務目前會用共用資源工作區。",
                 "用原生 S3 工作區管理儲存桶、物件、傳輸、版本控制、加密、公開存取設定、政策、生命週期、CORS 同標籤。",
+                "用原生 EC2 工作區篩選同檢視所選 Region 嘅執行個體。啟動、停止同重新啟動要先覆核；終止就要輸入完整執行個體 ID。",
                 "只有需要精確指令覆蓋、即時輸出、生成表單、歷史或者收藏時，先開 CLI 工作台。",
             },
             TipEn = "The primary manager uses AWS SDK for .NET v4 and does not require aws.exe. WinForge stores only non-secret context; credentials remain with standard AWS providers. IAM permissions still apply, and raw CLI commands may be destructive.",
             TipZh = "主要管理中心用 AWS SDK for .NET v4，唔需要 aws.exe。WinForge 只保存非機密情境；憑證會留喺標準 AWS provider。IAM 權限仍然生效，而原始 CLI 指令可能有破壞性。",
-            Keywords = "aws amazon manager console sdk cli s3 resource explorer cloud control crudl services profile credentials region sso configure favorites history 雲端 管理中心 命令列 設定檔 憑證 區域 資源",
+            Keywords = "aws amazon manager console sdk cli s3 ec2 instance start stop reboot terminate resource explorer cloud control crudl services profile credentials region sso configure favorites history 雲端 管理中心 命令列 設定檔 憑證 區域 資源 執行個體",
         },
         new ManualEntry
         {

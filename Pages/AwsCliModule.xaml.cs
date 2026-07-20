@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Navigation;
 using Windows.ApplicationModel.DataTransfer;
 using WinForge.Models;
 using WinForge.Services;
@@ -29,6 +30,7 @@ public sealed partial class AwsCliModule : Page
     private Dictionary<string, TextBox> _paramBoxes = new();
     private readonly HashSet<string> _pendingAwsTempFiles = new(StringComparer.OrdinalIgnoreCase);
     private bool _loadingContext;
+    private string? _pendingConsoleView;
 
     public AwsCliModule()
     {
@@ -53,19 +55,34 @@ public sealed partial class AwsCliModule : Page
             await RefreshProfiles();
             RefreshHistory();
             await LoadConsoleAsync();
+            ApplyPendingConsoleView();
             await TryWriteAutomationCaptureAsync();
         };
     }
 
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        var view = (e.Parameter as string)?.Trim().ToLowerInvariant();
+        _pendingConsoleView = view is "home" or "resources" or "s3" or "ec2" or "services" or "operations" or "advanced"
+            ? view
+            : null;
+    }
+
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
-    private void OnLang(object? sender, EventArgs e) { Render(); RenderConsoleShell(); RefreshHistory(); }
+    private void OnLang(object? sender, EventArgs e)
+    {
+        RebuildConsoleServiceCatalogForLanguage();
+        Render();
+        RefreshHistory();
+    }
 
     private void Render()
     {
         Header.Title = "AWS Manager · AWS 管理中心";
         HeaderBlurb.Text = P(
-            "A full AWS Console-style manager inside WinForge: account and Region context, unified resource search, service workspaces, native S3 management, operations dashboards, and an advanced CLI workbench when exact command-level access is needed.",
-            "WinForge 入面嘅完整 AWS Console 式管理中心：帳戶同區域情境、統一資源搜尋、服務工作區、原生 S3 管理、營運儀表板，另加進階 CLI 工作台畀你需要精確指令級控制時使用。");
+            "A full AWS Console-style manager inside WinForge: account and Region context, unified resource search, native S3 and EC2 management, service workspaces, operations dashboards, and an advanced CLI workbench when exact command-level access is needed.",
+            "WinForge 入面嘅完整 AWS Console 式管理中心：帳戶同區域情境、統一資源搜尋、原生 S3 同 EC2 管理、服務工作區、營運儀表板，另加進階 CLI 工作台畀你需要精確指令級控制時使用。");
 
         ContextHeader.Text = P("Profile & context · Profile 同情境", "Profile 同情境 · Profile & context");
         ProfileLabel.Text = P("Profile", "設定檔");
@@ -198,7 +215,6 @@ public sealed partial class AwsCliModule : Page
         if (_loadingContext) return;
         var idx = ProfileBox.SelectedIndex;
         AwsCliService.ActiveProfile = (idx <= 0 || idx - 1 >= _profiles.Count) ? "" : _profiles[idx - 1].Name;
-        AwsCliService.PersistContext();
         // If the profile carries its own region/output, reflect it.
         if (idx > 0 && idx - 1 < _profiles.Count)
         {
@@ -211,6 +227,7 @@ public sealed partial class AwsCliModule : Page
                 _loadingContext = false;
             }
         }
+        AwsCliService.PersistContext();
         ScheduleConsoleContextRefresh();
     }
 
@@ -280,7 +297,13 @@ public sealed partial class AwsCliModule : Page
         if (r.Success)
         {
             AwsCliService.ActiveProfile = profileName.Text.Trim();
+            if (!string.IsNullOrWhiteSpace(region.Text))
+                AwsCliService.ActiveRegion = region.Text.Trim();
+            if (!string.IsNullOrWhiteSpace(output.Text))
+                AwsCliService.ActiveOutput = output.Text.Trim();
             AwsCliService.PersistContext();
+            ScheduleConsoleContextRefresh();
+            LoadContext();
             await RefreshProfiles();
         }
     }

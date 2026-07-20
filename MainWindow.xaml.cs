@@ -1086,9 +1086,13 @@ public sealed partial class MainWindow : Window
                 break;
             case "aws":
             case "awscli":
-            case "s3":
-            case "ec2":
                 Navigator.GoToModule?.Invoke("module.aws");
+                break;
+            case "s3":
+                Navigator.GoToModule?.Invoke("module.aws#s3");
+                break;
+            case "ec2":
+                Navigator.GoToModule?.Invoke("module.aws#ec2");
                 break;
             case "peek":
             case "preview":
