@@ -37,4 +37,10 @@ Standalone native `main` is `a64e8e30ed8b5fe376197448ba760d1374244c69`; its [CI/
 
 獨立原生 `main` `a64e8e30` 嘅 CI／release／Pages 全綠，managed Wiki 亦已上線。GitHub 尚未初始化原生 Wiki，而今次冇已登入 browser／支援 API，所以原生 tracked docs 同 Pages 就係正式發佈文件。
 
+### Legacy native checkout retirement · 舊原生 checkout 退役
+
+Before retiring the listed legacy C++/WinRT worktrees and refs, their exact provenance is retained in the standalone-native closure history. Date, Duration, and Loan snapshots remain pushed on their dedicated WIP refs and are not represented as native-main integration. The managed default tree stays rewrite-free, apart from the AudioForge and ImageForge companion programs. Unrelated dirty PowerToys and Reactor/Dew work is preserved outside this cleanup.
+
+退役已列明嘅舊 C++/WinRT worktree／ref 之前，會先喺獨立 native closure history 保留 exact provenance。Date、Duration、Loan snapshot 繼續喺各自已 push 嘅 WIP ref，唔會當成已整合 native main。managed default tree 除咗 AudioForge／ImageForge companion program 外繼續冇 rewrite；唔相關嘅 dirty PowerToys 同 Reactor／Dew 工作唔會喺今次清理郁到。
+
 See the repository [handoff summary](https://github.com/codingmachineedge/WinForge/blob/main/handoff-summary.md) for final commit, remote-integration, workflow, release, and cleanup proof.

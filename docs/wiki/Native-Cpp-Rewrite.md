@@ -7,3 +7,7 @@ The experimental C++20/C++/WinRT port now lives at [codingmachineedge/WinForge-N
 This repository remains the canonical .NET 11 / WinUI 3 WinForge application. Historical native artifacts here are provenance only.
 
 呢個 repository 繼續係正式 .NET 11／WinUI 3 WinForge app；留低嘅歷史原生 artifact 只作來源記錄。
+
+Legacy C++/WinRT checkout refs are retained in the standalone native repository before their old worktrees are retired. That archival retention does not reintroduce rewrite source into managed main. Date Calculator, Duration Calculator, and Loan Calculator remain separate pushed native WIP work, not native-main integrations.
+
+舊 C++/WinRT checkout ref 會喺退役 worktree 前先保留喺獨立 native repository。呢個 archive retention 唔會將 rewrite source 放返入 managed main。Date Calculator、Duration Calculator、Loan Calculator 仍然係獨立已 push 嘅 native WIP，唔係 native-main 整合。
