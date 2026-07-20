@@ -12,6 +12,7 @@
 #include "TextAnalysisTests.h"
 #include "ReferenceTextTests.h"
 #include "SlugifyTests.h"
+#include "AsciiTableTests.h"
 #include "UnitPriceTests.h"
 #include "GuidGenTests.h"
 #include "PassGenTests.h"
@@ -235,6 +236,7 @@ int wmain(int argc, wchar_t** argv)
         winforge::core::HasNativeRenderer(L"MODULE.UUIDV5") &&
         winforge::core::HasNativeRenderer(L"module.unitprice") &&
         winforge::core::HasNativeRenderer(L"module.baseconvert") &&
+        winforge::core::HasNativeRenderer(L"module.asciitable") &&
         winforge::core::HasNativeRenderer(L"MODULE.REGEXCHEAT") &&
         winforge::core::HasNativeRenderer(L"shell.allapps"),
         "native renderer contract identifies implemented fixed routes");
@@ -329,6 +331,10 @@ int wmain(int argc, wchar_t** argv)
     auto const slugifyCounts = RunSlugifyTests();
     passed += slugifyCounts.passed;
     failed += slugifyCounts.failed;
+
+    auto const asciiTableCounts = RunAsciiTableTests();
+    passed += asciiTableCounts.passed;
+    failed += asciiTableCounts.failed;
 
     auto const unitPriceCounts = RunUnitPriceTests();
     passed += unitPriceCounts.passed;

@@ -13,6 +13,7 @@ param(
     [switch]$UuidV5RoutesOnly,
     [switch]$UnitPriceRoutesOnly,
     [switch]$BaseConvertRoutesOnly,
+    [switch]$AsciiTableRoutesOnly,
     [switch]$AllowClipboardMutation
 )
 
@@ -626,7 +627,8 @@ function Invoke-OwnedRoute {
     $isUuidV5Route = @('uuid5', 'uuidv5', 'module.uuidv5') -contains $Route
     $isUnitPriceRoute = @('priceper', 'unitprice', 'module.unitprice') -contains $Route
     $isBaseConvertRoute = @('baseconvert', 'module.baseconvert') -contains $Route
-    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $BmiRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly -or $BaseConvertRoutesOnly) -and -not (
+    $isAsciiTableRoute = @('ascii', 'asciitable', 'module.asciitable') -contains $Route
+    if (($UtilityRoutesOnly -or $LineRoutesOnly -or $TextAnalysisRoutesOnly -or $ReferenceTextRoutesOnly -or $MorseRoutesOnly -or $SlugifyRoutesOnly -or $BmiRoutesOnly -or $UuidV5RoutesOnly -or $UnitPriceRoutesOnly -or $BaseConvertRoutesOnly -or $AsciiTableRoutesOnly) -and -not (
         ($UtilityRoutesOnly -and $isUtilityRoute) -or
         ($LineRoutesOnly -and $isLineRoute) -or
         ($TextAnalysisRoutesOnly -and $isTextAnalysisRoute) -or
@@ -636,7 +638,8 @@ function Invoke-OwnedRoute {
         ($BmiRoutesOnly -and $isBmiRoute) -or
         ($UuidV5RoutesOnly -and $isUuidV5Route) -or
         ($UnitPriceRoutesOnly -and $isUnitPriceRoute) -or
-        ($BaseConvertRoutesOnly -and $isBaseConvertRoute))) {
+        ($BaseConvertRoutesOnly -and $isBaseConvertRoute) -or
+        ($AsciiTableRoutesOnly -and $isAsciiTableRoute))) {
         return
     }
 
@@ -4414,6 +4417,149 @@ Invoke-OwnedRoute -Route 'baseconvert' -ExpectedTitle 'Base Converter' -Inspect 
 
 foreach ($alias in @('baseconvert', 'module.baseconvert')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Base Converter'
+}
+
+Invoke-OwnedRoute -Route 'asciitable' -ExpectedTitle 'ASCII Table' -Inspect {
+    param($root, $title)
+
+    # A focused run may skip the dashboard's usual language normalization.
+    # Establish the English baseline before asserting English-only accessible
+    # text and row/status contracts below.
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'ASCII Table' | Out-Null
+    $middleDot = [char]0x00B7
+    $emDash = [char]0x2014
+
+    foreach ($id in @(
+        'NativeAsciiTableImplementationStatus',
+        'NativeAsciiTableSearch',
+        'NativeAsciiTableLatin1',
+        'NativeAsciiTableCount',
+        'NativeAsciiTableHeaderDec',
+        'NativeAsciiTableHeaderHex',
+        'NativeAsciiTableHeaderOct',
+        'NativeAsciiTableHeaderBin',
+        'NativeAsciiTableHeaderChar',
+        'NativeAsciiTableHeaderName',
+        'NativeAsciiTableRows',
+        'NativeAsciiTableCopy',
+        'NativeAsciiTableStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $asciiTableFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableSearch'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableLatin1'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableCount'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableRows'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableStatus'))
+    Assert-True -Condition $asciiTableFit `
+        -Name 'ASCII Table exposes accessible native filters a virtualized list and clipping-safe controls'
+
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableCount' -Prefix '128 of 128 rows' | Out-Null
+    $latin1 = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableLatin1').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $latin1.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off -and
+        -not (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableCopy').Current.IsEnabled) `
+        -Name 'ASCII Table starts at the managed 0 through 127 range with no implicit clipboard action'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAsciiTableSearch' -Value '0x41' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableCount' -Prefix '1 of 128 rows' | Out-Null
+    $capitalA = Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableRow65'
+    Assert-True -Condition (
+        $capitalA.Current.Name.StartsWith(('65 ' + $middleDot + ' 0x41 ' + $middleDot + ' A ' + $middleDot + ' Printable'), [StringComparison]::Ordinal)) `
+        -Name 'ASCII Table filters the native decimal hexadecimal octal binary and glyph row model'
+    $selection = [System.Windows.Automation.SelectionItemPattern]$capitalA.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $selection.Select()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableStatus' -Prefix 'Selected A (code 65)' | Out-Null
+    Assert-True -Condition (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableCopy').Current.IsEnabled `
+        -Name 'ASCII Table selection enables Copy only after an operator chooses a row'
+
+    if ($AllowClipboardMutation) {
+        Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeAsciiTableCopy'
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableStatus' `
+            -Prefix 'Copied "A" (code 65) to the clipboard.' | Out-Null
+        Assert-True -Condition $true -Name 'ASCII Table writes a printable glyph only after explicit Copy'
+    }
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAsciiTableSearch' -Value 'c1 control' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableCount' -Prefix '0 of 128 rows' | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativeAsciiTableLatin1' -IsOn $true | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableCount' -Prefix '32 of 256 rows' | Out-Null
+    $c1 = Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableRow128'
+    Assert-True -Condition (
+        $c1.Current.Name.StartsWith(('128 ' + $middleDot + ' 0x80 ' + $middleDot + ' CTRL ' + $middleDot + ' C1 control'), [StringComparison]::Ordinal)) `
+        -Name 'ASCII Table extends to C1 controls only when the Latin-1 toggle is explicit'
+
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAsciiTableSearch' -Value 'no-break' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableCount' -Prefix '1 of 256 rows' | Out-Null
+    $nbsp = Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableRow160'
+    Assert-True -Condition (
+        $nbsp.Current.Name.StartsWith(('160 ' + $middleDot + ' 0xA0 ' + $middleDot + ' NBSP ' + $middleDot + ' NBSP ' + $emDash + ' No-Break Space'), [StringComparison]::Ordinal)) `
+        -Name 'ASCII Table distinguishes the managed NBSP boundary from C1 controls'
+
+    # Use the invariant hexadecimal field while changing languages: an English
+    # name search is intentionally localized with the row descriptions.
+    Set-EditableValueAndWait -Root $root -AutomationId 'NativeAsciiTableSearch' -Value '0xA0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableCount' -Prefix '1 of 256 rows' | Out-Null
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    $cantoneseLabel = ([char]0x7CB5).ToString() + [char]0x8A9E
+    Select-ComboItem -Combo $language -Name $cantoneseLabel
+    Wait-ForPageTitle -Root $root -Prefix 'ASCII' | Out-Null
+    $cantoneseCount = Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableCount'
+    $cantoneseNbsp = Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableRow160'
+    Assert-True -Condition (
+        $cantoneseCount.Current.Name.StartsWith('1 / 256', [StringComparison]::Ordinal) -and
+        $cantoneseNbsp.Current.Name -match '[\u3400-\u9fff]') `
+        -Name 'ASCII Table renders Cantonese count and NBSP labels while retaining local state'
+
+    $bilingualLabel = 'Bilingual ' + $middleDot + ' ' + ([char]0x96D9) + ([char]0x8A9E)
+    Select-ComboItem -Combo $language -Name $bilingualLabel
+    Wait-ForPageTitle -Root $root -Prefix 'ASCII Table' | Out-Null
+    $bilingualCount = Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableCount'
+    $bilingualNbsp = Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableRow160'
+    Assert-True -Condition (
+        $bilingualCount.Current.Name.StartsWith(('1 of 256 rows ' + $middleDot + ' 1 / 256'), [StringComparison]::Ordinal) -and
+        $bilingualNbsp.Current.Name.Contains('No-Break Space') -and
+        $bilingualNbsp.Current.Name -match '[\u3400-\u9fff]') `
+        -Name 'ASCII Table renders compact bilingual labels while retaining local state'
+
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'ASCII Table' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAsciiTableSearch' -ExpectedValue '0xA0' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableCount' -Prefix '1 of 256 rows' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'ASCII Table rerenders English labels while retaining local filter and Latin-1 state'
+
+    $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
+    $dashboardSelection = [System.Windows.Automation.SelectionItemPattern]$dashboard.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $dashboardSelection.Select()
+    Wait-ForPageTitle -Root $root -Prefix 'WinForge Native' | Out-Null
+    Assert-True -Condition (-not (Find-ByAutomationId -Root $root -AutomationId 'NativeAsciiTableSearch')) `
+        -Name 'ASCII Table releases its observable controls when navigation leaves the route'
+
+    Navigate-InProcessToRoute -Root $root -Route 'module.asciitable' -ExpectedTitle 'ASCII Table'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeAsciiTableSearch' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeAsciiTableCount' -Prefix '128 of 128 rows' | Out-Null
+    $resetLatin1 = [System.Windows.Automation.TogglePattern](
+        Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableLatin1').GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition (
+        $resetLatin1.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off -and
+        -not (Wait-ForElement -Root $root -AutomationId 'NativeAsciiTableCopy').Current.IsEnabled) `
+        -Name 'ASCII Table resets managed defaults after a fresh in-process route entry'
+}
+
+foreach ($alias in @('ascii', 'asciitable', 'module.asciitable')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'ASCII Table'
 }
 
 Invoke-OwnedRoute -Route 'aspect' -ExpectedTitle 'Aspect Ratio' -Inspect {

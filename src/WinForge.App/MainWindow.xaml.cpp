@@ -1251,6 +1251,34 @@ namespace winrt::WinForge::implementation
         m_unitPriceRendering = false;
     }
 
+    void MainWindow::ReleaseAsciiTableRouteState(std::wstring_view nextRoute)
+    {
+        if (m_currentRoute == L"module.asciitable" && nextRoute != L"module.asciitable")
+        {
+            ResetAsciiTableRouteState();
+        }
+    }
+
+    void MainWindow::ResetAsciiTableRouteState()
+    {
+        if (m_asciiTableRowsList)
+        {
+            m_asciiTableRowsList.Items().Clear();
+        }
+        m_asciiTableSearchBox = nullptr;
+        m_asciiTableLatin1Box = nullptr;
+        m_asciiTableRowsList = nullptr;
+        m_asciiTableCopyButton = nullptr;
+        m_asciiTableCount = nullptr;
+        m_asciiTableStatus = nullptr;
+        std::wstring{}.swap(m_asciiTableSearch);
+        decltype(m_asciiTableRows){}.swap(m_asciiTableRows);
+        decltype(m_asciiTableFilteredRows){}.swap(m_asciiTableFilteredRows);
+        m_asciiTableIncludeLatin1 = false;
+        m_asciiTableSelectedCode = -1;
+        m_asciiTableRendering = false;
+    }
+
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
         if (m_currentRoute == L"module.packages")
@@ -1275,6 +1303,7 @@ namespace winrt::WinForge::implementation
             ReleaseUuidV5RouteState(L"search");
             ReleaseUnitPriceRouteState(L"search");
             ReleaseBaseConvertRouteState(L"search");
+            ReleaseAsciiTableRouteState(L"search");
             cancelMutationIfLeavingPackages(L"search");
             m_currentRoute = L"search";
             m_currentArgument = std::wstring(argument);
@@ -1291,6 +1320,7 @@ namespace winrt::WinForge::implementation
             ReleaseUuidV5RouteState(L"manual");
             ReleaseUnitPriceRouteState(L"manual");
             ReleaseBaseConvertRouteState(L"manual");
+            ReleaseAsciiTableRouteState(L"manual");
             cancelMutationIfLeavingPackages(L"manual");
             m_currentRoute = L"manual";
             m_currentArgument = std::wstring(argument);
@@ -1309,6 +1339,7 @@ namespace winrt::WinForge::implementation
             ReleaseUuidV5RouteState(normalized);
             ReleaseUnitPriceRouteState(normalized);
             ReleaseBaseConvertRouteState(normalized);
+            ReleaseAsciiTableRouteState(normalized);
             cancelMutationIfLeavingPackages(normalized);
             m_currentRoute = normalized;
             m_currentArgument = std::wstring(argument);
@@ -1324,6 +1355,7 @@ namespace winrt::WinForge::implementation
         ReleaseUuidV5RouteState(module->id);
         ReleaseUnitPriceRouteState(module->id);
         ReleaseBaseConvertRouteState(module->id);
+        ReleaseAsciiTableRouteState(module->id);
 
         // Managed navigation constructs a fresh Page for these stateless local
         // tools. Reset only on an actual navigation; language rerenders call
@@ -1468,6 +1500,10 @@ namespace winrt::WinForge::implementation
             m_baseConvertOperandAValue = L"0xF0";
             m_baseConvertOperandBValue = L"0x0F";
             m_baseConvertShiftValue = 1.0;
+        }
+        else if (module->id == L"module.asciitable")
+        {
+            ResetAsciiTableRouteState();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -1667,6 +1703,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.baseconvert")
         {
             RenderBaseConvert();
+        }
+        else if (module->id == L"module.asciitable")
+        {
+            RenderAsciiTable();
         }
         else if (module->id == L"module.aspectratio")
         {
@@ -8085,6 +8125,356 @@ namespace winrt::WinForge::implementation
         if (announce)
         {
             RaisePoliteLiveRegion(m_baseConvertStatus);
+        }
+    }
+
+    void MainWindow::RenderAsciiTable()
+    {
+        m_asciiTableRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"ASCII Table", L"ASCII 表" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Browse character codes 0–127 or Latin-1 0–255 with decimal, hexadecimal, octal, binary, glyph, and control-name columns. Search stays local; copying always needs an explicit button.",
+                L"瀏覽 0–127 或 Latin-1 0–255 字元碼，包括十進、十六進、八進、二進、字元同控制碼名稱欄。搜尋只喺本機做；複製一定要明確撳掣。" }.Pick(m_language));
+        page.MaxWidth(940);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeAsciiTablePage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native character-code reference", L"全原生字元碼參考" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"The ASCII/Latin-1 rows, localized control descriptions, numeric formatting, filtering, virtualized list surface, and selection state run in standard C++. The clipboard is touched only after Copy selected character.",
+            L"ASCII／Latin-1 列、本地化控制碼說明、數字格式、篩選、虛擬化清單介面同選取狀態都由標準 C++ 運行；只會喺撳「複製所選字元」後先用剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeAsciiTableImplementationStatus");
+        page.Children().Append(implementation);
+
+        Border filtersCard = MakeNativeCard();
+        StackPanel filters;
+        filters.Spacing(10);
+        auto filterLabel = CreateText(
+            winforge::core::LocalizedText{ L"Find a character code", L"搵字元碼" }.Pick(m_language),
+            15,
+            true);
+        filters.Children().Append(filterLabel);
+
+        m_asciiTableSearchBox = TextBox();
+        m_asciiTableSearchBox.Text(ToHString(m_asciiTableSearch));
+        m_asciiTableSearchBox.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"Search decimal / hex / octal / binary / char / name", L"搜尋十進／十六進／八進／二進／字元／名稱" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(m_asciiTableSearchBox, L"NativeAsciiTableSearch");
+        AutomationProperties::SetName(m_asciiTableSearchBox, ToHString(winforge::core::LocalizedText{
+            L"Search ASCII and Latin-1 rows", L"搜尋 ASCII 同 Latin-1 列" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_asciiTableSearchBox, filterLabel);
+        m_asciiTableSearchBox.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_asciiTableRendering) return;
+            m_asciiTableSearch = ToWide(sender.as<TextBox>().Text());
+            RefreshAsciiTable();
+        });
+        filters.Children().Append(m_asciiTableSearchBox);
+
+        m_asciiTableLatin1Box = CheckBox();
+        m_asciiTableLatin1Box.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Include codes 128–255 (Latin-1)", L"包括代碼 128–255（Latin-1）" }.Pick(m_language))));
+        m_asciiTableLatin1Box.IsChecked(m_asciiTableIncludeLatin1);
+        AutomationProperties::SetAutomationId(m_asciiTableLatin1Box, L"NativeAsciiTableLatin1");
+        AutomationProperties::SetName(m_asciiTableLatin1Box, ToHString(winforge::core::LocalizedText{
+            L"Include Latin-1 codes 128 through 255", L"包括 Latin-1 代碼 128 至 255" }.Pick(m_language)));
+        auto updateLatin1 = [this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_asciiTableRendering) return;
+            m_asciiTableIncludeLatin1 = unbox_value_or<bool>(sender.as<CheckBox>().IsChecked(), false);
+            RefreshAsciiTable();
+        };
+        m_asciiTableLatin1Box.Checked(updateLatin1);
+        m_asciiTableLatin1Box.Unchecked(updateLatin1);
+        filters.Children().Append(m_asciiTableLatin1Box);
+        filtersCard.Child(filters);
+        page.Children().Append(filtersCard);
+
+        Border tableCard = MakeNativeCard();
+        tableCard.Padding(Thickness{ 8, 8, 8, 10 });
+        StackPanel table;
+        table.Spacing(8);
+
+        m_asciiTableCount = CreateText(L"", 12.5);
+        m_asciiTableCount.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_asciiTableCount, L"NativeAsciiTableCount");
+        table.Children().Append(m_asciiTableCount);
+
+        auto configureColumns = [](Grid const& grid)
+        {
+            for (auto const width : std::array<double, 5>{ 52.0, 62.0, 70.0, 98.0, 58.0 })
+            {
+                ColumnDefinition definition;
+                definition.Width(GridLengthHelper::FromPixels(width));
+                grid.ColumnDefinitions().Append(definition);
+            }
+            grid.ColumnDefinitions().Append(ColumnDefinition());
+        };
+
+        Grid heading;
+        heading.Padding(Thickness{ 8, 3, 8, 4 });
+        heading.ColumnSpacing(8);
+        configureColumns(heading);
+        constexpr std::array<std::wstring_view, 6> headerIds{
+            L"NativeAsciiTableHeaderDec",
+            L"NativeAsciiTableHeaderHex",
+            L"NativeAsciiTableHeaderOct",
+            L"NativeAsciiTableHeaderBin",
+            L"NativeAsciiTableHeaderChar",
+            L"NativeAsciiTableHeaderName",
+        };
+        std::array<std::wstring, 6> headers{
+            winforge::core::LocalizedText{ L"Dec", L"十進" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Hex", L"十六進" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Oct", L"八進" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Binary", L"二進" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Char", L"字元" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Name / Description", L"名稱／說明" }.Pick(m_language),
+        };
+        for (std::size_t index{}; index < headers.size(); ++index)
+        {
+            auto text = CreateText(headers[index], 12, true);
+            text.TextTrimming(TextTrimming::CharacterEllipsis);
+            Grid::SetColumn(text, static_cast<int32_t>(index));
+            AutomationProperties::SetAutomationId(text, ToHString(headerIds[index]));
+            heading.Children().Append(text);
+        }
+        table.Children().Append(heading);
+
+        m_asciiTableRowsList = ListView();
+        m_asciiTableRowsList.SelectionMode(ListViewSelectionMode::Single);
+        m_asciiTableRowsList.MaxHeight(480);
+        m_asciiTableRowsList.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+        ScrollViewer::SetVerticalScrollBarVisibility(m_asciiTableRowsList, ScrollBarVisibility::Auto);
+        ScrollViewer::SetHorizontalScrollBarVisibility(m_asciiTableRowsList, ScrollBarVisibility::Disabled);
+        AutomationProperties::SetAutomationId(m_asciiTableRowsList, L"NativeAsciiTableRows");
+        AutomationProperties::SetName(m_asciiTableRowsList, ToHString(winforge::core::LocalizedText{
+            L"Virtualized ASCII and Latin-1 character rows", L"虛擬化 ASCII 同 Latin-1 字元列" }.Pick(m_language)));
+        m_asciiTableRowsList.ContainerContentChanging([this, configureColumns](
+            ListViewBase const&,
+            ContainerContentChangingEventArgs const& args)
+        {
+            if (args.InRecycleQueue()) return;
+            auto const index = static_cast<std::size_t>(args.ItemIndex());
+            auto const container = args.ItemContainer();
+            if (!container || index >= m_asciiTableFilteredRows.size()) return;
+            auto const& item = m_asciiTableFilteredRows[index];
+
+            Grid row;
+            row.Padding(Thickness{ 8, 3, 8, 3 });
+            row.ColumnSpacing(8);
+            configureColumns(row);
+            std::array<std::wstring_view, 6> fields{
+                item.decimal,
+                item.hexadecimal,
+                item.octal,
+                item.binary,
+                item.glyph,
+                item.name,
+            };
+            for (std::size_t column{}; column < fields.size(); ++column)
+            {
+                auto cell = CreateText(fields[column], 12.5, column == 4);
+                cell.TextTrimming(TextTrimming::CharacterEllipsis);
+                cell.TextWrapping(TextWrapping::NoWrap);
+                if (column < 5)
+                {
+                    cell.FontFamily(Media::FontFamily(L"Consolas"));
+                }
+                if (column == 2 || column == 3)
+                {
+                    cell.Opacity(0.78);
+                }
+                Grid::SetColumn(cell, static_cast<int32_t>(column));
+                row.Children().Append(cell);
+            }
+            container.Content(row);
+            container.Padding(Thickness{});
+            container.MinHeight(30);
+            container.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+            AutomationProperties::SetAutomationId(
+                container,
+                ToHString(L"NativeAsciiTableRow" + std::to_wstring(item.code)));
+            AutomationProperties::SetName(
+                container,
+                ToHString(item.decimal + L" · " + item.hexadecimal + L" · " + item.glyph + L" · " + item.name));
+        });
+        m_asciiTableRowsList.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_asciiTableRendering) return;
+            auto const view = sender.as<ListView>();
+            // The virtualized list owns boxed decimal strings, not its
+            // generated ListViewItem containers. Resolve that data item back
+            // to the current native row so selection remains independent of
+            // container realization/recycling.
+            auto const selectedValue = ToWide(unbox_value_or<hstring>(view.SelectedItem(), L""));
+            auto const selected = std::find_if(
+                m_asciiTableFilteredRows.cbegin(),
+                m_asciiTableFilteredRows.cend(),
+                [&selectedValue](winforge::core::asciitable::Row const& row)
+                {
+                    return row.decimal == selectedValue;
+                });
+            m_asciiTableSelectedCode = selected != m_asciiTableFilteredRows.cend()
+                ? selected->code
+                : -1;
+            if (m_asciiTableCopyButton)
+            {
+                m_asciiTableCopyButton.IsEnabled(m_asciiTableSelectedCode >= 0);
+            }
+            if (selected != m_asciiTableFilteredRows.cend())
+            {
+                AnnounceAsciiTableStatus(winforge::core::LocalizedText{
+                    L"Selected " + selected->glyph + L" (code " + selected->decimal + L"). Use Copy selected character to write to the clipboard.",
+                    L"已選 " + selected->glyph + L"（代碼 " + selected->decimal + L"）。撳「複製所選字元」先會寫去剪貼簿。" }.Pick(m_language), false, false);
+            }
+        });
+        table.Children().Append(m_asciiTableRowsList);
+
+        StackPanel actions;
+        actions.Orientation(Orientation::Horizontal);
+        actions.Spacing(10);
+        m_asciiTableCopyButton = MakeNativeButton(
+            winforge::core::LocalizedText{ L"Copy selected character", L"複製所選字元" }.Pick(m_language),
+            L"NativeAsciiTableCopy");
+        m_asciiTableCopyButton.HorizontalAlignment(HorizontalAlignment::Left);
+        m_asciiTableCopyButton.IsEnabled(false);
+        m_asciiTableCopyButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            CopyAsciiTableSelection();
+        });
+        actions.Children().Append(m_asciiTableCopyButton);
+        table.Children().Append(actions);
+        tableCard.Child(table);
+        page.Children().Append(tableCard);
+
+        m_asciiTableStatus = CreateText(L"", 12.5);
+        m_asciiTableStatus.TextWrapping(TextWrapping::Wrap);
+        m_asciiTableStatus.Opacity(0.84);
+        AutomationProperties::SetAutomationId(m_asciiTableStatus, L"NativeAsciiTableStatus");
+        AutomationProperties::SetLiveSetting(
+            m_asciiTableStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        page.Children().Append(m_asciiTableStatus);
+
+        ShowPage(page);
+        m_asciiTableRendering = false;
+        RefreshAsciiTable();
+    }
+
+    void MainWindow::RefreshAsciiTable()
+    {
+        if (!m_asciiTableRowsList || !m_asciiTableCount || !m_asciiTableStatus) return;
+
+        auto const wasRendering = m_asciiTableRendering;
+        m_asciiTableRendering = true;
+        try
+        {
+            m_asciiTableRows = winforge::core::asciitable::Build(m_asciiTableIncludeLatin1, m_language);
+            m_asciiTableFilteredRows = winforge::core::asciitable::Filter(m_asciiTableRows, m_asciiTableSearch);
+            m_asciiTableRowsList.Items().Clear();
+            for (auto const& row : m_asciiTableFilteredRows)
+            {
+                // Boxed scalar items let ListView recycle row containers; the
+                // ContainerContentChanging handler materializes visible grids.
+                m_asciiTableRowsList.Items().Append(box_value(ToHString(std::to_wstring(row.code))));
+            }
+            m_asciiTableRowsList.SelectedItem(nullptr);
+            m_asciiTableSelectedCode = -1;
+            if (m_asciiTableCopyButton) m_asciiTableCopyButton.IsEnabled(false);
+
+            auto const count = winforge::core::LocalizedText{
+                std::to_wstring(m_asciiTableFilteredRows.size()) + L" of " +
+                    std::to_wstring(m_asciiTableRows.size()) + L" rows",
+                std::to_wstring(m_asciiTableFilteredRows.size()) + L" / " +
+                    std::to_wstring(m_asciiTableRows.size()) + L" 行" }.Pick(m_language);
+            m_asciiTableCount.Text(ToHString(count));
+            AutomationProperties::SetName(m_asciiTableCount, ToHString(count));
+            AnnounceAsciiTableStatus(winforge::core::LocalizedText{
+                L"Local character reference updated. Select a row, then use Copy selected character.",
+                L"本機字元參考已更新。選一行，再撳「複製所選字元」。" }.Pick(m_language), false, false);
+        }
+        catch (...)
+        {
+            m_asciiTableRowsList.Items().Clear();
+            m_asciiTableFilteredRows.clear();
+            m_asciiTableSelectedCode = -1;
+            if (m_asciiTableCopyButton) m_asciiTableCopyButton.IsEnabled(false);
+            m_asciiTableCount.Text(ToHString(winforge::core::LocalizedText{
+                L"Could not build the local table.", L"建立本機表格失敗。" }.Pick(m_language)));
+            AnnounceAsciiTableStatus(winforge::core::LocalizedText{
+                L"Could not build the local character table.", L"建立本機字元表失敗。" }.Pick(m_language), true, true);
+        }
+        m_asciiTableRendering = wasRendering;
+    }
+
+    void MainWindow::CopyAsciiTableSelection()
+    {
+        auto const selected = std::find_if(
+            m_asciiTableFilteredRows.cbegin(),
+            m_asciiTableFilteredRows.cend(),
+            [this](winforge::core::asciitable::Row const& row)
+            {
+                return row.code == m_asciiTableSelectedCode;
+            });
+        if (selected == m_asciiTableFilteredRows.cend())
+        {
+            AnnounceAsciiTableStatus(winforge::core::LocalizedText{
+                L"Nothing selected — choose a character row first.",
+                L"未選任何嘢 — 先揀一行字元。" }.Pick(m_language), true);
+            return;
+        }
+
+        try
+        {
+            Windows::ApplicationModel::DataTransfer::DataPackage package;
+            package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+            package.SetText(ToHString(selected->copy_value));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+            auto const invisibleOrControl = winforge::core::asciitable::IsInvisibleOrControl(selected->code);
+            auto const englishDescription = invisibleOrControl
+                ? selected->glyph
+                : L"\"" + selected->glyph + L"\"";
+            auto const cantoneseDescription = invisibleOrControl
+                ? selected->glyph
+                : L"「" + selected->glyph + L"」";
+            AnnounceAsciiTableStatus(winforge::core::LocalizedText{
+                L"Copied " + englishDescription + L" (code " + selected->decimal + L") to the clipboard.",
+                L"已複製 " + cantoneseDescription + L"（代碼 " + selected->decimal + L"）去剪貼簿。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceAsciiTableStatus(winforge::core::LocalizedText{
+                L"Could not copy the selected character to the clipboard.",
+                L"複製唔到所選字元去剪貼簿。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::AnnounceAsciiTableStatus(
+        std::wstring_view message,
+        bool warning,
+        bool announce)
+    {
+        if (!m_asciiTableStatus) return;
+        AutomationProperties::SetLiveSetting(
+            m_asciiTableStatus,
+            announce
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Off);
+        m_asciiTableStatus.Text(ToHString(message));
+        m_asciiTableStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_asciiTableStatus, ToHString(message));
+        if (announce)
+        {
+            RaisePoliteLiveRegion(m_asciiTableStatus);
         }
     }
 

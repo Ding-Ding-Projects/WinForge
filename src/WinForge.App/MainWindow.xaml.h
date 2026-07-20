@@ -3,6 +3,7 @@
 #include "MainWindow.g.h"
 #include "../WinForge.Core/Bmi.h"
 #include "../WinForge.Core/BaseConvert.h"
+#include "../WinForge.Core/AsciiTable.h"
 #include "../WinForge.Core/BinaryText.h"
 #include "../WinForge.Core/CaseConvert.h"
 #include "../WinForge.Core/CheckDigit.h"
@@ -41,6 +42,7 @@
 #include <optional>
 #include <stop_token>
 #include <unordered_set>
+#include <vector>
 
 namespace winrt::WinForge::implementation
 {
@@ -394,6 +396,12 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::StackPanel m_baseConvertShiftPanel{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_baseConvertShiftBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_baseConvertBitwiseResult{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_asciiTableSearchBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_asciiTableLatin1Box{ nullptr };
+        Microsoft::UI::Xaml::Controls::ListView m_asciiTableRowsList{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_asciiTableCopyButton{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_asciiTableCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_asciiTableStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectWidth{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_aspectHeight{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_aspectPreset{ nullptr };
@@ -673,6 +681,12 @@ namespace winrt::WinForge::implementation
         std::wstring m_baseConvertOperandBValue{ L"0x0F" };
         double m_baseConvertShiftValue{ 1.0 };
         bool m_baseConvertRendering{ false };
+        std::wstring m_asciiTableSearch{};
+        bool m_asciiTableIncludeLatin1{};
+        int32_t m_asciiTableSelectedCode{ -1 };
+        bool m_asciiTableRendering{ false };
+        std::vector<winforge::core::asciitable::Row> m_asciiTableRows{};
+        std::vector<winforge::core::asciitable::Row> m_asciiTableFilteredRows{};
         double m_aspectWidthValue{ 1920.0 };
         double m_aspectHeightValue{ 1080.0 };
         double m_aspectRatioWidth{ 16.0 };
@@ -807,6 +821,8 @@ namespace winrt::WinForge::implementation
         void ReleaseUnitPriceRouteState(std::wstring_view nextRoute);
         void ResetUnitPriceRouteState();
         void ReleaseBaseConvertRouteState(std::wstring_view nextRoute);
+        void ReleaseAsciiTableRouteState(std::wstring_view nextRoute);
+        void ResetAsciiTableRouteState();
         void QueueInitialNavigation();
         void SelectNavigationItem(std::wstring_view route);
         void RenderCurrent();
@@ -1059,6 +1075,13 @@ namespace winrt::WinForge::implementation
         void RefreshBaseConvertBitwise();
         void CopyBaseConvertValue(std::wstring_view value, Microsoft::UI::Xaml::Controls::Button const& button);
         void AnnounceBaseConvertStatus(
+            std::wstring_view message,
+            bool warning = false,
+            bool announce = true);
+        void RenderAsciiTable();
+        void RefreshAsciiTable();
+        void CopyAsciiTableSelection();
+        void AnnounceAsciiTableStatus(
             std::wstring_view message,
             bool warning = false,
             bool announce = true);

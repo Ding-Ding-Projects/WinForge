@@ -716,25 +716,50 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Pages/AsciiTableModule.xaml",
+                                      "Pages/AsciiTableModule.xaml.cs",
+                                      "Services/AsciiTableService.cs",
+                                      "src/WinForge.Core/AsciiTable.h",
+                                      "src/WinForge.Core/AsciiTable.cpp",
+                                      "src/WinForge.Core/RouteIndex.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/AsciiTableTests.h",
+                                      "tests/native/WinForge.Core.Tests/AsciiTableTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "tools/Generate-WikiFeatureDocs.ps1",
+                                      "docs/wiki/features/markup-docs-symbols/asciitable.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "ASCII Table · ASCII 表 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                      {
+                                          "atUtc":  "2026-07-19T22:01:54Z",
+                                          "result":  "Dedicated native C++/WinRT ASCII Table backed by the standard-C++ AsciiTable core preserves 0-127 and explicit Latin-1 0-255 ranges, C0/DEL/C1/NBSP naming, exact decimal/hexadecimal/octal/8-bit-binary columns, raw character values, invariant Unicode search folding, bilingual labels, virtualized rows, fresh-route reset, language rerender retention, accessibility, and explicit-only clipboard Copy. Debug and Release x64 app builds exit 0 with 0 errors; Debug and Release core suites each pass 822/822, including ASCII Table 21/21; focused -AsciiTableRoutesOnly UI Automation passes 16/16 across ascii, asciitable, and module.asciitable, including Cantonese, bilingual, English, and explicit Copy. LowLevel Computer Use MCP is not callable in this Codex session. The repository driver attempted a fresh capture, found CopyFromScreen unavailable, and rejected its blank or near-uniform PrintWindow fallback; no PNG was retained and no WinForge process remained.",
+                                          "status":  "capture-blocked"
+                                      },
+                                      {
+                                          "atUtc":  "2026-07-20T00:15:47Z",
+                                          "result":  "Controlled integration over the native Base Converter, Health Calculators, and Unit Price checkpoint: Debug and Release x64 builds exit 0 with 0 errors; both core suites pass 878/878, including ASCII Table 21/21; focused -AsciiTableRoutesOnly -AllowClipboardMutation UI Automation passes 16/16 across ascii, asciitable, and module.asciitable; catalog parity passes 346 fixed routes plus five dynamic families, 319 registry entries, and 346 ledger rows; and the native installer contract passes. The broader shell invocation was stopped after the observed pre-existing wordfreq launch stalled, so no aggregate-shell pass is claimed. The repository-local LowLevel checkout exists but no callable headless tool is exposed in this Codex session. The fresh driver reported CopyFromScreen unavailable and rejected a blank or near-uniform PrintWindow fallback; no PNG was retained and no root WinForge process remained.",
+                                          "status":  "capture-blocked"
+                                      }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-19 · IN PROGRESS / 進行中 solely because a trustworthy fresh native screenshot is unavailable in this desktop session. ASCII Table is local-only; its only side effect is an operator-selected clipboard Copy. Controlled integration has 37/346 implemented fixed renderers (37 in-progress / 309 not-started) plus five dynamic families; the full aggregate shell is not claimed after the observed wordfreq stall."
                    },
                    {
                        "id":  "module.aspectratio",

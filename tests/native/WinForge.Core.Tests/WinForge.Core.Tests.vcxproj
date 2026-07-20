@@ -65,6 +65,7 @@
     <ClCompile Include="TextAnalysisTests.cpp" />
     <ClCompile Include="ReferenceTextTests.cpp" />
     <ClCompile Include="SlugifyTests.cpp" />
+    <ClCompile Include="AsciiTableTests.cpp" />
     <ClCompile Include="UnitPriceTests.cpp" />
     <ClCompile Include="GuidGenTests.cpp" />
     <ClCompile Include="PassGenTests.cpp" />
@@ -98,6 +99,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\TextAnalysis.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\ReferenceText.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\Slugify.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\AsciiTable.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\UnitPrice.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PassGen.cpp" />
@@ -133,6 +135,7 @@
     <ClInclude Include="TextAnalysisTests.h" />
     <ClInclude Include="ReferenceTextTests.h" />
     <ClInclude Include="SlugifyTests.h" />
+    <ClInclude Include="AsciiTableTests.h" />
     <ClInclude Include="UnitPriceTests.h" />
     <ClInclude Include="GuidGenTests.h" />
     <ClInclude Include="PassGenTests.h" />
@@ -163,6 +166,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\TextAnalysis.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ReferenceText.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Slugify.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\AsciiTable.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\UnitPrice.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PassGen.h" />

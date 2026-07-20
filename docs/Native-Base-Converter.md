@@ -6,6 +6,10 @@
 
 `module.baseconvert` 同已登記 alias `baseconvert` 已受控整合入原生 C++ working tree，係真正 C++/WinRT renderer 加唔靠依賴嘅標準 C++ 任意精度 core。呢個 slice 冇 host CLR、冇交畀 managed executable，亦冇改只限 C++ release workflow；hosted release 驗證會跟受控 push 做。
 
+## Hosted release proof · Hosted 發佈證明
+
+Controlled Base integration commit `740b981fed1838c7bd271e9bb3c4c0457fdf6d1c` is on `origin/main`. [Native run 29708140846](https://github.com/codingmachineedge/WinForge/actions/runs/29708140846) passed and published stable, non-draft [`native-v1.0.80`](https://github.com/codingmachineedge/WinForge/releases/tag/native-v1.0.80) for that exact commit with only `WinForge-Native-Setup.exe` and `WinForge-native-x64-1.0.80.zip`; no managed asset was released. · 受控 Base 整合 commit `740b981fed1838c7bd271e9bb3c4c0457fdf6d1c` 已喺 `origin/main`。[原生 run 29708140846](https://github.com/codingmachineedge/WinForge/actions/runs/29708140846) 通過並準確為該 commit 發佈穩定、非 draft `native-v1.0.80`，只得原生 setup 同 ZIP，冇發佈 managed asset。
+
 ## Behaviour parity · 行為相容
 
 - The dependency-free standard-C++ core parses signed arbitrary-precision values in bases 2–36, accepts the managed outer-whitespace, space/underscore grouping, ASCII case-insensitive digit, and nested-sign operand contracts, and never relies on the managed executable or CLR.

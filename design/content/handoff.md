@@ -1,5 +1,11 @@
 # WinForge — Handoff reference (per feature) · 交接參考（逐項功能）
 
+## Current 2026-07-20 native ASCII Table controlled integration — local gates green · 2026-07-20 原生 ASCII 表受控整合 — 本機 gate 已通過
+
+**EN.** `ascii`, `asciitable`, and `module.asciitable` are now integrated as dependency-free standard-C++ `AsciiTable` logic plus a genuine C++/WinRT renderer. It preserves the default 0–127 table, explicit Latin-1 0–255, control/NBSP descriptions, radix columns, invariant search, virtualization, language retention, reset, accessibility, and explicit-only raw-character Copy. Debug/Release builds have 0 errors; both cores are **878/878** including ASCII **21/21**; focused UIA is **16/16**; catalog parity and installer contract pass; accounting is **37/346** (`37 in-progress / 309 not-started`). LowLevel MCP is not callable and the driver rejected a blank fallback with no PNG retained, so visual stays `capture-blocked`. The broader shell stopped after the observed pre-existing `wordfreq` launch stall and is not a full-shell pass; the release boundary remains C++-only.
+
+**粵語.** `ascii`、`asciitable` 同 `module.asciitable` 而家係唔靠依賴嘅標準 C++ `AsciiTable` 加真正 C++/WinRT renderer，保留預設 0–127、明確 Latin-1 255、控制碼／NBSP、進制欄、invariant 搜尋、虛擬化、語言保留、重設、無障礙同只限明確 raw-character Copy。Debug／Release 0 errors、core 各 **878/878**（ASCII **21/21**）、UIA **16/16**、catalog parity／installer contract 通過、計數 **37/346**。LowLevel MCP 未可呼叫、driver 拒絕空白 fallback、冇 PNG，所以 visual 保持 `capture-blocked`。較廣 shell 喺既有 `wordfreq` launch 卡住後已停止，唔當 full-shell pass；發佈界線繼續只限 C++。
+
 ## Current 2026-07-19 native Health Calculators controlled integration — local gates green · 2026-07-19 原生健康計算器受控整合 — 本機 gate 已通過
 
 **EN.** `bmi`, `health`, and `module.bmi` are now integrated as a standard-C++ `Bmi` core plus genuine C++/WinRT Health Calculators renderer. Debug/Release native builds have 0 errors; both combined cores are **842/842** including BMI **14/14**; focused BMI UIA is **14/14**; catalog parity is 346+5 with 319 registry and 346 ledger rows; and the native installer contract passes. Accounting is **35/346** (`35 in-progress / 311 not-started`). LowLevel MCP is not callable and the driver rejected a blank fallback; no PNG was promoted and visual stays `capture-blocked`. The C++-only release boundary is unchanged.
