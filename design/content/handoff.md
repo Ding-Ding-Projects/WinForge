@@ -4,6 +4,16 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## AWS Manager EC2 continuation · AWS Manager EC2 延續開發
+
+The managed AWS Manager now has a native, bilingual EC2 workspace alongside S3 and Resource Explorer. It supports direct `ec2` and `s3` routes, paged instance discovery, local filtering, details, and guarded Start, Stop, Reboot, and Terminate reviews through AWSSDK.EC2. Context generations, operation ownership, stale-result rejection, post-dialog revalidation, fail-closed state policy, and atomic S3 `If-None-Match: *` uploads keep account and mutation boundaries explicit; discovered credentials remain metadata-only.
+
+正式 AWS Manager 而家喺 S3／Resource Explorer 旁邊加入原生雙語 EC2 工作區，支援 `ec2`／`s3` 直達 route、分頁 instance 清單、本機篩選、詳情，同受保護嘅 Start／Stop／Reboot／Terminate confirmation。Context generation、operation ownership、過期結果拒絕、dialog 後重驗、fail-closed state policy，同 S3 `If-None-Match: *` 原子 upload，會清楚守住 account 同 mutation 界線；credential discovery 只保留 metadata。
+
+Local gates are green: the solution builds with zero errors; all **27/27** Release test projects pass, including AWS **11/11** and Reactor **63/63**; XAML literal safety passes; and generated documentation reports 319 modules, 1,214 features, and 1,902 button references. The inspected credential-safe `2077×1302` direct-EC2 screenshot is mirrored in tracked docs. LowLevel MCP was present but not callable, so the owned self-contained driver launch used the app's debug `RenderTargetBitmap` capture after desktop capture and blank `PrintWindow` fallbacks failed; no live AWS query or mutation occurred. Git/hosted completion proof will be added after the feature reaches remote `main`.
+
+本機 gate 全綠：solution 零 errors、Release test project **27/27**（AWS **11/11**、Reactor **63/63**）、XAML safety 同生成文件全部通過；tracked docs 已同步經檢視、credential-safe 嘅 `2077×1302` EC2 截圖。LowLevel MCP 雖然喺 disk，但今次唔可呼叫；desktop capture 同空白 `PrintWindow` fallback 失敗後，改用 owned self-contained driver launch 加 app debug `RenderTargetBitmap`，全程冇查詢或改動真實 AWS。功能到達 remote `main` 後會補上 Git／hosted completion proof。
+
 ## What remains here · 呢度保留乜
 
 - Managed application source and tests · 正式 app source 同 tests

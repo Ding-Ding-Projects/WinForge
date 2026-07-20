@@ -6,7 +6,7 @@
 | Reference · 參考 | Contents · 內容 |
 |---|---|
 | [Feature Reference](features/README.md) | 319 generated module pages · 319 份生成模組頁 |
-| [Button Reference](buttons/README.md) | 1895 generated button/control pages · 1895 份生成按鈕／控制項頁 |
+| [Button Reference](buttons/README.md) | 1902 generated button/control pages · 1902 份生成按鈕／控制項頁 |
 | [Generation Summary](generated-docs-summary.json) | Counts and generated output paths · 數量同生成輸出路徑 |
 
 ## Generator · 生成器

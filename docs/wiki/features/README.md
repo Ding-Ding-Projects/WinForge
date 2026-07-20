@@ -13,7 +13,7 @@
 | [API Client · REST API 用戶端](apps-git-git/api.md) | `module.apiclient` | `api` | 14 |
 | [App Launcher · 原生 App 啟動器](apps-git-git/applauncher.md) | `module.applauncher` | `applauncher` | 1 |
 | [App Uninstaller · 應用程式解除安裝](apps-git-git/uninstall.md) | `module.uninstall` | `uninstall` | 2 |
-| [AWS Manager · AWS 管理中心](apps-git-git/aws.md) | `module.aws` | `aws` | 38 |
+| [AWS Manager · AWS 管理中心](apps-git-git/aws.md) | `module.aws` | `aws` | 45 |
 | [Bitwarden Vault · Bitwarden 密碼庫](apps-git-git/bitwarden.md) | `module.bitwarden` | `bitwarden` | 2 |
 | [Cloudflare & Tunnel · Cloudflare 與 Tunnel](apps-git-git/cloudflare.md) | `module.cloudflare` | `cloudflare` | 0 |
 | [Command Not Found · 搵唔到指令](apps-git-git/cmdnotfound.md) | `module.cmdnotfound` | `cmdnotfound` | 8 |

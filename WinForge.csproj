@@ -104,9 +104,10 @@
   -->
   <ItemGroup>
     <!-- AWS SDK for .NET v4 (Apache-2.0): managed account/session, cross-service resource discovery,
-         generic Cloud Control CRUDL, and the first high-fidelity S3 manager. The aws CLI remains an
+         generic Cloud Control CRUDL, and high-fidelity S3 + EC2 managers. The aws CLI remains an
          optional advanced terminal; the primary AWS experience talks to AWS APIs in-process. -->
     <PackageReference Include="AWSSDK.Core" Version="4.0.100.4" />
+    <PackageReference Include="AWSSDK.EC2" Version="4.0.101" />
     <PackageReference Include="AWSSDK.SecurityToken" Version="4.0.100.3" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.100.3" />
     <PackageReference Include="AWSSDK.SSO" Version="4.0.100.3" />

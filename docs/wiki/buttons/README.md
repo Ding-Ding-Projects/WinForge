@@ -75,43 +75,50 @@
 | [ClearBtn](apps-git-git/applauncher/001-clearbtn.md) | App Launcher · 原生 App 啟動器 | Apps & Git · 程式與 Git | `Button` | `Clear_Click` |
 | [Actions_Click](apps-git-git/uninstall/002-actions-click.md) | App Uninstaller · 應用程式解除安裝 | Apps & Git · 程式與 Git | `Button` | `Actions_Click` |
 | [RefreshBtn](apps-git-git/uninstall/001-refreshbtn.md) | App Uninstaller · 應用程式解除安裝 | Apps & Git · 程式與 Git | `Button` | `Refresh_Click` |
-| [BuildRunBtn](apps-git-git/aws/037-buildrunbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `BuildRun_Click` |
-| [ClearHistBtn](apps-git-git/aws/035-clearhistbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ClearHist_Click` |
-| [ConfigureBtn](apps-git-git/aws/027-configurebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Configure_Click` |
+| [BuildRunBtn](apps-git-git/aws/044-buildrunbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `BuildRun_Click` |
+| [ClearHistBtn](apps-git-git/aws/042-clearhistbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ClearHist_Click` |
+| [ConfigureBtn](apps-git-git/aws/034-configurebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Configure_Click` |
+| [Ec2LoadMoreBtn](apps-git-git/aws/032-ec2loadmorebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2LoadMore_Click` |
+| [Ec2RebootBtn](apps-git-git/aws/030-ec2rebootbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Reboot_Click` |
+| [Ec2RefreshBtn](apps-git-git/aws/027-ec2refreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Refresh_Click` |
+| [Ec2StartBtn](apps-git-git/aws/028-ec2startbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Start_Click` |
+| [Ec2StopBtn](apps-git-git/aws/029-ec2stopbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Stop_Click` |
+| [Ec2TerminateBtn](apps-git-git/aws/031-ec2terminatebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Terminate_Click` |
 | [HomeRefreshBtn](apps-git-git/aws/002-homerefreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `HomeRefresh_Click` |
-| [HomeSearchBtn](apps-git-git/aws/005-homesearchbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `HomeSearch_Click` |
-| [OpenResourcesBtn](apps-git-git/aws/004-openresourcesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `OpenResources_Click` |
+| [HomeSearchBtn](apps-git-git/aws/006-homesearchbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `HomeSearch_Click` |
+| [OpenEc2Btn](apps-git-git/aws/004-openec2btn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `OpenEc2_Click` |
+| [OpenResourcesBtn](apps-git-git/aws/005-openresourcesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `OpenResources_Click` |
 | [OpenS3Btn](apps-git-git/aws/003-opens3btn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `OpenS3_Click` |
-| [RawClearBtn](apps-git-git/aws/033-rawclearbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawClear_Click` |
-| [RawCopyBtn](apps-git-git/aws/031-rawcopybtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawCopy_Click` |
-| [RawFavBtn](apps-git-git/aws/034-rawfavbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawFav_Click` |
-| [RawRunBtn](apps-git-git/aws/029-rawrunbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawRun_Click` |
-| [RawSaveBtn](apps-git-git/aws/032-rawsavebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawSave_Click` |
-| [RawStopBtn](apps-git-git/aws/030-rawstopbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawStop_Click` |
-| [RefreshProfilesBtn](apps-git-git/aws/028-refreshprofilesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RefreshProfiles_Click` |
-| [ResourceCopyArnBtn](apps-git-git/aws/008-resourcecopyarnbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceCopyArn_Click` |
-| [ResourceCreateBtn](apps-git-git/aws/006-resourcecreatebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceCreate_Click` |
-| [ResourceDeleteBtn](apps-git-git/aws/012-resourcedeletebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceDelete_Click` |
-| [ResourceEditBtn](apps-git-git/aws/011-resourceeditbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceEdit_Click` |
-| [ResourceInspectBtn](apps-git-git/aws/010-resourceinspectbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceInspect_Click` |
-| [ResourceLoadMoreBtn](apps-git-git/aws/013-resourceloadmorebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceLoadMore_Click` |
-| [ResourceOpenServiceBtn](apps-git-git/aws/009-resourceopenservicebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceOpenService_Click` |
-| [ResourceRefreshBtn](apps-git-git/aws/007-resourcerefreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceRefresh_Click` |
-| [S3CancelBtn](apps-git-git/aws/025-s3cancelbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Cancel_Click` |
-| [S3CreateBucketBtn](apps-git-git/aws/015-s3createbucketbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3CreateBucket_Click` |
-| [S3DeleteBtn](apps-git-git/aws/017-s3deletebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Delete_Click` |
-| [S3DownloadBtn](apps-git-git/aws/019-s3downloadbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Download_Click` |
-| [S3ObjectLoadMoreBtn](apps-git-git/aws/020-s3objectloadmorebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3ObjectLoadMore_Click` |
-| [S3RefreshBtn](apps-git-git/aws/014-s3refreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Refresh_Click` |
-| [S3SaveManagementBtn](apps-git-git/aws/023-s3savemanagementbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveManagement_Click` |
-| [S3SavePermissionsBtn](apps-git-git/aws/022-s3savepermissionsbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SavePermissions_Click` |
-| [S3SavePropertiesBtn](apps-git-git/aws/021-s3savepropertiesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveProperties_Click` |
-| [S3SaveTagsBtn](apps-git-git/aws/024-s3savetagsbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveTags_Click` |
-| [S3UpBtn](apps-git-git/aws/018-s3upbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Up_Click` |
-| [S3UploadBtn](apps-git-git/aws/016-s3uploadbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Upload_Click` |
-| [ShowHelpBtn](apps-git-git/aws/038-showhelpbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ShowHelp_Click` |
-| [SsoBtn](apps-git-git/aws/026-ssobtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Sso_Click` |
-| [ToggleJsonBtn](apps-git-git/aws/036-togglejsonbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ToggleJson_Click` |
+| [RawClearBtn](apps-git-git/aws/040-rawclearbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawClear_Click` |
+| [RawCopyBtn](apps-git-git/aws/038-rawcopybtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawCopy_Click` |
+| [RawFavBtn](apps-git-git/aws/041-rawfavbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawFav_Click` |
+| [RawRunBtn](apps-git-git/aws/036-rawrunbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawRun_Click` |
+| [RawSaveBtn](apps-git-git/aws/039-rawsavebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawSave_Click` |
+| [RawStopBtn](apps-git-git/aws/037-rawstopbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawStop_Click` |
+| [RefreshProfilesBtn](apps-git-git/aws/035-refreshprofilesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RefreshProfiles_Click` |
+| [ResourceCopyArnBtn](apps-git-git/aws/009-resourcecopyarnbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceCopyArn_Click` |
+| [ResourceCreateBtn](apps-git-git/aws/007-resourcecreatebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceCreate_Click` |
+| [ResourceDeleteBtn](apps-git-git/aws/013-resourcedeletebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceDelete_Click` |
+| [ResourceEditBtn](apps-git-git/aws/012-resourceeditbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceEdit_Click` |
+| [ResourceInspectBtn](apps-git-git/aws/011-resourceinspectbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceInspect_Click` |
+| [ResourceLoadMoreBtn](apps-git-git/aws/014-resourceloadmorebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceLoadMore_Click` |
+| [ResourceOpenServiceBtn](apps-git-git/aws/010-resourceopenservicebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceOpenService_Click` |
+| [ResourceRefreshBtn](apps-git-git/aws/008-resourcerefreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceRefresh_Click` |
+| [S3CancelBtn](apps-git-git/aws/026-s3cancelbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Cancel_Click` |
+| [S3CreateBucketBtn](apps-git-git/aws/016-s3createbucketbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3CreateBucket_Click` |
+| [S3DeleteBtn](apps-git-git/aws/018-s3deletebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Delete_Click` |
+| [S3DownloadBtn](apps-git-git/aws/020-s3downloadbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Download_Click` |
+| [S3ObjectLoadMoreBtn](apps-git-git/aws/021-s3objectloadmorebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3ObjectLoadMore_Click` |
+| [S3RefreshBtn](apps-git-git/aws/015-s3refreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Refresh_Click` |
+| [S3SaveManagementBtn](apps-git-git/aws/024-s3savemanagementbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveManagement_Click` |
+| [S3SavePermissionsBtn](apps-git-git/aws/023-s3savepermissionsbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SavePermissions_Click` |
+| [S3SavePropertiesBtn](apps-git-git/aws/022-s3savepropertiesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveProperties_Click` |
+| [S3SaveTagsBtn](apps-git-git/aws/025-s3savetagsbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveTags_Click` |
+| [S3UpBtn](apps-git-git/aws/019-s3upbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Up_Click` |
+| [S3UploadBtn](apps-git-git/aws/017-s3uploadbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Upload_Click` |
+| [ShowHelpBtn](apps-git-git/aws/045-showhelpbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ShowHelp_Click` |
+| [SsoBtn](apps-git-git/aws/033-ssobtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Sso_Click` |
+| [ToggleJsonBtn](apps-git-git/aws/043-togglejsonbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ToggleJson_Click` |
 | [WhoAmIBtn](apps-git-git/aws/001-whoamibtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `WhoAmI_Click` |
 | [CreateServerBtn](apps-git-git/bitwarden/001-createserverbtn.md) | Bitwarden Vault · Bitwarden 密碼庫 | Apps & Git · 程式與 Git | `Button` | `CreateServer_Click` |
 | [RefreshServersBtn](apps-git-git/bitwarden/002-refreshserversbtn.md) | Bitwarden Vault · Bitwarden 密碼庫 | Apps & Git · 程式與 Git | `Button` | `RefreshServers_Click` |
@@ -258,19 +265,19 @@
 | [CancelTransferBtn](apps-git-git/filezilla/022-canceltransferbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `CancelTransfer_Click` |
 | [ClearQueueBtn](apps-git-git/filezilla/023-clearqueuebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `ClearQueue_Click` |
 | [Connect · 連線](apps-git-git/filezilla/006-connectsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `ConnectSite_Click` |
-| [Delete · 刪除](apps-git-git/filezilla/013-localdeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalDelete_Click` |
 | [Delete · 刪除](apps-git-git/filezilla/021-remotedeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteDelete_Click` |
+| [Delete · 刪除](apps-git-git/filezilla/013-localdeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalDelete_Click` |
 | [Delete site · 刪除站台](apps-git-git/filezilla/005-deletesitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `DeleteSite_Click` |
 | [DisconnectBtn](apps-git-git/filezilla/002-disconnectbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Disconnect_Click` |
 | [Download · 下載](apps-git-git/filezilla/019-remotedownloadmenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `Download_Click` |
 | [Download selected · 下載所選](apps-git-git/filezilla/015-downloadbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Download_Click` |
 | [Edit site · 編輯站台](apps-git-git/filezilla/004-editsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `EditSite_Click` |
-| [New folder · 新資料夾](apps-git-git/filezilla/009-localmkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalMkdir_Click` |
 | [New folder · 新資料夾](apps-git-git/filezilla/017-remotemkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteMkdir_Click` |
+| [New folder · 新資料夾](apps-git-git/filezilla/009-localmkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalMkdir_Click` |
 | [New site · 新增站台](apps-git-git/filezilla/003-newsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `NewSite_Click` |
 | [QcConnectBtn](apps-git-git/filezilla/001-qcconnectbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `QuickConnect_Click` |
-| [Refresh · 重新整理](apps-git-git/filezilla/010-localrefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalRefresh_Click` |
 | [Refresh · 重新整理](apps-git-git/filezilla/018-remoterefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteRefresh_Click` |
+| [Refresh · 重新整理](apps-git-git/filezilla/010-localrefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalRefresh_Click` |
 | [Rename · 重新命名](apps-git-git/filezilla/012-localrenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalRename_Click` |
 | [Rename · 重新命名](apps-git-git/filezilla/020-remoterenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteRename_Click` |
 | [Up · 上層](apps-git-git/filezilla/007-localup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalUp_Click` |
@@ -654,8 +661,8 @@
 | [binding:ActionsLabel](apps-git-git/vpn/018-binding-actionslabel.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `` |
 | [binding:ConnectLabel](apps-git-git/vpn/019-winvpnconnect-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `WinVpnConnect_Click` |
 | [binding:DisconnectLabel](apps-git-git/vpn/020-winvpndisconnect-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `WinVpnDisconnect_Click` |
-| [binding:RemoveLabel](apps-git-git/vpn/024-wgremove-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgRemove_Click` |
 | [binding:RemoveLabel](apps-git-git/vpn/021-winvpnremove-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `WinVpnRemove_Click` |
+| [binding:RemoveLabel](apps-git-git/vpn/024-wgremove-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgRemove_Click` |
 | [NordConnectBtn](apps-git-git/vpn/001-nordconnectbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `NordConnect_Click` |
 | [NordDisconnectBtn](apps-git-git/vpn/002-norddisconnectbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `NordDisconnect_Click` |
 | [NordGroupBtn](apps-git-git/vpn/003-nordgroupbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `NordGroup_Click` |
@@ -675,8 +682,8 @@
 | [WgImportBtn](apps-git-git/vpn/022-wgimportbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgImport_Click` |
 | [WgRefreshBtn](apps-git-git/vpn/023-wgrefreshbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgRefresh_Click` |
 | [WinVpnAddBtn](apps-git-git/vpn/017-winvpnaddbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WinVpnAdd_Click` |
-| […](apps-git-git/vscode/003-diffbpick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffBPick_Click` |
 | […](apps-git-git/vscode/005-gotopick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `GotoPick_Click` |
+| […](apps-git-git/vscode/003-diffbpick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffBPick_Click` |
 | […](apps-git-git/vscode/002-diffapick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffAPick_Click` |
 | [DiffBtn](apps-git-git/vscode/004-diffbtn.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `Diff_Click` |
 | [ExtExportBtn](apps-git-git/vscode/012-extexportbtn.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `ExtExport_Click` |
@@ -763,11 +770,11 @@
 | [ListCopyBtn](calculators-numbers/randomizer/008-listcopybtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListCopy_Click` |
 | [ListPickBtn](calculators-numbers/randomizer/006-listpickbtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListPick_Click` |
 | [ListShuffleBtn](calculators-numbers/randomizer/007-listshufflebtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListShuffle_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/005-sicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+2212]](calculators-numbers/tally/002-minus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Minus_Click` |
 | [[icon U+2B]](calculators-numbers/tally/003-plus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Plus_Click` |
 | [AddBtn](calculators-numbers/tally/001-addbtn.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Add_Click` |
@@ -1362,13 +1369,13 @@
 | [WriteBackBtn](network-tools/hostsedit/009-writebackbtn.md) | Hosts File Editor · 主機檔編輯器 | Network Tools · 網絡工具 | `Button` | `WriteBack_Click` |
 | [CopyBtn](network-tools/ipinfo/002-copybtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Copy_Click` |
 | [RefreshBtn](network-tools/ipinfo/001-refreshbtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Refresh_Click` |
-| [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
-| [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
-| [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
-| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
-| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
 | [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
+| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
+| [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
+| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
 | [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
+| [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
+| [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
 | [RandomBtn](network-tools/mactools/001-randombtn.md) | MAC Address Tools · MAC 位址工具 | Network Tools · 網絡工具 | `Button` | `Random_Click` |
 | [PingStartBtn](network-tools/ping/001-pingstartbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStart_Click` |
 | [PingStopBtn](network-tools/ping/002-pingstopbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStop_Click` |

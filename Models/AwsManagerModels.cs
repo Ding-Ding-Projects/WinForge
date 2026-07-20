@@ -226,6 +226,58 @@ public sealed record AwsCloudOperationWaitOptions
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(15);
 }
 
+public enum AwsEc2InstanceAction
+{
+    Start,
+    Stop,
+    Reboot,
+    Terminate,
+}
+
+public sealed record AwsEc2ListInstancesRequest
+{
+    public int MaxResults { get; init; } = 100;
+    public string? NextToken { get; init; }
+    public IReadOnlyList<string> States { get; init; } = Array.Empty<string>();
+}
+
+public sealed record AwsEc2SecurityGroup(string GroupId, string GroupName);
+
+public sealed record AwsEc2Instance(
+    string InstanceId,
+    string Name,
+    string State,
+    string InstanceType,
+    string AvailabilityZone,
+    string? VpcId,
+    string? SubnetId,
+    string? PrivateIpAddress,
+    string? PublicIpAddress,
+    string? PrivateDnsName,
+    string? PublicDnsName,
+    string ImageId,
+    string Architecture,
+    string PlatformDetails,
+    string Lifecycle,
+    string MonitoringState,
+    string Tenancy,
+    string? KeyName,
+    string? IamInstanceProfileArn,
+    DateTimeOffset? LaunchTime,
+    IReadOnlyList<AwsEc2SecurityGroup> SecurityGroups,
+    IReadOnlyDictionary<string, string> Tags);
+
+public sealed record AwsEc2InstancePage(
+    IReadOnlyList<AwsEc2Instance> Items,
+    string? NextToken,
+    bool HasMore);
+
+public sealed record AwsEc2InstanceStateChange(
+    string InstanceId,
+    string PreviousState,
+    string CurrentState,
+    AwsEc2InstanceAction Action);
+
 public sealed record AwsS3ListBucketsRequest
 {
     public int MaxResults { get; init; } = 1000;
@@ -290,6 +342,7 @@ public sealed record AwsS3UploadRequest
     public string? StorageClass { get; init; }
     public string? ServerSideEncryption { get; init; }
     public string? KmsKeyId { get; init; }
+    public bool Overwrite { get; init; }
     public IReadOnlyDictionary<string, string> Metadata { get; init; }
         = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     public IReadOnlyDictionary<string, string> Tags { get; init; }

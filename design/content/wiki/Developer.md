@@ -96,11 +96,13 @@ Open in-app: `WinForge.exe --page packer`
 
 ## AWS Manager · AWS 管理中心
 
-Manage AWS through a Console-style shell with 149 curated services plus live CLI discovery, cross-service resource search, Cloud Control lifecycle APIs, a native S3 workspace, and an optional advanced CLI workbench. · 透過 Console 式介面管理 AWS：149 個精選服務加即時 CLI 探索、跨服務資源搜尋、Cloud Control 生命週期 API、原生 S3 工作區，同選用進階 CLI 工作台。
+Manage AWS through a Console-style shell with 149 curated services plus live CLI discovery, account/Region isolation, cross-service resource search, Cloud Control lifecycle APIs, native S3 and EC2 workspaces, and an optional advanced CLI workbench. · 透過 Console 式介面管理 AWS：149 個精選服務加即時 CLI 探索、帳戶／Region 隔離、跨服務資源搜尋、Cloud Control 生命週期 API、原生 S3 同 EC2 工作區，同選用進階 CLI 工作台。
 
 [Full AWS Manager guide · 完整 AWS 管理中心指南](AWS-Manager.md)
 
 Open in-app: `WinForge.exe --page aws`
+
+Direct workspaces: `WinForge.exe --page s3` · `WinForge.exe --page ec2`
 
 ![AWS Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aws.png)
 
