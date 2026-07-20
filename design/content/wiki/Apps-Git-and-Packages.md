@@ -12,21 +12,21 @@ Open in-app: `WinForge.exe --page git`
 
 ## Package Manager · 套件管理
 
-The shipping managed page is the full package workspace. The native C++ port is in progress: one cached Install/Update/Uninstall row can be reviewed into `AwaitingConsent` and separately confirmed for serial normal-integrity execution. Selected cached rows and current eligible Review Update all rows can form one all-or-nothing batch of at most 25 full redacted argv plans; one batch confirmation queues them in order, cancellation applies to active/pending work, and retry never replays successful children. The 50-record in-memory coordinator rejects elevation/hooks/unsafe IDs/custom mutation arguments/oversized previews, retains redacted reviewed argv plus lifecycle metadata in memory, writes a bounded redacted lifecycle event to existing Operations history, and withholds third-party stdout/stderr/runtime diagnostics. · 發佈中受控頁面係完整套件工作區。原生 C++ 移植進行中：一條已快取安裝／更新／解除安裝資料列可以檢視成 `AwaitingConsent`，再分開確認，先會正常 integrity 串行執行。所選快取資料列同目前合資格嘅檢視全部更新資料列可以組成一個全有或全無批次，最多 25 條完整已遮蔽 argv 計劃；一次批次確認會按次序排隊，取消適用於執行中／等候工作，而重試絕對唔會重播成功子項。50 條記憶體協調器會拒絕提升權限／hooks／唔安全 ID／自訂修改參數／過長預覽、喺記憶體保留已遮蔽已檢視 argv 同生命週期 metadata、向現有 Operations 歷史寫入有界已遮蔽生命週期事件，並略去第三方 stdout／stderr／執行時診斷。
+The canonical .NET workspace covers 11 package engines and nine views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations. Package mutations remain explicit and reviewable, missing engines are treated as setup dependencies, and interactive execution fails closed when WinForge cannot preserve its normal-integrity boundary. · 正式 .NET 工作區涵蓋 11 個套件引擎同九個檢視：Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations。套件修改保持明確同可檢視；欠缺引擎會當成設定 dependency；WinForge 保持唔到正常 integrity 界線時，互動執行會 fail closed。
 
 Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
-> Managed production reference · 受控正式版參考：the screenshot documents the shipping managed page. Fresh native Discover, Updates, Installed, and Operations capture attempts are all `capture-blocked`: the driver and isolated LowLevel MCP desktop returned blank or near-uniform WinUI client frames, so no managed image is presented as native visual proof. · 呢張截圖記錄發佈中嘅受控頁。最新原生 Discover、Updates、Installed 同 Operations 擷取全部係 `capture-blocked`：driver 同隔離 LowLevel MCP desktop 都回傳空白／接近單色 WinUI client frame，所以唔會將受控圖片當原生視覺證明。
+See [Package Manager](#/wiki/Package-Manager) for workspace behavior, configuration, safety boundaries, and failure modes. · 工作區行為、設定、安全界線同失敗模式請睇[套件管理](#/wiki/Package-Manager)。
 
-## Native OSS Clones · 開源原生分頁
+## In-app OSS-inspired tools · App 內開源靈感工具
 
-A native-only index of open-source app ideas being reimplemented as WinForge C++/WinRT tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出正重製成 WinForge C++/WinRT 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
+An in-app index of open-source ideas reimplemented as managed WinForge tabs rather than installer-only entries or redirects. · App 內索引會將開源靈感重製成正式 WinForge 分頁，而唔係只做 installer 項目或跳轉。
 
 Open in-app: `WinForge.exe --page ossapps`
 
-Included native clone examples: API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Native Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark and Everything Search. · 原生複製例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、原生種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
+Examples include API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark, and Everything Search. · 例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
 
 ## Cake Factory & Farm · 蛋糕工廠與農場
 
@@ -46,17 +46,11 @@ Open in-app: `WinForge.exe --page rss`
 
 ## App Uninstaller · 應用程式解除安裝
 
-Native current-user Store/UWP package inventory through the Windows package API, with literal-default/local bounded-regex cache search, review plus explicit Confirm removal, and a normal-integrity fail-closed gate. Deep cleanup is intentionally unavailable and no local-data folder is deleted.  原生用 Windows package API 整理現有使用者 Store/UWP 清單，有 literal 預設／本機 bounded-regex 快取搜尋、覆核加顯式 Confirm 移除，同正常 integrity fail-closed gate。深層清理刻意未開放，而且唔會刪本機資料夾。
+Current-user Store/UWP inventory through the Windows package API, with local search, review plus explicit confirmation for removal, and a normal-integrity fail-closed gate. Deep cleanup is intentionally unavailable and no local-data folder is deleted. · 經 Windows package API 整理目前使用者 Store／UWP 清單，提供本機搜尋、檢視加明確移除確認，同正常 integrity fail-closed gate。深層清理刻意未開放，而且唔會刪本機資料夾。
 
 Open in-app: `WinForge.exe --page uninstall`
 
-> **Current safety correction (2026-07-17):** Deep cleanup is deliberately unavailable in the native migration slice. The confirmed C++/WinRT PackageManager removal never deletes LocalAppData or any other local-data folder.
->
-> **最新安全更正（2026-07-17）：** 原生 migration slice 刻意未開放 deep cleanup。已確認嘅 C++/WinRT PackageManager 移除絕對唔會刪 LocalAppData 或其他本機資料夾。
-
-> Native C++/WinRT evidence: see [Native App Uninstaller](Native-App-Uninstaller.md). Literal and optional bounded regex search apply only to the current local inventory cache; removal requires review plus a separate Confirm action. Fresh visual capture is capture-blocked, so the stale managed screenshot was retired.
->
-> 原生 C++/WinRT 證據見 [Native App Uninstaller](Native-App-Uninstaller.md)。literal 同可選 bounded regex 只會篩選目前本機 inventory 快取；移除要 review 加獨立 Confirm。新視覺擷取係 capture-blocked，所以舊 managed 截圖已退休。
+> **Safety boundary · 安全界線：** Removal never deletes LocalAppData or any other local-data folder. Search is local to the current inventory, and removal requires review plus a separate confirmation. · 移除絕對唔會刪 LocalAppData 或其他本機資料夾。搜尋只針對目前 inventory，而移除要先檢視再獨立確認。
 
 ## Android (ADB) · Android（ADB）
 

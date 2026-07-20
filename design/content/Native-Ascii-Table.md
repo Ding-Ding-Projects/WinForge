@@ -1,7 +1,0 @@
-# Native ASCII Table · 原生 ASCII 表
-
-**Controlled native integration / 受控原生整合：** ascii, asciitable, and module.asciitable are a genuine local C++/WinRT route over the standard-C++ AsciiTable core. Default 0–127 and explicit Latin-1 0–255 ranges, C0/DEL/C1/NBSP distinctions, invariant search, virtualization, lifecycle reset, all language modes, and explicit-only raw-character Copy are native. · ascii、asciitable 同 module.asciitable 係真正本機 C++/WinRT route，由標準 C++ AsciiTable core 支援。預設 0–127、明確 Latin-1 0–255、C0／DEL／C1／NBSP 分別、invariant 搜尋、虛擬化、lifecycle reset、全部語言模式同只限明確 raw-character Copy 都已原生化。
-
-**Evidence / 證據：** Debug/Release x64 builds have 0 errors; both cores pass 878/878 including ASCII Table 21/21; focused UIA is 16/16; catalog parity and native installer contract pass; accounting is 37/346 fixed routes. · Debug／Release x64 build 0 errors；兩個 core 各 878/878（ASCII Table 21/21）；專項 UIA 16/16；catalog parity 同 native installer contract 通過；計數係 37/346 條固定 route。
-
-**Visual status / 視覺狀態：** no callable LowLevel MCP tool is exposed in this session. The fresh native driver rejected its blank/near-uniform PrintWindow fallback after CopyFromScreen was unavailable, retained no PNG, and left no WinForge process; this route is capture-blocked, not visual-pass. · 今個 session 冇可呼叫 LowLevel MCP；最新 native driver 因 CopyFromScreen 不可用而拒絕空白／近乎單色 PrintWindow fallback，冇 PNG／冇殘留 WinForge process；route 如實係 capture-blocked，唔係 visual-pass。

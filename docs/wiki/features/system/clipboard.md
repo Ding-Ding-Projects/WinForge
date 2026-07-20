@@ -10,7 +10,7 @@
 | Category · 分類 | System · 系統 |
 | Page class · 頁面類別 | <code>ClipboardModule</code> |
 | Page XAML · 頁面 XAML | <code>Pages/ClipboardModule.xaml</code> |
-| Button docs · 按鈕文件 | 1 |
+| Button docs · 按鈕文件 | 3 |
 
 ## What It Covers · 功能範圍
 
@@ -22,4 +22,6 @@
 
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
-| [ClearBtn](../../buttons/system/clipboard/001-clearbtn.md) | `Button` | `ClearBtn` | `Clear_Click` |
+| [QrBtn](../../buttons/system/clipboard/001-qrbtn.md) | `Button` | `QrBtn` | `MakeQrFromClipboard_Click` |
+| [NativeRefreshBtn](../../buttons/system/clipboard/002-nativerefreshbtn.md) | `Button` | `NativeRefreshBtn` | `RefreshNativeHistory_Click` |
+| [ClearBtn](../../buttons/system/clipboard/003-clearbtn.md) | `Button` | `ClearBtn` | `Clear_Click` |

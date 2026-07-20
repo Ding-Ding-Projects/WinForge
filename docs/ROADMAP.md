@@ -4,8 +4,9 @@
 
 **粵語 —** WinForge 套件嘅活動式、會自己生長嘅待辦清單。每 30 分鐘嘅建置迴圈會讀呢個檔、**發掘新嘅真實功能再加落嚟**，跟住深度建置下一個未剔嘅項目再剔走。每項都附上真實機制（登錄檔、指令、深層連結、API 或者要包嘅引擎）。
 
+> **Repository scope · 儲存庫範圍：** This roadmap covers the canonical .NET WinUI 3 app. C++/WinRT port work, evidence, and backlog now live in [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). · 呢份路線圖只涵蓋正式嘅 .NET WinUI 3 app；C++/WinRT 移植工作、證據同待辦而家放喺 [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)。
+
 ## ✅ Done · 已完成
-- [x] **Native Namespaced UUID v3/v5 controlled integration (2026-07-19)** · 原生具名空間 UUID v3/v5 受控整合 — standard-C++ RFC 4122 MD5/SHA-1 core plus C++/WinRT renderer for `uuid5`/`uuidv5`/`module.uuidv5`; local-only DNS/URL/OID/X500/custom namespaces, managed D/N/B/P/X parsing, UTF-16 replacement, U+180E parity, bulk output, localization, lifecycle reset, and explicit-only Copy. Controlled-merge Debug/Release evidence is 0 errors / **815/815**, focused UIA **21/21**, full native shell **469/469**, catalog parity 346+5, and installer contract pass; renderer accounting is **33/346**. LowLevel MCP is not callable and the fresh driver rejected a blank fallback, so visual evidence remains `capture-blocked`; the native-only release push is next. · 標準 C++ RFC 4122 MD5／SHA-1 core 加 C++/WinRT renderer；受控 merge Debug／Release 0 errors、core 各 **815/815**、UUID UIA **21/21**、完整 native shell **469/469**、catalog parity 346+5、installer contract 同 **33/346** renderer 已通過。LowLevel MCP 不可呼叫而最新 driver 拒絕空白 fallback，所以 visual 保持 `capture-blocked`；下一步係只限原生 release push。
 - [x] **Windows 11 control module** · Windows 11 控制模組 — 169 tweaks / 13 categories
 - [x] **Git & GitHub module** · Git 與 GitHub 模組 — repo ops, chunked uploader, 111 git/gh operations
 - [x] **Maintenance & Diagnostics module** · 維護與診斷模組 — 102 real ops (services, disk health, SFC/DISM, drivers, updates, event logs, power reports)
@@ -808,9 +809,7 @@ launching the other app.
 - [x] **Background Clipboard manager + tray** · 背景剪貼簿 + 系統匣 — DONE (text/image/file history, auto-convert, keep-running-when-closed via Shell_NotifyIcon).
 
 ### Package management (covers "clone UniGetUI" + "auto-install common deps")
-> **Native C++ migration correction (2026-07-16):** the checked items below describe the shipping managed product, not completed native parity. Native Package Manager is **in progress**. Its new Setup slice only reviews fixed Winget IDs through explicit later consent; it does not execute remote scripts or claim full UniGetUI/bootstrap parity. · **原生 C++ 遷移更正（2026-07-16）：** 以下剔選項目描述發佈中 managed 產品，唔係完成嘅原生對等。原生 Package Manager 仍然 **in progress**。新 Setup 批次只會經明確延後同意檢視固定 Winget ID；唔會執行 remote script，亦唔會聲稱完成 UniGetUI／bootstrap 對等。
-
-- [x] **Native Package Manager with UniGetUI-informed parity** · 原生套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management.
+- [x] **In-app Package Manager with UniGetUI-informed behavior** · App 內套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management.
 - [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies with progress; other modules retain the shared `PackageService.AutoInstall` bootstrap path.
 
 ### Dev environment
@@ -861,8 +860,8 @@ launching the other app.
 - [x] **Clipboard = local git repo** · 剪貼簿 = 本地 git repo — `%LocalAppData%\WinForge\clipboard` is `git init`'d; commits on every entry/remove; **Clear all only adds a commit (never touches .git) so the full history stays recoverable via git log**.
 - [x] **opencode AI commit messages** · opencode AI commit 訊息 — best-effort `opencode run …` (background, CreateNoWindow) writes the commit message from the copied content, falling back to a descriptive message; **auto-installs nodejs (winget) + opencode (npm) once if absent**.
 - [ ] **Export/import must include the clipboard git repo** · 匯出匯入要包埋剪貼簿 git repo — bundle %LocalAppData%\WinForge\clipboard (incl .git) into the full export/import.
-- [x] **Vendor a complete pinned UniGetUI source snapshot for provenance** · 保存完整固定 UniGetUI 原始碼快照作依據 — DONE: `ThirdParty/UniGetUI` contains the tracked tree at Devolutions/UniGetUI commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`, including its MIT license and separately noticed third-party material. The tree is excluded from WinForge build/publish inputs and is used for audit and native parity work only; upstream UI/framework, IPC and telemetry are not compiled, embedded or launched.
-- [ ] **Continue native feature-parity review against the pinned snapshot** · 繼續按固定快照做原生功能對等檢視 — port useful behaviour deliberately into WinForge-owned WinUI/services with licensing, security and bilingual UX review; do not claim or create literal UniGetUI runtime identity.
+- [x] **Vendor a complete pinned UniGetUI source snapshot for provenance** · 保存完整固定 UniGetUI 原始碼快照作依據 — DONE: `ThirdParty/UniGetUI` contains the tracked tree at Devolutions/UniGetUI commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`, including its MIT license and separately noticed third-party material. The tree is excluded from WinForge build/publish inputs and is used for audit and deliberate feature review only; upstream UI/framework, IPC and telemetry are not compiled, embedded or launched.
+- [ ] **Continue feature-parity review against the pinned snapshot** · 繼續按固定快照做功能對等檢視 — port useful behaviour deliberately into WinForge-owned WinUI/services with licensing, security and bilingual UX review; do not claim or create literal UniGetUI runtime identity.
 
 ### Program-wide goals
 - [ ] **1000-feature goal** · 1000 功能目標 — keep the loop discovering REAL features (no padding). Current: ~30 modules + 1140 catalog tweaks/ops + 17 recipes. Track the real total in About.

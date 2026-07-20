@@ -1,3 +1,0 @@
-ripgrep = "14.1.1"    # recursively searches directories
-cargo-edit = "0.13.0" # cargo add
-invalid output line

@@ -9,7 +9,8 @@ name: Regenerate real site data from the app
 # Loop-safe: triggers ONLY on app-source paths (not design/**), and the data commit it
 # pushes only touches design/**, so it never re-triggers itself. GitHub suppresses
 # push workflows for GITHUB_TOKEN commits, so this workflow explicitly dispatches
-# native-release.yml after a generated-data push to preserve per-push native delivery.
+# the managed release workflow after a generated-data push. The generated commit
+# therefore receives the same tested .NET installer release as an ordinary push.
 
 on:
   push:
@@ -20,9 +21,6 @@ on:
       - "Catalog/**"
       - "Models/Core.cs"
       - "docs/wiki/**"
-      - "docs/cpp-port-parity.json"
-      - "src/WinForge.App/Resources/modules.json"
-      - "eng/native/**"
       - "tools/regen-site-data.ps1"
       - ".github/workflows/site-data.yml"
   workflow_dispatch:
@@ -33,7 +31,7 @@ permissions:
 
 concurrency:
   group: site-data
-  # A run may push generated data before dispatching its matching native release.
+  # A run may push generated data before dispatching its matching managed release.
   # Keep queued runs alive so every successful base-repository push gets a release.
   cancel-in-progress: false
 
@@ -44,14 +42,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Set up .NET 11
+      - name: Set up .NET 11 preview
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "11.0.x"
+          dotnet-quality: preview
 
       - name: Restore
-        # The repository intentionally has separate managed and native solutions.
-        # Restore the managed publish target explicitly so MSBuild never has to guess.
+        # Restore the canonical managed publish target explicitly.
         run: dotnet restore WinForge.csproj -p:Platform=x64 -r win-x64
 
       - name: Publish WinForge (self-contained x64)
@@ -71,7 +69,7 @@ jobs:
           if (-not $pub -or -not (Test-Path "$pub\WinForge.exe")) { throw "publish folder / WinForge.exe not found" }
           "dir=$pub" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Regenerate real site and native migration data (tolerant)
+      - name: Regenerate real managed-app site data (tolerant)
         continue-on-error: true
         shell: pwsh
         run: |
@@ -113,16 +111,12 @@ jobs:
           # GITHUB_TOKEN pushes do not emit another push workflow. workflow_dispatch
           # is the supported recursion-safe exception, and this runs only after a
           # real generated-data commit reaches main.
-          # GITHUB_RUN_ID is stable if this site-data workflow is retried. Every
-          # dispatch therefore reconciles to the same tag even if GitHub accepted a
-          # request before returning a transient API error.
-          $releaseVersion = "1.0.$env:GITHUB_RUN_ID"
+          # The managed release workflow derives a Windows-safe, retry-stable
+          # v1.1.x tag from its own workflow run number.
           $dispatchArgs = @(
-            'workflow', 'run', 'native-release.yml',
+            'workflow', 'run', 'release.yml',
             '--ref', 'main',
-            '-f', 'publish_release=true',
-            '-f', "source_sha=$pushedSha",
-            '-f', "release_version=$releaseVersion"
+            '-f', "source_sha=$pushedSha"
           )
           $dispatchSucceeded = $false
           $lastDispatchFailure = ''
@@ -133,11 +127,11 @@ jobs:
               break
             }
             $lastDispatchFailure = $dispatchOutput.Trim()
-            Write-Warning "Native release dispatch attempt $attempt/5 failed: $lastDispatchFailure"
+            Write-Warning "Managed release dispatch attempt $attempt/5 failed: $lastDispatchFailure"
             if ($attempt -lt 5) {
               Start-Sleep -Seconds ([int][Math]::Min(30, [Math]::Pow(2, $attempt)))
             }
           }
           if (-not $dispatchSucceeded) {
-            throw "native release dispatch failed after 5 attempts: $lastDispatchFailure"
+            throw "managed release dispatch failed after 5 attempts: $lastDispatchFailure"
           }

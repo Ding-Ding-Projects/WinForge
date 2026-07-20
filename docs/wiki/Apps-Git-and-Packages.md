@@ -12,7 +12,7 @@ Open in-app: `WinForge.exe --page git`
 
 ## Package Manager · 套件管理
 
-The shipping managed workspace covers 11 managers and nine views. The native C++ port is narrower and **in progress**: it has read-only Discover/Updates/Installed queries, Details, update-rule persistence, source probing, and bounded Bundle metadata. One cached Install/Update/Uninstall row may be reviewed into `AwaitingConsent` and separately confirmed for serial normal-integrity execution. Selected cached rows and current eligible Review Update all rows can also form one atomic batch of at most 25 full redacted argv plans, with one later confirmation, shared cancellation, and retry of unsuccessful children only. The coordinator keeps at most 50 in-memory records, rejects elevation/hooks/unsafe IDs/custom mutation arguments/oversized previews, and withholds third-party stdout/stderr/runtime diagnostics. Elevation mediation and normal-integrity live proof are still pending. · 發佈中受控工作區涵蓋 11 個管理器同九個檢視。原生 C++ 移植範圍較窄而且**進行中**：有只讀 Discover／Updates／Installed 查詢、Details、更新規則保存、來源探測同有界 Bundle metadata。一條已快取安裝／更新／解除安裝資料列可以檢視成 `AwaitingConsent`，再分開確認，先可以由本機串行正常 integrity 協調器執行。所選快取資料列同目前合資格嘅檢視全部更新資料列亦可以組成一個原子批次，最多 25 條完整已遮蔽 argv 計劃，之後一次確認、共用取消，而且只會重試未成功子項。協調器最多保留 50 條記憶體記錄，會拒絕提升權限／hooks／唔安全 ID／自訂修改參數／過長預覽，並略去第三方 stdout／stderr／執行時診斷。提升權限調停同正常 integrity 即時證明仍待完成。
+The canonical .NET workspace covers 11 package engines and nine views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations. Package mutations remain explicit and reviewable, missing engines are treated as setup dependencies, and interactive execution fails closed when WinForge cannot preserve its normal-integrity boundary. · 正式 .NET 工作區涵蓋 11 個套件引擎同九個檢視：Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations。套件修改保持明確同可檢視；欠缺引擎會當成設定 dependency；WinForge 保持唔到正常 integrity 界線時，互動執行會 fail closed。
 
 The pinned source snapshot at `ThirdParty/UniGetUI` is provenance for audit and parity work only. UniGetUI's upstream UI/framework, IPC and telemetry are not compiled or launched; the running feature is WinForge's own bilingual WinUI 3 implementation. · `ThirdParty/UniGetUI` 入面嘅固定原始碼快照只作審核同功能對等參考；UniGetUI 上游 UI／framework、IPC 同 telemetry 唔會被編譯或啟動，實際執行嘅係 WinForge 自己嘅雙語 WinUI 3 實作。
 
@@ -20,15 +20,15 @@ Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
-> The image above is managed-production-only. Fresh native Package Manager capture attempts are all `capture-blocked`: the driver and isolated LowLevel MCP desktop returned blank or near-uniform WinUI client frames, so no stale, synthetic, blank, or managed image is used as native evidence. · 上面張圖只係受控正式版。最新原生 Package Manager 擷取全部係 `capture-blocked`：driver 同隔離 LowLevel MCP desktop 都回傳空白／接近單色 WinUI client frame，所以唔會用舊、合成、空白或者受控圖片當原生證據。
+See [Package Manager](Package-Manager.md) for workspace behavior, configuration, safety boundaries, and failure modes. · 工作區行為、設定、安全界線同失敗模式請睇[套件管理](Package-Manager.md)。
 
-## Native OSS Clones · 開源原生分頁
+## In-app OSS-inspired tools · App 內開源靈感工具
 
-A native-only index of open-source app ideas being reimplemented as WinForge C++/WinRT tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出正重製成 WinForge C++/WinRT 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
+An in-app index of open-source ideas reimplemented as managed WinForge tabs rather than installer-only entries or redirects. · App 內索引會將開源靈感重製成正式 WinForge 分頁，而唔係只做 installer 項目或跳轉。
 
 Open in-app: `WinForge.exe --page ossapps`
 
-Included native clone examples: API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Native Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark and Everything Search. · 原生複製例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、原生種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
+Examples include API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark, and Everything Search. · 例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
 
 ## Cake Factory & Farm · 蛋糕工廠與農場
 
@@ -48,17 +48,11 @@ Open in-app: `WinForge.exe --page rss`
 
 ## App Uninstaller · 應用程式解除安裝
 
-Native current-user Store/UWP package inventory through the Windows package API, with literal-default/local bounded-regex cache search, review plus explicit Confirm removal, and a normal-integrity fail-closed gate. Deep cleanup is intentionally unavailable and no local-data folder is deleted.  原生用 Windows package API 整理現有使用者 Store/UWP 清單，有 literal 預設／本機 bounded-regex 快取搜尋、覆核加顯式 Confirm 移除，同正常 integrity fail-closed gate。深層清理刻意未開放，而且唔會刪本機資料夾。
+Current-user Store/UWP inventory through the Windows package API, with local search, review plus explicit confirmation for removal, and a normal-integrity fail-closed gate. Deep cleanup is intentionally unavailable and no local-data folder is deleted. · 經 Windows package API 整理目前使用者 Store／UWP 清單，提供本機搜尋、檢視加明確移除確認，同正常 integrity fail-closed gate。深層清理刻意未開放，而且唔會刪本機資料夾。
 
 Open in-app: `WinForge.exe --page uninstall`
 
-> **Current safety correction (2026-07-17):** Deep cleanup is deliberately unavailable in the native migration slice. The confirmed C++/WinRT PackageManager removal never deletes LocalAppData or any other local-data folder.
->
-> **最新安全更正（2026-07-17）：** 原生 migration slice 刻意未開放 deep cleanup。已確認嘅 C++/WinRT PackageManager 移除絕對唔會刪 LocalAppData 或其他本機資料夾。
-
-> Native C++/WinRT evidence: see [Native App Uninstaller](Native-App-Uninstaller.md). Literal and optional bounded regex search apply only to the current local inventory cache; removal requires review plus a separate Confirm action. Fresh visual capture is capture-blocked, so the stale managed screenshot was retired.
->
-> 原生 C++/WinRT 證據見 [Native App Uninstaller](Native-App-Uninstaller.md)。literal 同可選 bounded regex 只會篩選目前本機 inventory 快取；移除要 review 加獨立 Confirm。新視覺擷取係 capture-blocked，所以舊 managed 截圖已退休。
+> **Safety boundary · 安全界線：** Removal never deletes LocalAppData or any other local-data folder. Search is local to the current inventory, and removal requires review plus a separate confirmation. · 移除絕對唔會刪 LocalAppData 或其他本機資料夾。搜尋只針對目前 inventory，而移除要先檢視再獨立確認。
 
 ## Android (ADB) · Android（ADB）
 
