@@ -111,7 +111,8 @@ internal sealed class CommandPaletteDockWindow
 
     public void Hide()
     {
-        try { _window.AppWindow.Hide(); } catch { }
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        try { _window?.AppWindow.Hide(); } catch { }
     }
 
     public void Refresh()
