@@ -129,7 +129,6 @@ public static class MouseUtilsService
     private static readonly NativeMessagePump Pump = new("WinForge-MouseUtils");
     private static bool _classRegistered;
     private const string ClassName = "WinForgeMouseUtilsOverlay";
-    private static Action? _renderTick;                // bound by Start; drives the 60 Hz redraw
     private static readonly Dictionary<char, string[]> GeometryGlyphs = new()
     {
         ['0'] = new[] { "###", "#.#", "#.#", "#.#", "###" },

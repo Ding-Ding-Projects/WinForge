@@ -22,7 +22,6 @@ public sealed partial class ExpenseSplitModule : Page
     private readonly ObservableCollection<PersonRow> _people = new();
     private readonly ObservableCollection<ExpenseRow> _expenses = new();
     private int _nextExpenseId = 1;
-    private bool _suppress;
 
     public ExpenseSplitModule()
     {
