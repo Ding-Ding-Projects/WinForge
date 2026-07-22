@@ -30,7 +30,7 @@ public sealed partial class TextWrapModule : Page
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
-    private int Width()
+    new private int Width()
     {
         double v = WidthBox?.Value ?? 72;
         if (double.IsNaN(v) || v < 1) v = 72;

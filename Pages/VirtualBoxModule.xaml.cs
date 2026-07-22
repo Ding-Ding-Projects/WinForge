@@ -156,7 +156,7 @@ public sealed partial class VirtualBoxModule : Page
 
     // ── power control ──────────────────────────────────────────────────────────
 
-    private static string Tag(object sender) => (sender as FrameworkElement)?.Tag as string ?? "";
+    private static new string Tag(object sender) => (sender as FrameworkElement)?.Tag as string ?? "";
 
     private async Task DoPower(string id, Func<string, Task<Models.TweakResult>> op, string en, string zh)
     {
