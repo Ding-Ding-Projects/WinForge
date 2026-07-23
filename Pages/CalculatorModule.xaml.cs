@@ -17,7 +17,7 @@ namespace WinForge.Pages;
 public sealed partial class CalculatorModule : Page
 {
     private readonly ObservableCollection<string> _history = new();
-    private bool _suppress;
+    private bool _suppress = false;
 
     public CalculatorModule()
     {

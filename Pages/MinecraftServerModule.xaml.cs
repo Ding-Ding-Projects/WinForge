@@ -23,7 +23,7 @@ namespace WinForge.Pages;
 public sealed partial class MinecraftServerModule : Page
 {
     private bool _busy;
-    private CancellationTokenSource? _paperCts;
+    private CancellationTokenSource? _paperCts = null;
     private CancellationTokenSource? _spigotCts;
     private CancellationTokenSource? _pluginCts;
 

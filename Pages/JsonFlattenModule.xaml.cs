@@ -88,7 +88,7 @@ public sealed partial class JsonFlattenModule : Page
         try
         {
             string input = InputBox?.Text ?? string.Empty;
-            string sep = SeparatorBox?.Text;
+            string sep = SeparatorBox?.Text ?? string.Empty;
             if (string.IsNullOrEmpty(sep)) sep = ".";
 
             bool unflatten = DirectionBox?.SelectedIndex == 1;
