@@ -1,4 +1,4 @@
-+# Guided Windows maintenance · 引導式 Windows 維護
+# Guided Windows maintenance · 引導式 Windows 維護
 
 Open in-app: `WinForge.exe --page doctors`
 
@@ -34,15 +34,22 @@ powershell -ExecutionPolicy Bypass -File tools\Test-RoadmapCoreAudit.ps1
 dotnet build WinForge.sln -c Debug -p:Platform=x64
 ```
 
-The pure harness covers 22 validation/command cases without touching registry, DISM, drivers, updates, or app data. The strict roadmap matrix is **82/115 shipped**, including **13/13 Windows 11** and **15/15 Maintenance**.
+The pure harness covers 22 validation/command cases without touching registry, DISM, drivers, updates, or app data. After the Browser Control and Media work already on main, the strict roadmap matrix is **104/115 shipped**, including **13/13 Windows 11** and **15/15 Maintenance**.
 
-無副作用 harness 有 22 個驗證／指令 case，唔會郁 registry、DISM、驅動、更新或 app 資料。嚴格路線圖 matrix 係 **82/115 已交付**，包括 **Windows 11 13/13** 同 **Maintenance 15/15**。
+無副作用 harness 有 22 個驗證／指令 case，唔會郁 registry、DISM、驅動、更新或 app 資料。連同 main 已有嘅瀏覽器控制同 Media 工作，嚴格路線圖 matrix 係 **104/115 已交付**，包括 **Windows 11 13/13** 同 **Maintenance 15/15**。
 
 ## Visual evidence · 視覺證據
 
-Fresh capture details and hashes are recorded in the current handoff after self-contained publish and dedicated LowLevel headless inspection. Destructive controls remain uninvoked. · 最新擷取詳情同 hash 會喺自包含 publish 同專用 LowLevel headless 檢視後記錄喺目前交接；破壞性控制保持未執行。
+Repeated successful self-contained publishes preceded a dedicated LowLevel headless inspection. The normal 1049×646 frame (`70A06EFD3CDD87EE8AC9A02F361083BA755E2EB28C844EFB0BA50E56C9ED632C`) and narrow 760×720 frame (`EA7F865C8309FDFC59CE78D07606C4CEE6A29C8763CE6CDA3947425CAB5EAA32`) prove readable dark-theme contrast and bilingual wrapping. Accessibility-tree expansion exposed the Storage Sense controls (`52141DF041D14766C2CC2209B8BC73439B254E54CC469FE5A034D9044A08F0BB`) and the ResetBase irreversible warning (`05C26B2DBC1630D9C4927D84F93B24422D1CDA5E8826A48202AD16A7E3871233`). Every hash is SHA-256. No action button or destructive operating-system control was invoked; the final exact PID/HWND closed gracefully, the desktop returned zero windows, and every dedicated desktop closed.
 
-![System Doctors](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-doctors.png)
+兩次自包含 publish 成功後，專用 LowLevel headless 檢視咗正常 1049×646 圖（完整 SHA-256 如上）同窄版 760×720 圖，驗證深色對比同雙語換行；再經無障礙樹展開儲存感知控制同 ResetBase 不可逆警告。冇撳任何動作掣／破壞性控制，兩個指定 app PID 同專用 desktop 都已關閉。
+
+![System Doctors](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors.png)
+
+![System Doctors narrow layout](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-narrow.png)
+
+![Storage Sense controls expanded](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-windows.png)
+
+![ResetBase irreversible warning expanded](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-maintenance.png)
 
 [← System & Tweaks](System-and-Tweaks.md) · [Feature records](../features/system-maintenance/README.md)
-

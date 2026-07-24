@@ -36,8 +36,14 @@ The live-control proof below uses English level 5 and Cantonese level 1 to demon
 > Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The `regedit` route, editable full-path navigation, and in-app value editing remain launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。`regedit` 路由、可編輯完整路徑導覽同 app 內值編輯仍已驗證可以啟動。
 
 ### System Doctors · 系統醫生
-Fresh guided-maintenance capture; destructive Windows actions were not invoked. · 最新引導式維護畫面；冇執行破壞性 Windows 操作。
+Fresh guided-maintenance evidence from the final self-contained build on dedicated LowLevel headless desktops. The canonical 1049×646 frame has SHA-256 `70A06EFD3CDD87EE8AC9A02F361083BA755E2EB28C844EFB0BA50E56C9ED632C`; the 760×720 narrow frame has `EA7F865C8309FDFC59CE78D07606C4CEE6A29C8763CE6CDA3947425CAB5EAA32`. Accessibility-tree interaction expanded Storage Sense (`52141DF041D14766C2CC2209B8BC73439B254E54CC469FE5A034D9044A08F0BB`) and the ResetBase irreversible warning (`05C26B2DBC1630D9C4927D84F93B24422D1CDA5E8826A48202AD16A7E3871233`). No action button or destructive Windows operation was invoked; the final exact PID/HWND closed gracefully, the desktop returned zero windows, and every dedicated desktop closed. · 最新引導式維護證據由最終自包含 build 喺專用 LowLevel headless desktop 擷取；正常、窄版、展開儲存感知同 ResetBase 警告畫面 hash 如上。冇撳動作掣或執行破壞性 Windows 操作，最終指定 PID／HWND 安全關閉，desktop 零視窗，全部專用 desktop 已關閉。
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors.png)
+
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-narrow.png)
+
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-windows.png)
+
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-maintenance.png)
 
 ### Services · 服務
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-services.png)

@@ -20,7 +20,6 @@ namespace WinForge.Services;
 public static class SystemMaintenanceService
 {
     private const string StoragePolicy = @"Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy";
-    private const string FilterKeysPath = @"Control Panel\Accessibility\Keyboard Response";
     private const string UpdateSettingsPath = @"SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";
 
     private static readonly string[] UpdatePauseStringValues =
@@ -67,13 +66,14 @@ public static class SystemMaintenanceService
 
     public static FilterKeysSettings ReadFilterKeys()
     {
-        string flags = RegistryHelper.GetValue(RegRoot.HKCU, FilterKeysPath, "Flags")?.ToString() ?? "27";
+        FilterKeysNative native = CreateDefaultFilterKeysNative();
+        SystemParametersInfo(GetFilterKeys, native.Size, ref native, 0);
         return new FilterKeysSettings(
-            string.Equals(flags, "59", StringComparison.Ordinal),
-            ReadUInt(RegRoot.HKCU, FilterKeysPath, "DelayBeforeAcceptance", 1000),
-            ReadUInt(RegRoot.HKCU, FilterKeysPath, "AutoRepeatDelay", 1000),
-            ReadUInt(RegRoot.HKCU, FilterKeysPath, "AutoRepeatRate", 500),
-            ReadUInt(RegRoot.HKCU, FilterKeysPath, "BounceTime", 0));
+            (native.Flags & FilterKeysOn) != 0,
+            native.WaitMs,
+            native.DelayMs,
+            native.RepeatMs,
+            native.BounceMs);
     }
 
     public static TweakResult ApplyFilterKeys(FilterKeysSettings settings)
@@ -81,26 +81,15 @@ public static class SystemMaintenanceService
         try
         {
             SystemMaintenanceContracts.ValidateFilterKeys(settings);
-            RegistryHelper.SetValue(RegRoot.HKCU, FilterKeysPath, "Flags",
-                SystemMaintenanceContracts.FilterKeysRegistryFlags(settings.Enabled), RegistryValueKind.String);
-            RegistryHelper.SetValue(RegRoot.HKCU, FilterKeysPath, "DelayBeforeAcceptance",
-                checked((int)settings.DelayBeforeAcceptanceMs), RegistryValueKind.DWord);
-            RegistryHelper.SetValue(RegRoot.HKCU, FilterKeysPath, "AutoRepeatDelay",
-                checked((int)settings.AutoRepeatDelayMs), RegistryValueKind.DWord);
-            RegistryHelper.SetValue(RegRoot.HKCU, FilterKeysPath, "AutoRepeatRate",
-                checked((int)settings.AutoRepeatRateMs), RegistryValueKind.DWord);
-            RegistryHelper.SetValue(RegRoot.HKCU, FilterKeysPath, "BounceTime",
-                checked((int)settings.BounceTimeMs), RegistryValueKind.DWord);
-
-            var native = new FilterKeysNative
-            {
-                Size = checked((uint)Marshal.SizeOf<FilterKeysNative>()),
-                Flags = SystemMaintenanceContracts.FilterKeysLiveFlags(settings.Enabled),
-                WaitMs = settings.DelayBeforeAcceptanceMs,
-                DelayMs = settings.AutoRepeatDelayMs,
-                RepeatMs = settings.AutoRepeatRateMs,
-                BounceMs = settings.BounceTimeMs,
-            };
+            FilterKeysNative native = CreateDefaultFilterKeysNative();
+            if (!SystemParametersInfo(GetFilterKeys, native.Size, ref native, 0))
+                throw new Win32Exception(Marshal.GetLastWin32Error(),
+                    "Windows rejected SPI_GETFILTERKEYS; no accessibility setting was changed.");
+            native.Flags = SystemMaintenanceContracts.FilterKeysFlagsWithEnabled(native.Flags, settings.Enabled);
+            native.WaitMs = settings.DelayBeforeAcceptanceMs;
+            native.DelayMs = settings.AutoRepeatDelayMs;
+            native.RepeatMs = settings.AutoRepeatRateMs;
+            native.BounceMs = settings.BounceTimeMs;
             if (!SystemParametersInfo(SetFilterKeys, native.Size, ref native, UpdateIniFile | SendChange))
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows rejected SPI_SETFILTERKEYS.");
 
@@ -357,12 +346,17 @@ public static class SystemMaintenanceService
         catch { return fallback; }
     }
 
-    private static uint ReadUInt(RegRoot root, string path, string name, uint fallback)
-    {
-        object? raw = RegistryHelper.GetValue(root, path, name);
-        try { return raw is null ? fallback : Convert.ToUInt32(raw); }
-        catch { return fallback; }
-    }
+    private static FilterKeysNative CreateDefaultFilterKeysNative()
+        => new()
+        {
+            Size = checked((uint)Marshal.SizeOf<FilterKeysNative>()),
+            Flags = FilterKeysAvailable | FilterKeysHotkeyActive | FilterKeysConfirmHotkey |
+                    FilterKeysHotkeySound | FilterKeysIndicator,
+            WaitMs = 1000,
+            DelayMs = 1000,
+            RepeatMs = 500,
+            BounceMs = 0,
+        };
 
     private static int DriverOrdinal(string name)
     {
@@ -387,7 +381,14 @@ public static class SystemMaintenanceService
         public uint BounceMs;
     }
 
+    private const uint GetFilterKeys = 0x0032;
     private const uint SetFilterKeys = 0x0033;
+    private const uint FilterKeysOn = 0x00000001;
+    private const uint FilterKeysAvailable = 0x00000002;
+    private const uint FilterKeysHotkeyActive = 0x00000004;
+    private const uint FilterKeysConfirmHotkey = 0x00000008;
+    private const uint FilterKeysHotkeySound = 0x00000010;
+    private const uint FilterKeysIndicator = 0x00000020;
     private const uint UpdateIniFile = 0x0001;
     private const uint SendChange = 0x0002;
 

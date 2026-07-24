@@ -8,8 +8,8 @@ Run("Storage Sense rejects unsupported cadence", StorageSenseRejectsCadence);
 Run("Storage Sense rejects unsupported retention", StorageSenseRejectsRetention);
 Run("Filter Keys accepts the bounded 20-second edge", FilterKeysBoundedEdge);
 Run("Filter Keys rejects oversized timings", FilterKeysRejectsOversized);
-Run("Filter Keys registry profiles distinguish enabled and disabled", FilterKeysRegistryProfiles);
-Run("Filter Keys live flags toggle only FILTERKEYSON", FilterKeysLiveFlags);
+Run("Filter Keys enablement preserves every unrelated API flag", FilterKeysPreservesApiFlags);
+Run("Filter Keys disablement clears only FILTERKEYSON", FilterKeysClearsOnlyOnFlag);
 Run("Windows Update pause window is UTC and bounded", UpdatePauseWindowBounded);
 Run("Windows Update rejects a pause beyond 35 days", UpdatePauseRejectsUnsupported);
 Run("Windows Update timestamps use stable UTC format", UpdateTimestampStable);
@@ -73,18 +73,18 @@ static void FilterKeysRejectsOversized()
     => Throws<ArgumentOutOfRangeException>(() =>
         SystemMaintenanceContracts.ValidateFilterKeys(new FilterKeysSettings(true, 20_001, 0, 0, 0)));
 
-static void FilterKeysRegistryProfiles()
+static void FilterKeysPreservesApiFlags()
 {
-    Equal("59", SystemMaintenanceContracts.FilterKeysRegistryFlags(true), "enabled registry profile");
-    Equal("27", SystemMaintenanceContracts.FilterKeysRegistryFlags(false), "disabled registry profile");
+    const uint existing = 0x0000007e;
+    Equal(0x0000007fu, SystemMaintenanceContracts.FilterKeysFlagsWithEnabled(existing, true),
+        "enabled FILTERKEYS flags");
 }
 
-static void FilterKeysLiveFlags()
+static void FilterKeysClearsOnlyOnFlag()
 {
-    uint on = SystemMaintenanceContracts.FilterKeysLiveFlags(true);
-    uint off = SystemMaintenanceContracts.FilterKeysLiveFlags(false);
-    Equal(1u, on ^ off, "only FILTERKEYSON should differ");
-    Assert((on & 1) == 1 && (off & 1) == 0, "live on bit contract");
+    const uint existing = 0x0000007f;
+    Equal(0x0000007eu, SystemMaintenanceContracts.FilterKeysFlagsWithEnabled(existing, false),
+        "disabled FILTERKEYS flags");
 }
 
 static void UpdatePauseWindowBounded()

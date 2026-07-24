@@ -40,22 +40,10 @@ public static class SystemMaintenanceContracts
         RequireMilliseconds(settings.BounceTimeMs, nameof(settings.BounceTimeMs));
     }
 
-    /// <summary>
-    /// Registry flags match the documented Keyboard Response profiles. The live FILTERKEYS flags
-    /// are constructed separately because their bit layout is not the registry profile layout.
-    /// </summary>
-    public static string FilterKeysRegistryFlags(bool enabled) => enabled ? "59" : "27";
-
-    public static uint FilterKeysLiveFlags(bool enabled)
+    public static uint FilterKeysFlagsWithEnabled(uint existingFlags, bool enabled)
     {
         const uint filterKeysOn = 0x00000001;
-        const uint available = 0x00000002;
-        const uint hotkeyActive = 0x00000004;
-        const uint confirmHotkey = 0x00000008;
-        const uint hotkeySound = 0x00000010;
-        const uint indicator = 0x00000020;
-        uint common = available | hotkeyActive | confirmHotkey | hotkeySound | indicator;
-        return enabled ? common | filterKeysOn : common;
+        return enabled ? existingFlags | filterKeysOn : existingFlags & ~filterKeysOn;
     }
 
     public static IReadOnlyList<string> DismExportDefaultAssociationsArguments(string path)
