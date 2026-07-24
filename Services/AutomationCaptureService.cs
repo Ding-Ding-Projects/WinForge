@@ -19,9 +19,10 @@ internal static class AutomationCaptureService
     internal static async Task TryCaptureShellAsync(Window window, FrameworkElement root)
     {
 #if DEBUG
-        var path = Environment.GetEnvironmentVariable("WINFORGE_CAPTURE_PATH")?.Trim();
-        if (!IsSupportedPath(path)) return;
+        var requestedPath = Environment.GetEnvironmentVariable("WINFORGE_CAPTURE_PATH")?.Trim();
+        if (!AutomationCapturePolicy.TryGetSupportedPath(requestedPath, out var path)) return;
 
+        string? partialPath = null;
         try
         {
             if (TryReadSize(out var width, out var height))
@@ -37,29 +38,54 @@ internal static class AutomationCaptureService
                 throw new InvalidOperationException("The WinUI visual tree rendered an empty automation capture.");
 
             var pixels = await bitmap.GetPixelsAsync();
-            var folderPath = Path.GetDirectoryName(path)!;
+            var encodedPixels = pixels.ToArray();
+            var background = GetCaptureBackground(root);
+            AutomationCapturePolicy.FlattenPremultipliedPixels(
+                encodedPixels,
+                background.B,
+                background.G,
+                background.R);
+
+            var folderPath = Path.GetDirectoryName(path);
+            if (string.IsNullOrWhiteSpace(folderPath)) return;
             Directory.CreateDirectory(folderPath);
             var folder = await StorageFolder.GetFolderFromPathAsync(folderPath);
-            var file = await folder.CreateFileAsync(Path.GetFileName(path), CreationCollisionOption.ReplaceExisting);
-            using var stream = await file.OpenAsync(FileAccessMode.ReadWrite);
-            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
-            encoder.SetPixelData(
-                BitmapPixelFormat.Bgra8,
-                // RenderTargetBitmap has already composited the live tree. Encoding it as
-                // premultiplied alpha makes translucent M3 fills appear falsely opaque.
-                BitmapAlphaMode.Ignore,
-                (uint)bitmap.PixelWidth,
-                (uint)bitmap.PixelHeight,
-                96,
-                96,
-                pixels.ToArray());
-            await encoder.FlushAsync();
+            partialPath = Path.Combine(
+                folderPath,
+                $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.partial.png");
+            var file = await folder.CreateFileAsync(Path.GetFileName(partialPath), CreationCollisionOption.FailIfExists);
+            using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
+            {
+                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
+                encoder.SetPixelData(
+                    BitmapPixelFormat.Bgra8,
+                    BitmapAlphaMode.Ignore,
+                    (uint)bitmap.PixelWidth,
+                    (uint)bitmap.PixelHeight,
+                    96,
+                    96,
+                    encodedPixels);
+                await encoder.FlushAsync();
+            }
+
+            // Promote only a fully flushed PNG. A crash or encoder failure cannot leave a
+            // partially written file at the requested evidence path.
+            File.Move(partialPath, path, overwrite: true);
+            partialPath = null;
             CrashLogger.Mark($"automation-capture: {bitmap.PixelWidth}x{bitmap.PixelHeight}");
         }
         catch (Exception ex)
         {
-            // Evidence tooling must never destabilize the product it is inspecting.
-            CrashLogger.Log("automation-capture", ex);
+            // Evidence tooling must never destabilize the product it is inspecting or log
+            // a user-selected path. Preserve only a type/HRESULT diagnostic.
+            CrashLogger.Mark($"automation-capture-failed: {ex.GetType().Name} (0x{ex.HResult:X8})");
+        }
+        finally
+        {
+            if (!string.IsNullOrWhiteSpace(partialPath))
+            {
+                try { File.Delete(partialPath); } catch { }
+            }
         }
 #else
         await Task.CompletedTask;
@@ -67,13 +93,6 @@ internal static class AutomationCaptureService
     }
 
 #if DEBUG
-    private static bool IsSupportedPath(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) return false;
-        if (!string.Equals(Path.GetExtension(path), ".png", StringComparison.OrdinalIgnoreCase)) return false;
-        return !string.IsNullOrWhiteSpace(Path.GetDirectoryName(path));
-    }
-
     private static bool TryReadSize(out int width, out int height)
     {
         width = ReadBoundedInt("WINFORGE_CAPTURE_WIDTH", 0, 640, 3_840);
@@ -83,10 +102,22 @@ internal static class AutomationCaptureService
 
     private static int ReadBoundedInt(string name, int fallback, int minimum, int maximum)
     {
-        var raw = Environment.GetEnvironmentVariable(name);
-        return int.TryParse(raw, out var parsed) && parsed >= minimum && parsed <= maximum
-            ? parsed
-            : fallback;
+        return AutomationCapturePolicy.ReadBoundedInt(
+            Environment.GetEnvironmentVariable(name),
+            fallback,
+            minimum,
+            maximum);
     }
+
+    private static Windows.UI.Color GetCaptureBackground(FrameworkElement root)
+    {
+        // Application-level theme-dictionary lookup can resolve against the OS theme even
+        // when WinForge has explicitly applied the opposite theme to this window. The root's
+        // ActualTheme is the authoritative visual state being captured.
+        return root.ActualTheme == ElementTheme.Light
+            ? Windows.UI.Color.FromArgb(255, 243, 243, 243)
+            : Windows.UI.Color.FromArgb(255, 10, 13, 11);
+    }
+
 #endif
 }

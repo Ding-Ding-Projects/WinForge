@@ -733,7 +733,7 @@ _Note: a planned "AI & Ads catalog batch" was dropped after the audit showed Rec
 
 From a generate+adversarial-verify workflow (Core Audio COM interop verified `correct=true`) + a discovery sweep (17 items).
 
-- [x] **Per-app Volume Mixer** · 每個 app 音量混合器 — DONE: master volume/mute + every audio session's volume/mute, live, via raw Core Audio (WASAPI) COM — IMMDeviceEnumerator → IAudioSessionManager2 → IAudioSessionControl2 / ISimpleAudioVolume / IAudioEndpointVolume. Adversarially-verified vtable order; runs without AccessViolation. `module.mixer` / `--page mixer`.
+- [x] **Per-app Volume Mixer** · 每個 app 音量混合器 — DONE: master volume/mute + every audio session's volume/mute, live, via raw Core Audio (WASAPI) COM — IMMDeviceEnumerator → IAudioSessionManager2 → IAudioSessionControl2 / ISimpleAudioVolume / IAudioEndpointVolume. Adversarially verified vtable order, nullable boundaries, single-owner RCW release, invalid-PID rejection, and explicit reset to system default. `module.mixer` / `--page mixer`.
 
 ### New module/feature candidates · 新模組／功能
 - [ ] **Custom right-click verb manager** · 自訂右鍵指令管理 — add/remove context-menu entries under HKCU\Software\Classes\*\shell\<verb>, …\Directory\shell, …\Directory\Background\shell (command + icon + position).

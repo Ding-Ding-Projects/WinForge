@@ -1,8 +1,8 @@
 # WinForge · 視窗鑄造
 
-WinForge is the canonical **.NET 11 / WinUI 3** Windows 11 control center. It combines 319 registered in-app entries, a large Windows-tweak catalog, and a hyper-realistic pressurized-water-reactor simulator in one self-contained x64 desktop app.
+WinForge is the canonical **.NET 11 / WinUI 3** Windows 11 control center. It combines 321 registered in-app entries (Dashboard + 320 modules), a large Windows-tweak catalog, and a hyper-realistic pressurized-water-reactor simulator in one self-contained x64 desktop app.
 
-WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 319 個已登記 app 內項目、大型 Windows 調校目錄，同超寫實壓水堆模擬器放喺同一個自包含 x64 桌面 app。
+WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 321 個已登記 app 內項目（Dashboard + 320 個模組）、大型 Windows 調校目錄，同超寫實壓水堆模擬器放喺同一個自包含 x64 desktop app。
 
 `WinUI 3` · `.NET 11` · `English / 粵語 / bilingual` · `Windows 11 x64`
 
@@ -51,7 +51,7 @@ For build-if-needed, deep-link launch, process-owned cleanup, and an optional sc
 
 想自動按需要建置、直接開指定頁、只清理自己開嘅 process，同選擇性截圖，可以用 repo driver：
 
-Screenshot runs request a DEBUG-only capture of WinForge's live visual tree and validate the result before promotion. The driver never reads raw desktop pixels, so a window overlapping WinForge cannot leak into the image; an HWND-targeted `PrintWindow` attempt is the bounded fallback. · 截圖 run 會要求 DEBUG-only 嘅 WinForge 即時 visual tree capture，驗證合格先升格。Driver 永遠唔會讀取原始 desktop pixels，所以其他視窗遮住 WinForge 都唔會漏入圖片；有限後備只會針對自家 HWND 呼叫 `PrintWindow`。
+Screenshot runs accept only bounded PNG paths on fixed or removable local drives, request a DEBUG-only capture of WinForge's live visual tree, flush a unique partial image, and validate it before atomic promotion. Pixels are composited against the window's actual theme and encoded opaque. The driver deletes stale output when a new attempt starts and never reads raw desktop pixels, so neither an old image nor a window overlapping WinForge can masquerade as current evidence; an HWND-targeted `PrintWindow` attempt is the bounded fallback. · 截圖 run 只接受 fixed／removable 本機 drive 上有限長度嘅 PNG 路徑，要求 DEBUG-only WinForge 即時 visual tree capture，先 flush 唯一 partial 圖，再驗證同原子升格。Pixels 會按視窗實際 theme 合成並輸出不透明圖。新擷取開始時 driver 會刪除舊 output，亦永遠唔會讀取原始 desktop pixels，所以舊圖同遮住 WinForge 嘅其他視窗都唔可以扮今次證據；有限後備只會針對自家 HWND 呼叫 `PrintWindow`。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 `
@@ -75,7 +75,7 @@ Remove-Item Env:DOTNET_ROOT -ErrorAction SilentlyContinue
 dotnet run --project tests\ReactorSim.Tests -c Debug
 ```
 
-The current contract is **63/63** scenarios, and the harness returns nonzero if any scenario fails or throws. Use `-- --verify-exit-code-contract` for its fast exit-code self-test.
+The current contract is **65/65** scenarios, and the harness returns nonzero if any scenario fails or throws. Use `-- --verify-exit-code-contract` for its fast exit-code self-test.
 
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 

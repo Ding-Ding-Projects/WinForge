@@ -4,7 +4,7 @@
   WinForge is a .NET (net11.0-windows) WinUI 3 desktop app. It cannot run framework-dependent
   here (no matching desktop runtime installed -> it shows a "You must install .NET" dialog), so
   this driver runs a SELF-CONTAINED publish and launches THAT exe. The app exposes deep-links
-  (`WinForge.exe --page <alias>`) so any of its 319 registered module pages can be opened directly, and we
+  (`WinForge.exe --page <alias>`) so any registered module page can be opened directly, and we
   capture the live WinUI visual tree to a PNG. The app-owned DEBUG capture is preferred so an
   overlapping desktop window can never leak into evidence; HWND-targeted PrintWindow is a
   validated fallback.
@@ -13,9 +13,16 @@
     powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Page reactor -Out shot.png
 #>
 param(
+  [ValidateNotNullOrEmpty()]
+  [ValidateLength(1, 128)]
+  [ValidatePattern('\S')]
   [string]$Page = "dashboard",          # deep-link alias (see MainWindow.ApplyStartPage), e.g. reactor, monitor, docker
+  [ValidateNotNullOrEmpty()]
+  [ValidateLength(1, 1024)]
+  [ValidatePattern('\S')]
   [string]$Out  = "winforge-shot.png",  # output PNG path
   [switch]$Publish,                      # force a fresh self-contained publish
+  [ValidateRange(1000, 120000)]
   [int]$WaitMs  = 12000,                 # ms to wait for the window to render before capturing
   [switch]$NoCapture                     # verify a dedicated launched window without foregrounding or screenshot capture
 )
@@ -73,16 +80,21 @@ public class WfCap {
   [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr h, int a, out RECT r, int s);
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
   [DllImport("user32.dll", SetLastError=true)] public static extern bool PrintWindow(IntPtr h, IntPtr dc, uint flags);
+  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  public static extern bool MoveFileEx(string existingFile, string newFile, uint flags);
   public struct RECT { public int Left, Top, Right, Bottom; }
 }
 "@
 
 $launchedProcess = $null
+$ownedProcessHandle = $null
 $inProcessCapture = $null
+$finalCaptureTemp = $null
 function Test-WfCapture([string]$Path) {
   if (-not (Test-Path -LiteralPath $Path)) { return $false }
-  $candidate = [System.Drawing.Bitmap]::FromFile($Path)
+  $candidate = $null
   try {
+    $candidate = [System.Drawing.Bitmap]::FromFile($Path)
     if ($candidate.Width -lt 100 -or $candidate.Height -lt 100) { return $false }
     $colors = New-Object 'System.Collections.Generic.HashSet[int]'
     $stepX = [Math]::Max(1, [int][Math]::Floor($candidate.Width / 24))
@@ -94,14 +106,70 @@ function Test-WfCapture([string]$Path) {
     }
     return $colors.Count -ge 4
   }
-  finally { $candidate.Dispose() }
+  catch { return $false }
+  finally { if ($candidate) { $candidate.Dispose() } }
+}
+
+function Remove-WfCaptureFile([string]$Path) {
+  if ([string]::IsNullOrWhiteSpace($Path)) { return $true }
+  for ($attempt = 0; $attempt -lt 3 -and (Test-Path -LiteralPath $Path); $attempt++) {
+    Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $Path) { Start-Sleep -Milliseconds 100 }
+  }
+  return -not (Test-Path -LiteralPath $Path)
+}
+
+function Publish-WfCapture([string]$SourcePath, [string]$DestinationPath) {
+  if (-not (Test-WfCapture $SourcePath)) {
+    throw "capture promotion rejected an invalid source image."
+  }
+
+  $sourceFull = [System.IO.Path]::GetFullPath($SourcePath)
+  $destinationFull = [System.IO.Path]::GetFullPath($DestinationPath)
+  $sourceDirectory = [System.IO.Path]::GetDirectoryName($sourceFull)
+  $destinationDirectory = [System.IO.Path]::GetDirectoryName($destinationFull)
+  if (-not [string]::Equals($sourceDirectory, $destinationDirectory, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "capture promotion requires a same-directory temporary image."
+  }
+
+  # MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH. The requested evidence path
+  # changes only after a fully written, validated PNG is ready in the same directory.
+  if (-not [WfCap]::MoveFileEx($sourceFull, $destinationFull, 0x9)) {
+    $moveError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+    throw "atomic capture promotion failed with Win32 error $moveError."
+  }
+
+  if (-not (Test-WfCapture $destinationFull)) {
+    if (-not (Remove-WfCaptureFile $destinationFull)) {
+      Write-Warning "Could not remove an invalid atomically promoted capture."
+    }
+    throw "atomic capture promotion did not produce a valid image."
+  }
 }
 
 try {
   if (-not $NoCapture) {
     $outFull = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Out)
+    if ($outFull.Length -gt 1024 -or [System.IO.Path]::GetExtension($outFull) -ine ".png") {
+      throw "capture output must be a local .png path no longer than 1024 characters."
+    }
+    if ($outFull.StartsWith("\\", [StringComparison]::Ordinal)) {
+      throw "capture output must stay on a local drive; UNC paths are not accepted."
+    }
+    $outRoot = [System.IO.Path]::GetPathRoot($outFull)
+    $outDriveType = if ($outRoot) { (New-Object System.IO.DriveInfo($outRoot)).DriveType } else { $null }
+    if (-not $outRoot -or $outDriveType -notin @([System.IO.DriveType]::Fixed, [System.IO.DriveType]::Removable)) {
+      throw "capture output must stay on a fixed or removable local drive."
+    }
     $outDirectory = Split-Path -Parent $outFull
     if ($outDirectory) { New-Item -ItemType Directory -Path $outDirectory -Force | Out-Null }
+    if (Test-Path -LiteralPath $outFull) {
+      $existingOutput = Get-Item -LiteralPath $outFull -Force
+      if ($existingOutput.PSIsContainer) { throw "capture output '$outFull' is a directory." }
+      # Once a capture attempt begins, an older image at the requested path must not
+      # survive a failed run and be mistaken for current evidence.
+      Remove-Item -LiteralPath $outFull -Force
+    }
     $inProcessCapture = "$outFull.winui-$([Guid]::NewGuid().ToString('N')).png"
     $oldCapturePath = [Environment]::GetEnvironmentVariable("WINFORGE_CAPTURE_PATH", "Process")
     $oldCaptureDelay = [Environment]::GetEnvironmentVariable("WINFORGE_CAPTURE_DELAY_MS", "Process")
@@ -121,6 +189,9 @@ try {
   else {
     $launchedProcess = Start-Process -FilePath $exe -ArgumentList "--page", $Page -PassThru
   }
+  # Open and retain the native process handle immediately. Cleanup therefore remains
+  # bound to this launch even if the numeric PID is recycled later.
+  $ownedProcessHandle = $launchedProcess.SafeHandle
   Start-Sleep -Milliseconds $WaitMs
 
   $p = $null
@@ -142,7 +213,7 @@ try {
   # Prefer the live app-owned visual tree. CopyFromScreen is intentionally never used:
   # a foreground-denied or overlapped window can otherwise capture an unrelated app.
   if (Test-WfCapture $inProcessCapture) {
-    Copy-Item -LiteralPath $inProcessCapture -Destination $outFull -Force
+    Publish-WfCapture $inProcessCapture $outFull
     $liveCapture = [System.Drawing.Image]::FromFile($outFull)
     try { $w = $liveCapture.Width; $hgt = $liveCapture.Height }
     finally { $liveCapture.Dispose() }
@@ -156,6 +227,7 @@ try {
   if ([WfCap]::DwmGetWindowAttribute($h, 9, [ref]$r, 16) -ne 0) { [WfCap]::GetWindowRect($h, [ref]$r) | Out-Null }
   $w = $r.Right - $r.Left; $hgt = $r.Bottom - $r.Top
   if ($w -le 0 -or $hgt -le 0) { throw "bad window rect $w x $hgt" }
+  $finalCaptureTemp = "$outFull.driver-$([Guid]::NewGuid().ToString('N')).partial.png"
   $bmp = New-Object System.Drawing.Bitmap($w, $hgt)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
   $desktopCaptureError = $null
@@ -189,7 +261,7 @@ try {
     if ($uniqueColors.Count -lt 4) {
       throw "PrintWindow produced a blank or near-uniform WinUI client frame."
     }
-    $bmp.Save($outFull, [System.Drawing.Imaging.ImageFormat]::Png)
+    $bmp.Save($finalCaptureTemp, [System.Drawing.Imaging.ImageFormat]::Png)
   }
   catch {
     $desktopCaptureError = $_.Exception.Message
@@ -199,11 +271,21 @@ try {
     $bmp.Dispose()
   }
 
+  if (-not $desktopCaptureError) {
+    try {
+      Publish-WfCapture $finalCaptureTemp $outFull
+      $finalCaptureTemp = $null
+    }
+    catch {
+      $desktopCaptureError = $_.Exception.Message
+    }
+  }
+
   if ($desktopCaptureError) {
     if (-not (Test-WfCapture $inProcessCapture)) {
       throw "$desktopCaptureError The in-process WinUI capture did not produce a valid frame."
     }
-    Copy-Item -LiteralPath $inProcessCapture -Destination $outFull -Force
+    Publish-WfCapture $inProcessCapture $outFull
     $fallback = [System.Drawing.Image]::FromFile($outFull)
     try { $w = $fallback.Width; $hgt = $fallback.Height }
     finally { $fallback.Dispose() }
@@ -217,12 +299,20 @@ finally {
     # terminate an unrelated process if Windows has already reused the number.
     try {
       $launchedProcess.Refresh()
-      if (-not $launchedProcess.HasExited) { $launchedProcess.Kill() }
+      if (-not $launchedProcess.HasExited) {
+        $launchedProcess.Kill()
+        if (-not $launchedProcess.WaitForExit(5000)) {
+          Write-Warning "The owned WinForge process did not exit within five seconds of cleanup."
+        }
+      }
     }
-    catch { }
+    catch { Write-Warning "Could not complete owned-process cleanup: $($_.Exception.Message)" }
     finally { $launchedProcess.Dispose() }
   }
-  if ($inProcessCapture -and (Test-Path -LiteralPath $inProcessCapture)) {
-    Remove-Item -LiteralPath $inProcessCapture -Force -ErrorAction SilentlyContinue
+  if (-not (Remove-WfCaptureFile $inProcessCapture)) {
+    Write-Warning "Could not remove the unique in-process capture temporary file '$inProcessCapture'."
+  }
+  if (-not (Remove-WfCaptureFile $finalCaptureTemp)) {
+    Write-Warning "Could not remove the unique final-promotion temporary file '$finalCaptureTemp'."
   }
 }

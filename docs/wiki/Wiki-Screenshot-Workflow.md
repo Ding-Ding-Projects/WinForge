@@ -4,17 +4,22 @@
 [`run-winforge` driver](https://github.com/codingmachineedge/WinForge/tree/main/.agents/skills/run-winforge),
 then use [`tools/WinForgeShot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot)
 (`winforge-shot`) to **crop, highlight, annotate, number steps, and redact personal info**.
-The driver requests a DEBUG-only image of WinForge's live visual tree, validates it as
-non-uniform, and cleans up its unique temporary file and owned process. It never samples
-raw desktop pixels, so an overlapping application cannot leak into evidence. A validated,
-HWND-targeted `PrintWindow` call is the only capture fallback.
+The driver accepts only bounded PNG paths on fixed or removable local drives, requests a
+DEBUG-only image of WinForge's live visual tree, composites it against the root's actual
+theme, flushes a unique partial image, and validates it before atomic promotion. It removes
+stale output when a new attempt begins and cleans up its unique temporary file and owned
+process. It never samples raw desktop pixels, so neither an old image nor an overlapping
+application can leak into current evidence. A validated, HWND-targeted `PrintWindow` call
+is the only capture fallback.
 
 **粵語 —** 先用 repo 嘅 [`run-winforge` driver](https://github.com/codingmachineedge/WinForge/tree/main/.agents/skills/run-winforge)
 擷取目前 WinUI pixels，再用 [`tools/WinForgeShot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot)
 （`winforge-shot`）做**裁切、加強調框、加文字、加步驟編號、同遮蔽個人資料**。
-Driver 會要求 DEBUG-only 即時 WinForge visual tree 圖、驗證唔係單色空畫面，並清理唯一 temp file
-同自家 process。佢永遠唔會抽取原始 desktop pixels，所以其他 app 遮住 WinForge 都唔會漏入證據；
-唯一 capture 後備係經驗證、只針對自家 HWND 嘅 `PrintWindow`。
+Driver 只接受 fixed／removable 本機 drive 上有限長度嘅 PNG 路徑，要求 DEBUG-only 即時 WinForge
+visual tree 圖，按 root 實際 theme 合成、先 flush 唯一 partial 圖，再驗證同原子升格。新擷取開始會
+移除舊 output，並清理唯一 temp file 同自家 process。佢永遠唔會抽取原始 desktop pixels，所以舊圖
+或者遮住 WinForge 嘅其他 app 都唔會漏入今次證據；唯一 capture 後備係經驗證、只針對自家 HWND
+嘅 `PrintWindow`。
 
 ---
 

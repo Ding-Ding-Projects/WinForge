@@ -76,13 +76,12 @@ namespace WinForge.Services
         /// <summary>Master volume (0..1) + mute of the default render endpoint.</summary>
         public static (float level, bool muted) GetMaster()
         {
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
             IAudioEndpointVolume? epv = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDefaultRenderDevice(devEnum);
                 epv = ActivateEndpointVolume(device);
 
@@ -95,20 +94,18 @@ namespace WinForge.Services
                 Release(epv);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
         }
 
         public static void SetMasterLevel(float v)
         {
             v = Clamp01(v);
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
             IAudioEndpointVolume? epv = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDefaultRenderDevice(devEnum);
                 epv = ActivateEndpointVolume(device);
 
@@ -120,19 +117,17 @@ namespace WinForge.Services
                 Release(epv);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
         }
 
         public static void SetMasterMute(bool m)
         {
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
             IAudioEndpointVolume? epv = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDefaultRenderDevice(devEnum);
                 epv = ActivateEndpointVolume(device);
 
@@ -144,7 +139,6 @@ namespace WinForge.Services
                 Release(epv);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
         }
 
@@ -153,17 +147,15 @@ namespace WinForge.Services
         {
             var result = new List<AudioSession>();
 
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
-            object? mgrObj = null;
             IAudioSessionManager2? mgr = null;
             IAudioSessionEnumerator? sessEnum = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDefaultRenderDevice(devEnum);
-                mgrObj = ActivateSessionManager(device, out mgr);
+                mgr = ActivateSessionManager(device);
 
                 Check(mgr.GetSessionEnumerator(out sessEnum), "GetSessionEnumerator");
                 Check(sessEnum.GetCount(out int count), "GetCount");
@@ -230,8 +222,8 @@ namespace WinForge.Services
                     }
                     finally
                     {
-                        Release(vol);
-                        Release(ctrl2);
+                        // ctrl, ctrl2, and vol are interface views over the same RCW.
+                        // Release that wrapper exactly once after all views are out of use.
                         Release(ctrl);
                     }
                 }
@@ -240,10 +232,8 @@ namespace WinForge.Services
             {
                 Release(sessEnum);
                 Release(mgr);
-                Release(mgrObj);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
 
             return result;
@@ -277,14 +267,13 @@ namespace WinForge.Services
         {
             var result = new List<AudioDeviceInfo>();
 
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDeviceCollection? coll = null;
             IMMDevice? defDevice = null;
             string defaultId = "";
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
 
                 // Best-effort: resolve the current default render device id.
                 try
@@ -326,7 +315,6 @@ namespace WinForge.Services
                 Release(defDevice);
                 Release(coll);
                 Release(devEnum);
-                Release(enumObj);
             }
 
             return result;
@@ -335,13 +323,12 @@ namespace WinForge.Services
         /// <summary>Master volume + mute for a specific render endpoint (by device id).</summary>
         public static (float level, bool muted) GetMasterFor(string deviceId)
         {
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
             IAudioEndpointVolume? epv = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDeviceById(devEnum, deviceId);
                 epv = ActivateEndpointVolume(device);
                 Check(epv.GetMasterVolumeLevelScalar(out float level), "GetMasterVolumeLevelScalar");
@@ -353,20 +340,18 @@ namespace WinForge.Services
                 Release(epv);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
         }
 
         public static void SetMasterLevelFor(string deviceId, float v)
         {
             v = Clamp01(v);
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
             IAudioEndpointVolume? epv = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDeviceById(devEnum, deviceId);
                 epv = ActivateEndpointVolume(device);
                 Guid ctx = Guid.Empty;
@@ -377,19 +362,17 @@ namespace WinForge.Services
                 Release(epv);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
         }
 
         public static void SetMasterMuteFor(string deviceId, bool m)
         {
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
             IAudioEndpointVolume? epv = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDeviceById(devEnum, deviceId);
                 epv = ActivateEndpointVolume(device);
                 Guid ctx = Guid.Empty;
@@ -400,7 +383,6 @@ namespace WinForge.Services
                 Release(epv);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
         }
 
@@ -409,17 +391,15 @@ namespace WinForge.Services
         {
             var result = new List<AudioSession>();
 
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
-            object? mgrObj = null;
             IAudioSessionManager2? mgr = null;
             IAudioSessionEnumerator? sessEnum = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDeviceById(devEnum, deviceId);
-                mgrObj = ActivateSessionManager(device, out mgr);
+                mgr = ActivateSessionManager(device);
 
                 Check(mgr.GetSessionEnumerator(out sessEnum), "GetSessionEnumerator");
                 Check(sessEnum.GetCount(out int count), "GetCount");
@@ -474,8 +454,7 @@ namespace WinForge.Services
                     }
                     finally
                     {
-                        Release(vol);
-                        Release(ctrl2);
+                        // All three variables refer to one session-control RCW.
                         Release(ctrl);
                     }
                 }
@@ -484,10 +463,8 @@ namespace WinForge.Services
             {
                 Release(sessEnum);
                 Release(mgr);
-                Release(mgrObj);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
 
             return result;
@@ -519,7 +496,7 @@ namespace WinForge.Services
             }
             finally
             {
-                Release(cfg);
+                // cfg is an interface view over client, not an independently owned RCW.
                 Release(client);
             }
         }
@@ -585,17 +562,15 @@ namespace WinForge.Services
         {
             if (string.IsNullOrEmpty(sessionId)) return;
 
-            object? enumObj = null;
             IMMDeviceEnumerator? devEnum = null;
             IMMDevice? device = null;
-            object? mgrObj = null;
             IAudioSessionManager2? mgr = null;
             IAudioSessionEnumerator? sessEnum = null;
             try
             {
-                enumObj = CreateEnumerator(out devEnum);
+                devEnum = CreateEnumerator();
                 device = GetDefaultRenderDevice(devEnum);
-                mgrObj = ActivateSessionManager(device, out mgr);
+                mgr = ActivateSessionManager(device);
 
                 Check(mgr.GetSessionEnumerator(out sessEnum), "GetSessionEnumerator");
                 Check(sessEnum.GetCount(out int count), "GetCount");
@@ -626,8 +601,7 @@ namespace WinForge.Services
                     }
                     finally
                     {
-                        Release(vol);
-                        Release(ctrl2);
+                        // ctrl2 and vol are interface aliases of ctrl's RCW.
                         Release(ctrl);
                     }
                 }
@@ -636,22 +610,20 @@ namespace WinForge.Services
             {
                 Release(sessEnum);
                 Release(mgr);
-                Release(mgrObj);
                 Release(device);
                 Release(devEnum);
-                Release(enumObj);
             }
         }
 
-        private static object CreateEnumerator(out IMMDeviceEnumerator devEnum)
+        private static IMMDeviceEnumerator CreateEnumerator()
         {
             Type type = Type.GetTypeFromCLSID(CLSID_MMDeviceEnumerator, throwOnError: true)
                 ?? throw new COMException("Windows audio device enumeration is unavailable.");
             object o = Activator.CreateInstance(type)
                 ?? throw new COMException("Windows audio device enumeration could not be activated.");
-            devEnum = o as IMMDeviceEnumerator
-                ?? throw new COMException("Windows audio device enumeration returned an incompatible interface.");
-            return o;
+            if (o is IMMDeviceEnumerator devEnum) return devEnum;
+            Release(o);
+            throw new COMException("Windows audio device enumeration returned an incompatible interface.");
         }
 
         private static IMMDevice GetDefaultRenderDevice(IMMDeviceEnumerator devEnum)
@@ -665,15 +637,18 @@ namespace WinForge.Services
         {
             Guid iid = typeof(IAudioEndpointVolume).GUID;
             Check(device.Activate(ref iid, CLSCTX_ALL, IntPtr.Zero, out object o), "Activate(IAudioEndpointVolume)");
-            return (IAudioEndpointVolume)o;
+            if (o is IAudioEndpointVolume endpointVolume) return endpointVolume;
+            Release(o);
+            throw new COMException("Windows audio endpoint volume returned an incompatible interface.");
         }
 
-        private static object ActivateSessionManager(IMMDevice device, out IAudioSessionManager2 mgr)
+        private static IAudioSessionManager2 ActivateSessionManager(IMMDevice device)
         {
             Guid iid = typeof(IAudioSessionManager2).GUID;
             Check(device.Activate(ref iid, CLSCTX_ALL, IntPtr.Zero, out object o), "Activate(IAudioSessionManager2)");
-            mgr = (IAudioSessionManager2)o;
-            return o;
+            if (o is IAudioSessionManager2 manager) return manager;
+            Release(o);
+            throw new COMException("Windows audio session manager returned an incompatible interface.");
         }
 
         private static string ProcessNameForPid(int pid)

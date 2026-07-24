@@ -25,7 +25,7 @@ This file is the durable execution contract for the canonical WinForge repositor
 - Meltdown-to-real-PC-shutdown is off by default and abortable when explicitly armed. · 熔毀觸發真實電腦關機預設關閉，明確啟用後仍然可以中止。
 - Waste writes preserve a disk free-space floor and default 50 GB cap. · 廢料寫入要保留磁碟可用空間底線同預設 50 GB 上限。
 - Real-world side effects remain opt-in and reversible. · 現實世界副作用要保持明確 opt-in 同可還原。
-- The focused harness is `dotnet run --project tests/ReactorSim.Tests -c Debug`; its current contract is 63/63 and nonzero exit on any failure or exception. · 專項 harness 目前合約係 63/63，任何失敗或例外都要非零退出。
+- The focused harness is `dotnet run --project tests/ReactorSim.Tests -c Debug`; its current contract is 65/65 and nonzero exit on any failure or exception. · 專項 harness 目前合約係 65/65，任何失敗或例外都要非零退出。
 
 ## Completion and Git · 完成同 Git
 
@@ -40,6 +40,7 @@ This file is the durable execution contract for the canonical WinForge repositor
 - Generated feature and button references remain generated; use their repository generator rather than hand-editing generated output. · 自動產生嘅功能同按鈕參考要繼續由 generator 產生，唔好手改 generated output。
 - Visual changes require a fresh inspected screenshot for every changed page. If capture is blocked, record the exact error, retain no invalid/stale replacement, and keep visual status separate from functional evidence. · 視覺改動要有最新已檢視截圖；擷取受阻時要記確實錯誤、唔保留無效或舊替代圖，並將視覺狀態同功能證據分開。
 - Use LowLevel Computer Use MCP on a dedicated headless desktop when callable. Otherwise use the process-owned repository driver, state the exact tool blocker, and never claim unavailable evidence. · 可呼叫時要喺專用 headless desktop 用 LowLevel MCP；否則用只控制自己 process 嘅 repo driver，記低工具阻礙，唔好聲稱冇做過嘅證據。
+- Safe WinUI captures accept only bounded PNG paths on fixed/removable local drives, composite premultiplied pixels against the root's `ActualTheme`, and flush a unique same-directory partial file. Every live-tree and `PrintWindow` result reaches the requested filename only through write-through atomic promotion; no path writes directly to the final file. The driver removes stale output at attempt start, restores capture environment variables, retains the owned process handle, and must leave no `.winui-*` / `.driver-*` temporary file or reviewer-owned process. · 安全 WinUI 擷取只接受 fixed／removable 本機 drive 上有限 PNG 路徑，按 root `ActualTheme` 合成 premultiplied pixels，先 flush 同目錄唯一 partial file。所有 live-tree 同 `PrintWindow` 結果只會經 write-through 原子升格到要求檔名，冇路徑會直接寫 final file。Driver 開始擷取就清走舊 output、還原 capture environment variable、保留自家 process handle，最後唔可以遺留 `.winui-*`／`.driver-*` temp file 或 reviewer-owned process。
 
 ## Security and hygiene · 安全同整潔
 

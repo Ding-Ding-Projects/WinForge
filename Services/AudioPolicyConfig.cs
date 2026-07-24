@@ -53,6 +53,8 @@ namespace WinForge.Services
         /// </summary>
         public static bool SetAppDefaultDevice(int processId, string? deviceId)
         {
+            if (processId <= 0) return false;
+
             object? factory = null;
             try
             {
@@ -124,7 +126,7 @@ namespace WinForge.Services
         private static void Release(object? o)
         {
             if (o is null) return;
-            if (o != null && Marshal.IsComObject(o))
+            if (Marshal.IsComObject(o))
             {
                 try { Marshal.ReleaseComObject(o); } catch { }
             }
