@@ -1,10 +1,9 @@
 using System;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -77,7 +76,7 @@ public sealed partial class AmmoniaPlantModule : Page
     {
         try
         {
-            Header.Title = "Ammonia / Fertilizer Plant · 核電合成氨（肥料）廠";
+            Header.Title = P("Ammonia / Fertilizer Plant", "核電合成氨（肥料）廠");
             Header.Subtitle = P("A reactor-powered Haber-Bosch plant: electrolytic H₂ + air-separated N₂ become green ammonia — the feedstock of nitrogen fertilizer.",
                 "核電哈柏法工廠：電解氫加空分氮，合成綠氨 — 氮肥嘅原料。");
             HeaderBlurb.Text = P(
@@ -101,6 +100,13 @@ public sealed partial class AmmoniaPlantModule : Page
             PriceCaption.Text = P("Sale price", "售價");
 
             ResetButton.Content = P("Reset", "重設");
+            AutomationProperties.SetName(PowerSlider, PowerLabel.Text);
+            AutomationProperties.SetHelpText(PowerSlider, P(
+                $"Choose 0 to {AmmoniaPlantService.MaxDrawMW:0} MW. Steady synthesis needs about {Math.Ceiling(AmmoniaPlantService.MinimumSynthesisDrawMW):0} MW or more.",
+                $"揀 0 至 {AmmoniaPlantService.MaxDrawMW:0} MW；穩定合成大約要 {Math.Ceiling(AmmoniaPlantService.MinimumSynthesisDrawMW):0} MW 或以上。"));
+            AutomationProperties.SetName(OutputBar, ReactorTitle.Text);
+            AutomationProperties.SetName(PressureBar, PressureCaption.Text);
+            AutomationProperties.SetName(ResetButton, ResetButton.Content?.ToString() ?? "Reset");
             UpdateStep();
             UpdateEconomy();
         }
@@ -133,7 +139,7 @@ public sealed partial class AmmoniaPlantModule : Page
         try
         {
             _plant.Reset();
-            PowerSlider.Value = 210;
+            PowerSlider.Value = AmmoniaPlantService.DefaultDrawMW;
             _plant.SetPowerFraction(PowerSlider.Value / AmmoniaPlantService.MaxDrawMW);
             UpdateStep();
         }
@@ -152,7 +158,7 @@ public sealed partial class AmmoniaPlantModule : Page
         {
             var snap = ReactorStatusApiService.I.LastSnapshot; // non-nullable value struct (defaults to Offline)
 
-            double available = double.IsNaN(snap.ElectricMW) || snap.ElectricMW < 0 ? 0 : snap.ElectricMW;
+            double available = !double.IsFinite(snap.ElectricMW) || snap.ElectricMW < 0 ? 0 : snap.ElectricMW;
             string mode = string.IsNullOrWhiteSpace(snap.Mode) ? "?" : snap.Mode;
             bool scrammed = snap.IsScrammed;
             bool meltdown = snap.IsMeltdown;
@@ -168,15 +174,15 @@ public sealed partial class AmmoniaPlantModule : Page
             OutputValue.Text = $"{available:0.0} MWe";
             ReactorModeText.Text = P($"Reactor mode: {mode}", $"反應堆模式：{mode}");
 
-            Color meterColor = !generating
-                ? Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A)      // grey — idle
+            Brush meterBrush = !generating
+                ? ThemeBrush("TextFillColorSecondaryBrush")
                 : available > 800
-                    ? Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A)  // green — strong
+                    ? ThemeBrush("SystemFillColorSuccessBrush")
                     : available > 300
-                        ? Color.FromArgb(0xFF, 0xE6, 0xB4, 0x2A)  // amber
-                        : Color.FromArgb(0xFF, 0xE0, 0x6C, 0x3A); // orange — low
-            OutputBar.Foreground = new SolidColorBrush(meterColor);
-            OutputValue.Foreground = new SolidColorBrush(meterColor);
+                        ? ThemeBrush("SystemFillColorCautionBrush")
+                        : ThemeBrush("SystemFillColorAttentionBrush");
+            OutputBar.Foreground = meterBrush;
+            OutputValue.Foreground = meterBrush;
 
             // --- Reactor empty-state gating ---
             if (!generating)
@@ -201,14 +207,15 @@ public sealed partial class AmmoniaPlantModule : Page
             }
 
             StartButton.Content = _plant.Running ? P("Stop plant", "停廠") : P("Start plant", "開廠");
+            AutomationProperties.SetName(StartButton, StartButton.Content?.ToString() ?? "Start plant");
 
             // --- Loop pressure (coloured toward synthesis-ready) ---
             double pressure = _plant.LoopPressureBar;
             PressureBar.Value = Math.Clamp(pressure, 0, PressureBar.Maximum);
             PressureValue.Text = $"{pressure:0} bar";
-            Color pressureColor = PressureColor(pressure);
-            PressureBar.Foreground = new SolidColorBrush(pressureColor);
-            PressureValue.Foreground = new SolidColorBrush(pressureColor);
+            Brush pressureBrush = PressureBrush(pressure);
+            PressureBar.Foreground = pressureBrush;
+            PressureValue.Foreground = pressureBrush;
 
             // --- Numeric readouts ---
             DrawValue.Text = $"{_plant.DrawnMW:0} MW";
@@ -224,8 +231,8 @@ public sealed partial class AmmoniaPlantModule : Page
             PlantNote.Text = _plant.Powered
                 ? P($"Electrolyzers + compressors energised · synthesising above {AmmoniaPlantService.SynthesisThresholdBar:0} bar · avoiding ≈ {AmmoniaPlantService.GreyCo2PerTonne:0.0} t CO₂ per tonne of NH₃.",
                     $"電解槽同壓縮機通電中 · 超過 {AmmoniaPlantService.SynthesisThresholdBar:0} bar 開始合成 · 每噸 NH₃ 慳約 {AmmoniaPlantService.GreyCo2PerTonne:0.0} 噸 CO₂。")
-                : P($"Plant idle — no power · synthesis loop runs at {AmmoniaPlantService.LoopPressureMaxBar:0} bar, ammonia forms above {AmmoniaPlantService.SynthesisThresholdBar:0} bar.",
-                    $"工廠閒置 — 冇供電 · 合成迴路運作壓力 {AmmoniaPlantService.LoopPressureMaxBar:0} bar，超過 {AmmoniaPlantService.SynthesisThresholdBar:0} bar 先合成到氨。");
+                : P($"Plant idle — no power · ammonia forms above {AmmoniaPlantService.SynthesisThresholdBar:0} bar; the present pressure model needs about {Math.Ceiling(AmmoniaPlantService.MinimumSynthesisDrawMW):0} MW to hold that threshold.",
+                    $"工廠閒置 — 冇供電 · 超過 {AmmoniaPlantService.SynthesisThresholdBar:0} bar 先合成到氨；目前壓力模型大約要 {Math.Ceiling(AmmoniaPlantService.MinimumSynthesisDrawMW):0} MW 先頂得住門檻。");
 
             // --- Plant status line ---
             PlantStatus.Text = !_plant.Running
@@ -236,24 +243,28 @@ public sealed partial class AmmoniaPlantModule : Page
                         ? P("Synthesising — ammonia flowing to storage.", "合成中 — 氨流入儲罐。")
                         : P("Pressurising — climbing toward synthesis pressure.", "加壓中 — 朝合成壓力上升。");
 
+            AutomationProperties.SetHelpText(OutputBar, $"{OutputValue.Text}. {ReactorModeText.Text}");
+            AutomationProperties.SetHelpText(PressureBar, $"{PressureValue.Text}. {PlantStatus.Text}");
+            AutomationProperties.SetHelpText(PowerSlider, P(
+                $"Setpoint {PowerValue.Text}. Steady synthesis needs about {Math.Ceiling(AmmoniaPlantService.MinimumSynthesisDrawMW):0} MW or more.",
+                $"設定點 {PowerValue.Text}；穩定合成大約要 {Math.Ceiling(AmmoniaPlantService.MinimumSynthesisDrawMW):0} MW 或以上。"));
+
             UpdateEconomy();
         }
         catch { }
     }
 
     /// <summary>Colour the loop pressure from grey (cold) → orange (pressurising) → green (synthesis-ready).</summary>
-    private static Color PressureColor(double bar)
+    private static Brush PressureBrush(double bar)
     {
-        try
-        {
-            if (bar < 30) return Color.FromArgb(0xFF, 0x8A, 0x8A, 0x8A);          // depressurised — grey
-            if (bar < 100) return Color.FromArgb(0xFF, 0xE0, 0x6C, 0x3A);         // building — orange
-            if (bar < AmmoniaPlantService.SynthesisThresholdBar)
-                return Color.FromArgb(0xFF, 0xE6, 0xB4, 0x2A);                     // nearly there — amber
-            return Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A);                         // synthesis-ready — green
-        }
-        catch { return Color.FromArgb(0xFF, 0x8A, 0x8A, 0x8A); }
+        if (bar < 30) return ThemeBrush("TextFillColorSecondaryBrush");
+        if (bar < 100) return ThemeBrush("SystemFillColorAttentionBrush");
+        if (bar < AmmoniaPlantService.SynthesisThresholdBar)
+            return ThemeBrush("SystemFillColorCautionBrush");
+        return ThemeBrush("SystemFillColorSuccessBrush");
     }
+
+    private static Brush ThemeBrush(string key) => (Brush)Application.Current.Resources[key];
 
     /// <summary>
     /// Sell newly-made ammonia to the Reactor Bank. Banks in whole-tonne increments, throttled to at most once per

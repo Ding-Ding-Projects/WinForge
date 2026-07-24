@@ -24,7 +24,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ReactorTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                        <TextBlock x:Name="ReactorTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" VerticalAlignment="Center" />
                         <TextBlock x:Name="OutputValue" Grid.Column="1" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar x:Name="OutputBar" Minimum="0" Maximum="1150" Value="0" Height="8" />
@@ -44,7 +44,7 @@
                             <TextBlock x:Name="DispatchTitle" FontWeight="SemiBold" FontSize="15" />
                             <TextBlock x:Name="DispatchStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                         </StackPanel>
-                        <Button x:Name="ResetButton" Grid.Column="1" Click="Reset_Click" VerticalAlignment="Center" />
+                        <Button x:Name="ResetButton" Grid.Column="1" MinHeight="44" Click="Reset_Click" VerticalAlignment="Center" />
                     </Grid>
 
                     <StackPanel Spacing="4">
@@ -53,10 +53,10 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="ReserveLabel" Grid.Column="0" FontSize="13" />
+                            <TextBlock x:Name="ReserveLabel" Grid.Column="0" FontSize="13" TextWrapping="Wrap" />
                             <TextBlock x:Name="ReserveValue" Grid.Column="1" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </Grid>
-                        <Slider x:Name="ReserveSlider" Minimum="0" Maximum="30" Value="10" StepFrequency="1" ValueChanged="Reserve_ValueChanged" />
+                        <Slider x:Name="ReserveSlider" MinHeight="44" Minimum="0" Maximum="30" Value="10" StepFrequency="1" ValueChanged="Reserve_ValueChanged" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -81,7 +81,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="BudgetCaption" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="BudgetCaption" Grid.Column="0" TextWrapping="Wrap" VerticalAlignment="Center" />
                         <TextBlock x:Name="BudgetValue" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar x:Name="BudgetBar" Minimum="0" Maximum="990" Value="0" Height="8" />
@@ -97,19 +97,19 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="1">
-                            <TextBlock x:Name="ShedCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="ShedCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="ShedValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="1">
-                            <TextBlock x:Name="ReserveHeldCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="ReserveHeldCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="ReserveHeldValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="0" Spacing="1">
-                            <TextBlock x:Name="UnservedCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="UnservedCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="UnservedValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="1">
-                            <TextBlock x:Name="EventsCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="EventsCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="EventsValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                     </Grid>

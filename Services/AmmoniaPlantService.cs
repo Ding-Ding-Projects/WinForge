@@ -21,6 +21,8 @@ public sealed class AmmoniaPlantService
     public const double SynthesisThresholdBar = 150.0;
     /// <summary>Maximum operator power draw. (MW)</summary>
     public const double MaxDrawMW = 350.0;
+    /// <summary>Default draw is deliberately above the pressure model's synthesis threshold. (MW)</summary>
+    public const double DefaultDrawMW = 280.0;
     /// <summary>Ambient (depressurised) loop pressure the plant decays toward when unpowered. (bar)</summary>
     public const double AmbientBar = 1.0;
     /// <summary>Green-ammonia electricity intensity — electrolysis dominates. (MWh / tonne NH₃)</summary>
@@ -36,7 +38,7 @@ public sealed class AmmoniaPlantService
 
     // --- state ---------------------------------------------------------------
     /// <summary>Operator power-draw set-point (0..MaxDrawMW), independent of what the reactor can supply.</summary>
-    public double SetpointMW { get; private set; }
+    public double SetpointMW { get; private set; } = DefaultDrawMW;
     /// <summary>Whether the operator has started the plant. When stopped the loop depressurises.</summary>
     public bool Running { get; private set; }
 
@@ -57,6 +59,9 @@ public sealed class AmmoniaPlantService
     public bool Powered => Running && DrawnMW > 1.0;
     /// <summary>True once the loop is pressurised enough to synthesise ammonia.</summary>
     public bool Synthesizing => LoopPressureBar >= SynthesisThresholdBar;
+    /// <summary>Smallest steady draw that can hold the loop at the synthesis threshold. (MW)</summary>
+    public static double MinimumSynthesisDrawMW =>
+        MaxDrawMW * (SynthesisThresholdBar - AmbientBar) / (LoopPressureMaxBar - AmbientBar);
 
     private int _lastTick = int.MinValue;
 
@@ -80,6 +85,7 @@ public sealed class AmmoniaPlantService
     /// <summary>Reset all counters and depressurise the loop fully.</summary>
     public void Reset()
     {
+        SetpointMW = DefaultDrawMW;
         Running = false;
         DrawnMW = 0;
         LoopPressureBar = AmbientBar;
@@ -99,15 +105,19 @@ public sealed class AmmoniaPlantService
         try
         {
             // Elapsed seconds since last step (defensive against skipped/duplicate ticks).
-            double dt = TickSeconds;
-            if (_lastTick != int.MinValue)
+            double dt = 0;
+            if (_lastTick == int.MinValue)
+            {
+                dt = TickSeconds;
+            }
+            else
             {
                 int delta = tick - _lastTick;
                 if (delta > 0) dt = Math.Clamp(delta * TickSeconds, TickSeconds, 5.0);
             }
             _lastTick = tick;
 
-            if (double.IsNaN(availableMW) || availableMW < 0) availableMW = 0;
+            if (!double.IsFinite(availableMW) || availableMW < 0) availableMW = 0;
 
             // How much power actually reaches the plant: min(set-point, available), only if running & generating.
             double want = Running && generating ? SetpointMW : 0;

@@ -24,7 +24,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ReactorTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                        <TextBlock x:Name="ReactorTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" VerticalAlignment="Center" />
                         <TextBlock x:Name="OutputValue" Grid.Column="1" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar x:Name="OutputBar" Minimum="0" Maximum="1150" Value="0" Height="8" />
@@ -45,8 +45,8 @@
                             <TextBlock x:Name="PlantStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Button x:Name="StartButton" Click="Start_Click" Style="{ThemeResource AccentButtonStyle}" />
-                            <Button x:Name="ResetButton" Click="Reset_Click" />
+                            <Button x:Name="StartButton" MinHeight="44" Click="Start_Click" Style="{ThemeResource AccentButtonStyle}" />
+                            <Button x:Name="ResetButton" MinHeight="44" Click="Reset_Click" />
                         </StackPanel>
                     </Grid>
 
@@ -56,10 +56,10 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="PowerLabel" Grid.Column="0" FontSize="13" />
+                            <TextBlock x:Name="PowerLabel" Grid.Column="0" FontSize="13" TextWrapping="Wrap" />
                             <TextBlock x:Name="PowerValue" Grid.Column="1" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </Grid>
-                        <Slider x:Name="PowerSlider" Minimum="0" Maximum="350" Value="210" StepFrequency="10" ValueChanged="Power_ValueChanged" />
+                        <Slider x:Name="PowerSlider" MinHeight="44" Minimum="0" Maximum="350" Value="280" StepFrequency="10" ValueChanged="Power_ValueChanged" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -75,7 +75,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="PressureCaption" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="PressureCaption" Grid.Column="0" TextWrapping="Wrap" VerticalAlignment="Center" />
                         <TextBlock x:Name="PressureValue" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar x:Name="PressureBar" Minimum="0" Maximum="200" Value="0" Height="8" />
@@ -92,23 +92,23 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="1">
-                            <TextBlock x:Name="DrawCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="DrawCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="DrawValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="1">
-                            <TextBlock x:Name="H2Caption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="H2Caption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="H2Value" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="0" Spacing="1">
-                            <TextBlock x:Name="RateCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="RateCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="RateValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="1">
-                            <TextBlock x:Name="TotalCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="TotalCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="TotalValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                         <StackPanel Grid.Row="2" Grid.Column="0" Spacing="1">
-                            <TextBlock x:Name="Co2Caption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="Co2Caption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="Co2Value" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                     </Grid>
@@ -125,7 +125,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="EconTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                        <TextBlock x:Name="EconTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" VerticalAlignment="Center" />
                         <TextBlock x:Name="EconBalance" Grid.Column="1" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
                     </Grid>
                     <Grid ColumnSpacing="12">
@@ -134,11 +134,11 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Spacing="1">
-                            <TextBlock x:Name="SalesCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="SalesCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="SalesValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="1">
-                            <TextBlock x:Name="PriceCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="PriceCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock x:Name="PriceValue" FontWeight="SemiBold" FontSize="16" />
                         </StackPanel>
                     </Grid>

@@ -1046,6 +1046,12 @@ internal static class Program
             bool co2Ok = Math.Abs(p.Co2AvoidedTonnes - co2Expected) < 1e-9;
             double peakPressure = p.LoopPressureBar;
             double madeTonnes = p.TotalTonnes;
+            double poweredSetpoint = p.SetpointMW;
+
+            // UI renders and control changes can call Step more than once for the same integer tick.
+            // Duplicate ticks must recompute outputs without advancing pressure or lifetime production.
+            p.Step(420, 1100.0, true);
+            bool duplicateTickStable = p.LoopPressureBar == peakPressure && p.TotalTonnes == madeTonnes;
 
             // 3) Reactor lost (not generating): the loop must bleed down below the threshold and
             //    production must stop; the lifetime total must never decrease.
@@ -1058,11 +1064,11 @@ internal static class Program
             p.Reset();
             bool resetOk = !p.Running && p.LoopPressureBar == AmmoniaPlantService.AmbientBar && p.TotalTonnes == 0;
 
-            bool pass = idleOk && drewPower && pressurised && h2Flowing && producing && co2Ok
+            bool pass = idleOk && drewPower && pressurised && h2Flowing && producing && co2Ok && duplicateTickStable
                         && depressurised && stalled && totalKept && resetOk && crossedTick > 0;
-            return (pass, $"idle ok={idleOk}; powered: drew={p.SetpointMW:0} MW ok={drewPower}, loop {peakPressure:0.0} bar " +
+            return (pass, $"idle ok={idleOk}; powered: drew={poweredSetpoint:0} MW ok={drewPower}, loop {peakPressure:0.0} bar " +
                           $"(crossed {AmmoniaPlantService.SynthesisThresholdBar:0} bar at tick {crossedTick}), H2 ok={h2Flowing}, " +
-                          $"made {madeTonnes:0.00} t (CO2 match={co2Ok}); power loss: depressurised={depressurised}, " +
+                          $"made {madeTonnes:0.00} t (CO2 match={co2Ok}, duplicate stable={duplicateTickStable}); power loss: depressurised={depressurised}, " +
                           $"stalled={stalled}, totalKept={totalKept}; reset={resetOk}");
         });
     }
@@ -1075,6 +1081,13 @@ internal static class Program
             var g = new GridLoadShedService();
             g.Reset();
             int tick = 0;
+
+            // 0) A cold bus has 990 MW of enabled demand shed, but no served→shed event yet.
+            g.Step(++tick, 0.0, false);
+            bool coldBusShed = g.ShedMW == 990.0 && g.ServedMW == 0.0 && g.ShedEvents == 0
+                               && g.Feeders.All(f => f.Enabled && f.IsShed);
+            g.Reset();
+            tick = 0;
 
             // 1) Healthy bus: 1100 MW avail, 10% reserve ⇒ 990 MW usable = exactly the 990 MW catalog.
             for (int i = 0; i < 20; i++) g.Step(++tick, 1100.0, true);
@@ -1090,6 +1103,10 @@ internal static class Program
                 if (f.Priority <= 2) criticalKept &= !f.IsShed && f.ServedMW == f.DemandMW;
                 else lowShed &= f.IsShed && f.ServedMW == 0;
             }
+
+            double duplicateUnserved = g.UnservedMWh;
+            g.Step(tick, 500.0, true);
+            bool duplicateTickStable = g.UnservedMWh == duplicateUnserved && g.ShedEvents == 4;
 
             // 3) Unserved energy integrates while shed (40 ticks = 20 s of 640 MW ≈ 3.56 MWh).
             double unservedBefore = g.UnservedMWh;
@@ -1117,10 +1134,10 @@ internal static class Program
             bool resetOk = g.ShedEvents == 0 && g.UnservedMWh == 0 && g.ServedMW == 0
                            && g.Feeders.All(f => f.Enabled && !f.IsShed);
 
-            bool pass = allServed && shedNow && criticalKept && lowShed && unservedGrew
+            bool pass = coldBusShed && allServed && shedNow && criticalKept && lowShed && duplicateTickStable && unservedGrew
                         && stillShedDuringDelay && reclosed && operatorOff && blackout && resetOk;
-            return (pass, $"healthy all-served={allServed}; sag: 350/640 split={shedNow}, critical kept={criticalKept}, " +
-                          $"low shed={lowShed}; unserved +{gained:0.00} MWh ok={unservedGrew}; anti-flap held={stillShedDuringDelay}, " +
+            return (pass, $"cold-bus shed={coldBusShed}; healthy all-served={allServed}; sag: 350/640 split={shedNow}, critical kept={criticalKept}, " +
+                          $"low shed={lowShed}, duplicate stable={duplicateTickStable}; unserved +{gained:0.00} MWh ok={unservedGrew}; anti-flap held={stillShedDuringDelay}, " +
                           $"reclosed={reclosed}; operator-off={operatorOff}; blackout={blackout}; reset={resetOk}");
         });
     }

@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -36,6 +35,7 @@ public sealed partial class GridLoadShedModule : Page
         public TextBlock Demand = null!;
         public TextBlock Status = null!;
         public ToggleSwitch Breaker = null!;
+        public Grid Container = null!;
     }
 
     private readonly List<FeederRow> _rows = new();
@@ -80,12 +80,13 @@ public sealed partial class GridLoadShedModule : Page
             {
                 var row = new FeederRow { Feeder = f };
 
-                var grid = new Grid { ColumnSpacing = 10 };
+                var grid = new Grid { ColumnSpacing = 10, RowSpacing = 2, MinHeight = 52 };
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.Container = grid;
 
                 row.Chip = new TextBlock
                 {
@@ -107,9 +108,10 @@ public sealed partial class GridLoadShedModule : Page
                     Text = $"{f.DemandMW:0} MW",
                     FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A)),
+                    Foreground = ThemeBrush("TextFillColorSecondaryBrush"),
                 };
-                Grid.SetColumn(row.Demand, 2);
+                Grid.SetRow(row.Demand, 1);
+                Grid.SetColumn(row.Demand, 0);
                 grid.Children.Add(row.Demand);
 
                 row.Status = new TextBlock
@@ -117,13 +119,21 @@ public sealed partial class GridLoadShedModule : Page
                     FontSize = 12,
                     FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
                     VerticalAlignment = VerticalAlignment.Center,
-                    MinWidth = 74,
-                    TextAlignment = TextAlignment.Right,
+                    TextWrapping = TextWrapping.Wrap,
                 };
-                Grid.SetColumn(row.Status, 3);
+                Grid.SetRow(row.Status, 1);
+                Grid.SetColumn(row.Status, 1);
                 grid.Children.Add(row.Status);
 
-                row.Breaker = new ToggleSwitch { IsOn = f.Enabled, OnContent = null, OffContent = null, MinWidth = 0 };
+                row.Breaker = new ToggleSwitch
+                {
+                    IsOn = f.Enabled,
+                    OnContent = null,
+                    OffContent = null,
+                    MinWidth = 44,
+                    MinHeight = 44,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
                 string feederId = f.Id;
                 row.Breaker.Toggled += (s, args) =>
                 {
@@ -135,7 +145,8 @@ public sealed partial class GridLoadShedModule : Page
                     }
                     catch { }
                 };
-                Grid.SetColumn(row.Breaker, 4);
+                Grid.SetRowSpan(row.Breaker, 2);
+                Grid.SetColumn(row.Breaker, 2);
                 grid.Children.Add(row.Breaker);
 
                 FeederBoard.Children.Add(grid);
@@ -149,7 +160,7 @@ public sealed partial class GridLoadShedModule : Page
     {
         try
         {
-            Header.Title = "Grid Load-Shed Dispatcher · 電網卸載調度台";
+            Header.Title = P("Grid Load-Shed Dispatcher", "電網卸載調度台");
             Header.Subtitle = P("A live MW-budget board for the reactor's city grid: serve feeders by priority, shed the lowest when the budget runs out.",
                 "反應堆城市電網嘅實時 MW 預算板：按優先次序供電，預算唔夠就卸走最低優先嘅饋線。");
             HeaderBlurb.Text = P(
@@ -171,9 +182,21 @@ public sealed partial class GridLoadShedModule : Page
             EventsCaption.Text = P("Shed events", "卸載次數");
 
             ResetButton.Content = P("Reset board", "重設板面");
+            AutomationProperties.SetName(ReserveSlider, ReserveLabel.Text);
+            AutomationProperties.SetHelpText(ReserveSlider, P(
+                "Choose how much reactor output to hold back as spinning reserve, from 0 to 30 percent.",
+                "揀幾多反應堆輸出留做旋轉備用，可設 0 至 30%。"));
+            AutomationProperties.SetName(OutputBar, ReactorTitle.Text);
+            AutomationProperties.SetName(BudgetBar, BudgetCaption.Text);
+            AutomationProperties.SetName(ResetButton, ResetButton.Content?.ToString() ?? "Reset board");
 
             foreach (var r in _rows)
+            {
                 r.Name.Text = P(r.Feeder.En, r.Feeder.Zh);
+                string breakerName = P($"Operator breaker for {r.Feeder.En}", $"{r.Feeder.Zh}操作員斷路器");
+                AutomationProperties.SetName(r.Breaker, breakerName);
+                ToolTipService.SetToolTip(r.Breaker, breakerName);
+            }
 
             UpdateStep();
         }
@@ -220,7 +243,7 @@ public sealed partial class GridLoadShedModule : Page
         {
             var snap = ReactorStatusApiService.I.LastSnapshot; // non-nullable value struct (defaults to Offline)
 
-            double available = double.IsNaN(snap.ElectricMW) || snap.ElectricMW < 0 ? 0 : snap.ElectricMW;
+            double available = !double.IsFinite(snap.ElectricMW) || snap.ElectricMW < 0 ? 0 : snap.ElectricMW;
             string mode = string.IsNullOrWhiteSpace(snap.Mode) ? "?" : snap.Mode;
             bool scrammed = snap.IsScrammed;
             bool meltdown = snap.IsMeltdown;
@@ -236,15 +259,15 @@ public sealed partial class GridLoadShedModule : Page
             OutputValue.Text = $"{available:0.0} MWe";
             ReactorModeText.Text = P($"Reactor mode: {mode}", $"反應堆模式：{mode}");
 
-            Color meterColor = !generating
-                ? Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A)      // grey — idle
+            Brush meterBrush = !generating
+                ? ThemeBrush("TextFillColorSecondaryBrush")
                 : available > 800
-                    ? Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A)  // green — strong
+                    ? ThemeBrush("SystemFillColorSuccessBrush")
                     : available > 300
-                        ? Color.FromArgb(0xFF, 0xE6, 0xB4, 0x2A)  // amber
-                        : Color.FromArgb(0xFF, 0xE0, 0x6C, 0x3A); // orange — low
-            OutputBar.Foreground = new SolidColorBrush(meterColor);
-            OutputValue.Foreground = new SolidColorBrush(meterColor);
+                        ? ThemeBrush("SystemFillColorCautionBrush")
+                        : ThemeBrush("SystemFillColorAttentionBrush");
+            OutputBar.Foreground = meterBrush;
+            OutputValue.Foreground = meterBrush;
 
             // --- Reactor empty-state gating ---
             if (!generating)
@@ -269,13 +292,13 @@ public sealed partial class GridLoadShedModule : Page
             // --- Budget meter ---
             BudgetBar.Value = Math.Clamp(_grid.ServedMW, 0, BudgetBar.Maximum);
             BudgetValue.Text = $"{_grid.ServedMW:0} / {_grid.UsableMW:0} MW";
-            Color budgetColor = _grid.ShedMW > 0
-                ? Color.FromArgb(0xFF, 0xE0, 0x6C, 0x3A)      // orange — shedding
+            Brush budgetBrush = _grid.ShedMW > 0
+                ? ThemeBrush("SystemFillColorAttentionBrush")
                 : generating
-                    ? Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A)  // green — everything served
-                    : Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A); // grey — dark
-            BudgetBar.Foreground = new SolidColorBrush(budgetColor);
-            BudgetValue.Foreground = new SolidColorBrush(budgetColor);
+                    ? ThemeBrush("SystemFillColorSuccessBrush")
+                    : ThemeBrush("TextFillColorSecondaryBrush");
+            BudgetBar.Foreground = budgetBrush;
+            BudgetValue.Foreground = budgetBrush;
 
             // --- Numeric readouts ---
             ShedValue.Text = $"{_grid.ShedMW:0} MW";
@@ -288,31 +311,28 @@ public sealed partial class GridLoadShedModule : Page
             foreach (var r in _rows)
             {
                 var f = r.Feeder;
-                Color chip = f.Priority switch
-                {
-                    1 => Color.FromArgb(0xFF, 0xE0, 0x5C, 0x5C),
-                    2 => Color.FromArgb(0xFF, 0xE0, 0x6C, 0x3A),
-                    3 => Color.FromArgb(0xFF, 0xE6, 0xB4, 0x2A),
-                    4 => Color.FromArgb(0xFF, 0x6C, 0xA0, 0xDC),
-                    _ => Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A),
-                };
-                r.Chip.Foreground = new SolidColorBrush(chip);
-
                 if (!f.Enabled)
                 {
                     r.Status.Text = P("OFF", "離線");
-                    r.Status.Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A));
+                    r.Status.Foreground = ThemeBrush("TextFillColorSecondaryBrush");
                 }
                 else if (f.IsShed || f.ServedMW <= 0)
                 {
                     r.Status.Text = P("SHED", "已卸載");
-                    r.Status.Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0xE0, 0x5C, 0x5C));
+                    r.Status.Foreground = ThemeBrush("SystemFillColorCriticalBrush");
                 }
                 else
                 {
                     r.Status.Text = P("SERVED", "供電中");
-                    r.Status.Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A));
+                    r.Status.Foreground = ThemeBrush("SystemFillColorSuccessBrush");
                 }
+
+                AutomationProperties.SetName(r.Container,
+                    P($"Priority {f.Priority}, {f.En}, {f.DemandMW:0} megawatts, {r.Status.Text}",
+                        $"優先級 {f.Priority}，{f.Zh}，{f.DemandMW:0} 兆瓦，{r.Status.Text}"));
+                AutomationProperties.SetHelpText(r.Breaker,
+                    P($"Priority {f.Priority}; demand {f.DemandMW:0} MW; status {r.Status.Text}.",
+                        $"優先級 {f.Priority}；需求 {f.DemandMW:0} MW；狀態 {r.Status.Text}。"));
             }
 
             // --- Status + note lines ---
@@ -325,7 +345,14 @@ public sealed partial class GridLoadShedModule : Page
             BoardNote.Text = P(
                 $"Strict priority cutoff: the first feeder that no longer fits sheds together with everything below it. Reclose waits {GridLoadShedService.RecloseDelayTicks} stable ticks (~{GridLoadShedService.RecloseDelayTicks / 2} s) so breakers never flap.",
                 $"嚴格優先截斷：第一條唔夠預算嘅饋線會連同以下全部一齊卸載。重合閘要等 {GridLoadShedService.RecloseDelayTicks} 個穩定 tick（約 {GridLoadShedService.RecloseDelayTicks / 2} 秒），斷路器唔會拍翼。");
+            AutomationProperties.SetHelpText(OutputBar, $"{OutputValue.Text}. {ReactorModeText.Text}");
+            AutomationProperties.SetHelpText(BudgetBar, $"{BudgetValue.Text}. {DispatchStatus.Text}");
+            AutomationProperties.SetHelpText(ReserveSlider,
+                P($"Reserve set to {ReserveValue.Text}; {ReserveHeldValue.Text} held.",
+                    $"備用設為 {ReserveValue.Text}；已預留 {ReserveHeldValue.Text}。"));
         }
         catch { }
     }
+
+    private static Brush ThemeBrush(string key) => (Brush)Application.Current.Resources[key];
 }

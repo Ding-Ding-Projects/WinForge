@@ -83,7 +83,7 @@ public sealed class GridLoadShedService
     {
         try
         {
-            if (double.IsNaN(pct)) pct = DefaultReservePct;
+            if (!double.IsFinite(pct)) pct = DefaultReservePct;
             ReservePct = Math.Clamp(pct, 0, 30);
         }
         catch { }
@@ -138,15 +138,24 @@ public sealed class GridLoadShedService
     {
         try
         {
-            double dt = TickSeconds;
-            if (_lastTick != int.MinValue)
+            double dt = 0;
+            bool tickAdvanced = _lastTick == int.MinValue;
+            if (tickAdvanced)
+            {
+                dt = TickSeconds;
+            }
+            else
             {
                 int delta = tick - _lastTick;
-                if (delta > 0) dt = Math.Clamp(delta * TickSeconds, TickSeconds, 5.0);
+                if (delta > 0)
+                {
+                    tickAdvanced = true;
+                    dt = Math.Clamp(delta * TickSeconds, TickSeconds, 5.0);
+                }
             }
             _lastTick = tick;
 
-            if (double.IsNaN(availableMW) || availableMW < 0) availableMW = 0;
+            if (!double.IsFinite(availableMW) || availableMW < 0) availableMW = 0;
             BusEnergised = generating && availableMW > 1.0;
             AvailableMW = BusEnergised ? availableMW : 0;
             UsableMW = AvailableMW * (1.0 - ReservePct / 100.0);
@@ -162,7 +171,7 @@ public sealed class GridLoadShedService
             {
                 var f = _feeders[i];
                 if (!f.Enabled) continue;
-                double demand = double.IsNaN(f.DemandMW) || f.DemandMW < 0 ? 0 : f.DemandMW;
+                double demand = NormalizedDemand(f);
                 if (!cutoff && demand <= remaining)
                 {
                     wantServe[i] = true;
@@ -186,17 +195,21 @@ public sealed class GridLoadShedService
                     // currently dark (shed or never served)
                     if (want)
                     {
-                        f.RecloseStreak++;
                         bool firstEnergisation = !f.IsShed; // initial pickup needs no delay
-                        if (firstEnergisation || f.RecloseStreak >= RecloseDelayTicks)
+                        if (tickAdvanced) f.RecloseStreak++;
+                        if (firstEnergisation || (tickAdvanced && f.RecloseStreak >= RecloseDelayTicks))
                         {
                             f.IsShed = false;
-                            f.ServedMW = f.DemandMW;
+                            f.ServedMW = NormalizedDemand(f);
                             f.RecloseStreak = 0;
                         }
                     }
                     else
                     {
+                        // A cold/de-energised bus still represents enabled demand that is shed.
+                        // It is not a served→shed transition, so it does not increment ShedEvents.
+                        f.IsShed = true;
+                        f.ServedMW = 0;
                         f.RecloseStreak = 0;
                     }
                 }
@@ -212,11 +225,11 @@ public sealed class GridLoadShedService
                     }
                     else
                     {
-                        f.ServedMW = f.DemandMW; // track any demand edits while served
+                        f.ServedMW = NormalizedDemand(f); // track any demand edits while served
                     }
                 }
 
-                if (f.IsShed) shed += f.DemandMW;
+                if (f.IsShed) shed += NormalizedDemand(f);
                 served += f.ServedMW;
             }
 
@@ -234,4 +247,7 @@ public sealed class GridLoadShedService
     {
         for (int i = 0; i < _feeders.Count; i++) yield return (_feeders[i], want[i]);
     }
+
+    private static double NormalizedDemand(Feeder feeder) =>
+        double.IsFinite(feeder.DemandMW) && feeder.DemandMW > 0 ? feeder.DemandMW : 0;
 }
