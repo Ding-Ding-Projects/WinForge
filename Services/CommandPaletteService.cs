@@ -8,9 +8,12 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WinForge.Models;
+using WinForge.Pages;
 
 namespace WinForge.Services;
 
@@ -315,12 +318,34 @@ public static class CommandPaletteService
         {
             var result = Query(pin.Query).FirstOrDefault(r => string.Equals(r.Title, pin.Title, StringComparison.Ordinal)
                 && string.Equals(r.ProviderTag, pin.ProviderTag, StringComparison.Ordinal));
+            if (result?.InvokeAsync is not null)
+            {
+                _ = InvokeDockPinAsync(result, pin);
+                return true;
+            }
             if (result is not null) return result.Invoke();
         }
         catch { }
 
         try { CommandPaletteWindow.OpenWithQuery(pin.Query); } catch { }
         return false;
+    }
+
+    private static async Task InvokeDockPinAsync(CommandPaletteResult result, DockPin pin)
+    {
+        try
+        {
+            if (result.InvokeAsync is not null && await result.InvokeAsync(CancellationToken.None)) return;
+        }
+        catch
+        {
+            // Fall through to the recoverable palette query.
+        }
+
+        _ui?.TryEnqueue(() =>
+        {
+            try { CommandPaletteWindow.OpenWithQuery(pin.Query); } catch { }
+        });
     }
 
     private static List<DockPin> ReadDockPins()
@@ -674,11 +699,32 @@ public static class CommandPaletteService
             Glyph = command.Glyph,
             ProviderTag = Loc.I.Pick("Extension pack", "擴充套件"),
             Score = score,
-            Invoke = () => ExecuteExtensionCommand(command),
+            Invoke = command.Action == CommandPaletteExtensionAction.Host
+                ? () => true
+                : () => ExecuteExtensionCommand(pack, command),
+            InvokeAsync = command.Action == CommandPaletteExtensionAction.Host
+                ? cancellationToken => ExecuteExtensionCommandAsync(pack, command, cancellationToken)
+                : null,
         };
     }
 
-    private static bool ExecuteExtensionCommand(CommandPaletteExtensionCommand command)
+    private static async Task<bool> ExecuteExtensionCommandAsync(
+        CommandPaletteExtensionPack pack,
+        CommandPaletteExtensionCommand command,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await CommandPaletteExtensionHostService.ExecuteCommandAsync(pack, command, cancellationToken);
+            return ApplyExtensionHostResponse(pack, command, response);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool ExecuteExtensionCommand(CommandPaletteExtensionPack pack, CommandPaletteExtensionCommand command)
     {
         try
         {
@@ -693,6 +739,46 @@ public static class CommandPaletteService
                     return true;
                 case CommandPaletteExtensionAction.Copy:
                     CopyText(command.Target);
+                    return true;
+                case CommandPaletteExtensionAction.Host:
+                    return false;
+                default:
+                    return false;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Applies the host protocol's already-validated, safe response surface.</summary>
+    public static bool ApplyExtensionHostResponse(
+        CommandPaletteExtensionPack pack,
+        CommandPaletteExtensionCommand command,
+        CommandPaletteExtensionHostResponse response)
+    {
+        if (!response.Success) return false;
+        try
+        {
+            switch (response.Kind)
+            {
+                case CommandPaletteExtensionHostResponseKind.Module:
+                    if (!ModuleRegistry.All.Any(module => string.Equals(module.Tag, response.Target, StringComparison.OrdinalIgnoreCase))) return false;
+                    Navigator.GoToModule?.Invoke(response.Target);
+                    ShowShell();
+                    return true;
+                case CommandPaletteExtensionHostResponseKind.Url:
+                    if (!Uri.TryCreate(response.Target, UriKind.Absolute, out var uri)
+                        || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) return false;
+                    LaunchPath(response.Target);
+                    return true;
+                case CommandPaletteExtensionHostResponseKind.Copy:
+                    if (string.IsNullOrWhiteSpace(response.Target) || response.Target.Length > 4096) return false;
+                    CopyText(response.Target);
+                    return true;
+                case CommandPaletteExtensionHostResponseKind.Page when response.Page is not null:
+                    CommandPaletteExtensionWindow.Open(pack, command, response.Page);
                     return true;
                 default:
                     return false;

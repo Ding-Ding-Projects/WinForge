@@ -197,13 +197,13 @@ Open in-app: `WinForge.exe --page flashcards`
 
 Command Palette can import user-managed JSON manifests from `%LOCALAPPDATA%\WinForge\CommandPaletteExtensions`. Each new pack is **disabled by default** and can be enabled, disabled, or removed from the Command Palette module. WinForge validates the schema, pack and command IDs, command counts, targets, and manifest size before storing a private copy.
 
-The initial contract deliberately supports only three safe actions:
+The declarative contract supports three no-code actions:
 
 - `Module`: opens a registered WinForge `module.*` route.
 - `Url`: opens an absolute `http` or `https` URL.
 - `Copy`: copies bounded text to the clipboard.
 
-The manifest cannot run a process, PowerShell, a script, or unmanaged code. This is a safe extension-pack foundation, not yet a third-party out-of-process extension host with rich pages or forms.
+Those actions cannot run a process, PowerShell, a script, or unmanaged code. A pack may separately opt into the `Host` action described below; that launches only the exact local executable the user explicitly enabled and does not turn manifest text into a command.
 
 Create a template from the module to obtain a ready-to-edit example:
 
@@ -230,4 +230,21 @@ Create a template from the module to obtain a ready-to-edit example:
 
 指令面板而家可以匯入由用戶管理嘅 JSON 資訊檔。每個新擴充套件預設都會停用，你可以喺指令面板模組入面明確啟用、停用或者移除。WinForge 會驗證 schema、套件同指令識別碼、指令數量、目標同資訊檔大小，先會儲存自己嘅副本。
 
-第一階段只容許三種安全操作：開啟已註冊嘅 WinForge 模組、開啟 HTTP(S) 網址，或者複製有限長度嘅文字。唔可以執行程序、PowerShell、指令稿或者非受控程式碼。呢個係安全擴充套件基礎，暫時唔係支援豐富頁面／表單嘅第三方跨程序擴充套件主機。
+宣告式合約有三種唔執行程式碼嘅操作：開啟已註冊 WinForge 模組、開啟 HTTP(S) 網址，或者複製有限文字。佢哋唔可以執行程序、PowerShell、指令稿或者非受控程式碼。套件亦可以另外明確選用下面嘅 `Host` 操作；只會開用戶親自啟用嘅指定本機可執行檔，唔會將資訊檔文字變成命令。
+
+
+### Isolated extension host protocol · 隔離擴充套件主機協定
+
+Extension packs can optionally declare a fully qualified local-drive `.exe` host with a required SHA-256 pin; UNC, network-share, and device paths are rejected. A `Host` command launches that executable as a **short-lived, non-elevated child process** and exchanges one JSON-lines request and one bounded JSON-lines response. The host must exit within eight seconds.
+
+WinForge reloads current enablement and manifest state for every action, then keeps the verified executable leased against write/delete through process creation. New packs remain disabled by default, hosts fail closed while WinForge is elevated, and launcher cancellation stops the owned process tree. Host output can only request a registered module, HTTP(S) URL, bounded clipboard text, or an accessible validated structured page. WinForge never renders host HTML or script.
+
+This is process isolation plus a narrow WinForge integration surface. It is **not** a sandbox: an executable a user explicitly enables can still act with that user's normal Windows permissions. See [Command Palette Extension Protocol](Command-Palette-Extension-Protocol.md) before trusting a host.
+
+### 隔離擴充套件主機協定
+
+擴充套件可以選擇宣告本機磁碟嘅完整 `.exe` 路徑，並且一定要提供 SHA-256 pin；UNC、網絡分享同裝置路徑會拒絕。`Host` 指令會用**短生命週期、非提升權限嘅子程序**啟動主機，交換一個 JSON-lines 請求同一個有限大小嘅 JSON-lines 回應；主機要喺八秒內結束。
+
+WinForge 每次操作都會重新讀取啟用同資訊檔狀態，並由雜湊驗證到建立程序期間鎖住可執行檔唔畀寫入／刪除。新套件預設停用、提升權限時 fail closed，而取消 launcher 會停止自家程序樹。主機輸出只可以要求已註冊模組、HTTP(S) 網址、有限剪貼簿文字，或者已驗證、無障礙嘅結構化頁面；唔會渲染 HTML 或指令稿。
+
+呢個係程序隔離加上狹窄嘅 WinForge 整合介面，**唔係**沙箱：用戶明確啟用嘅可執行檔仍然可以使用該用戶嘅一般 Windows 權限。信任主機之前請先睇協定文件。

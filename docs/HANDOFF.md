@@ -4,6 +4,13 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current Command Palette extension-host verification · 目前 Command Palette extension-host 驗證
+
+- Trusted executable hosts complement declarative extension commands; they do not replace the safe declarative path and are explicitly documented as a local trust boundary rather than a sandbox. · 受信任 executable host 係 declarative extension command 嘅補充，唔會取代安全 declarative 路徑，文件亦清楚標明係本機信任界線，唔係 sandbox。
+- Execution rereads current enablement/manifest state, revalidates the declared command, requires a hash-pinned fully qualified local-drive `.exe`, rejects relative/UNC/network/device paths and unsafe arguments, holds a read-only lease from hashing through launch, refuses elevation, and bounds time/output. Cancellation and timeout terminate the owned process tree. · 執行會重讀最新 enablement／manifest、再核對 command，只接受指定 hash 嘅完整本機 drive `.exe`，拒絕 relative／UNC／network／device path 同危險 argument，由 hash 到 launch 全程持有唯讀 lease，亦會拒絕 elevation 同限制時間／輸出；取消或 timeout 會終止自家 process tree。
+- The focused harness passes **17/17**; the managed project build has **0 errors**; XAML literal safety and the detailed source-surface audit pass with no unresolved handlers/actions, subscription mismatches, or actionable markers. · 專項 harness **17/17**、managed project build 零 errors、XAML safety 同詳細 source-surface audit 全過，冇 unresolved handler／action、subscription mismatch 或 actionable marker。
+- The self-contained `cmdpalette` launch-only fallback passes. LowLevel MCP is present on disk but not callable; `CopyFromScreen` is unavailable and `PrintWindow` returns a blank WinUI client, so no screenshot is promoted and visual status remains `capture-blocked`. · Self-contained `cmdpalette` launch-only fallback 通過；LowLevel MCP 喺 disk 但不可呼叫，`CopyFromScreen` 不可用、`PrintWindow` 回傳空白 WinUI client，所以冇升格截圖，視覺狀態保持 `capture-blocked`。
+
 ## Repository boundary · Repository 界線
 
 - Managed app source, services, tests, installer/updater behavior, documentation, wiki, Pages, and managed releases stay here. · 正式 app source、service、tests、installer／updater 行為、文件、wiki、Pages 同 managed release 留喺呢度。
