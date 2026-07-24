@@ -1,5 +1,9 @@
 # WinForge Handoff · WinForge 交接
 
+## WIP checkpoint: central notification centre · 中央通知中心 WIP 交接
+
+The branch implements a bounded shell notification stack/history with accessible three-language rendering, safe actions, local persistence controls, stable replacement, and update/package producers. Focused tests pass 16/16, source/XAML audits pass, the 11-project build is 0 warnings/0 errors, and self-contained publish passes. Fresh normal/narrow/history LowLevel captures were not reached before the requested stop, so no visual-completion claim is made; broader InfoBar/dialog migration also remains open. · 分支已完成有界中央通知堆疊／記錄、三語無障礙、安全 action、本機保存控制、穩定取代，同 update／package producer；測試同 build 全綠。不過停止前未完成正常／窄版／記錄 LowLevel 截圖，亦未完成全 app InfoBar／dialog 遷移，所以只係 WIP 交接，唔會扮視覺完成。
+
 WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/C++/WinRT port has moved to [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native) with its own source, tests, parity evidence, installer, documentation, and releases.
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。

@@ -1,5 +1,12 @@
 # WinForge Full Development Handoff
 
+## WIP checkpoint: central notification centre — 2026-07-24 · 中央通知中心 WIP 交接
+
+- **Implemented / 已實作：** bounded four-card bottom-right host, 200-entry local history, severity-aware lifetimes, stable keyed replacement, stale-timer protection, unread/clear behavior, bounded actions and safe HTTP(S) links, three-language rerendering, accessible live regions, and persistence opt-out. App-update and package-manager notifications use the shared bus; broader page-local InfoBar/dialog migration remains open.
+- **Verified / 已驗證：** `NotificationCenter.Tests` passes **16/16**; XAML safety passes; the detailed source audit resolves **2,918/2,918** handlers and **1,961/1,961** direct actions with zero mismatch/markers; the full 11-project solution build completed with **0 warnings / 0 errors**; and self-contained publish passed.
+- **Visual disposition / 畫面處置：** fresh LowLevel normal/narrow/history captures were queued but not reached before the user-requested stop. No screenshot or no-clipping claim is made, so this branch is a factual WIP checkpoint and must not be merged as visually complete.
+- **Continuation / 繼續做：** merge current `origin/main`, run fresh normal/narrow/history shell captures, fix any overlap/clipping found, regenerate site data, extend migration beyond update/package producers, update this record, then perform final build/tests before integration.
+
 ## Current 2026-07-24 Browser Control roadmap completion — verified branch · 2026-07-24 瀏覽器控制路線圖完成 — 分支驗證
 
 - **Scope and outcome / 範圍同結果：** the Browser Control category now embeds an accessible, bilingual parameterized workbench above its existing quick-action catalog. It closes all eleven audited gaps: configurable app/kiosk URL launch, real `Local State` profile selection, installed-PWA discovery/launch, flags and policy pages, browser-closed selected-profile cache cleanup, isolated proxy/bypass and throwaway sessions, validated feature enable/disable, loopback remote debugging, and exact-ID winget install/update. The evidence matrix advances Browser Control from 3/14 to **14/14**, and the eight-section aggregate from 74/115 to **85/115** with 30 factual gaps retained elsewhere. · 瀏覽器控制分類而家喺原有快捷目錄上面加入無障礙雙語參數工作台，十一個審核缺口全部補齊；Browser Control 由 3/14 變成 **14/14**，八節總數由 74/115 變成 **85/115**，其餘 30 個真實缺口繼續如實保留。

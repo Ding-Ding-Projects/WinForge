@@ -18,6 +18,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 322
 - **Dew-compatible local history · Dew 相容本機歷史** — a native, bilingual workspace snapshots a file or folder into adjacent Git history, reviews changes, restores rollback-safely, and exports password/header-encrypted 7z archives without launching the upstream app or placing secrets on a command line. · 原生雙語工作區會將檔案或資料夾影成旁置 Git 歷史、檢視變更、安全 rollback 還原，同匯出密碼及檔名加密 7z；唔會啟動上游 app，亦唔會將秘密放入命令列。
 - **Three persisted language modes · 三種持久語言模式** — English, playful Hong Kong-style Cantonese, and compact bilingual mode.
 - **Independent funny levels · 英粵分開搞笑等級** — persisted 1–5 tone controls for English and Cantonese provide a live safe-copy preview; errors, security, destructive actions, accessibility wording, and other operational text stay exact at every level. · 英文同粵語各自有持久化 1–5 級語氣控制同安全文案即時預覽；錯誤、安全、破壞性操作、無障礙同其他操作文字喺任何級別都保持準確。
+- **Reviewable notification centre · 可翻查通知中心** — bounded bottom-right cards auto-dismiss information/success, retain warnings/errors, expose accessible actions, and keep a local 200-entry history; app updates and package operations share the same reliable in-app path. · 右下角有界通知卡會自動關閉資訊／成功、保留警告／錯誤、提供無障礙動作，同本機 200 項記錄；app 更新同套件操作共用同一條可靠 app 內路徑。
 - **Bounded guided regex builder · 有界引導式正則砌法** — the managed .NET 11 tester constructs literals, character classes, anchors, groups, alternation, and quantifiers; raw editing, flags, samples, live matches/captures, replacement preview, and explicit copy remain local, size-bounded, and timeout-protected. · 正式 .NET 11 測試器可引導砌字面文字、字元類、錨點、群組、二選一同量詞；原始編輯、旗標、sample、即時配對／擷取、替換預覽同明確複製全部只喺本機、有大小上限兼有超時保護。
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
 - **Reliable whole-desktop recording · 可靠全桌面錄影** — Screen Recorder bulk-drains ffmpeg diagnostics, so heavy progress output cannot consume the bounded graceful-save window; forced or unconfirmed stops remain truthful failures. · 螢幕錄影會整批排走 ffmpeg 診斷輸出，繁忙進度唔會食晒有時限嘅正常儲存時間；強制或未確認停止仍然會如實報失敗。
@@ -114,6 +115,14 @@ dotnet run --project tests\RegexBuilder.Tests -c Debug
 ```
 
 The current contract is **13/13**, covering guided tokens, syntax failures, Unicode, multiline anchors, capture groups, no-match, zero-width progress, result/size caps, adversarial timeout, and plain-text-versus-regex behavior. · 目前合約係 **13/13**，覆蓋引導 token、語法錯誤、Unicode、多行錨點、擷取群組、無配對、零寬度安全推進、結果／大小上限、對抗式超時，同純文字對 regex 行為。
+
+Run the application-wide notification-centre contract after changing notice lifetimes, history, replacement, persistence, actions, or shell hosting:
+
+改過通知顯示時間、記錄、取代、保存、動作或者外殼 host 之後，要跑：
+
+    dotnet run --project tests\NotificationCenter.Tests\NotificationCenter.Tests.csproj -c Debug
+
+The current contract is **16/16** and does not launch the app or perform a system operation. · 目前合約係 **16/16**，唔會啟動 app 或執行系統操作。
 
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 
