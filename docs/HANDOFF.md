@@ -7,8 +7,9 @@ WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 
 ## Current Screen Recorder lifecycle verification · 目前螢幕錄影 lifecycle 驗證
 
 - The concrete ffmpeg adapter bulk-copies redirected stderr bytes to `Stream.Null`; it no longer decodes and dispatches one empty callback per progress line. · 正式 ffmpeg adapter 會整批複製 redirected stderr byte 去 `Stream.Null`，唔再逐行解碼同派空 callback。
-- The unchanged process fixture failed in the base aggregate and in **5/12** captured-output stress runs, then passed **12/12** after the production fix. The process-free seam passes **10/10** and the focused process fixture passes **1/1**. · 未改 process fixture 喺 base aggregate 同 **5/12** stress run 失敗；production 修復後 **12/12** 全過，process-free seam **10/10**、focused process fixture **1/1**。
+- The original `cmd.exe` fixture failed in the base aggregate and in **5/12** stress runs because 10,000 separate shell commands were scheduled before it read `q`. The deterministic self-hosted child emits the same 10,000 newline-rich records efficiently and passes **12/12** under captured-output load; the process-free seam passes **10/10** and the focused process fixture passes **1/1**. · 原本 `cmd.exe` fixture 喺 base aggregate 同 **5/12** stress run 失敗，因為讀 `q` 前要排程 10,000 個獨立 shell command。Deterministic self-hosted child 高效寫同樣 10,000 行，captured-output load 下 **12/12**；process-free seam **10/10**、focused fixture **1/1**。
 - Stop deadlines and truthful forced/incomplete failure messages are unchanged. No UI changed, so no screenshot was replaced or claimed. · Stop 時限同如實強制／不完整失敗訊息冇改；冇 UI 變更，所以冇替換或冒充截圖。
+- The combined x64 build has **0 warnings / 0 errors**; XAML/source audits pass; and the exact repository runner passes all **31/31 projects**, including Recorder **10/10** and Screen Recorder **1/1**. · Combined x64 build 零 warning／零 error、XAML／source audit 全過，準確 repo runner **31/31 project 全過**，包括 Recorder 10/10 同 Screen Recorder 1/1。
 
 ## Current preserved package-stash verification · 目前已保存套件 stash 驗證
 
@@ -29,7 +30,7 @@ The Volume Mixer COM boundary is nullable-clean and fail-closed, system-default 
 
 The final solution build completes with **0 warnings and 0 errors**; focused audio interop and capture-policy/source-contract harnesses pass **6/6** and **9/9**, PowerShell 5.1 parsing, XAML literal safety, and the full source-surface audit pass. Fresh app-owned LowLevel captures at **1264×791**, **784×691**, and canonical **1284×811**, independent fresh-HWND frames at **1280×800**, **800×700**, and **1300×820**, and an atomic-driver capture were inspected with no clipping, overlap, stale/foreign pixels, or retained process/temp file. The expected no-endpoint state remains honest; no audio/session data was invented. · 最終 solution build **0 warning／0 error**；專項 audio interop／capture-policy／source-contract harness **6/6**、**9/9**，PowerShell 5.1 parser、XAML literal safety 同完整 source audit 全過。已檢視 app-owned LowLevel **1264×791**、**784×691**、正式 **1284×811**，獨立 fresh-HWND **1280×800**、**800×700**、**1300×820**，同 atomic-driver 圖，冇裁切、重疊、舊／其他視窗 pixels，亦冇殘留 process／temp file。預期 no-endpoint 狀態繼續如實顯示，冇虛構 audio／session 資料。
 
-The repository-wide runner is not claimed green: it stopped at the unchanged `ScreenRecorderLifecycle.Tests` fixture when its synthetic recorder reported “not saved”, and an isolated rerun reproduced that unrelated base failure. The recorder service, lifecycle seam, and fixture have no review-lane diff. · 唔會聲稱 full repo runner 全綠：佢去到未改過嘅 `ScreenRecorderLifecycle.Tests` fixture 時，synthetic recorder 回報「not saved」而停止，獨立重跑亦重現呢個無關 base failure。Recorder service、lifecycle seam 同 fixture 喺今次 review lane 完全冇 diff。
+That former review-lane aggregate failure is resolved by the dedicated recorder follow-up above; the exact combined runner now passes all **31/31 projects**. · 舊 review lane aggregate 失敗已由上面專用 recorder 跟進解決；準確 combined runner 而家 **31/31 project 全過**。
 
 ## Repository boundary · Repository 界線
 

@@ -1,9 +1,9 @@
 namespace WinForge.Models
 {
-    public sealed record TweakResult(bool Success)
+    public sealed record TweakResult(bool Success, string En, string Zh)
     {
-        public static TweakResult Ok(string en, string zh) => new(true);
-        public static TweakResult Fail(string en, string zh) => new(false);
+        public static TweakResult Ok(string en, string zh) => new(true, en, zh);
+        public static TweakResult Fail(string en, string zh) => new(false, en, zh);
     }
 }
 

@@ -100,7 +100,7 @@ dotnet run --project tests\RecorderRegistrySafety.Tests -c Debug
 dotnet run --project tests\ScreenRecorderLifecycle.Tests -c Debug
 ```
 
-The process-free seam currently passes **10/10**; the unchanged stderr-heavy process fixture passes **1/1** and protects the real bulk-drain/quit/exit path. · Process-free seam 目前 **10/10**；未改動嘅 stderr-heavy process fixture **1/1**，會保護真實 bulk-drain／quit／exit 流程。
+The process-free seam currently passes **10/10**; the deterministic self-hosted stderr fixture passes **1/1** and protects the real bulk-drain/quit/exit path without measuring `cmd.exe` loop scheduling. · Process-free seam 目前 **10/10**；deterministic self-hosted stderr fixture **1/1**，會保護真實 bulk-drain／quit／exit 流程，唔會誤測 `cmd.exe` loop 排程。
 
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 

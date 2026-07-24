@@ -59,10 +59,19 @@ dotnet run --project tests\ScreenRecorderLifecycle.Tests -c Debug
 
 The process-free suite covers the bulk stream sink plus bounded graceful,
 forced, still-running, and never-completing outcomes (**10/10**). The separate
-Windows fixture launches only an isolated temporary `cmd.exe` script, emits
-10,000 stderr lines, accepts `q`, and proves the production adapter reports a
-clean save (**1/1**). No real ffmpeg recording or desktop capture occurs. ·
-Process-free suite 會驗證 bulk stream sink，同正常、強制、仍運行、永不完成等有界結果
-（**10/10**）。另一個 Windows fixture 只會啟動隔離臨時 `cmd.exe` script，寫
-10,000 行 stderr、接收 `q`，並證明 production adapter 如實報正常儲存（**1/1**）；
-全程冇真實 ffmpeg 錄影或桌面擷取。
+Windows fixture relaunches its own isolated test executable, writes 10,000
+newline-rich stderr records in one efficient raw stream operation, accepts `q`,
+and proves the production adapter reports a clean save (**1/1**). This preserves
+pipe back-pressure coverage without making 10,000 separate `cmd.exe echo`
+commands part of the deadline. No real ffmpeg recording or desktop capture
+occurs. · Process-free suite 會驗證 bulk stream sink，同正常、強制、仍運行、永不完成
+等有界結果（**10/10**）。另一個 Windows fixture 會重新啟動隔離嘅自家 test
+executable，用一次高效 raw stream 寫入 10,000 行帶換行診斷、接收 `q`，並證明
+production adapter 如實報正常儲存（**1/1**）。咁樣會保留 pipe back-pressure 覆蓋，
+但唔會將 10,000 個獨立 `cmd.exe echo` 排程塞入 deadline；全程冇真實 ffmpeg 錄影
+或桌面擷取。
+
+On the current combined tree, the full solution builds with **0 warnings / 0
+errors**, XAML/source audits pass, and the repository aggregate passes all **31
+projects** in 15:16. · 目前 combined tree 完整 solution 零 warning／零 error、
+XAML／source audit 全過，而 repo aggregate 15:16 **31 個 project 全過**。

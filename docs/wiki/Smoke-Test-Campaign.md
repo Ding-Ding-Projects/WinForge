@@ -920,8 +920,12 @@ the registry write succeeds; access, missing-value, and concurrent failures are 
 operator. The older `DeleteValue` API remains best-effort for existing cleanup callers.
 The non-live `RecorderRegistrySafety.Tests` harness passed **10/10**, including a bulk-copy
 probe, a fake process whose `WaitForExitAsync` never completes, and a fake denied registry
-backend. The unchanged process fixture reproduced the base aggregate failure, then passed
-**12/12** captured-output stress runs after the byte-drain repair.
+backend. The original process fixture reproduced the base aggregate failure because it ran
+10,000 separate `cmd.exe echo` commands before reading `q`. The corrected self-hosted child
+emits the same 10,000 newline-rich records efficiently and passed **12/12** captured-output
+stress runs while production retained its eight-second graceful deadline.
+The final combined x64 build has **0 warnings / 0 errors**, and the exact repository runner
+passes all **31 projects** in 15:16, including Recorder **10/10** and Screen Recorder **1/1**.
 
 **Safety disposition · 安全處置：** No ffmpeg process/recording, Registry Editor delete,
 or other live system mutation was invoked. The test seam never opens the live registry.
@@ -940,8 +944,11 @@ aggregate 高負載食晒正常時限。Stop 用明確嘅 2 秒指令、8 秒
 報成功；拒絕存取、值消失同同時修改失敗都會如實畀操作員見到。舊有 `DeleteValue` API
 仍然為既有清理呼叫者保留 best-effort 行為。非 live 嘅 `RecorderRegistrySafety.Tests`
 harness **10/10** 通過，包括 bulk-copy probe、一個永遠唔完成 `WaitForExitAsync` 嘅假
-process，同埋被拒絕嘅假 registry backend。未改 process fixture 先重現 base aggregate
-失敗，byte-drain 修復後 captured-output stress **12/12** 全過。
+process，同埋被拒絕嘅假 registry backend。原本 process fixture 喺讀 `q` 前逐個跑
+10,000 次 `cmd.exe echo`，所以重現 base aggregate 失敗；修正後 self-hosted child 高效
+寫同樣 10,000 行，production 保留八秒正常時限，captured-output stress **12/12** 全過。
+最終 combined x64 build 零 warning／零 error，準確 repo runner 15:16 **31 個 project
+全過**，包括 Recorder **10/10** 同 Screen Recorder **1/1**。
 
 **安全處置：** 冇啟動 ffmpeg／建立錄影、冇喺 Registry Editor 撳刪除，亦冇執行其他
 live 系統修改。測試 seam 從來唔會開啟實際登錄檔。

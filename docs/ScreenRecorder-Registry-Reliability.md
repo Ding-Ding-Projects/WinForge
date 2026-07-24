@@ -39,16 +39,40 @@ cleanup behavior.
 - preservation of the old best-effort delete call shape.
 - source-level wiring that Screen Recorder enters the managed lifecycle and Registry Editor gates its success notice on the result API.
 
-The unchanged `ScreenRecorderLifecycle.Tests` fixture reproduced the aggregate
+The original `ScreenRecorderLifecycle.Tests` fixture reproduced the aggregate
 failure on base `ec7c4bcb8`: the complete 29-project runner failed only that
-project with `Stop did not report the fixture as saved`. A captured-output
-stress loop then failed **5/12** base runs. With the byte drain, the same
-unchanged loop passed **12/12**, and the focused fixture passed **1/1**.
+project with `Stop did not report the fixture as saved`, and a captured-output
+stress loop failed **5/12** runs. The fixture executed 10,000 separate
+`cmd.exe echo` commands before reading `q`, so under host contention it measured
+command-interpreter scheduling as part of the eight-second production deadline.
+A bulk byte drain improved normal runs but could not make that synthetic CPU
+loop deterministic; even an experimental 15-second grace was exhausted under
+concurrent builds and was reverted.
 
-未改動嘅 `ScreenRecorderLifecycle.Tests` fixture 喺 base `ec7c4bcb8` 重現問題：
-29 個 project aggregate runner 只係呢個 project 報 `not saved`；captured-output
-stress loop base 亦有 **5/12** 失敗。改用 byte drain 後，同一個未改 fixture
-**12/12** 全過，focused fixture 亦 **1/1** 通過。
+The final fixture keeps the original 10,000 newline-rich stderr records, the
+real adapter, and the 12-second outer bound, but emits those records efficiently
+from a self-hosted child before reading `q`. Production keeps its original
+eight-second graceful deadline and truthful forced-stop behavior. The corrected
+fixture passed **12/12** captured-output stress runs under the same host load and
+the focused case passed **1/1**.
+
+原本 `ScreenRecorderLifecycle.Tests` fixture 喺 base `ec7c4bcb8` 重現問題：29 個
+project aggregate 只係佢報 `not saved`，captured-output stress 亦有 **5/12**
+失敗。Fixture 會喺讀 `q` 前逐個執行 10,000 次 `cmd.exe echo`，所以高負載時其實將
+command-interpreter 排程時間計入八秒 production deadline。Bulk byte drain 改善正常
+run，但無法令呢個 synthetic CPU loop deterministic；連實驗性 15 秒 grace 都會喺
+concurrent build 下用盡，所以已還原。
+
+最終 fixture 保留 10,000 行帶換行 stderr、真實 adapter 同 12 秒外層上限，但改由
+self-hosted child 高效寫完再讀 `q`。Production 保留原本八秒正常時限同如實強制停止；
+修正後同一 host 負載 captured-output stress **12/12** 全過，focused **1/1** 通過。
+
+Final combined-tree gates also pass: the x64 solution builds with **0 warnings / 0 errors**;
+XAML literal safety and the detailed source audit are clean; and the exact aggregate runner
+passes all **31 projects** in 15:16, including `RecorderRegistrySafety.Tests` **10/10** and
+`ScreenRecorderLifecycle.Tests` **1/1**. · 最終 combined-tree x64 build 零 warning／零
+error，XAML safety 同詳細 source audit 全過；準確 aggregate 15:16 **31 個 project 全過**，
+包括 RecorderRegistrySafety **10/10** 同 ScreenRecorderLifecycle **1/1**。
 
 **EN —** No ffmpeg process was launched, no recording was created, and no live
 registry key/value was opened for modification by this regression suite.
