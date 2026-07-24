@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,6 +24,7 @@ internal interface IScreenRecorderProcess : IDisposable
 internal sealed class ProcessScreenRecorderProcess : IScreenRecorderProcess
 {
     private readonly Process _process;
+    private Task? _errorDrainTask;
 
     public ProcessScreenRecorderProcess(Process process) => _process = process;
 
@@ -38,9 +40,10 @@ internal sealed class ProcessScreenRecorderProcess : IScreenRecorderProcess
     public void BeginErrorDrain()
     {
         // ffmpeg writes progress and diagnostics continuously to stderr. Leaving the redirected pipe
-        // unread can fill its buffer, stop ffmpeg from receiving "q", and deadlock Stop().
-        _process.ErrorDataReceived += static (_, _) => { };
-        _process.BeginErrorReadLine();
+        // unread can fill its buffer, stop ffmpeg from receiving "q", and deadlock Stop(). A discarded
+        // byte stream is deliberately used instead of ErrorDataReceived: decoding and dispatching one
+        // callback per progress line can consume the entire graceful-stop budget under host load.
+        _errorDrainTask ??= ScreenRecorderErrorDrain.CopyToNullAsync(_process.StandardError.BaseStream);
     }
 
     public async Task<bool> TrySendQuitAsync(TimeSpan timeout)
@@ -94,6 +97,30 @@ internal sealed class ProcessScreenRecorderProcess : IScreenRecorderProcess
     }
 
     public void Dispose() => _process.Dispose();
+}
+
+/// <summary>
+/// Bulk stderr sink shared by the concrete adapter and its process-free regression. Pipe closure during
+/// recorder teardown is expected; the stop lifecycle remains responsible for confirming process exit.
+/// </summary>
+internal static class ScreenRecorderErrorDrain
+{
+    internal static async Task CopyToNullAsync(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        try
+        {
+            await source.CopyToAsync(Stream.Null).ConfigureAwait(false);
+        }
+        catch (IOException)
+        {
+            // The process or its redirected pipe closed while teardown was in progress.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The owned process was disposed after its exit was confirmed.
+        }
+    }
 }
 
 internal enum ScreenRecorderStopStatus

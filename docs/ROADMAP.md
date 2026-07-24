@@ -647,7 +647,7 @@ _Source: howtogeek / windowsforum — "Enhance pointer precision" (accel) is bur
 ## 🌱 Newly discovered — iteration 20 · 第 20 次迭代新發掘
 
 _Source: windowsforum / Microsoft Q&A — Xbox Game Bar can't reliably record the desktop / File Explorer ("gaming features aren't available")._
-- [x] **In-app Screen Recorder** · App 內螢幕錄影 — DONE this iteration: records the WHOLE desktop (incl. Explorer/Start) via ffmpeg gdigrab + libx264, start/stop with a live timer, graceful stop ('q' to stdin → valid MP4). No external tool, no redirect.
+- [x] **In-app Screen Recorder** · App 內螢幕錄影 — DONE this iteration: records the WHOLE desktop (incl. Explorer/Start) via ffmpeg gdigrab + libx264, start/stop with a live timer, graceful stop ('q' to stdin → valid MP4), and a bulk discarded stderr drain that remains reliable under heavy diagnostics and aggregate-test load. Forced or unconfirmed exits stay truthful failures. No external tool, no redirect. · 整批排走大量診斷輸出，aggregate 高負載下都可以正常儲存；強制或未確認退出仍然如實報失敗。
 - [ ] **Record audio with screen** · 連聲一齊錄
   - _ffmpeg -f dshow -i audio="<device>" alongside gdigrab; enumerate capture/loopback devices (ffmpeg -list_devices). Add as an option._
 - [ ] **Animated GIF capture** · 錄製動畫 GIF
