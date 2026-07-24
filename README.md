@@ -17,6 +17,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 322
 - **Managed AWS console · 受管理 AWS 主控台** — in-process AWS SDK workspaces provide account/Region isolation, cross-service discovery, native S3 controls, and guarded EC2 instance lifecycle management; the CLI remains an optional long-tail workbench. · 程式內 AWS SDK 工作區提供帳戶／Region 隔離、跨服務探索、原生 S3 控制，同受保護 EC2 執行個體生命週期管理；CLI 只係選用長尾工作台。
 - **Dew-compatible local history · Dew 相容本機歷史** — a native, bilingual workspace snapshots a file or folder into adjacent Git history, reviews changes, restores rollback-safely, and exports password/header-encrypted 7z archives without launching the upstream app or placing secrets on a command line. · 原生雙語工作區會將檔案或資料夾影成旁置 Git 歷史、檢視變更、安全 rollback 還原，同匯出密碼及檔名加密 7z；唔會啟動上游 app，亦唔會將秘密放入命令列。
 - **Three persisted language modes · 三種持久語言模式** — English, playful Hong Kong-style Cantonese, and compact bilingual mode.
+- **Bounded guided regex builder · 有界引導式正則砌法** — the managed .NET 11 tester constructs literals, character classes, anchors, groups, alternation, and quantifiers; raw editing, flags, samples, live matches/captures, replacement preview, and explicit copy remain local, size-bounded, and timeout-protected. · 正式 .NET 11 測試器可引導砌字面文字、字元類、錨點、群組、二選一同量詞；原始編輯、旗標、sample、即時配對／擷取、替換預覽同明確複製全部只喺本機、有大小上限兼有超時保護。
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
 - **Reliable whole-desktop recording · 可靠全桌面錄影** — Screen Recorder bulk-drains ffmpeg diagnostics, so heavy progress output cannot consume the bounded graceful-save window; forced or unconfirmed stops remain truthful failures. · 螢幕錄影會整批排走 ffmpeg 診斷輸出，繁忙進度唔會食晒有時限嘅正常儲存時間；強制或未確認停止仍然會如實報失敗。
 - **Flagship reactor · 旗艦反應堆** — a PWR control-room simulator with point kinetics, thermal hydraulics, turbine and electrical systems, protection logic, fuel and waste services, water treatment, and opt-in external integrations.
@@ -101,6 +102,16 @@ dotnet run --project tests\ScreenRecorderLifecycle.Tests -c Debug
 ```
 
 The process-free seam currently passes **10/10**; the deterministic self-hosted stderr fixture passes **1/1** and protects the real bulk-drain/quit/exit path without measuring `cmd.exe` loop scheduling. · Process-free seam 目前 **10/10**；deterministic self-hosted stderr fixture **1/1**，會保護真實 bulk-drain／quit／exit 流程，唔會誤測 `cmd.exe` loop 排程。
+
+Run the Regex Builder safety harness after changing the builder, .NET regex evaluation, search-pattern contract, limits, flags, or replacement preview:
+
+改過正則砌法、.NET regex 運算、搜尋 pattern 合約、上限、旗標或者替換預覽之後，要跑：
+
+```powershell
+dotnet run --project tests\RegexBuilder.Tests -c Debug
+```
+
+The current contract is **13/13**, covering guided tokens, syntax failures, Unicode, multiline anchors, capture groups, no-match, zero-width progress, result/size caps, adversarial timeout, and plain-text-versus-regex behavior. · 目前合約係 **13/13**，覆蓋引導 token、語法錯誤、Unicode、多行錨點、擷取群組、無配對、零寬度安全推進、結果／大小上限、對抗式超時，同純文字對 regex 行為。
 
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 

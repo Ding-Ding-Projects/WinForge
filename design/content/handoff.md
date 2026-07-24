@@ -119,3 +119,9 @@ Before retiring the listed legacy C++/WinRT worktrees and refs, their exact prov
 退役已列明嘅舊 C++/WinRT worktree／ref 之前，會先喺獨立 native closure history 保留 exact provenance。Date、Duration、Loan snapshot 繼續喺各自已 push 嘅 WIP ref，唔會當成已整合 native main。managed default tree 除咗 AudioForge／ImageForge companion program 外繼續冇 rewrite；唔相關嘅 dirty PowerToys 同 Reactor／Dew 工作唔會喺今次清理郁到。
 
 See the repository [handoff summary](https://github.com/codingmachineedge/WinForge/blob/main/handoff-summary.md) for final commit, remote-integration, workflow, release, and cleanup proof.
+# Current managed Regex Builder foundation — 2026-07-24 · 目前正式受管理正則砌法基礎
+
+- `module.regextester` adds guided literals, character classes, anchors, groups, alternation, and quantifiers to its raw .NET 11 editor, with five flags, bounded local sample, live matches/captures, replacement preview, and explicit copy. · `module.regextester` 喺原始 .NET 11 editor 加入字面文字、字元類、錨點、群組、二選一同量詞引導砌法，亦有五旗標、有界本機 sample、即時配對／擷取、替換預覽同明確複製。
+- Safety limits are 4,096/1,000,000/65,536 characters, 2,000 displayed matches, one second, and a conservative replacement-work guard; zero-width progress is safe and all evaluation remains local. · 安全上限係 4,096／1,000,000／65,536 字元、2,000 個顯示配對、一秒，同保守替換工作量閘；零寬度會安全推進，而且全部只喺本機運算。
+- Focused tests pass 13/13 and the x64 solution build passes 0 warnings/0 errors. Fresh ~1049×646 app-owned and LowLevel headless evidence was inspected with vertical non-clipping options and visible keyboard focus; the owned process/desktop were closed. · 專項 13/13、x64 build 0 warning／0 error；已檢視新鮮約 1049×646 app-owned／LowLevel headless 證據，直排選項冇裁切、鍵盤 focus 清楚，自家 process／desktop 已關閉。
+- Direct full-builder access and bidirectional pattern/flag sync for every search bar remains open; plain text remains the default. · 每個搜尋欄直接開完整版 builder 同雙向 pattern／旗標同步仍然未完成；純文字保持預設。

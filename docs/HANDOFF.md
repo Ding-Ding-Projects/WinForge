@@ -4,6 +4,13 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current managed Regex Builder foundation · 目前正式受管理正則砌法基礎
+
+- `module.regextester` now has guided literals, character classes, anchors, groups, alternation, and quantifiers beside its authoritative raw editor, five flags, bounded local sample, live matches/captures, replacement preview, and explicit copy. · `module.regextester` 而家喺權威原始 editor 旁邊有字面文字、字元類、錨點、群組、二選一同量詞引導砌法，亦有五旗標、有界本機 sample、即時配對／擷取、替換預覽同明確複製。
+- Evaluation is .NET 11 local-only with a one-second timeout, 4,096/1,000,000/65,536 input limits, a 2,000-match cap, safe zero-width progress, and a conservative replacement-work gate. · 運算只喺本機用 .NET 11，一秒超時、4,096／1,000,000／65,536 輸入上限、2,000 配對上限、安全零寬度推進，同保守替換工作量閘。
+- Focused tests pass **13/13** and the x64 solution build passes with 0 warnings/0 errors. Fresh app-owned and LowLevel headless ~1049×646 frames were inspected; vertical options do not clip and keyboard focus is visible. · 專項測試 **13/13**，x64 solution build 0 warning／0 error；已檢視新鮮 app-owned 同 LowLevel headless 約 1049×646 圖，直排選項冇裁切，鍵盤 focus 清楚可見。
+- `SearchPatternService` establishes the plain-default/regex-explicit matching contract, but direct builder access and bidirectional pattern/flag synchronization for every search bar remains open and is not claimed complete. · `SearchPatternService` 建立純文字預設／regex 明確開啟合約，但每個搜尋欄直接用 builder 同雙向同步 pattern／旗標仍然未完成，唔會誤報完成。
+
 ## Current Screen Recorder lifecycle verification · 目前螢幕錄影 lifecycle 驗證
 
 - The concrete ffmpeg adapter bulk-copies redirected stderr bytes to `Stream.Null`; it no longer decodes and dispatches one empty callback per progress line. · 正式 ffmpeg adapter 會整批複製 redirected stderr byte 去 `Stream.Null`，唔再逐行解碼同派空 callback。

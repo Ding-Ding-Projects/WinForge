@@ -136,6 +136,18 @@ dotnet run --project tests/RegexCheatService.Tests -c Debug
 
 See [Regex Cheatsheet & Reactor Settings Lifecycle](RegexCheat-ReactorSettings-Lifecycle.md) for the complete, safe test boundary. · 完整、安全嘅測試邊界請睇[正則速查同反應堆設定生命週期](RegexCheat-ReactorSettings-Lifecycle.md)。
 
+## Managed Regex Builder · 正式受管理正則砌法
+
+The canonical .NET 11 Regex Tester has a raw editor plus guided literals, character classes, anchors, groups, alternation, and quantifiers. Five .NET flags, bounded local sample text, live matches/capture groups, replacement preview, and explicit copy share one timeout-protected evaluator. · 正式 .NET 11 Regex Tester 有原始 editor，加埋字面文字、字元類、錨點、群組、二選一同量詞引導砌法；五個 .NET 旗標、有界本機 sample、即時配對／擷取群組、替換預覽同明確複製共用同一個有超時保護嘅 evaluator。
+
+Open in-app: `WinForge.exe --page regextester`
+
+```powershell
+dotnet run --project tests/RegexBuilder.Tests -c Debug
+```
+
+The focused safety contract is **13/13**. See [Managed Regex Builder](#/wiki/Regex-Builder) for limits, failure modes, visual evidence, and the explicitly open project-wide search-bar integration. · 專項安全合約係 **13/13**；上限、故障模式、視覺證據，同明確未完成嘅全 project 搜尋欄整合請睇[正式受管理正則砌法](#/wiki/Regex-Builder)。
+
 ## Settings Store Integrity Regression · 設定儲存完整性回歸測試
 
 **EN —** Run the focused storage regression after changing `SettingsStore`, import/export, or configuration backup behavior. It exercises valid load/write compatibility, atomic backup rotation, truncated/missing-primary recovery, fail-closed ordinary writes, and explicit-import repair.
