@@ -3,7 +3,7 @@
 Guidance for AI agents working in this repo. Keep it current.
 
 ## What this is
-WinForge (a.k.a. 視窗調校) is the canonical all-in-one, **fully bilingual (English + 繁體中文/粵語)** Windows 11 control center — 321 registered in-app entries (Dashboard + 320 modules) plus a large Windows-tweak catalog — with a **hyper-realistic nuclear-reactor simulator** as its flagship. The application is **.NET `net11.0-windows10.0.26100.0`, WinUI 3**, self-contained and unpackaged. The experimental C++20/C++/WinRT port is maintained independently at [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native); it does not replace this app.
+WinForge (a.k.a. 視窗調校) is the canonical all-in-one, **fully bilingual (English + 繁體中文/粵語)** Windows 11 control center — 322 registered in-app entries (Dashboard + 321 modules) plus a large Windows-tweak catalog — with a **hyper-realistic nuclear-reactor simulator** as its flagship. The application is **.NET `net11.0-windows10.0.26100.0`, WinUI 3**, self-contained and unpackaged. The experimental C++20/C++/WinRT port is maintained independently at [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native); it does not replace this app.
 
 ## Build / run / drive
 - **Compile check:** `dotnet build WinForge.sln -c Debug -p:Platform=x64` (must finish with 0 errors; do not hard-code a warning count).

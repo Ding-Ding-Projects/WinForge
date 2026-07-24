@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.DewEncryptionModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:WinForge.Controls">
+
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="LayoutStates">
+                <VisualState x:Name="NarrowLayout">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="SelectionActions.Orientation" Value="Vertical" />
+                        <Setter Target="SnapshotLabelBox.(Grid.Row)" Value="0" />
+                        <Setter Target="SnapshotLabelBox.(Grid.Column)" Value="0" />
+                        <Setter Target="SnapshotLabelBox.(Grid.ColumnSpan)" Value="4" />
+                        <Setter Target="SnapshotBtn.(Grid.Row)" Value="1" />
+                        <Setter Target="SnapshotBtn.(Grid.Column)" Value="0" />
+                        <Setter Target="SnapshotBtn.(Grid.ColumnSpan)" Value="4" />
+                        <Setter Target="RefreshHistoryBtn.(Grid.Row)" Value="2" />
+                        <Setter Target="RefreshHistoryBtn.(Grid.Column)" Value="0" />
+                        <Setter Target="RefreshHistoryBtn.(Grid.ColumnSpan)" Value="4" />
+                        <Setter Target="VerifyRepositoryBtn.(Grid.Row)" Value="3" />
+                        <Setter Target="VerifyRepositoryBtn.(Grid.Column)" Value="0" />
+                        <Setter Target="VerifyRepositoryBtn.(Grid.ColumnSpan)" Value="4" />
+                        <Setter Target="ArchivePasswordBox.(Grid.Row)" Value="0" />
+                        <Setter Target="ArchivePasswordBox.(Grid.Column)" Value="0" />
+                        <Setter Target="ArchivePasswordBox.(Grid.ColumnSpan)" Value="2" />
+                        <Setter Target="ArchivePasswordConfirmBox.(Grid.Row)" Value="1" />
+                        <Setter Target="ArchivePasswordConfirmBox.(Grid.Column)" Value="0" />
+                        <Setter Target="ArchivePasswordConfirmBox.(Grid.ColumnSpan)" Value="2" />
+                        <Setter Target="ArchiveActions.Orientation" Value="Vertical" />
+                        <Setter Target="HistoryList.(Grid.Row)" Value="0" />
+                        <Setter Target="HistoryList.(Grid.Column)" Value="0" />
+                        <Setter Target="HistoryList.(Grid.ColumnSpan)" Value="2" />
+                        <Setter Target="HistoryDetails.(Grid.Row)" Value="1" />
+                        <Setter Target="HistoryDetails.(Grid.Column)" Value="0" />
+                        <Setter Target="HistoryDetails.(Grid.ColumnSpan)" Value="2" />
+                        <Setter Target="AutomationActions.Orientation" Value="Vertical" />
+                        <Setter Target="VaultContent.(Grid.Row)" Value="0" />
+                        <Setter Target="VaultContent.(Grid.Column)" Value="0" />
+                        <Setter Target="VaultContent.(Grid.ColumnSpan)" Value="2" />
+                        <Setter Target="OpenVaultBtn.(Grid.Row)" Value="1" />
+                        <Setter Target="OpenVaultBtn.(Grid.Column)" Value="0" />
+                        <Setter Target="OpenVaultBtn.(Grid.ColumnSpan)" Value="2" />
+                        <Setter Target="OpenVaultBtn.HorizontalAlignment" Value="Stretch" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="WideLayout">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="900" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="SelectionActions.Orientation" Value="Horizontal" />
+                        <Setter Target="SnapshotLabelBox.(Grid.Row)" Value="0" />
+                        <Setter Target="SnapshotLabelBox.(Grid.Column)" Value="0" />
+                        <Setter Target="SnapshotLabelBox.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="SnapshotBtn.(Grid.Row)" Value="0" />
+                        <Setter Target="SnapshotBtn.(Grid.Column)" Value="1" />
+                        <Setter Target="SnapshotBtn.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="RefreshHistoryBtn.(Grid.Row)" Value="0" />
+                        <Setter Target="RefreshHistoryBtn.(Grid.Column)" Value="2" />
+                        <Setter Target="RefreshHistoryBtn.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="VerifyRepositoryBtn.(Grid.Row)" Value="0" />
+                        <Setter Target="VerifyRepositoryBtn.(Grid.Column)" Value="3" />
+                        <Setter Target="VerifyRepositoryBtn.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="ArchivePasswordBox.(Grid.Row)" Value="0" />
+                        <Setter Target="ArchivePasswordBox.(Grid.Column)" Value="0" />
+                        <Setter Target="ArchivePasswordBox.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="ArchivePasswordConfirmBox.(Grid.Row)" Value="0" />
+                        <Setter Target="ArchivePasswordConfirmBox.(Grid.Column)" Value="1" />
+                        <Setter Target="ArchivePasswordConfirmBox.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="ArchiveActions.Orientation" Value="Horizontal" />
+                        <Setter Target="HistoryList.(Grid.Row)" Value="0" />
+                        <Setter Target="HistoryList.(Grid.Column)" Value="0" />
+                        <Setter Target="HistoryList.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="HistoryDetails.(Grid.Row)" Value="0" />
+                        <Setter Target="HistoryDetails.(Grid.Column)" Value="1" />
+                        <Setter Target="HistoryDetails.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="AutomationActions.Orientation" Value="Horizontal" />
+                        <Setter Target="VaultContent.(Grid.Row)" Value="0" />
+                        <Setter Target="VaultContent.(Grid.Column)" Value="0" />
+                        <Setter Target="VaultContent.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="OpenVaultBtn.(Grid.Row)" Value="0" />
+                        <Setter Target="OpenVaultBtn.(Grid.Column)" Value="1" />
+                        <Setter Target="OpenVaultBtn.(Grid.ColumnSpan)" Value="1" />
+                        <Setter Target="OpenVaultBtn.HorizontalAlignment" Value="Left" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE72E;" />
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1"
+                   Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+
+        <StackPanel Grid.Row="2" Spacing="8" Margin="0,2,0,0">
+            <InfoBar x:Name="GitBar" IsOpen="False" IsClosable="False" Severity="Warning" />
+            <InfoBar x:Name="SevenZipBar" IsOpen="False" IsClosable="False" Severity="Warning" />
+            <InfoBar x:Name="ResultBar" IsOpen="False" IsClosable="True"
+                     AutomationProperties.LiveSetting="Polite" />
+        </StackPanel>
+
+        <InfoBar x:Name="PlaintextWarning" Grid.Row="3" IsOpen="True" IsClosable="False"
+                 Severity="Warning" Margin="0,8,0,0" />
+
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="14">
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="16,14">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="SelectionTitle" FontWeight="SemiBold" FontSize="16"
+                                   AutomationProperties.HeadingLevel="Level2" />
+                        <TextBlock x:Name="SelectionDescription" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+
+                        <ListView x:Name="SelectedPathsList" MaxHeight="170" SelectionMode="Multiple"
+                                  SelectionChanged="SelectedPaths_SelectionChanged">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="6,4" ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE8B7;" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding}" TextTrimming="CharacterEllipsis"
+                                                   ToolTipService.ToolTip="{Binding}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <StackPanel x:Name="SelectionActions" Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="AddFilesBtn" MinHeight="40" Click="AddFiles_Click" />
+                            <Button x:Name="AddFolderBtn" MinHeight="40" Click="AddFolder_Click" />
+                            <Button x:Name="OpenExistingHistoryBtn" MinHeight="40" Click="OpenExistingHistory_Click" />
+                            <Button x:Name="RemoveSelectionBtn" MinHeight="40" Click="RemoveSelection_Click" />
+                            <Button x:Name="ClearSelectionBtn" MinHeight="40" Click="ClearSelection_Click" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="RepositoryPathText" FontFamily="Consolas" FontSize="11"
+                                   TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+
+                        <Grid x:Name="SnapshotActions" ColumnSpacing="10" RowSpacing="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SnapshotLabelBox" Grid.Column="0" />
+                            <Button x:Name="SnapshotBtn" Grid.Column="1" MinHeight="40" Style="{StaticResource AccentButtonStyle}"
+                                    Click="Snapshot_Click" />
+                            <Button x:Name="RefreshHistoryBtn" Grid.Column="2" MinHeight="40" Click="RefreshHistory_Click" />
+                            <Button x:Name="VerifyRepositoryBtn" Grid.Column="3" MinHeight="40" Click="VerifyRepository_Click" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="16,14">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="ArchiveTitle" FontWeight="SemiBold" FontSize="16"
+                                   AutomationProperties.HeadingLevel="Level2" />
+                        <TextBlock x:Name="ArchiveDescription" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+
+                        <ToggleSwitch x:Name="EncryptArchiveToggle" Toggled="EncryptArchive_Toggled" />
+                        <Grid x:Name="ArchivePasswordPanel" ColumnSpacing="10" RowSpacing="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <PasswordBox x:Name="ArchivePasswordBox" Grid.Column="0" PasswordRevealMode="Peek" />
+                            <PasswordBox x:Name="ArchivePasswordConfirmBox" Grid.Column="1" PasswordRevealMode="Peek" />
+                        </Grid>
+                        <TextBlock x:Name="PasswordHintText" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+
+                        <StackPanel x:Name="ArchiveActions" Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="CreateArchiveBtn" MinHeight="40" Style="{StaticResource AccentButtonStyle}"
+                                    Click="CreateArchive_Click" />
+                            <Button x:Name="TestArchiveBtn" MinHeight="40" Click="TestArchive_Click" />
+                        </StackPanel>
+                        <TextBlock x:Name="LastArchivePathText" FontFamily="Consolas" FontSize="11"
+                                   TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="16,14">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="HistoryTitle" FontWeight="SemiBold" FontSize="16"
+                                   AutomationProperties.HeadingLevel="Level2" />
+                        <TextBlock x:Name="HistoryDescription" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+
+                        <Grid x:Name="HistoryLayout" ColumnSpacing="12" RowSpacing="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="3*" />
+                            </Grid.ColumnDefinitions>
+                            <ListView x:Name="HistoryList" Grid.Column="0" MinHeight="230" MaxHeight="360"
+                                      SelectionMode="Single" SelectionChanged="History_SelectionChanged">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Padding="6,5" Spacing="2">
+                                            <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding DisplaySubtitle}" FontSize="11"
+                                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+
+                            <StackPanel x:Name="HistoryDetails" Grid.Column="1" Spacing="8">
+                                <TextBox x:Name="CommitDetailsBox" IsReadOnly="True" AcceptsReturn="True"
+                                         TextWrapping="Wrap" MinHeight="110" MaxHeight="180"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11" />
+                                <ListView x:Name="ChangedFilesList" MinHeight="100" MaxHeight="170">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Display}" FontFamily="Consolas" FontSize="11"
+                                                       TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding Display}" />
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="RestoreCommitBtn" MinHeight="40" Click="RestoreCommit_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="16,14">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="AutomationTitle" FontWeight="SemiBold" FontSize="16"
+                                   AutomationProperties.HeadingLevel="Level2" />
+                        <TextBlock x:Name="AutomationDescription" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                        <StackPanel x:Name="AutomationActions" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <NumberBox x:Name="DebounceSecondsBox" Minimum="0.5" Maximum="60" Value="2"
+                                       SmallChange="0.5" Width="140" SpinButtonPlacementMode="Compact" />
+                            <Button x:Name="StartWatcherBtn" MinHeight="40" Style="{StaticResource AccentButtonStyle}"
+                                    Click="StartWatcher_Click" />
+                            <Button x:Name="StopWatcherBtn" MinHeight="40" Click="StopWatcher_Click" IsEnabled="False" />
+                        </StackPanel>
+                        <TextBlock x:Name="WatcherStatusText" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="16,14">
+                    <Grid x:Name="VaultLayout" ColumnSpacing="12" RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel x:Name="VaultContent">
+                            <TextBlock x:Name="VaultTitle" FontWeight="SemiBold"
+                                       AutomationProperties.HeadingLevel="Level2" />
+                            <TextBlock x:Name="VaultDescription" FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <Button x:Name="OpenVaultBtn" Grid.Column="1" MinHeight="40"
+                                VerticalAlignment="Center" Click="OpenVault_Click" />
+                    </Grid>
+                </Border>
+
+                <Button x:Name="CancelOperationBtn" MinHeight="40" HorizontalAlignment="Left" IsEnabled="False"
+                        Click="CancelOperation_Click" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

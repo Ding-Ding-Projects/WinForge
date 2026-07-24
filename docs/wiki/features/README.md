@@ -233,6 +233,7 @@
 | [Supercomputer (HPC) · 超級電腦（HPC）](reactor-loads/hpc.md) | `module.hpc` | `hpc` | 3 |
 | [Vertical Farm · 垂直農場](reactor-loads/vertfarm.md) | `module.vertfarm` | `vertfarm` | 3 |
 | [Camoufox Profiles · Camoufox 指紋設定檔](security-privacy/camoufox.md) | `module.camoufox` | `camoufox` | 19 |
+| [Dew Encryption · Dew 加密](security-privacy/dew-encryption.md) | `module.dew-encryption` | `dew-encryption` | 15 |
 | [WinForge Vault · WinForge 保險庫](security-privacy/vault.md) | `module.vault-volumes` | `vault` | 14 |
 | [Dashboard · 概覽](suite/dashboard.md) | `dashboard` | `dashboard` | 0 |
 | [Nuclear Reactor · 核反應堆](suite/reactor.md) | `module.reactor` | `reactor` | 19 |

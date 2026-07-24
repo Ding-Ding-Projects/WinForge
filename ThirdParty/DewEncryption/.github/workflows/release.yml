@@ -1,0 +1,59 @@
+name: Release Package
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+          .\scripts\build-windows-installer.ps1
+      - name: Create portable Windows app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist\DewEncryptionPortable\icons | Out-Null
+          Copy-Item dist\app\dew-encryption.exe,dist\app\dew-encryption-gui.exe -Destination dist\DewEncryptionPortable
+          Copy-Item assets\icons\*.ico,assets\icons\*.png -Destination dist\DewEncryptionPortable\icons
+          New-Item -ItemType Directory -Path dist\DewEncryptionPortable\installer | Out-Null
+          Copy-Item installer\create-elevated-tasks.ps1,installer\remove-elevated-tasks.ps1,installer\launch-create-elevated-tasks.ps1,installer\launch-remove-elevated-tasks.ps1 -Destination dist\DewEncryptionPortable\installer
+          Copy-Item README.md,LICENSE -Destination dist\DewEncryptionPortable
+          Set-Content -Path dist\DewEncryptionPortable\portable.flag -Value "portable"
+          Compress-Archive -Path dist\DewEncryptionPortable\* -DestinationPath dist\DewEncryptionPortable.zip -Force
+      - name: Create install bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist\dew-encryption | Out-Null
+          Copy-Item dew_encryption,installer,docs,linux,assets,scripts -Destination dist\dew-encryption -Recurse
+          Copy-Item README.md,LICENSE,pyproject.toml -Destination dist\dew-encryption
+          Compress-Archive -Path dist\dew-encryption\* -DestinationPath dist\dew-encryption.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dew-encryption
+          path: dist/dew-encryption.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DewEncryptionSetup
+          path: dist/installer/DewEncryptionSetup.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DewEncryptionPortable
+          path: dist/DewEncryptionPortable.zip
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/dew-encryption.zip
+            dist/installer/DewEncryptionSetup.exe
+            dist/DewEncryptionPortable.zip

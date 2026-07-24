@@ -2,6 +2,25 @@
 
 _Cleaned-up project history. Contributor / author names intentionally omitted._
 
+## Latest — native Dew Encryption integration
+
+- **Dew-compatible file history** — a new bilingual native WinUI module snapshots selected files or
+  folders into the compatible `Dew Encryption Archives/.dew-encryption-repo/files/<source>` layout,
+  shows Git history and changed files, verifies repositories, and supports debounced auto-history.
+- **Rollback-safe restore** — current content is safety-snapshotted first; old content is staged and
+  path-validated before replacement, the adjacent history repository is preserved, and failed swaps
+  restore the original live files.
+- **Secret-safe encrypted export** — complete history exports to a temporary 7z through the installed
+  `7z.dll` in-process (passwords never enter command lines, environments, response files, or logs), file names are encrypted,
+  and the archive is integrity-tested before an atomic publish.
+- **Auditable upstream provenance** — Dew Encryption commit `a207c742` is pinned under
+  `ThirdParty/DewEncryption` as MIT-licensed reference source; it is excluded from compilation and no
+  upstream Python/Avalonia executable, hook, installer, Docker transfer or buildable-source runner is used.
+- **Current-main audit hardening** — historical deletion commits now restore correctly for writable
+  projects and extracted read-only histories; imported traversal, commit/name discovery, depth, and tool
+  output are bounded and cancellable; ancestor reparse points are rejected; and the adaptive page adds
+  localized errors, truthful checkpoint cancellation, accessible names/headings/tooltips, and idle Vault access.
+
 ## Latest — dialogs fix, crash-proofing, Cloudflare, AI agents, settings & more
 
 - **File/folder dialogs now open** — replaced every WinRT picker (which fails silently when the app

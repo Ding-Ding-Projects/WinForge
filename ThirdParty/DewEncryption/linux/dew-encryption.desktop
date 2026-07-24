@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Dew Encryption
+Comment=Local Git file history and 7z archive manager
+Exec=dew-encryption-gui
+Icon=dew-encryption
+Terminal=false
+Categories=Utility;Archiving;FileTools;

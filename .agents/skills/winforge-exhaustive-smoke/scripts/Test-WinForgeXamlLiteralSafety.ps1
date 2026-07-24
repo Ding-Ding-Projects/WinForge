@@ -47,6 +47,7 @@ if ($matches) {
 $expectedBooleanDefaults = [ordered]@{
     'Pages/ApiClientModule.xaml.cs' = @('PrettyToggle.IsOn = true;')
     'Pages/ConnectionsModule.xaml.cs' = @('AutoSwitch.IsOn = false;')
+    'Pages/DewEncryptionModule.xaml.cs' = @('EncryptArchiveToggle.IsOn = true;')
     'Pages/GitHubDesktopProfilesModule.xaml.cs' = @('StartMenuShortcutsToggle.IsOn = true;', 'DesktopShortcutsToggle.IsOn = true;')
     'Pages/HexDumpModule.xaml.cs' = @('OffsetSwitch.IsOn = true;')
     'Pages/HomeAssistantModule.xaml.cs' = @('AcDryRunToggle.IsOn = true;')
@@ -208,4 +209,4 @@ if ($numberBoxFailures.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'PASS: no direct XAML IsOn Boolean literals remain, 16 protected ToggleSwitch defaults, two protected IsChecked defaults, and 10 reproduced NumberBox defaults use managed initialization.' -ForegroundColor Green
+Write-Host 'PASS: no direct XAML IsOn Boolean literals remain, 17 protected ToggleSwitch defaults, two protected IsChecked defaults, and 10 reproduced NumberBox defaults use managed initialization.' -ForegroundColor Green

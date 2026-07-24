@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ -n "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}" ]; then
+  mapfile -t paths <<< "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS}"
+elif [ -n "${NAUTILUS_SCRIPT_CURRENT_URI:-}" ]; then
+  paths=("${PWD}")
+else
+  paths=("${PWD}")
+fi
+
+dew-encryption "${paths[@]}"
