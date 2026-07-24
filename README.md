@@ -1,8 +1,8 @@
 # WinForge · 視窗鑄造
 
-WinForge is the canonical **.NET 11 / WinUI 3** Windows 11 control center. It combines 319 registered in-app entries, a large Windows-tweak catalog, and a hyper-realistic pressurized-water-reactor simulator in one self-contained x64 desktop app.
+WinForge is the canonical **.NET 11 / WinUI 3** Windows 11 control center. It combines 320 registered in-app entries, a large Windows-tweak catalog, and a hyper-realistic pressurized-water-reactor simulator in one self-contained x64 desktop app.
 
-WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 319 個已登記 app 內項目、大型 Windows 調校目錄，同超寫實壓水堆模擬器放喺同一個自包含 x64 桌面 app。
+WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 320 個已登記 app 內項目、大型 Windows 調校目錄，同超寫實壓水堆模擬器放喺同一個自包含 x64 桌面 app。
 
 `WinUI 3` · `.NET 11` · `English / 粵語 / bilingual` · `Windows 11 x64`
 
@@ -13,6 +13,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 319
 - **One control center · 一個控制中心** — system tweaks, files and disks, media, networking, package management, developer tools, accessibility utilities, virtualization, security, and gaming surfaces live in one app.
 - **Real integrations · 真正整合** — modules use Windows APIs and tools such as `git`, `gh`, `winget`, `ffmpeg`, 7-Zip, Docker, cloudflared, and WebView2; safety-sensitive actions remain explicit and reviewable.
 - **Managed AWS console · 受管理 AWS 主控台** — in-process AWS SDK workspaces provide account/Region isolation, cross-service discovery, native S3 controls, and guarded EC2 instance lifecycle management; the CLI remains an optional long-tail workbench. · 程式內 AWS SDK 工作區提供帳戶／Region 隔離、跨服務探索、原生 S3 控制，同受保護 EC2 執行個體生命週期管理；CLI 只係選用長尾工作台。
+- **Dew-compatible local history · Dew 相容本機歷史** — a native, bilingual workspace snapshots a file or folder into adjacent Git history, reviews changes, restores rollback-safely, and exports password/header-encrypted 7z archives without launching the upstream app or placing secrets on a command line. · 原生雙語工作區會將檔案或資料夾影成旁置 Git 歷史、檢視變更、安全 rollback 還原，同匯出密碼及檔名加密 7z；唔會啟動上游 app，亦唔會將秘密放入命令列。
 - **Three persisted language modes · 三種持久語言模式** — English, playful Hong Kong-style Cantonese, and compact bilingual mode.
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
 - **Flagship reactor · 旗艦反應堆** — a PWR control-room simulator with point kinetics, thermal hydraulics, turbine and electrical systems, protection logic, fuel and waste services, water treatment, and opt-in external integrations.
@@ -73,6 +74,16 @@ dotnet run --project tests\ReactorSim.Tests -c Debug
 ```
 
 The current contract is **63/63** scenarios, and the harness returns nonzero if any scenario fails or throws. Use `-- --verify-exit-code-contract` for its fast exit-code self-test.
+
+Run the dedicated Dew Encryption compatibility, path-safety, restore, watcher, and archive suite after Dew work:
+
+改過 Dew Encryption 後，要跑相容性、路徑安全、還原、watcher 同 archive 專用測試：
+
+```powershell
+dotnet run --project tests\DewEncryption.Tests -c Debug
+```
+
+The current Dew contract is **23/23** tests, including writable and extracted read-only historical-deletion restores. · 目前 Dew 合約係 **23/23**，包括可寫同 extracted read-only 歷史刪除還原。
 
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 

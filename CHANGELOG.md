@@ -16,6 +16,10 @@ _Cleaned-up project history. Contributor / author names intentionally omitted._
 - **Auditable upstream provenance** — Dew Encryption commit `a207c742` is pinned under
   `ThirdParty/DewEncryption` as MIT-licensed reference source; it is excluded from compilation and no
   upstream Python/Avalonia executable, hook, installer, Docker transfer or buildable-source runner is used.
+- **Current-main audit hardening** — historical deletion commits now restore correctly for writable
+  projects and extracted read-only histories; imported traversal, commit/name discovery, depth, and tool
+  output are bounded and cancellable; ancestor reparse points are rejected; and the adaptive page adds
+  localized errors, truthful checkpoint cancellation, accessible names/headings/tooltips, and idle Vault access.
 
 ## Latest — dialogs fix, crash-proofing, Cloudflare, AI agents, settings & more
 

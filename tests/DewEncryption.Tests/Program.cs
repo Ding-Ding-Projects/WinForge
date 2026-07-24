@@ -18,6 +18,7 @@ internal static class Program
         {
             ("single file path mapping", TestSingleFilePathMapping),
             ("drive-root containment", TestDriveRootContainment),
+            ("ancestor reparse paths are rejected", TestAncestorReparseRejected),
             ("duplicate top-level names rejected", TestDuplicateNames),
             ("unsupported nested metadata is rejected safely", TestUnsupportedMetadataRejected),
             ("dangling restore links are rejected", TestDanglingRestoreLink),
@@ -28,6 +29,8 @@ internal static class Program
             ("restore creates safe in-place result", TestRestoreRoundTrip),
             ("invalid commit cannot change source", TestInvalidCommit),
             ("deleted target reopens and restores", TestDeletedTargetAfterRestart),
+            ("historical deletion restores as deletion", TestHistoricalDeletionRestore),
+            ("extracted history accepts a deletion commit", TestExtractedHistoricalDeletionRestore),
             ("extracted repository restores beside itself", TestExtractedRepositoryLayout),
             ("multi-source reopen requires explicit target confirmation", TestMultiSourceConfirmation),
             ("SHA-256 Dew repository history", TestSha256Repository),
@@ -111,6 +114,21 @@ internal static class Program
         File.WriteAllText(a, "a");
         File.WriteAllText(b, "b");
         Throws<InvalidOperationException>(() => DewSnapshotCore.CreateProject([a, b]));
+        return Task.CompletedTask;
+    }
+
+    private static Task TestAncestorReparseRejected()
+    {
+        var root = NewCase();
+        var real = Path.Combine(root, "real");
+        var link = Path.Combine(root, "linked-parent");
+        Directory.CreateDirectory(real);
+        File.WriteAllText(Path.Combine(real, "data.txt"), "contained");
+        try { Directory.CreateSymbolicLink(link, real); }
+        catch (UnauthorizedAccessException) { throw new SkipTestException("Creating a test symbolic link is not permitted."); }
+        catch (PlatformNotSupportedException) { throw new SkipTestException("Symbolic links are unavailable."); }
+
+        Throws<InvalidDataException>(() => DewSnapshotCore.CreateProject([Path.Combine(link, "data.txt")]));
         return Task.CompletedTask;
     }
 
@@ -271,6 +289,52 @@ internal static class Program
         Equal(source, reopened.RestoreTargets.Single());
         await DewEncryptionService.RestoreAsync(reopened, source, original);
         Equal("recover me", File.ReadAllText(source));
+    }
+
+    private static async Task TestHistoricalDeletionRestore()
+    {
+        var root = NewCase();
+        var source = Path.Combine(root, "delete-me.txt");
+        File.WriteAllText(source, "original");
+        var project = DewSnapshotCore.CreateProject([source]);
+        await DewEncryptionService.TakeSnapshotAsync(project, "exists");
+        File.Delete(source);
+        var deleted = await DewEncryptionService.TakeSnapshotAsync(project, "deleted");
+        True(deleted.Changed, "Deleting the tracked source did not create a history commit.");
+
+        File.WriteAllText(source, "live data that must be safety-snapshotted");
+        var restored = await DewEncryptionService.RestoreAsync(project, source, deleted.Commit);
+        True(!DewSnapshotCore.EntryExistsNoFollow(source),
+            "Restoring the deletion commit left the live source in place.");
+        True(restored.Paths.Contains(source, StringComparer.OrdinalIgnoreCase),
+            "The deleted restore target was lost from the project context.");
+        var history = await DewEncryptionService.ListHistoryAsync(restored);
+        True(history.Any(h => h.Subject.Contains("safety snapshot", StringComparison.OrdinalIgnoreCase)),
+            "Historical deletion restore did not preserve the replaced live data in a safety snapshot.");
+    }
+
+    private static async Task TestExtractedHistoricalDeletionRestore()
+    {
+        var root = NewCase();
+        var source = Path.Combine(root, "portable-delete.txt");
+        File.WriteAllText(source, "portable original");
+        var project = DewSnapshotCore.CreateProject([source]);
+        await DewEncryptionService.TakeSnapshotAsync(project, "exists");
+        File.Delete(source);
+        var deleted = await DewEncryptionService.TakeSnapshotAsync(project, "deleted");
+
+        var extracted = Path.Combine(NewCase(), DewSnapshotCore.RepositoryDirectoryName);
+        CopyTree(project.RepositoryDirectory, extracted);
+        var opened = await DewEncryptionService.OpenExistingProjectAsync(extracted);
+        var target = opened.RestoreTargets.Single();
+        True(opened.IsReadOnlyImport, "An extracted repository was not opened read-only.");
+        True(!DewSnapshotCore.EntryExistsNoFollow(target),
+            "The extracted deletion target unexpectedly existed before restore.");
+
+        var restored = await DewEncryptionService.RestoreAsync(opened, target, deleted.Commit);
+        True(!DewSnapshotCore.EntryExistsNoFollow(target),
+            "Restoring an extracted deletion commit unexpectedly created the target.");
+        Equal(opened.RepositoryDirectory, restored.RepositoryDirectory);
     }
 
     private static async Task TestExtractedRepositoryLayout()

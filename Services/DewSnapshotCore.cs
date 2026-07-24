@@ -75,6 +75,7 @@ public static class DewSnapshotCore
             var filesystemRoot = Path.GetPathRoot(full);
             if (filesystemRoot is not null && PathComparer.Equals(full, filesystemRoot))
                 throw new InvalidOperationException("Filesystem-root selections are not supported. Choose a file or subfolder instead.");
+            EnsureNoReparsePath(full, "Selected path");
             if (requireExisting && !File.Exists(full) && !Directory.Exists(full))
                 throw new FileNotFoundException($"Selected path does not exist: {full}", full);
             if ((File.Exists(full) || Directory.Exists(full))
@@ -193,6 +194,9 @@ public static class DewSnapshotCore
     {
         var source = TrimEndingSeparator(Path.GetFullPath(sourcePath));
         var archive = TrimEndingSeparator(Path.GetFullPath(archiveDirectory));
+        EnsureNoReparsePath(source, "Restore target");
+        EnsureNoReparsePath(archive, "Dew archive directory");
+        if (stagedPath is not null) EnsureNoReparsePath(stagedPath, "Staged restore path");
         Directory.CreateDirectory(archive);
         if (stagedPath is not null
             && (File.GetAttributes(stagedPath) & FileAttributes.ReparsePoint) != 0)
@@ -260,8 +264,7 @@ public static class DewSnapshotCore
             ?? throw new InvalidOperationException("The restore target has no parent directory.");
         if (!Directory.Exists(parent))
             throw new DirectoryNotFoundException($"The restore target parent does not exist: {parent}");
-        if ((File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0)
-            throw new InvalidDataException($"The restore target parent cannot be a symbolic link or junction: {parent}");
+        EnsureNoReparsePath(parent, "Restore target parent");
 
         var temporary = Path.Combine(parent, $".winforge-dew-restore-{Guid.NewGuid():N}");
         try
@@ -471,6 +474,27 @@ public static class DewSnapshotCore
         var root = Path.GetPathRoot(full);
         if (root is not null && PathComparer.Equals(full, root)) return full;
         return full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    }
+
+    private static void EnsureNoReparsePath(string path, string label)
+    {
+        var current = TrimEndingSeparator(Path.GetFullPath(path));
+        while (!string.IsNullOrWhiteSpace(current))
+        {
+            try
+            {
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidDataException($"{label} cannot traverse a symbolic link or junction: {current}");
+            }
+            catch (FileNotFoundException) { }
+            catch (DirectoryNotFoundException) { }
+
+            var parent = Directory.GetParent(current)?.FullName;
+            if (string.IsNullOrWhiteSpace(parent)
+                || PathComparer.Equals(parent, current))
+                break;
+            current = parent;
+        }
     }
 
     private sealed class MutableCopySummary

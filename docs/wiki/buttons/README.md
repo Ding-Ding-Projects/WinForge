@@ -770,10 +770,10 @@
 | [ListCopyBtn](calculators-numbers/randomizer/008-listcopybtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListCopy_Click` |
 | [ListPickBtn](calculators-numbers/randomizer/006-listpickbtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListPick_Click` |
 | [ListShuffleBtn](calculators-numbers/randomizer/007-listshufflebtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListShuffle_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/005-sicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/005-sicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+2212]](calculators-numbers/tally/002-minus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Minus_Click` |
 | [[icon U+2B]](calculators-numbers/tally/003-plus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Plus_Click` |
@@ -956,8 +956,8 @@
 | [RecomputeBtn](files-disks/diff/004-recomputebtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `Recompute_Click` |
 | [SaveLeftBtn](files-disks/diff/007-saveleftbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `SaveLeft_Click` |
 | [SaveRightBtn](files-disks/diff/008-saverightbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `SaveRight_Click` |
-| [Swap sides · 互換左右](files-disks/diff/010-swapdirbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `SwapDir_Click` |
 | [Swap sides · 互換左右](files-disks/diff/002-swapbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `Swap_Click` |
+| [Swap sides · 互換左右](files-disks/diff/010-swapdirbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `SwapDir_Click` |
 | [BrowseBtn](files-disks/disk/003-browsebtn.md) | Disk Analyser · 磁碟分析 | Files & Disks · 檔案與磁碟 | `Button` | `Browse_Click` |
 | [Open terminal here · 喺呢度開終端機](files-disks/disk/002-terminalbtn.md) | Disk Analyser · 磁碟分析 | Files & Disks · 檔案與磁碟 | `Button` | `Terminal_Click` |
 | [RecycleBtn](files-disks/disk/005-recyclebtn.md) | Disk Analyser · 磁碟分析 | Files & Disks · 檔案與磁碟 | `Button` | `Recycle_Click` |
@@ -1369,13 +1369,13 @@
 | [WriteBackBtn](network-tools/hostsedit/009-writebackbtn.md) | Hosts File Editor · 主機檔編輯器 | Network Tools · 網絡工具 | `Button` | `WriteBack_Click` |
 | [CopyBtn](network-tools/ipinfo/002-copybtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Copy_Click` |
 | [RefreshBtn](network-tools/ipinfo/001-refreshbtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Refresh_Click` |
-| [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
-| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
 | [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
-| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
 | [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
-| [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
+| [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
 | [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
+| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
+| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
+| [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
 | [RandomBtn](network-tools/mactools/001-randombtn.md) | MAC Address Tools · MAC 位址工具 | Network Tools · 網絡工具 | `Button` | `Random_Click` |
 | [PingStartBtn](network-tools/ping/001-pingstartbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStart_Click` |
 | [PingStopBtn](network-tools/ping/002-pingstopbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStop_Click` |
@@ -1459,6 +1459,21 @@
 | [Restore · 還原](security-privacy/camoufox/017-commitrestore-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `CommitRestore_Click` |
 | [SaveRemoteBtn](security-privacy/camoufox/014-saveremotebtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `SaveRemote_Click` |
 | [SyncNowBtn](security-privacy/camoufox/012-syncnowbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `SyncNow_Click` |
+| [AddFilesBtn](security-privacy/dew-encryption/001-addfilesbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `AddFiles_Click` |
+| [AddFolderBtn](security-privacy/dew-encryption/002-addfolderbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `AddFolder_Click` |
+| [CancelOperationBtn](security-privacy/dew-encryption/015-canceloperationbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `CancelOperation_Click` |
+| [ClearSelectionBtn](security-privacy/dew-encryption/005-clearselectionbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `ClearSelection_Click` |
+| [CreateArchiveBtn](security-privacy/dew-encryption/009-createarchivebtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `CreateArchive_Click` |
+| [OpenExistingHistoryBtn](security-privacy/dew-encryption/003-openexistinghistorybtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `OpenExistingHistory_Click` |
+| [OpenVaultBtn](security-privacy/dew-encryption/014-openvaultbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `OpenVault_Click` |
+| [RefreshHistoryBtn](security-privacy/dew-encryption/007-refreshhistorybtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `RefreshHistory_Click` |
+| [RemoveSelectionBtn](security-privacy/dew-encryption/004-removeselectionbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `RemoveSelection_Click` |
+| [RestoreCommitBtn](security-privacy/dew-encryption/011-restorecommitbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `RestoreCommit_Click` |
+| [SnapshotBtn](security-privacy/dew-encryption/006-snapshotbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `Snapshot_Click` |
+| [StartWatcherBtn](security-privacy/dew-encryption/012-startwatcherbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `StartWatcher_Click` |
+| [StopWatcherBtn](security-privacy/dew-encryption/013-stopwatcherbtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `StopWatcher_Click` |
+| [TestArchiveBtn](security-privacy/dew-encryption/010-testarchivebtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `TestArchive_Click` |
+| [VerifyRepositoryBtn](security-privacy/dew-encryption/008-verifyrepositorybtn.md) | Dew Encryption · Dew 加密 | Security & Privacy · 安全與私隱 | `Button` | `VerifyRepository_Click` |
 | [BenchmarkBtn](security-privacy/vault/003-benchmarkbtn.md) | WinForge Vault · WinForge 保險庫 | Security & Privacy · 安全與私隱 | `Button` | `Benchmark_Click` |
 | [ChangePwdBtn](security-privacy/vault/002-changepwdbtn.md) | WinForge Vault · WinForge 保險庫 | Security & Privacy · 安全與私隱 | `Button` | `ChangePwd_Click` |
 | [CreateBtn](security-privacy/vault/008-createbtn.md) | WinForge Vault · WinForge 保險庫 | Security & Privacy · 安全與私隱 | `Button` | `Create_Click` |

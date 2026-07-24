@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Services;
@@ -29,12 +30,16 @@ public sealed partial class DewEncryptionModule : Page
     private CancellationTokenSource? _operationCts;
     private string _lastArchivePath = SettingsStore.Get(LastArchiveSetting, "");
     private bool _busy;
+    private bool _cancellationRequested;
+    private bool _initializing = true;
     private bool _languageSubscribed;
     private int _detailVersion;
 
     public DewEncryptionModule()
     {
         InitializeComponent();
+        EncryptArchiveToggle.IsOn = true;
+        _initializing = false;
         SelectedPathsList.ItemsSource = _selectedPaths;
         HistoryList.ItemsSource = _history;
         ChangedFilesList.ItemsSource = _changes;
@@ -45,6 +50,21 @@ public sealed partial class DewEncryptionModule : Page
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private static void SetButtonLabel(Button button, string label, string? toolTip = null)
+    {
+        if (button.Content is TextBlock text)
+            text.Text = label;
+        else
+            button.Content = new TextBlock
+            {
+                Text = label,
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = TextAlignment.Center,
+            };
+        AutomationProperties.SetName(button, label);
+        ToolTipService.SetToolTip(button, toolTip ?? label);
+    }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -78,6 +98,7 @@ public sealed partial class DewEncryptionModule : Page
     private void Render()
     {
         Header.Title = "Dew Encryption · Dew 加密歷史";
+        AutomationProperties.SetName(Header, Header.Title);
         HeaderBlurb.Text = P(
             "Create local, Git-backed file history and optional encrypted 7z exports without sending a byte to the cloud. Restores are staged and rollback-safe.",
             "建立本機、Git 支援嘅檔案歷史，同埋可選加密 7z 匯出，完全唔會上傳任何資料去雲端。還原會先暫存，失敗時可以安全回復。" );
@@ -86,15 +107,15 @@ public sealed partial class DewEncryptionModule : Page
         SelectionDescription.Text = P(
             "Choose files or folders. Dew stores its repository beside a selected file, or inside a selected/common folder under “Dew Encryption Archives”. Unsupported nested Git metadata, symlinks and junctions are rejected instead of being silently lost.",
             "揀檔案或者資料夾。Dew 會將儲存庫放喺所選檔案旁邊，或者所選／共用資料夾入面嘅「Dew Encryption Archives」。唔支援嘅巢狀 Git metadata、符號連結同 junction 會直接拒絕，唔會靜靜漏失。" );
-        AddFilesBtn.Content = P("Add files", "加入檔案");
-        AddFolderBtn.Content = P("Add folder", "加入資料夾");
-        OpenExistingHistoryBtn.Content = P("Open existing history", "開啟現有歷史");
-        RemoveSelectionBtn.Content = P("Remove selected", "移除選取");
-        ClearSelectionBtn.Content = P("Clear", "清除");
+        SetButtonLabel(AddFilesBtn, P("Add files", "加入檔案"));
+        SetButtonLabel(AddFolderBtn, P("Add folder", "加入資料夾"));
+        SetButtonLabel(OpenExistingHistoryBtn, P("Open existing history", "開啟現有歷史"));
+        SetButtonLabel(RemoveSelectionBtn, P("Remove selected", "移除選取"));
+        SetButtonLabel(ClearSelectionBtn, P("Clear", "清除"));
         SnapshotLabelBox.PlaceholderText = P("Snapshot label (optional)", "快照標籤（可選）");
-        SnapshotBtn.Content = P("Take snapshot", "影快照");
-        RefreshHistoryBtn.Content = P("Refresh history", "重新整理歷史");
-        VerifyRepositoryBtn.Content = P("Verify repository", "驗證儲存庫");
+        SetButtonLabel(SnapshotBtn, P("Take snapshot", "影快照"));
+        SetButtonLabel(RefreshHistoryBtn, P("Refresh history", "重新整理歷史"));
+        SetButtonLabel(VerifyRepositoryBtn, P("Verify repository", "驗證儲存庫"));
 
         ArchiveTitle.Text = P("Encrypted archive export", "加密壓縮檔匯出");
         ArchiveDescription.Text = P(
@@ -106,33 +127,46 @@ public sealed partial class DewEncryptionModule : Page
         PasswordHintText.Text = P(
             "Encrypted archives require at least 12 characters. Leave encryption off for an unencrypted local export.",
             "加密壓縮檔需要最少 12 個字元。想要未加密嘅本機匯出，就關閉加密。" );
-        CreateArchiveBtn.Content = P("Create archive", "建立壓縮檔");
-        TestArchiveBtn.Content = P("Test archive", "測試壓縮檔");
+        SetButtonLabel(CreateArchiveBtn, P("Create archive", "建立壓縮檔"));
+        SetButtonLabel(TestArchiveBtn, P("Test archive", "測試壓縮檔"));
 
         HistoryTitle.Text = P("History and restore", "歷史同還原");
         HistoryDescription.Text = P(
             "Inspect committed snapshots before restoring. Choose one target in the selection list when a repository has several sources. Current managed content is safety-snapshotted immediately before replacement.",
             "還原之前可以檢查已提交快照。如果倉庫有多個來源，請喺選取清單揀一個目標。目前受管理內容會喺替換前即刻影安全快照。" );
-        RestoreCommitBtn.Content = P("Restore selected snapshot", "還原選取快照");
+        SetButtonLabel(RestoreCommitBtn, P("Restore selected snapshot", "還原選取快照"));
 
         AutomationTitle.Text = P("Automatic history", "自動歷史");
         AutomationDescription.Text = P(
             "Watch one file or folder and create a debounced snapshot after changes. Dew ignores its own archive directory to avoid feedback loops.",
             "監察一個檔案或者資料夾；有改動之後延遲影快照。Dew 會忽略自己嘅壓縮檔資料夾，避免循環觸發。" );
         DebounceSecondsBox.Header = P("Delay (seconds)", "延遲（秒）");
-        StartWatcherBtn.Content = P("Start watcher", "開始監察");
-        StopWatcherBtn.Content = P("Stop watcher", "停止監察");
+        SetButtonLabel(StartWatcherBtn, P("Start watcher", "開始監察"));
+        SetButtonLabel(StopWatcherBtn, P("Stop watcher", "停止監察"));
 
         VaultTitle.Text = P("Need an encrypted working volume?", "需要加密工作磁碟區？");
         VaultDescription.Text = P(
             "Dew history is version control, not an encrypted workspace. Use WinForge Vault when files must stay encrypted at rest while you work.",
             "Dew 歷史係版本控制，唔係加密工作空間。工作期間檔案都要保持靜態加密，就用 WinForge 保險庫。" );
-        OpenVaultBtn.Content = P("Open WinForge Vault", "開啟 WinForge 保險庫");
-        CancelOperationBtn.Content = P("Cancel current operation", "取消目前操作");
+        SetButtonLabel(OpenVaultBtn, P("Open WinForge Vault", "開啟 WinForge 保險庫"));
         PlaintextWarning.Title = P("Local history is plaintext", "本機歷史係明文");
         PlaintextWarning.Message = P(
             "The adjacent .dew-encryption-repo is an ordinary plaintext copy. Encrypting an exported 7z does not encrypt that local Git history. ACLs, alternate data streams, EFS state and hard-link identity are not preserved.",
             "旁邊嘅 .dew-encryption-repo 係普通明文副本。加密匯出 7z 唔會加密本機 Git 歷史。ACL、替代資料流、EFS 狀態同硬連結身份唔會保留。" );
+
+        AutomationProperties.SetName(SelectedPathsList, SelectionTitle.Text);
+        AutomationProperties.SetName(RepositoryPathText, P("Dew repository location", "Dew 儲存庫位置"));
+        AutomationProperties.SetName(SnapshotLabelBox, P("Optional snapshot label", "可選快照標籤"));
+        AutomationProperties.SetName(EncryptArchiveToggle, EncryptArchiveToggle.Header?.ToString() ?? ArchiveTitle.Text);
+        AutomationProperties.SetName(ArchivePasswordBox, P("Archive password", "壓縮檔密碼"));
+        AutomationProperties.SetName(ArchivePasswordConfirmBox, P("Confirm archive password", "確認壓縮檔密碼"));
+        AutomationProperties.SetName(HistoryList, P("Snapshot history", "快照歷史"));
+        AutomationProperties.SetName(CommitDetailsBox, P("Selected snapshot details", "所選快照詳情"));
+        AutomationProperties.SetName(ChangedFilesList, P("Changed files", "已變更檔案"));
+        AutomationProperties.SetName(DebounceSecondsBox, DebounceSecondsBox.Header?.ToString() ?? AutomationTitle.Text);
+        AutomationProperties.SetName(WatcherStatusText, P("Automatic history status", "自動歷史狀態"));
+        ToolTipService.SetToolTip(EncryptArchiveToggle, PasswordHintText.Text);
+        ToolTipService.SetToolTip(DebounceSecondsBox, AutomationDescription.Text);
 
         RefreshProjectUi();
     }
@@ -179,7 +213,7 @@ public sealed partial class DewEncryptionModule : Page
         {
             _openedProject = null;
             try { _project = DewSnapshotCore.CreateProject(_selectedPaths); }
-            catch (Exception ex) { ShowResult(InfoBarSeverity.Warning, P("Selection needs attention", "選取項目要處理"), ex.Message); }
+            catch (Exception ex) { ShowResult(InfoBarSeverity.Warning, P("Selection needs attention", "選取項目要處理"), FriendlyError(ex)); }
         }
 
         var project = _project;
@@ -211,13 +245,19 @@ public sealed partial class DewEncryptionModule : Page
         RestoreCommitBtn.IsEnabled = canUse && RestoreTarget() is not null && HistoryList.SelectedItem is DewHistoryEntry;
         StartWatcherBtn.IsEnabled = canMutate && _project?.Paths.Count == 1 && _watcher is null;
         StopWatcherBtn.IsEnabled = !_busy && _watcher is not null;
-        OpenVaultBtn.IsEnabled = hasProject && !_busy;
+        OpenVaultBtn.IsEnabled = !_busy;
         AddFilesBtn.IsEnabled = !_busy;
         AddFolderBtn.IsEnabled = !_busy;
         OpenExistingHistoryBtn.IsEnabled = !_busy;
         RemoveSelectionBtn.IsEnabled = !_busy && SelectedPathsList.SelectedItems.Count > 0;
         ClearSelectionBtn.IsEnabled = !_busy && _selectedPaths.Count > 0;
-        CancelOperationBtn.IsEnabled = _busy;
+        CancelOperationBtn.IsEnabled = _busy && !_cancellationRequested;
+        SetButtonLabel(CancelOperationBtn,
+            _cancellationRequested
+                ? P("Cancellation requested", "已要求取消")
+                : P("Request cancellation", "要求取消操作"),
+            P("Dew stops at the next safe checkpoint; an in-process archive step may finish first.",
+                "Dew 會喺下一個安全檢查點停止；程序內壓縮步驟可能會先完成。"));
 
         WatcherStatusText.Text = _watcher is null
             ? P("Watcher is stopped. Select exactly one file or folder to enable automatic history.", "監察器已停止。揀啱一個檔案或者資料夾先可以開自動歷史。")
@@ -236,6 +276,7 @@ public sealed partial class DewEncryptionModule : Page
     {
         if (_busy) return false;
         _busy = true;
+        _cancellationRequested = false;
         _operationCts = new CancellationTokenSource();
         UpdateInteractiveState();
         try
@@ -245,17 +286,20 @@ public sealed partial class DewEncryptionModule : Page
         }
         catch (OperationCanceledException)
         {
-            ShowResult(InfoBarSeverity.Informational, P("Cancelled", "已取消"), P("The operation was cancelled safely.", "操作已經安全取消。" ));
+            ShowResult(InfoBarSeverity.Informational, P("Stopped at a safe checkpoint", "已喺安全檢查點停止"),
+                P("Dew observed the cancellation request. A native archive step may have finished before cancellation was observed.",
+                    "Dew 已收到取消要求。程序內壓縮步驟可能喺系統收到取消之前已經完成。"));
         }
         catch (Exception ex)
         {
-            ShowResult(InfoBarSeverity.Error, title, ex.Message);
+            ShowResult(InfoBarSeverity.Error, title, FriendlyError(ex));
         }
         finally
         {
             _operationCts?.Dispose();
             _operationCts = null;
             _busy = false;
+            _cancellationRequested = false;
             UpdateInteractiveState();
         }
         return false;
@@ -274,7 +318,7 @@ public sealed partial class DewEncryptionModule : Page
             var paths = await FileDialogs.OpenFilesAsync(FileDialogs.BuildFilters(null), P("Choose files for Dew history", "揀 Dew 歷史檔案"));
             AddPaths(paths);
         }
-        catch (Exception ex) { ShowResult(InfoBarSeverity.Error, P("Could not choose files", "揀檔案失敗"), ex.Message); }
+        catch (Exception ex) { ShowResult(InfoBarSeverity.Error, P("Could not choose files", "揀檔案失敗"), FriendlyError(ex)); }
     }
 
     private async void AddFolder_Click(object sender, RoutedEventArgs e)
@@ -284,7 +328,7 @@ public sealed partial class DewEncryptionModule : Page
             var path = await FileDialogs.OpenFolderAsync(P("Choose a folder for Dew history", "揀 Dew 歷史資料夾"));
             if (!string.IsNullOrWhiteSpace(path)) AddPaths([path]);
         }
-        catch (Exception ex) { ShowResult(InfoBarSeverity.Error, P("Could not choose folder", "揀資料夾失敗"), ex.Message); }
+        catch (Exception ex) { ShowResult(InfoBarSeverity.Error, P("Could not choose folder", "揀資料夾失敗"), FriendlyError(ex)); }
     }
 
     private async void OpenExistingHistory_Click(object sender, RoutedEventArgs e)
@@ -298,7 +342,7 @@ public sealed partial class DewEncryptionModule : Page
         }
         catch (Exception ex)
         {
-            ShowResult(InfoBarSeverity.Error, P("Could not choose history", "揀歷史失敗"), ex.Message);
+            ShowResult(InfoBarSeverity.Error, P("Could not choose history", "揀歷史失敗"), FriendlyError(ex));
             return;
         }
         if (string.IsNullOrWhiteSpace(chosen)) return;
@@ -408,6 +452,7 @@ public sealed partial class DewEncryptionModule : Page
 
     private void EncryptArchive_Toggled(object sender, RoutedEventArgs e)
     {
+        if (_initializing) return;
         ArchivePasswordPanel.Visibility = EncryptArchiveToggle.IsOn ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -446,7 +491,7 @@ public sealed partial class DewEncryptionModule : Page
         if (archive is null)
         {
             try { archive = await FileDialogs.OpenFileAsync(new[] { ".7z" }); }
-            catch (Exception ex) { ShowResult(InfoBarSeverity.Error, P("Could not choose archive", "揀壓縮檔失敗"), ex.Message); return; }
+            catch (Exception ex) { ShowResult(InfoBarSeverity.Error, P("Could not choose archive", "揀壓縮檔失敗"), FriendlyError(ex)); return; }
         }
         if (string.IsNullOrWhiteSpace(archive)) return;
         var passwordBox = new PasswordBox
@@ -485,7 +530,7 @@ public sealed partial class DewEncryptionModule : Page
         }
         catch (Exception ex)
         {
-            if (request == _detailVersion) ShowResult(InfoBarSeverity.Error, P("Could not read snapshot", "讀取快照失敗"), ex.Message);
+            if (request == _detailVersion) ShowResult(InfoBarSeverity.Error, P("Could not read snapshot", "讀取快照失敗"), FriendlyError(ex));
         }
     }
 
@@ -551,7 +596,7 @@ public sealed partial class DewEncryptionModule : Page
             UpdateInteractiveState();
             ShowResult(InfoBarSeverity.Success, P("Watcher started", "監察器已開始"), P("Dew will create snapshots after source changes settle.", "來源改動穩定之後，Dew 就會影快照。" ));
         }
-        catch (Exception ex) { ShowResult(InfoBarSeverity.Error, P("Could not start watcher", "未能開始監察"), ex.Message); }
+        catch (Exception ex) { ShowResult(InfoBarSeverity.Error, P("Could not start watcher", "未能開始監察"), FriendlyError(ex)); }
     }
 
     private void StopWatcher_Click(object sender, RoutedEventArgs e)
@@ -567,7 +612,7 @@ public sealed partial class DewEncryptionModule : Page
         {
             if (e.Error is not null)
             {
-                ShowResult(InfoBarSeverity.Error, P("Automatic snapshot failed", "自動快照失敗"), e.Error.Message);
+                ShowResult(InfoBarSeverity.Error, P("Automatic snapshot failed", "自動快照失敗"), FriendlyError(e.Error));
                 return;
             }
             if (e.Result is not null)
@@ -588,8 +633,13 @@ public sealed partial class DewEncryptionModule : Page
 
     private void CancelOperation_Click(object sender, RoutedEventArgs e)
     {
-        _operationCts?.Cancel();
-        CancelOperationBtn.IsEnabled = false;
+        if (_operationCts is null || _cancellationRequested) return;
+        _cancellationRequested = true;
+        _operationCts.Cancel();
+        UpdateInteractiveState();
+        ShowResult(InfoBarSeverity.Informational, P("Cancellation requested", "已要求取消"),
+            P("Dew will stop at the next safe checkpoint. An in-process 7-Zip create or integrity check cannot be interrupted and may finish first.",
+                "Dew 會喺下一個安全檢查點停止。程序內 7-Zip 建立或完整性檢查唔可以中途截停，可能會先完成。"));
     }
 
     private string? GetArchivePassword()
@@ -655,5 +705,33 @@ public sealed partial class DewEncryptionModule : Page
         ResultBar.Title = title;
         ResultBar.Message = message;
         ResultBar.IsOpen = true;
+    }
+
+    private string FriendlyError(Exception error)
+    {
+        var detail = string.IsNullOrWhiteSpace(error.Message)
+            ? error.GetType().Name
+            : error.Message.Trim();
+        string zh = error switch
+        {
+            UnauthorizedAccessException => "Windows 拒絕存取。請檢查檔案權限，同埋確認冇其他程式鎖住目標。",
+            FileNotFoundException or DirectoryNotFoundException => "指定嘅檔案或者資料夾已經唔存在。請重新揀選後再試。",
+            InvalidDataException => "Dew 因為資料或者路徑唔安全而停止，原有內容未有被取代。",
+            IOException => "Dew 未能安全讀寫檔案。請檢查可用空間、權限同檔案鎖定狀態。",
+            ArgumentException or InvalidOperationException => "目前選取或者儲存庫版面無法安全處理。請按提示修正後再試。",
+            DewOperationException when detail.Contains("Git", StringComparison.OrdinalIgnoreCase)
+                => "Git 歷史操作失敗。請確認 Git 已安裝，同埋儲存庫通過安全檢查。",
+            DewOperationException when detail.Contains("7-Zip", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("archive", StringComparison.OrdinalIgnoreCase)
+                => "壓縮檔操作失敗。請確認 7-Zip 已安裝、密碼正確，而且壓縮檔冇損壞。",
+            DewOperationException when detail.Contains("symbolic", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("junction", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("reparse", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("unsafe", StringComparison.OrdinalIgnoreCase)
+                => "Dew 偵測到唔安全嘅連結或者路徑，所以已停止而且冇改動來源。",
+            DewOperationException => "Dew 無法安全完成呢個操作。請檢查下面技術詳情。",
+            _ => "WinForge 未能完成呢個 Dew 操作。請檢查下面技術詳情。",
+        };
+        return P(detail, $"{zh}\n\n技術詳情：{detail}");
     }
 }

@@ -54,6 +54,11 @@ public static class DewEncryptionService
     private static readonly SemaphoreSlim OperationGate = new(1, 1);
     private static readonly object SevenZipLibraryLock = new();
     private static readonly Regex CommitPattern = new("^[0-9a-fA-F]{4,64}$", RegexOptions.Compiled);
+    private const int MaxImportedCommitCount = 50_000;
+    private const int MaxImportedSourceNames = 10_000;
+    private const int MaxImportedTreeEntries = 250_000;
+    private const int MaxImportedTreeDepth = 256;
+    private const int MaxToolOutputCharacters = 16 * 1024 * 1024;
 
     public static bool RepositoryExists(DewProjectContext project) =>
         Directory.Exists(Path.Combine(project.RepositoryDirectory, ".git"));
@@ -66,6 +71,7 @@ public static class DewEncryptionService
         CancellationToken ct = default)
     {
         var selected = Path.GetFullPath(selectedDirectory);
+        EnsureNoReparsePoint(selected, "Selected Dew path");
         string repository;
         if (Directory.Exists(Path.Combine(selected, ".git"))
             && Path.GetFileName(selected).Equals(DewSnapshotCore.RepositoryDirectoryName, StringComparison.OrdinalIgnoreCase))
@@ -88,6 +94,16 @@ public static class DewEncryptionService
             ? Directory.GetParent(archiveDirectory)?.FullName
                 ?? throw new DewOperationException("The selected Dew archive directory has no source parent.")
             : repositoryParent;
+        EnsureNoReparsePoint(sourceBase, "Dew restore base directory");
+
+        var commitCountResult = await GitAsync(repository, ["rev-list", "--count", "HEAD"], ct);
+        if (commitCountResult.ExitCode == 0)
+        {
+            if (!int.TryParse(commitCountResult.StdOut.Trim(), out var commitCount)
+                || commitCount < 0 || commitCount > MaxImportedCommitCount)
+                throw new DewOperationException(
+                    $"This Dew repository exceeds the safe import limit of {MaxImportedCommitCount:N0} commits.");
+        }
 
         var namesResult = await GitAsync(repository,
             ["log", "--name-only", "-z", "--pretty=format:", "--", DewSnapshotCore.WorkingTreeDirectoryName], ct);
@@ -108,12 +124,26 @@ public static class DewEncryptionService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        if (historicalNames.Count > MaxImportedSourceNames)
+            throw new DewOperationException(
+                $"This Dew repository exceeds the safe import limit of {MaxImportedSourceNames:N0} source names.");
         var workingDirectory = Path.Combine(repository, DewSnapshotCore.WorkingTreeDirectoryName);
-        var currentNames = Directory.Exists(workingDirectory)
-            ? Directory.EnumerateFileSystemEntries(workingDirectory).Select(Path.GetFileName)
-                .Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!)
-                .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList()
-            : new List<string>();
+        var currentNames = new List<string>();
+        if (Directory.Exists(workingDirectory))
+        {
+            foreach (var entry in Directory.EnumerateFileSystemEntries(workingDirectory))
+            {
+                ct.ThrowIfCancellationRequested();
+                var name = Path.GetFileName(entry);
+                if (!string.IsNullOrWhiteSpace(name)
+                    && !currentNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+                    currentNames.Add(name);
+                if (currentNames.Count > MaxImportedSourceNames)
+                    throw new DewOperationException(
+                        $"This Dew repository exceeds the safe import limit of {MaxImportedSourceNames:N0} source names.");
+            }
+            currentNames.Sort(StringComparer.OrdinalIgnoreCase);
+        }
         var allNames = historicalNames.Concat(currentNames).Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
         if (allNames.Count == 0)
@@ -125,17 +155,18 @@ public static class DewEncryptionService
             ct.ThrowIfCancellationRequested();
             ValidateSourceName(name);
             var member = $"{DewSnapshotCore.WorkingTreeDirectoryName}/{name}";
-            var revisions = await GitAsync(repository, ["rev-list", "HEAD", "--", member], ct);
             bool wasDirectory = false;
-            if (revisions.ExitCode == 0)
+            var firstPresence = await GitAsync(repository,
+                ["log", "--diff-filter=AMR", "--format=%H", "--max-count=1", "--", member], ct);
+            if (firstPresence.ExitCode == 0 && !string.IsNullOrWhiteSpace(firstPresence.StdOut))
             {
-                foreach (var revision in revisions.StdOut.Replace("\r", "")
-                    .Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                var revision = firstPresence.StdOut.Replace("\r", "")
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                if (revision is not null)
                 {
                     var type = await GitAsync(repository, ["cat-file", "-t", $"{revision.Trim()}:{member}"], ct);
-                    if (type.ExitCode != 0) continue;
-                    wasDirectory = type.StdOut.Trim().Equals("tree", StringComparison.Ordinal);
-                    break;
+                    wasDirectory = type.ExitCode == 0
+                        && type.StdOut.Trim().Equals("tree", StringComparison.Ordinal);
                 }
             }
             if (!wasDirectory)
@@ -315,6 +346,7 @@ public static class DewEncryptionService
     {
         ValidateCommit(commit);
         var source = Path.GetFullPath(sourcePath);
+        EnsureNoReparsePoint(source, "Dew restore target");
         if (!project.RestoreTargets.Any(p => string.Equals(Path.GetFullPath(p), source, StringComparison.OrdinalIgnoreCase)))
             throw new DewOperationException("The restore target is not part of this Dew project.");
         if (project.RequiresExplicitRestoreTargetConfirmation && !confirmedInferredTarget)
@@ -376,9 +408,6 @@ public static class DewEncryptionService
                 if (!File.Exists(stagedPath) && !Directory.Exists(stagedPath))
                     throw new DewOperationException("The staged snapshot did not contain the selected source.");
             }
-            else
-                throw new DewOperationException($"Commit {commit} does not contain {member}; the live source was left unchanged.");
-
             if (!project.IsReadOnlyImport)
             {
                 await TakeSnapshotLockedAsync(safetyProject,
@@ -387,7 +416,12 @@ public static class DewEncryptionService
             }
 
             if (project.IsReadOnlyImport)
-                await Task.Run(() => DewSnapshotCore.RestoreMissingSelection(stagedPath, source, ct), ct);
+            {
+                if (stagedPath is not null)
+                    await Task.Run(() => DewSnapshotCore.RestoreMissingSelection(stagedPath, source, ct), ct);
+                else
+                    ct.ThrowIfCancellationRequested(); // the historical deletion is already satisfied by an absent target
+            }
             else
                 await Task.Run(() => DewSnapshotCore.RestoreSingleSelection(
                     stagedPath, source, project.ArchiveDirectory, ct), ct);
@@ -530,7 +564,7 @@ public static class DewEncryptionService
         var gitDirectory = Path.Combine(repository, ".git");
         if (!Directory.Exists(gitDirectory))
             throw new DewOperationException("The selected Dew path is not a normal Git working repository.");
-        EnsureNoReparseTree(repository, "Dew repository");
+        EnsureNoReparseTree(repository, "Dew repository", ct);
 
         var keys = await GitAsync(repository, ["config", "--local", "--no-includes", "--name-only", "--list"], ct);
         if (keys.ExitCode != 0)
@@ -667,22 +701,51 @@ public static class DewEncryptionService
     private static void EnsureNoReparsePoint(string? path, string label)
     {
         if (string.IsNullOrWhiteSpace(path)) return;
-        FileAttributes attributes;
-        try { attributes = File.GetAttributes(path); }
-        catch (FileNotFoundException) { return; }
-        catch (DirectoryNotFoundException) { return; }
-        if ((attributes & FileAttributes.ReparsePoint) != 0)
-            throw new DewOperationException($"{label} cannot be a symbolic link or junction: {path}");
+        var current = Path.GetFullPath(path);
+        while (!string.IsNullOrWhiteSpace(current))
+        {
+            try
+            {
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                    throw new DewOperationException($"{label} cannot traverse a symbolic link or junction: {current}");
+            }
+            catch (FileNotFoundException) { }
+            catch (DirectoryNotFoundException) { }
+
+            var parent = Directory.GetParent(current)?.FullName;
+            if (string.IsNullOrWhiteSpace(parent)
+                || string.Equals(parent, current, StringComparison.OrdinalIgnoreCase))
+                break;
+            current = parent;
+        }
     }
 
-    private static void EnsureNoReparseTree(string root, string label)
+    private static void EnsureNoReparseTree(string root, string label, CancellationToken ct)
     {
         EnsureNoReparsePoint(root, label);
         if (!Directory.Exists(root)) return;
-        foreach (var entry in Directory.EnumerateFileSystemEntries(root))
+        var pending = new Stack<(string Path, int Depth)>();
+        pending.Push((root, 0));
+        int entries = 0;
+        while (pending.Count > 0)
         {
-            EnsureNoReparsePoint(entry, label);
-            if (Directory.Exists(entry)) EnsureNoReparseTree(entry, label);
+            ct.ThrowIfCancellationRequested();
+            var (directory, depth) = pending.Pop();
+            if (depth > MaxImportedTreeDepth)
+                throw new DewOperationException(
+                    $"{label} exceeds the safe import depth of {MaxImportedTreeDepth:N0} directories.");
+            foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
+            {
+                ct.ThrowIfCancellationRequested();
+                if (++entries > MaxImportedTreeEntries)
+                    throw new DewOperationException(
+                        $"{label} exceeds the safe import limit of {MaxImportedTreeEntries:N0} filesystem entries.");
+                var attributes = File.GetAttributes(entry);
+                if ((attributes & FileAttributes.ReparsePoint) != 0)
+                    throw new DewOperationException($"{label} cannot contain a symbolic link or junction: {entry}");
+                if ((attributes & FileAttributes.Directory) != 0)
+                    pending.Push((entry, depth + 1));
+            }
         }
     }
 
@@ -839,8 +902,8 @@ public static class DewEncryptionService
             using var process = new Process { StartInfo = info };
             ct.ThrowIfCancellationRequested();
             if (!process.Start()) return new ToolResult(-1, "", "The process could not be started.");
-            var stdout = process.StandardOutput.ReadToEndAsync();
-            var stderr = process.StandardError.ReadToEndAsync();
+            var stdout = ReadBoundedAsync(process.StandardOutput, MaxToolOutputCharacters, ct);
+            var stderr = ReadBoundedAsync(process.StandardError, MaxToolOutputCharacters, ct);
             try
             {
                 if (standardInput is not null)
@@ -849,7 +912,15 @@ public static class DewEncryptionService
                     await process.StandardInput.FlushAsync(ct);
                     process.StandardInput.Close();
                 }
-                await process.WaitForExitAsync(ct);
+                var exitTask = process.WaitForExitAsync(ct);
+                var pending = new List<Task> { exitTask, stdout, stderr };
+                while (!exitTask.IsCompleted)
+                {
+                    var completed = await Task.WhenAny(pending);
+                    await completed; // propagate a bounded-reader or cancellation failure before a child can block its pipe
+                    pending.Remove(completed);
+                }
+                await exitTask;
             }
             catch (Exception ex)
             {
@@ -873,6 +944,22 @@ public static class DewEncryptionService
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex) { return new ToolResult(-1, "", ex.Message); }
+    }
+
+    private static async Task<string> ReadBoundedAsync(StreamReader reader, int characterLimit,
+        CancellationToken ct)
+    {
+        var result = new StringBuilder(Math.Min(characterLimit, 4096));
+        var buffer = new char[8192];
+        while (true)
+        {
+            int read = await reader.ReadAsync(buffer.AsMemory(), ct);
+            if (read == 0) return result.ToString();
+            if (result.Length > characterLimit - read)
+                throw new DewOperationException(
+                    $"A Dew helper produced more than {characterLimit / (1024 * 1024)} MiB of output and was stopped.");
+            result.Append(buffer, 0, read);
+        }
     }
 
     private static async Task<bool> TerminateProcessAsync(Process process)
