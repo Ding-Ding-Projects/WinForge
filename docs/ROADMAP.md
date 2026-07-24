@@ -36,6 +36,8 @@
 
 ## 🔭 Discovered backlog · 發掘待辦（175 items / 項）
 
+Checklist status is reconciled against executable source, registered routes, generated references, and live deep-link smoke evidence. The latest bounded audit is [Small module reconciliation — 2026-07-24](roadmap-audits/2026-07-24-small-module-reconciliation.md); a checked row means the named user outcome is reachable, not merely that similar text exists. · Checklist 狀態會按可執行 source、已登記 route、生成 reference 同 live deep-link smoke 證據對帳。最新有限審核係[細型模組對帳 — 2026-07-24](roadmap-audits/2026-07-24-small-module-reconciliation.md)；剔號代表指定用戶結果真係可達，唔係淨係搵到相似文字。
+
 ### Windows 11  (13)
 - [ ] **Disable Wallpaper JPEG Compression (Import Quality 100)** · 熄咗桌布JPEG壓縮(質素調到最高100)
   - _HKCU\Control Panel\Desktop -> DWORD JPEGImportQuality = 100 (valid 60-100; default behaviour ~85). Disables Windows' automatic recompression of JPG wallpapers. After writing, re-apply the image via SystemParametersInfo SPI_SETDESKWALLPAPER (or re-set the wallpaper) so the new quality takes effect. PNG/BMP wallpapers are unaffected._
@@ -380,9 +382,9 @@
   - _WinRT Windows.Media.Ocr.OcrEngine.TryCreateFromUserProfileLanguages(); decode the bitmap with BitmapDecoder, await engine.RecognizeAsync(softwareBitmap), join OcrResult.Lines and copy to clipboard. For Cantonese/Chinese check OcrEngine.AvailableRecognizerLanguages for a zh-Hant/zh-Hans recognizer and prompt to add the language pack if absent._
 
 ### DNS & Hosts Manager · 🆕 new module / 新模組  (2)
-- [ ] **Hosts file editor with one-click block/redirect** · 改hosts檔，一㩒就封站或者轉址
+- [x] **Hosts file editor with one-click block/redirect** · 改hosts檔，一㩒就封站或者轉址
   - _Read/write %SystemRoot%\System32\drivers\etc\hosts (needs elevation). Back up to hosts.bak first, append rows like '0.0.0.0 example.com', toggle a row by prefixing '#', then run ipconfig /flushdns to apply._
-- [ ] **Switch DNS server (Cloudflare/Google/auto)** · 轉DNS伺服器（Cloudflare/Google/自動）
+- [x] **Switch DNS server (Cloudflare/Google/auto)** · 轉DNS伺服器（Cloudflare/Google/自動）
   - _PowerShell DnsClient module: Set-DnsClientServerAddress -InterfaceIndex N -ServerAddresses ('1.1.1.1','1.0.0.1'); reset to DHCP with -ResetServerAddresses. Enumerate adapters via Get-DnsClientServerAddress; flush with Clear-DnsClientCache._
 
 ### Clipboard & QR Toolkit · 🆕 new module / 新模組  (2)
@@ -398,9 +400,9 @@
   - _Wrap the LibreHardwareMonitorLib NuGet: new Computer { IsCpuEnabled = true, IsGpuEnabled = true }.Open(), then traverse Hardware[].Sensors where SensorType is Temperature/Fan/Load. Fallback to the MSAcpi_ThermalZoneTemperature WMI class for a coarse thermal-zone reading without admin drivers._
 
 ### WSL & VM Launcher · 🆕 new module / 新模組  (2)
-- [ ] **WSL distro manager (install/export/set-default)** · 管WSL發行版（裝、出檔、設預設）
+- [x] **WSL distro manager (install/export/set-default)** · 管WSL發行版（裝、出檔、設預設）
   - _Shell out to wsl.exe (C:\Windows\System32\wsl.exe): list with wsl --list --verbose; browse with wsl --list --online; install wsl --install -d <Distro>; back up wsl --export <Distro> <file.tar>; restore wsl --import <Name> <dir> <file.tar>; default wsl --set-default <Distro>; reclaim RAM with wsl --shutdown._
-- [ ] **Launch Windows Sandbox with a prebuilt .wsb config** · 用現成.wsb設定開Windows沙盒
+- [x] **Launch Windows Sandbox with a prebuilt .wsb config** · 用現成.wsb設定開Windows沙盒
   - _Emit a .wsb XML (<Configuration><MappedFolders><MappedFolder><HostFolder>...</HostFolder><ReadOnly>true</ReadOnly></MappedFolder></MappedFolders><Networking>Disable</Networking></Configuration>) and start it with WindowsSandbox.exe <file.wsb>. Enable the feature first via DISM /Online /Enable-Feature /FeatureName:Containers-DisposableClientVM /All (the documented Windows Sandbox feature name)._
 
 ### Color Lab · 🆕 new module / 新模組  (1)
@@ -412,7 +414,7 @@
   - _Per-user install (no UAC): copy .ttf/.otf to %LOCALAPPDATA%\Microsoft\Windows\Fonts and add a value under HKCU\Software\Microsoft\Windows NT\CurrentVersion\Fonts named '<Face> (TrueType)' = the file path, then broadcast WM_FONTCHANGE. Machine-wide variant: copy to %WINDIR%\Fonts + the HKLM equivalent. Preview by rendering a sample string per face._
 
 ### Hotkey & Macro Runner · 🆕 new module / 新模組  (1)
-- [ ] **Global hotkey -> action macro runner** · 設全域熱鍵跑自訂動作
+- [x] **Global hotkey -> action macro runner** · 設全域熱鍵跑自訂動作
   - _Register chords with user32 RegisterHotKey and pump WM_HOTKEY; map each id to an action: Process.Start an app, run a PowerShell snippet, or replay input via SendInput. Persist bindings to JSON; optionally bundle AutoHotkey v2 (AutoHotkey64.exe script.ahk) for richer key remaps._
 
 ### OneDrive · 🆕 new module / 新模組  (1)
@@ -420,7 +422,7 @@
   - _OneDrive.exe /shutdown to pause sync. Per file/folder: 'attrib +U -P <path>' marks online-only (dehydrate via cloud-filter pin state), 'attrib +P -U <path>' pins it always-local. Auto-dehydration age set by DWORD ConfigStorageSenseCloudContentDehydrationThreshold under ...\StorageSense\Parameters\StoragePolicy._
 
 ### Time & Unit Tools · 🆕 new module / 新模組  (1)
-- [ ] **World clock & timezone converter** · 睇世界時鐘同換時區
+- [x] **World clock & timezone converter** · 睇世界時鐘同換時區
   - _Enumerate zones with TimeZoneInfo.GetSystemTimeZones() (or tzutil /l) and convert with TimeZoneInfo.ConvertTimeBySystemTimeZoneId(dt, srcId, dstId). Read the machine's current zone via tzutil /g; show a multi-city board updating each second. No network needed; zones come from the OS ICU/registry data._
 
 ### Voice & Read-Aloud · 🆕 new module / 新模組  (1)
