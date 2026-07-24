@@ -8,7 +8,13 @@
     mc:Ignorable="d">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="640">
-        <StackPanel x:Name="Root" Spacing="14" Width="560" Padding="2,2,12,2">
+        <StackPanel
+            x:Name="Root"
+            MinWidth="280"
+            MaxWidth="560"
+            Padding="2,2,12,2"
+            HorizontalAlignment="Stretch"
+            Spacing="14">
             <InfoBar x:Name="Bar" IsClosable="True" IsOpen="False" />
         </StackPanel>
     </ScrollViewer>

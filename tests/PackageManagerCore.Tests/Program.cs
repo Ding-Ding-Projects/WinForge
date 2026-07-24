@@ -16,9 +16,12 @@ Run("valid source preview and identity forwarding", ValidSourcePreviewAndIdentit
 Run("malicious package-reference rejection", RejectsMaliciousReferences);
 Run("malicious source rejection", RejectsMaliciousSource);
 Run("malicious structured-option rejection", RejectsMaliciousStructuredOptions);
+Run("structured package-setting normalization", StructuredSettingNormalization);
+Run("unsafe structured package-setting rejection", RejectsUnsafeStructuredSettings);
 Run("valid manager-specific references", AcceptsValidReferences);
 Run("security warnings use current fields", SecurityWarnings);
 Run("HasOptions uses current schema", HasOptions);
+await RunAsyncCase("atomic bundle save reports failures", BundleSaveReliability);
 await RunAsyncCase("coordinator rejects unsafe options", CoordinatorRejectsUnsafeOptions);
 await RunAsyncCase("minor-update policy matches UniGetUI", MinorUpdatePolicy);
 await RunAsyncCase("option-sensitive duplicate suppression", OptionSensitiveDeduplication);
@@ -247,6 +250,44 @@ static void RejectsMaliciousSource()
     Equal(0, PackageOperations.BuildCalls, "malicious scripted source reached command builder");
 }
 
+static void StructuredSettingNormalization()
+{
+    Assert(PackageManagerInputPolicy.TryNormalizeProxyUrl(" HTTPS://proxy.example:8443/ ", out var proxy),
+        "valid proxy was rejected");
+    Equal("https://proxy.example:8443", proxy, "proxy authority normalization");
+    Assert(PackageManagerInputPolicy.TryNormalizeProxyUrl("", out var emptyProxy), "empty proxy was rejected");
+    Equal("", emptyProxy, "empty proxy normalization");
+
+    Assert(PackageManagerInputPolicy.TryNormalizeVcpkgTriplet(" x64-windows-static-md ", out var triplet),
+        "valid triplet was rejected");
+    Equal("x64-windows-static-md", triplet, "triplet normalization");
+    Assert(PackageManagerInputPolicy.TryNormalizeVcpkgTriplet("", out var emptyTriplet),
+        "empty triplet was rejected");
+    Equal("", emptyTriplet, "empty triplet normalization");
+}
+
+static void RejectsUnsafeStructuredSettings()
+{
+    foreach (var proxy in new[]
+    {
+        "ftp://proxy.example:21", "http://user:secret@proxy.example:8080",
+        "http://proxy.example:8080/path", "http://proxy.example:8080?x=1",
+        "http://proxy.example:8080/#fragment", "http://proxy.example/%PATH%",
+        "http://proxy.example/\" & calc", "http://proxy.example/\r\nnext",
+    })
+        Assert(!PackageManagerInputPolicy.TryNormalizeProxyUrl(proxy, out _),
+            $"accepted unsafe proxy {proxy}");
+
+    foreach (var triplet in new[]
+    {
+        "x64-windows & calc", "x64 windows", "../x64-windows", "-x64-windows",
+        "x64-windows/../../tool", "x64-windows`calc`", "x64-windows\nnext",
+        new string('x', PackageManagerInputPolicy.MaximumVcpkgTripletLength + 1),
+    })
+        Assert(!PackageManagerInputPolicy.TryNormalizeVcpkgTriplet(triplet, out _),
+            $"accepted unsafe triplet {triplet}");
+}
+
 static void AcceptsValidReferences()
 {
     PackageOperations.Reset();
@@ -320,6 +361,36 @@ static void HasOptions()
     Assert(Has(new() { AbortOnPreInstallFail = true }), "abort flag missing");
     Assert(Has(new() { CustomArgsUpdate = "--force" }), "custom args missing");
     Assert(Has(new() { ForceKill = true }), "ForceKill missing");
+}
+
+static async Task BundleSaveReliability()
+{
+    var root = Path.Combine(Path.GetTempPath(), "WinForge.PackageManagerCore.Tests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(root);
+    try
+    {
+        var path = Path.Combine(root, "bundle.json");
+        var bundle = FullBundle();
+        Assert(await BundleService.SaveAsync(bundle, path), "initial bundle save reported failure");
+        Assert(File.Exists(path), "initial bundle save did not create the destination");
+
+        bundle.packages[0].Name = "Updated Example";
+        Assert(await BundleService.SaveAsync(bundle, path), "atomic replacement reported failure");
+        var loaded = await BundleService.LoadAsync(path);
+        Equal("Updated Example", loaded.Bundle.packages.Single().Name, "replacement payload");
+        Assert(!Directory.EnumerateFiles(root, ".*.tmp").Any(), "successful save left a staging file");
+
+        var missingDirectoryPath = Path.Combine(root, "missing", "bundle.json");
+        Assert(!await BundleService.SaveAsync(bundle, missingDirectoryPath),
+            "save to a missing directory reported success");
+        Assert(!await BundleService.SaveAsync(bundle, ""), "empty destination reported success");
+        Equal("Updated Example", (await BundleService.LoadAsync(path)).Bundle.packages.Single().Name,
+            "failed save changed the existing destination");
+    }
+    finally
+    {
+        try { Directory.Delete(root, recursive: true); } catch { }
+    }
 }
 
 static async Task CoordinatorRejectsUnsafeOptions()

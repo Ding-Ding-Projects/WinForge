@@ -318,6 +318,15 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Package Manager · 套件管理
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
+#### Narrow bilingual layout · 窄畫面雙語版面
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages-narrow.png)
+
+#### Credential-free proxy and vcpkg settings · 無 credential proxy 同 vcpkg 設定
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-package-settings-proxy.png)
+
+#### Narrow-safe App Settings actions · 窄畫面安全 App Settings actions
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-package-settings-actions.png)
+
 ### Cake Factory & Farm · 蛋糕工廠與農場
 ![](images/screenshot-cakefactory.png)
 
