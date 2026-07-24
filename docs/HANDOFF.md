@@ -4,6 +4,27 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current Browser Control roadmap verification · 目前瀏覽器控制路線圖驗證
+
+- The accessible bilingual Browser workbench closes all eleven prior gaps: configurable app/kiosk URLs, real profiles/PWAs, flags/policy, contained cache cleanup, isolated proxy/throwaway/features/debugging, and exact-ID winget actions. Browser Control is **14/14**; with Media at 15/15, the core matrix is **96/115**. · 無障礙雙語工作台補齊十一個缺口；Browser Control **14/14**，連同 Media 15/15，核心 matrix **96/115**。
+- Browser arguments are discrete and bounded; sensitive URL/proxy values are not persisted, embedded credentials and elevated browser launch are rejected, debugging is loopback-only, and destructive cache/package operations require explicit decisions. · 瀏覽器參數獨立而有界；敏感值唔持久化，憑證／提權瀏覽器被拒絕，除錯只綁 loopback，快取／套件變更要明確決定。
+- Focused tests pass **23/23**; the merged x64 solution build has **0 warnings / 0 errors**; roadmap, XAML, source, and site-data gates pass. Inspected 1033×637 and 784×691 LowLevel captures have readable wrapping and zero retained windows, with no real browser/cache/package/debug side effect. · 專項 **23/23**、合併 build 零 warning／零 error、全部 gate 全過；兩張 LowLevel 圖已檢視，零殘留亦冇真實副作用。
+- Exact hashes, source-audit counts, and feature commit `24447657f` are recorded in `handoff-summary.md`; source tip `9c06de6b9` is integrated and remotely proved on `main`, and its clean task branch/worktree were removed after proof. · 準確 hash、audit 數字同功能 commit 見 `handoff-summary.md`；source tip `9c06de6b9` 已整合並喺 remote `main` 證明，乾淨 task branch／worktree 只喺 proof 後移除。
+
+## Current independent funny-level settings verification · 目前英粵分開搞笑等級驗證
+
+- English and Cantonese now have independent persisted 1–5 tone levels with defaults 2 / 3, exact-step accessible Settings sliders, import reload, a polite live safe-copy preview, and live Dashboard hero updates in English, Cantonese, and bilingual modes. · 英文／粵語各自有持久化 1–5 級（預設 2／3）、準確步進無障礙設定 slider、匯入重載、polite 安全文案即時預覽，同三種語言模式 Dashboard 即時更新。
+- The boundary is explicit: only authored `PlayfulText` can change. Error, security/financial, destructive, accessibility, and operational wording remains exact. Invalid values fail independently to defaults and out-of-range writes are rejected. · 邊界係明確嘅：只有寫好嘅 `PlayfulText` 可以變；錯誤、安全／金融、破壞性、無障礙同操作文字保持準確。無效值各自回退，越界寫入拒絕。
+- Focused tests pass **6/6**; the combined solution build has **0 warnings / 0 errors**; self-contained publish/site generation, XAML safety, and the detailed 337-XAML source audit pass with zero lifecycle/actionable findings. · 專項 **6/6**、combined solution build 零 warning／零 error、self-contained publish／site generation、XAML safety 同 337-XAML 詳細 audit 全過，零 lifecycle／actionable finding。
+- Fresh inspected LowLevel evidence covers 1049×646 default, 1049×820 English 5 / Cantonese 1 live control, and 720×646 narrow layout. Original 2 / 3 persisted values were restored, owned processes exited, and both dedicated desktops closed at zero windows. The exact hashes and branch boundary are in `handoff-summary.md`. · 最新 LowLevel 證據有 default、英 5／粵 1 即時控制同 720 像素窄畫面；原本 2／3 已還原，自家 process 全部退出，兩個 desktop 都零視窗後關閉。準確 hash 同 branch 界線見 `handoff-summary.md`。
+
+## Current managed Regex Builder foundation · 目前正式受管理正則砌法基礎
+
+- `module.regextester` now has guided literals, character classes, anchors, groups, alternation, and quantifiers beside its authoritative raw editor, five flags, bounded local sample, live matches/captures, replacement preview, and explicit copy. · `module.regextester` 而家喺權威原始 editor 旁邊有字面文字、字元類、錨點、群組、二選一同量詞引導砌法，亦有五旗標、有界本機 sample、即時配對／擷取、替換預覽同明確複製。
+- Evaluation is .NET 11 local-only with a one-second timeout, 4,096/1,000,000/65,536 input limits, a 2,000-match cap, safe zero-width progress, and a conservative replacement-work gate. · 運算只喺本機用 .NET 11，一秒超時、4,096／1,000,000／65,536 輸入上限、2,000 配對上限、安全零寬度推進，同保守替換工作量閘。
+- Focused tests pass **13/13** and the x64 solution build passes with 0 warnings/0 errors. Fresh app-owned and LowLevel headless ~1049×646 frames were inspected; vertical options do not clip and keyboard focus is visible. · 專項測試 **13/13**，x64 solution build 0 warning／0 error；已檢視新鮮 app-owned 同 LowLevel headless 約 1049×646 圖，直排選項冇裁切，鍵盤 focus 清楚可見。
+- `SearchPatternService` establishes the plain-default/regex-explicit matching contract, but direct builder access and bidirectional pattern/flag synchronization for every search bar remains open and is not claimed complete. · `SearchPatternService` 建立純文字預設／regex 明確開啟合約，但每個搜尋欄直接用 builder 同雙向同步 pattern／旗標仍然未完成，唔會誤報完成。
+
 ## Current Screen Recorder lifecycle verification · 目前螢幕錄影 lifecycle 驗證
 
 - The concrete ffmpeg adapter bulk-copies redirected stderr bytes to `Stream.Null`; it no longer decodes and dispatches one empty callback per progress line. · 正式 ffmpeg adapter 會整批複製 redirected stderr byte 去 `Stream.Null`，唔再逐行解碼同派空 callback。
@@ -13,10 +34,10 @@ WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 
 
 ## Current core roadmap capability reconciliation · 目前核心路線圖功能對帳
 
-- Eight stale core sections now have a strict source-backed disposition: **74/115 shipped** and **41 factual gaps retained**. The exact per-section matrix, catalog IDs, handlers, mechanisms, documentation evidence, and missing behavior are in [the categorized audit](audits/roadmap-core-capability-audit-2026-07-24.md). · 八個過時核心章節已有嚴格原始碼處置：**74/115 已交付**，**41 個真實缺口保留**；每節 matrix、catalog ID、handler、機制、文件證據同欠缺行為都喺分類 audit。
+- Eight stale core sections now have a strict source-backed disposition: **96/115 shipped** and **19 factual gaps retained** after Browser Control and Media each closed eleven gaps. The exact per-section matrix, controls, services, documentation evidence, and remaining behavior are in [the categorized audit](audits/roadmap-core-capability-audit-2026-07-24.md). · 八個過時核心章節已有嚴格原始碼處置；Browser Control 同 Media 各自補完 11 個缺口後係 **96/115 已交付**、**19 個真實缺口保留**。
 - `tools/Test-RoadmapCoreAudit.ps1` checks all 115 exact titles, their shipped/gap placement, section counts, mirrors, and aggregate. Post-rebase source/XAML checks pass, and the canonical site generator publishes the new wiki page without hand-editing app data. · 專項 test 會核對 115 個準確標題、已交付／缺口位置、每節數量、mirror 同總數；rebase 後 source／XAML gate 全過，正式 site generator 亦已發佈新 wiki 頁，冇手改 app data。
-- Follow-up review rechecked all 43 Media, Archives, and Browser Control dispositions without changing their counts. Checked Media notes now match the shipped commands; animated WebP uses `libwebp` with no explicit quality value. · 跟進覆核重新檢查三個分類全部 43 項，數量冇改；已剔選 Media 註解而家同 shipped command 一致，動態 WebP 用 `libwebp`，冇明確 quality 參數。
-- No WinUI surface changed, so screenshot evidence is not applicable. Source/audit commit `632d0e551383c143908cfc65e25fa4d60f937715` is based on `4af5e60e9d41f258f2d4697b1f0383138c8d1642`, pushed and proved byte-identical on `origin/codex/roadmap-reconcile-core`; this final memory record follows on that branch, while main integration remains with the coordinating parent. · 冇 WinUI 畫面改動，所以截圖證據不適用；source／audit commit `632d0e551` 以 `4af5e60e9` 為基線，已 push 並證明同 remote branch 完全一致；呢個最終 memory 記錄跟住喺同一 branch，而 main 整合交畀統籌 parent。
+- Follow-up review rechecked all 43 Media, Archives, and Browser Control dispositions; Media and Browser later closed their evidence-backed gaps. Checked Media notes match the shipped commands, and animated WebP uses `libwebp` with no explicit quality value. · 跟進覆核重新檢查三個分類全部 43 項；Media 同 Browser 之後補齊有證據缺口，動態 WebP 仍用 `libwebp` 而冇明確 quality 參數。
+- Browser and Media both changed WinUI surfaces, so fresh inspected screenshots are tracked in their dedicated handoff sections. · Browser 同 Media 都改咗 WinUI 畫面，最新已檢視截圖記錄喺各自交接章節。
 
 ## Current preserved package-stash verification · 目前已保存套件 stash 驗證
 

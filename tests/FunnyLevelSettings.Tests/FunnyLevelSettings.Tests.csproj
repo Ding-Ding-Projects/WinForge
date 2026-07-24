@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Catalog\PlayfulCopy.cs" Link="Catalog\PlayfulCopy.cs" />
+    <Compile Include="..\..\Models\Core.cs" Link="Models\Core.cs" />
+    <Compile Include="..\..\Models\PlayfulText.cs" Link="Models\PlayfulText.cs" />
+    <Compile Include="..\..\Services\FunnyLevelSettings.cs" Link="Services\FunnyLevelSettings.cs" />
+    <Compile Include="..\..\Services\Loc.cs" Link="Services\Loc.cs" />
+    <Compile Include="..\..\Services\SettingsStore.cs" Link="Services\SettingsStore.cs" />
+    <Compile Include="..\..\Services\SettingsStorePersistence.cs" Link="Services\SettingsStorePersistence.cs" />
+  </ItemGroup>
+</Project>

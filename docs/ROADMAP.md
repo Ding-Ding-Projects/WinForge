@@ -7,6 +7,8 @@
 > **Repository scope · 儲存庫範圍：** This roadmap covers the canonical .NET WinUI 3 app. C++/WinRT port work, evidence, and backlog now live in [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). · 呢份路線圖只涵蓋正式嘅 .NET WinUI 3 app；C++/WinRT 移植工作、證據同待辦而家放喺 [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)。
 
 ## ✅ Done · 已完成
+- [x] **Independent funny-level settings (2026-07-24)** · **英粵分開搞笑等級（2026-07-24）** — persisted 1–5 English and Cantonese controls, accessible exact-step sliders, live safe-copy preview, Dashboard updates, import reload, narrow-width layout, and a hard boundary that leaves errors, security, destructive actions, accessibility, and operational wording unchanged.
+- [x] **Managed guided Regex Builder foundation (2026-07-24)** · **正式受管理引導式正則砌法基礎（2026-07-24）** — .NET 11 dialect, literals/classes/anchors/groups/alternation/quantifiers, raw pattern, five flags, bounded local sample, live matches/captures, replacement preview, explicit copy, 1-second timeout, 2,000-result cap, and 13/13 safety tests. Project-wide search-bar handoff/synchronization remains a separately tracked open integration.
 - [x] **Reactor industrial loads — ammonia plant + grid load shedding (2026-07-24)** · **反應堆工業負載 — 合成氨廠＋電網卸載（2026-07-24）** — live-bus-gated Haber–Bosch production, strict-priority feeder dispatch, cold-bus accounting, anti-flap reclose, accessible bilingual controls, and a 65/65 regression gate.
 - [x] **Native Dew Encryption integration and audit hardening** · 原生 Dew 加密整合同審核強化 — compatible Git-backed file/folder snapshots, history/details, staged rollback-safe restore including historical deletions, race-safe and load-tested debounced auto-history, and secret-safe password/header-encrypted 7z export; ancestor reparse rejection, bounded/cancellable imported-history processing, adaptive accessible UI, localized diagnostics, pinned MIT upstream reference source, and no Python/Avalonia launcher.
 - [x] **Windows 11 control module** · Windows 11 控制模組 — 169 tweaks / 13 categories
@@ -135,36 +137,36 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _Diff ViVeTool.exe /query output against the bundled name dictionary to surface features present on THIS build but sitting at Default/Disabled ('available to try'); after any /enable|/disable|/reset offer a soft apply via 'taskkill /f /im explorer.exe && start explorer.exe' for shell-only features or 'shutdown /r /t 0' for store-level ones. User confirms - no destructive default._
 
 ### Media · 🆕 new module / 新模組  (15)
-> **Strict source audit (2026-07-24): 4/15 shipped.** The eleven partial or absent pipelines remain unchecked and are explained in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#media--media). · **嚴格原始碼審核：15 項有 4 項已交付；其餘 11 項仍然保留待辦。**
+> **Implemented and re-audited (2026-07-24): 15/15 shipped.** The eleven former gaps now use reachable bilingual Media controls and the bounded `MediaWorkflowExecutor`; focused evidence is in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#media--media). · **已實作再審核：15 項全部交付。原本 11 個缺口而家都有可達雙語控制同有界限嘅 `MediaWorkflowExecutor`。**
 
-- [ ] **Normalize loudness to broadcast standard (EBU R128)** · 校正音量去廣播標準（EBU R128）
-  - _Two-pass ffmpeg loudnorm. Pass 1 measures: ffmpeg -i in.mp4 -af loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json -f null - ; parse measured_I/measured_TP/measured_LRA/measured_thresh from stderr JSON, then pass 2: ffmpeg -i in.mp4 -af loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=...:measured_TP=...:measured_LRA=...:measured_thresh=...:linear=true -c:v copy out.mp4 (all measured_* params + print_format confirmed present in this build)_
-- [ ] **Auto-trim silence from start/end and gaps** · 自動剪走頭尾同中間嘅靜音
-  - _ffmpeg -i in.mp3 -af silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB:stop_periods=-1:stop_silence=0.3:stop_threshold=-50dB:detection=peak out.mp3 (silenceremove filter + all listed options confirmed in this build)_
+- [x] **Normalize loudness to broadcast standard (EBU R128)** · 校正音量去廣播標準（EBU R128）
+  - _`NormalizeR128Btn` runs `MediaWorkflowExecutor.NormalizeLoudnessAsync`: pass one parses ffmpeg's `input_i/input_tp/input_lra/input_thresh` JSON, then pass two supplies all four `measured_*` values with `linear=true`. The final file is promoted from a same-folder staged output only after success._
+- [x] **Auto-trim silence from start/end and gaps** · 自動剪走頭尾同中間嘅靜音
+  - _`TrimSilenceBtn` runs the full `silenceremove` filter with `start_periods=1` and `stop_periods=-1`, covering leading, trailing, and internal silence. It accepts audio files only so collapsing gaps can never desynchronize a copied video track._
 - [x] **Make high-quality GIF (two-pass palette)** · 整靚 GIF（兩步調色板）
   - _The shipped GifLab export writes the ordered frames to an ffmpeg concat list, then runs a separate `palettegen=stats_mode=diff` pass into a temporary palette and a `paletteuse=dither=bayer:bayer_scale=3` pass into the GIF. The page supplies FPS, optional scale and loop count; `GifLabService.Export` checks the palette pass before continuing._
-- [ ] **Stabilize shaky video (vidstab two-pass)** · 整定鏡頭、減震（vidstab 兩步）
-  - _Two-pass libvidstab (vidstabdetect/vidstabtransform confirmed). Pass1 detect: ffmpeg -i in.mp4 -vf vidstabdetect=shakiness=8:accuracy=15:result=transforms.trf -f null - ; Pass2 transform: ffmpeg -i in.mp4 -vf vidstabtransform=input=transforms.trf:smoothing=30:zoom=0,unsharp=5:5:0.8:3:3:0.4 -c:a copy out.mp4_
-- [ ] **Auto-detect and crop black bars** · 自動偵測、剷走黑邊
-  - _ffmpeg -ss 60 -i in.mp4 -vframes 200 -vf cropdetect=round=2 -f null - to read the suggested crop=w:h:x:y from stderr, then ffmpeg -i in.mp4 -vf crop=w:h:x:y -c:a copy out.mp4 (cropdetect + round option confirmed)_
+- [x] **Stabilize shaky video (vidstab two-pass)** · 整定鏡頭、減震（vidstab 兩步）
+  - _`StabilizeBtn` runs `vidstabdetect` into a GUID-scoped owned transform file, verifies that file exists, then runs `vidstabtransform` plus unsharp. Cancellation and all transform/pass scratch files are cleaned in `finally`._
+- [x] **Auto-detect and crop black bars** · 自動偵測、剷走黑邊
+  - _`AutoCropBtn` samples 200 frames with `cropdetect=round=2`, parses the final valid `crop=w:h:x:y`, and applies it in a second staged encode._
 - [x] **Lossless cut on keyframes (no re-encode)** · 唔重新編碼、喺關鍵幀剪片
   - _The shipped Media page accepts a start time and duration, then runs `ffmpeg -ss {start} -i {in} -t {duration} -c copy {out}`. It stream-copies without re-encoding; the current UI does not list keyframes or add `-avoid_negative_ts`._
-- [ ] **Concat / join clips without re-encoding** · 唔重新編碼咁駁埋幾段片
-  - _concat demuxer: write list.txt with lines like file 'C:/clip1.mp4' then ffmpeg -f concat -safe 0 -i list.txt -c copy out.mp4 (requires same codec/params; fall back to concat filter ffmpeg -i a -i b -filter_complex "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1" when they differ)_
-- [ ] **GPU hardware encode with NVENC** · 用顯示卡硬件編碼（NVENC）
-  - _ffmpeg -i in.mp4 -c:v hevc_nvenc -preset p5 -tune hq -rc vbr -cq 26 -b:v 0 -c:a copy out.mp4 (h264_nvenc / hevc_nvenc / av1_nvenc all confirmed present in this build). Gate on detecting an NVIDIA GPU first._
-- [ ] **Two-pass target-size encode (Discord/email cap)** · 兩步壓到指定大細（夾返上限）
-  - _Compute video bitrate V = (targetMB*8388.608/durationSec) - audioKbps, then x264 two-pass on Windows: pass1 ffmpeg -y -i in.mp4 -c:v libx264 -b:v {V}k -pass 1 -an -f mp4 NUL && pass2 ffmpeg -i in.mp4 -c:v libx264 -b:v {V}k -pass 2 -c:a aac -b:a {A}k out.mp4 (duration from ffprobe -show_entries format=duration; note audio is -b:a not -b:v)_
-- [ ] **Burn-in or soft-mux subtitles (SRT/ASS)** · 燒字幕入畫面 或 軟掛字幕（SRT/ASS）
-  - _Burn-in (hardsub): ffmpeg -i in.mp4 -vf "subtitles='subs.srt':force_style='FontName=Microsoft JhengHei,FontSize=22'" out.mp4 (libass via subtitles filter, confirmed). Soft-mux (toggleable): ffmpeg -i in.mp4 -i subs.srt -c copy -c:s mov_text -metadata:s:s:0 language=yue out.mp4 (mov_text encoder confirmed)_
-- [ ] **Extract chapters and split video by chapter** · 抽章節、按章節分割片段
-  - _List: ffprobe -i in.mkv -show_chapters -print_format json (reads chapter start/end times). Split each: ffmpeg -i in.mkv -ss {start} -to {end} -c copy "Chapter NN.mkv" per chapter entry._
+- [x] **Concat / join clips without re-encoding** · 唔重新編碼咁駁埋幾段片
+  - _The Media page accepts an ordered multi-file selection, writes a UTF-8 concat-demuxer list with escaped apostrophes, then runs `-f concat -safe 0 -c copy -avoid_negative_ts make_zero`. The owned list and staged output are always cleaned._
+- [x] **GPU hardware encode with NVENC** · 用顯示卡硬件編碼（NVENC）
+  - _The NVENC controls first parse `ffmpeg -encoders`, then perform a real 64×64 hardware encode probe for each of `h264_nvenc`, `hevc_nvenc`, and `av1_nvenc`. Only working codecs enter the picker; Encode probes the selected codec again before applying preset/tune/RC/CQ options._
+- [x] **Two-pass target-size encode (Discord/email cap)** · 兩步壓到指定大細（夾返上限）
+  - _The Media page accepts target MiB and audio kbps. `ffprobe` supplies duration, the executor applies `targetMiB*8388.608/duration-audio`, validates 100–200,000 video kbps, then runs two x264 passes with an owned passlog and correct `-b:a` audio bitrate._
+- [x] **Burn-in or soft-mux subtitles (SRT/ASS)** · 燒字幕入畫面 或 軟掛字幕（SRT/ASS）
+  - _The SRT/ASS picker exposes libass burn-in with escaped filter paths and toggleable soft mux. MP4 uses `mov_text`; Matroska-compatible outputs copy the subtitle codec, and soft tracks receive `language=yue` metadata._
+- [x] **Extract chapters and split video by chapter** · 抽章節、按章節分割片段
+  - _Read Chapters parses `ffprobe -show_chapters -print_format json`; Split bounds the count to 200, sanitizes/collision-proofs titles, and produces one `-c copy` output per valid start/end interval._
 - [x] **Contact sheet / storyboard thumbnails** · 整縮圖總表（storyboard）
   - _The shipped `media.contact-sheet` action runs `ffmpeg -i {in} -vf "select=not(mod(n\,300)),scale=240:-1,tile=4x4" -frames:v 1 {out}` through the Media catalog._
-- [ ] **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** · 批次轉 HEIC/JXL 相做 JPG/PNG
-  - _This build has libjxl decoder + hevc decoders. Per file: ffmpeg -i photo.heic -frames:v 1 -q:v 2 photo.jpg ; ffmpeg -i photo.jxl out.png . Loop a folder in PowerShell over *.heic/*.jxl. (ImageMagick magick mogrify -format jpg *.heic as alternative if installed.)_
-- [ ] **Strip EXIF/GPS metadata from photos** · 洗走相片 EXIF／GPS 資料
-  - _ffmpeg -i in.jpg -map_metadata -1 -c:v copy clean.jpg (drops EXIF/GPS without re-encoding the JPEG). For full ICC/XMP scrub use ImageMagick magick in.jpg -strip clean.jpg if present._
+- [x] **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** · 批次轉 HEIC/JXL 相做 JPG/PNG
+  - _The folder workflow enumerates HEIC/HEIF/JXL locally, caps batches at 500, requires a separate output folder, collision-proofs equal stems, and converts one frame per file to user-selected JPG (`-q:v 2`) or PNG._
+- [x] **Strip EXIF/GPS metadata from photos** · 洗走相片 EXIF／GPS 資料
+  - _`StripMetadataBtn` applies `-map_metadata -1 -map_metadata:s -1 -c:v copy` to a staged same-format image, removing EXIF/GPS/XMP/container metadata without pixel re-encoding._
 - [x] **Make animated WebP from video (smaller than GIF)** · 由片整動態 WebP（細過 GIF）
   - _The shipped `media.to-animated-webp` action runs `ffmpeg -i {in} -vf "fps=15,scale=480:-1:flags=lanczos" -c:v libwebp -loop 0 {out}`. It uses `libwebp` and does not set an explicit quality value._
 
@@ -328,36 +330,36 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _Start-Process "ms-settings:defaultapps" opens the Default apps Settings page so the user reassigns mailto and the discord/tg/msteams/slack scheme handlers. Windows 10+ blocks programmatic UserChoice writes, so the suite deep-links the page for the user to confirm rather than forcing a handler._
 
 ### Browser Control · 🆕 new module / 新模組  (14)
-> **Strict source audit (2026-07-24): 3/14 shipped.** Eleven partial/absent browser workflows remain unchecked; evidence and precise gaps are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#browser-control--browser-control). · **嚴格原始碼審核：14 項有 3 項已交付；11 項仲未完整。**
+> **Browser Control completion (2026-07-24): 14/14 shipped.** The parameterized workbench, bounded core, 23-case regression harness, and fresh route evidence close all eleven audited gaps; exact mechanisms are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#browser-control--browser-control). · **瀏覽器控制完成：14 項全部交付。參數化工作台、有界 core、23 項回歸測試同最新 route 證據已補齊十一個缺口。**
 
-- [ ] **Launch site as desktop app window** · 用 App 模式開個網站做獨立視窗
-  - _Spawn msedge.exe / chrome.exe with --app=https://<url> for a chromeless standalone window (no tabs/omnibox). Optionally add --window-size=W,H and --window-position=X,Y. Real exe paths confirmed at C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe and C:\Program Files\Google\Chrome\Application\chrome.exe (resolved via HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths)._
+- [x] **Launch site as desktop app window** · 用 App 模式開個網站做獨立視窗
+  - _`BrowserControlPanel` accepts a bounded HTTP(S) URL; `BuildAppModePlan` emits one `--app=<url>` argument and resolves Chrome/Edge through installed paths and App Paths. Shell metacharacters never become a command line._
 - [x] **Open in incognito / InPrivate window** · 開個無痕視窗瀏覽
   - _msedge.exe --inprivate <url> for Edge; chrome.exe --incognito <url> for Chrome. Both are documented switches._
-- [ ] **Launch full-screen kiosk URL** · 開全螢幕 Kiosk 鎖死喺個網度
-  - _msedge.exe --kiosk https://<url> --edge-kiosk-type=fullscreen --kiosk-idle-timeout-minutes=0 (Edge kiosk switches); chrome.exe --kiosk https://<url>. Assigned-access-free kiosk launch._
-- [ ] **Pick and launch a specific browser profile** · 揀個 Profile 嚟開
-  - _Enumerate profiles by reading 'User Data\Local State' JSON (key profile.info_cache maps folder dir to display name; confirmed present for both Edge and Chrome). Launch chosen one with msedge.exe --profile-directory="Default" (or "Profile 1"). No registry, real on-disk profile dirs._
-- [ ] **List and launch installed PWAs** · 列晒啲裝咗嘅 PWA 出嚟開
-  - _PWAs install as .lnk shortcuts under %APPDATA%\Microsoft\Windows\Start Menu\Programs whose targets are msedge.exe/chrome.exe --profile-directory=... --app-id=<AppId>. Enumerate via shell:AppsFolder or parse the .lnk targets; launch with --app-id=<AppId>. App IDs must be read at runtime from existing shortcut targets, never fabricated._
+- [x] **Launch full-screen kiosk URL** · 開全螢幕 Kiosk 鎖死喺個網度
+  - _The same validated URL field emits Chrome `--kiosk <url>` or Edge `--kiosk <url> --edge-kiosk-type=fullscreen --kiosk-idle-timeout-minutes=0` as discrete arguments._
+- [x] **Pick and launch a specific browser profile** · 揀個 Profile 嚟開
+  - _Profiles are enumerated from real user-data directories and `Local State` `profile.info_cache`; the selected, containment-checked directory becomes `--profile-directory=<dir>`._
+- [x] **List and launch installed PWAs** · 列晒啲裝咗嘅 PWA 出嚟開
+  - _The workbench parses user/common Start-menu `.lnk` targets through `IShellLinkW`, extracts runtime `--app-id` and profile values, deduplicates them, then launches the resolved installed browser with those validated values._
 - [x] **Open the Windows default-apps picker for a browser** · 開預設 App 設定揀返個瀏覽器
   - _Windows 11 blocks silent default changes; deep-link the user to ms-settings:defaultapps (the per-app subpage / registeredAppUser anchor is build-dependent, so land on the page and let the user pick). For unattended provisioning, build an XML and apply with DISM /Online /Import-DefaultAppAssociations:assoc.xml. No fabricated keys._
-- [ ] **Open internal flags & policy pages** · 開 edge://flags 同 policy 內部頁
-  - _Launch the browser with an internal page as the URL arg: msedge.exe edge://flags | edge://policy | edge://version | edge://settings/profiles ; chrome.exe chrome://flags | chrome://policy | chrome://components | chrome://net-export . All real internal URLs._
-- [ ] **Clear browsing cache for a profile** · 清返個 Profile 嘅 cache
-  - _With the browser fully closed, delete on-disk caches: %LOCALAPPDATA%\Microsoft\Edge\User Data\<Profile>\Cache and \Code Cache (Cache dir confirmed present), plus the Chrome equivalent under Google\Chrome. For interactive scope, deep-link edge://settings/clearBrowserData or chrome://settings/clearBrowserData. No undocumented flag._
-- [ ] **Set per-launch proxy server** · 開個 session 行 proxy
-  - _msedge.exe/chrome.exe --proxy-server="socks5://127.0.0.1:1080" (or http://host:port) with optional --proxy-bypass-list="*.local;127.0.0.1". Real Chromium network switch; pair with --user-data-dir to keep it isolated._
-- [ ] **Launch isolated throwaway browser sandbox** · 開個獨立 user-data 沙盒用完即棄
-  - _msedge.exe/chrome.exe --user-data-dir="%TEMP%\WinForge-sandbox\<guid>" creates a brand-new isolated profile tree (own cookies/history/extensions). Delete the dir afterward for a clean throwaway session. Documented switch._
-- [ ] **Force-enable a hidden browser feature flag** · 夾硬開個隱藏功能 flag
-  - _msedge.exe --enable-features=<FeatureName> / --disable-features=<FeatureName> on the command line. Feature names are real Chromium/Edge strings; the suite should let the user type/select a name confirmed from edge://flags rather than hard-coding a fabricated id._
+- [x] **Open internal flags & policy pages** · 開 edge://flags 同 policy 內部頁
+  - _Dedicated controls open both `<browser>://flags` and `<browser>://policy`, completing the combined internal-page capability._
+- [x] **Clear browsing cache for a profile** · 清返個 Profile 嘅 cache
+  - _After an explicit confirmation, the service refuses while the selected browser has any process, revalidates profile containment, rejects reparse points, and deletes only `Cache` plus `Code Cache`._
+- [x] **Set per-launch proxy server** · 開個 session 行 proxy
+  - _Validated proxy and semicolon-separated bypass inputs emit independent `--proxy-server` / `--proxy-bypass-list` arguments inside a GUID-isolated session._
+- [x] **Launch isolated throwaway browser sandbox** · 開個獨立 user-data 沙盒用完即棄
+  - _Each launch creates `%TEMP%\WinForge\BrowserSessions\<browser>-throwaway-<guid>`, tracks the owned process, retries cleanup after exit, and safely retries stale owned sessions on a later launch._
+- [x] **Force-enable a hidden browser feature flag** · 夾硬開個隱藏功能 flag
+  - _The user selects enable/disable and enters up to 16 validated Chromium names; the isolated plan emits exactly one `--enable-features=` or `--disable-features=` argument._
 - [x] **Apply enterprise browser policy** · 落 policy 落去個瀏覽器
   - _Write real ADMX-backed policies under HKLM\SOFTWARE\Policies\Microsoft\Edge (e.g. HomepageLocation REG_SZ, RestoreOnStartup REG_DWORD, ExtensionInstallBlocklist) and HKLM\SOFTWARE\Policies\Google\Chrome. Verify applied state at edge://policy / chrome://policy. Documented policy keys, not invented._
-- [ ] **Open URL with remote debugging port** · 開個 remote debugging port 俾自動化用
-  - _msedge.exe/chrome.exe --remote-debugging-port=9222 --user-data-dir=<isolated dir> <url>. Exposes the DevTools/CDP JSON endpoint at http://127.0.0.1:9222/json for Playwright/Puppeteer attach. Switch requires a non-default user-data-dir on current Chromium._
-- [ ] **Install/update a browser via winget** · 用 winget 裝/升級瀏覽器
-  - _winget install --id Google.Chrome -e --silent / winget install --id Microsoft.Edge -e ; winget upgrade --id Google.Chrome -e --silent . Alternates Mozilla.Firefox, Brave.Brave. Real winget package identifiers._
+- [x] **Open URL with remote debugging port** · 開個 remote debugging port 俾自動化用
+  - _Ports are bounded to 1024–65535; launches always bind `--remote-debugging-address=127.0.0.1` and use a fresh isolated user-data directory._
+- [x] **Install/update a browser via winget** · 用 winget 裝/升級瀏覽器
+  - _Review-first install/update controls use `ShellRunner.RunArguments` with exact `Google.Chrome` / `Microsoft.Edge` IDs, agreements, silent mode, and disabled interactivity._
 
 ### Config & Backup · 🆕 new module / 新模組  (14)
 - [x] **Export all suite settings to a portable bundle** · 匯出成個套件嘅設定做一個檔案

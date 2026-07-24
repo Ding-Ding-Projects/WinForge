@@ -97,7 +97,7 @@
 | [Glob Tester · Glob 樣式測試器](dev-helpers/globtester.md) | `module.globtester` | `globtester` | 1 |
 | [PATH Doctor · PATH 醫生](dev-helpers/pathdoctor.md) | `module.pathdoctor` | `pathdoctor` | 9 |
 | [Regex Cheatsheet · 正則速查](dev-helpers/regexcheat.md) | `module.regexcheat` | `regexcheat` | 0 |
-| [Regex Tester · 正則表達式測試](dev-helpers/regextester.md) | `module.regextester` | `regextester` | 0 |
+| [Regex Tester · 正則表達式測試](dev-helpers/regextester.md) | `module.regextester` | `regextester` | 4 |
 | [Semver Range Tester · 語意化版本範圍測試器](dev-helpers/semverrange.md) | `module.semverrange` | `semverrange` | 3 |
 | [Visual Studio Installer · Visual Studio 安裝器](dev-helpers/vsinstaller.md) | `module.vsinstaller` | `vsinstaller` | 0 |
 | [Ascii85 / Base85 · Ascii85 / 八十五進位編碼](encoding-ids-codes/ascii85.md) | `module.ascii85` | `ascii85` | 5 |

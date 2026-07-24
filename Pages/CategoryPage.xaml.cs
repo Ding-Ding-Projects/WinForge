@@ -30,6 +30,16 @@ public sealed partial class CategoryPage : Page
     {
         base.OnNavigatedTo(e);
         _category = e.Parameter as AppCategory ?? Categories.Appearance;
+        if (ReferenceEquals(_category, Categories.Browser))
+        {
+            BrowserWorkbenchHost.Content ??= new BrowserControlPanel();
+            BrowserWorkbenchHost.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+        }
+        else
+        {
+            BrowserWorkbenchHost.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+            BrowserWorkbenchHost.Content = null;
+        }
         RenderHeader();
         Populate(string.Empty);
     }

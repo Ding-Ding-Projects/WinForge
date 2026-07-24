@@ -6,10 +6,10 @@ This folder holds source-backed capability reconciliations. An item is marked sh
 
 ## Audits · 審核報告
 
-- [Core roadmap capability audit — 2026-07-24](roadmap-core-capability-audit-2026-07-24.md) · 核心路線圖功能審核 — Windows 11, ViveTool, Media, Maintenance, Dev & Terminal, Home Assistant, Archives, and Browser Control; 82/115 shipped, 33 retained gaps after the Windows/System + Maintenance follow-up.
+- [Core roadmap capability audit — 2026-07-24](roadmap-core-capability-audit-2026-07-24.md) · 核心路線圖功能審核 — Windows 11, ViveTool, Media, Maintenance, Dev & Terminal, Home Assistant, Archives, and Browser Control; Browser Control, Media, Windows/System, and Maintenance are complete, bringing the matrix to 104/115 shipped with 11 retained gaps.
 
 ## Verification · 驗證
 
-Run `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1` from the repository root. The check locks the audited section totals, shipped counts, exact item coverage, evidence-document links, and the 82/115 aggregate.
+Run `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1` from the repository root. The check locks the audited section totals, shipped counts, exact item coverage, Browser Control, Media, and System Maintenance implementation markers, evidence-document links, and the 104/115 aggregate.
 
-由儲存庫根目錄執行 `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`。檢查會鎖實每節項目數、已交付數、每項審核覆蓋、證據連結同 82/115 總數。
+由儲存庫根目錄執行 `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`。檢查會鎖實每節項目數、已交付數、每項審核覆蓋、瀏覽器、Media 同系統維護實作標記、證據連結同 104/115 總數。

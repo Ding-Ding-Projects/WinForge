@@ -36,7 +36,13 @@
             Margin="0,4,0,0"
             Padding="0,0,8,16"
             VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="CardsPanel" />
+            <StackPanel Spacing="12">
+                <ContentControl
+                    x:Name="BrowserWorkbenchHost"
+                    AutomationProperties.AutomationId="BrowserWorkbenchHost"
+                    Visibility="Collapsed" />
+                <StackPanel x:Name="CardsPanel" />
+            </StackPanel>
         </ScrollViewer>
     </Grid>
 </Page>

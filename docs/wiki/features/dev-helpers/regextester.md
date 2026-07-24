@@ -10,7 +10,7 @@
 | Category · 分類 | Dev Helpers · 開發小工具 |
 | Page class · 頁面類別 | <code>RegexTesterModule</code> |
 | Page XAML · 頁面 XAML | <code>Pages/RegexTesterModule.xaml</code> |
-| Button docs · 按鈕文件 | 0 |
+| Button docs · 按鈕文件 | 4 |
 
 ## What It Covers · 功能範圍
 
@@ -22,4 +22,7 @@
 
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
-| None detected from XAML · XAML 未偵測到 |  |  |  |
+| [AddPieceButton](../../buttons/dev-helpers/regextester/001-addpiecebutton.md) | `Button` | `AddPieceButton` | `AddPiece_Click` |
+| [ClearPatternButton](../../buttons/dev-helpers/regextester/002-clearpatternbutton.md) | `Button` | `ClearPatternButton` | `ClearPattern_Click` |
+| [CopyPatternButton](../../buttons/dev-helpers/regextester/003-copypatternbutton.md) | `Button` | `CopyPatternButton` | `CopyPattern_Click` |
+| [CopyMatchesButton](../../buttons/dev-helpers/regextester/004-copymatchesbutton.md) | `Button` | `CopyMatchesButton` | `CopyMatches_Click` |

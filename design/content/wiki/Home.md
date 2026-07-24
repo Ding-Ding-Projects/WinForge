@@ -8,15 +8,19 @@
 | Page · 頁面 | Use it for · 用途 |
 |---|---|
 | [Module Categories](Module-Categories.md) | Browse every module by area · 按分類瀏覽全部模組 |
+| [Language & Tone](#/wiki/Language-and-Tone) | Three language modes plus independent English/Cantonese funny levels · 三種語言模式同英粵分開搞笑等級 |
 | [Native Port Relocation](Native-Cpp-Rewrite.md) | Link to the independent WinForge-Native project · 獨立 WinForge-Native project 連結 |
 | [Reactor Hub](#/wiki/Reactor-Hub) | Reactor manual, procedures, safety, fuel, waste, and tests · 反應堆手冊、程序、安全、燃料、廢料同測試 |
 | [Reactor Industrial Loads](#/wiki/Reactor-Industrial-Loads) | Ammonia production and priority load shedding · 合成氨生產同優先級卸載 |
+| [Guided Media Studio](#/wiki/Media-Studio-Workflows) | Safe two-pass, subtitle, chapter, photo, and metadata workflows · 安全兩步、字幕、章節、相片同 metadata 工作流程 |
 | [Generated References](#/wiki/Generated-References) | One page per feature and one page per button/control · 每功能一頁、每按鈕／控制項一頁 |
 | [Screenshots](#/wiki/Screenshots) | Screenshot gallery and redaction rules · 截圖集同遮蔽規則 |
 | [Smoke Test Campaign](Smoke-Test-Campaign.md) | Whole-app route, source, behavior, and evidence ledger · 全 app route、source、行為同證據清單 |
 | [Roadmap Status Reconciliation](#/wiki/Roadmap-Status-Reconciliation) | Evidence-backed shipped/partial decisions · 有證據嘅已交付／部分完成判定 |
 | [Core Roadmap Capability Audit](#/wiki/Roadmap-Core-Capability-Audit) | Strict shipped-versus-gap evidence for 115 roadmap capabilities · 115 項路線圖功能嘅嚴格已交付／缺口證據 |
 | [Guided Windows Maintenance](#/wiki/Windows-Maintenance-Workflows) | Storage Sense, Filter Keys, Update, drivers, Autoruns, ResetBase, and Store-app repair · 儲存感知、篩選鍵、更新、驅動、Autoruns、ResetBase 同商店 app 修復 |
+| [Browser Control Workbench](#/wiki/Browser-Control-Workbench) | Parameterized browser profiles, PWAs, isolation, cache, debugging, and packages · 參數化設定檔、PWA、隔離、快取、除錯同套件 |
+| [Managed Regex Builder](#/wiki/Regex-Builder) | Guided .NET construction, bounded live matches/captures, and safety evidence · 引導式 .NET 砌法、有界即時配對／擷取同安全證據 |
 | [Smoke Closeout](../Exhaustive-Smoke-Closeout.md) | Final safe smoke coverage, source wiring, test, and capture disposition · 最後安全冒煙覆蓋、來源 wiring、測試同截圖處置 |
 | [Hardware Monitor Driver Lifecycle](Hardware-Monitor-Driver-Lifecycle.md) | Scoped LibreHardwareMonitor driver ownership and regression evidence · 有範圍嘅 LibreHardwareMonitor 驅動所屬同回歸證據 |
 | [Pumped-Hydro State Integrity](Pumped-Hydro-State-Integrity.md) | Deterministic timer boundary and MWh-based reward regression evidence · 確定性 timer 邊界同以 MWh 計獎勵嘅回歸證據 |
@@ -24,6 +28,7 @@
 ## Key Pages · 重點頁
 
 - [Dashboard](Dashboard.md) · 概覽
+- [Language & Tone](#/wiki/Language-and-Tone) · 語言與語氣
 - [Git & GitHub](Git-and-GitHub.md) · Git 與 GitHub
 - [Package Manager](Package-Manager.md) · 套件管理
 - [Native Port Relocation](Native-Cpp-Rewrite.md) · 原生移植版搬遷

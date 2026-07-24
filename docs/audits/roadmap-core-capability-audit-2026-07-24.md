@@ -2,21 +2,21 @@
 
 ## Outcome · 結果
 
-This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The classification was formed from the managed application source and revalidated after rebasing onto mainline baseline `4af5e60e9d41f258f2d4697b1f0383138c8d1642`. The 2026-07-24 Windows/System + Maintenance delivery closed all eight gaps in those two sections, bringing the strict matrix to **82 shipped** and **33 remaining** out of 115.
+This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The original classification was revalidated against source; the 2026-07-24 Browser Control and Media completions closed eleven evidence-backed gaps each, and the Windows/System plus Maintenance delivery closed the remaining eight gaps in those two sections. Of 115 roadmap entries, **104 now have complete source-backed delivery evidence** and **11 remain unchecked** because implementation is absent or partial in other sections.
 
-今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對。Windows／System 加 Maintenance 今次交付補齊晒嗰兩節八個缺口；115 項之中而家 **82 項有完整原始碼交付證據**，**33 項因為未有實作或者只做咗一部分而繼續留空**。
+今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對；瀏覽器控制同 Media 各自補齊十一個有證據缺口，Windows／System 加 Maintenance 亦補齊兩節餘下八項。115 項之中，**104 項有完整原始碼交付證據**，**11 項因其他章節未有實作或者只做咗一部分而繼續留空**。
 
 | Section · 章節 | Audited · 審核 | Shipped `[x]` · 已交付 | Remaining `[ ]` · 餘下 |
 |---|---:|---:|---:|
 | Windows 11 | 13 | 13 | 0 |
 | ViveTool | 15 | 15 | 0 |
-| Media | 15 | 4 | 11 |
+| Media | 15 | 15 | 0 |
 | Maintenance | 15 | 15 | 0 |
 | Dev & Terminal | 15 | 9 | 6 |
 | Home Assistant | 14 | 13 | 1 |
 | Archives | 14 | 10 | 4 |
-| Browser Control | 14 | 3 | 11 |
-| **Total · 總數** | **115** | **82** | **33** |
+| Browser Control | 14 | 14 | 0 |
+| **Total · 總數** | **115** | **104** | **11** |
 
 ## Evidence standard · 證據標準
 
@@ -28,7 +28,7 @@ An entry is checked only when all of the following are present:
 
 只有同時有可達控制、實際執行機制，同埋文件／驗證證據先會剔選。`Controls/ControlRowList.cs` is the shared binding proof for catalog rows: action buttons invoke `RunAsync`, toggles invoke `SetIsOn`, and choice/slider controls invoke their registered setters. Dedicated modules are registered in `Services/ModuleRegistry.cs`, mapped/deep-linked in `MainWindow.xaml.cs`, and documented by generated module/button pages.
 
-The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, and verifies the aggregate **82/115** result.
+The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, verifies Browser Control, Media, and System Maintenance implementation markers, and locks the aggregate **104/115** result. `tests/MediaWorkflowCore.Tests` separately covers two-pass sequencing, parsers, argument boundaries, cancellation, staged-output preservation, and owned scratch cleanup; `tests/SystemMaintenanceCore.Tests` validates bounded plans without mutating the host.
 
 ## Windows 11 · Windows 11
 
@@ -84,30 +84,29 @@ No unchecked ViveTool item remains in this audited section. · 呢個已審核�
 
 ## Media · Media
 
-### Shipped — 4 · 已交付 — 4
+### Shipped — 15 · 已交付 — 15
 
 | Roadmap capability | Concrete implementation evidence | Documentation evidence |
 |---|---|---|
+| **Normalize loudness to broadcast standard (EBU R128)** | `NormalizeR128Btn` calls `MediaWorkflowService.NormalizeLoudnessAsync`; `MediaWorkflowExecutor` measures `input_i/input_tp/input_lra/input_thresh`, maps them to all four `measured_*` fields, and runs the second linear pass into a staged output. | `docs/features/media-capture/media-studio-workflows.md`; focused harness cases 1–2. |
+| **Auto-trim silence from start/end and gaps** | `TrimSilenceBtn` calls the executor's full `silenceremove` filter with `start_periods=1` and `stop_periods=-1`, so leading, trailing, and internal silence are covered; the executor rejects video containers before launch to prevent A/V desynchronization. | Media workflow guide; focused harness case 3. |
 | **Make high-quality GIF (two-pass palette)** | `Pages/GifLabModule.xaml.cs::Export_Click` calls `GifLabService.Export`; its GIF branch runs separate `palettegen` and `paletteuse` ffmpeg passes with a temporary palette file. | `docs/wiki/features/media-capture/giflab.md` and its generated Export button page. |
+| **Stabilize shaky video (vidstab two-pass)** | `StabilizeBtn` runs `vidstabdetect`, verifies the GUID-scoped transform exists, then runs `vidstabtransform`; the owned workspace is deleted in `finally`. | Media workflow guide; focused harness case 4. |
+| **Auto-detect and crop black bars** | `AutoCropBtn` samples 200 frames through `cropdetect=round=2`, parses the final valid crop rectangle, then applies that rectangle in a second staged encode. | Media workflow guide; focused harness case 5. |
 | **Lossless cut on keyframes (no re-encode)** | `Pages/MediaModule.xaml` wires `TrimCopyBtn`; `TrimCopy_Click` accepts user start/duration and calls ffmpeg with `-ss`, `-t`, and `-c copy`. | Generated Media module/button documentation. |
+| **Concat / join clips without re-encoding** | `ChooseConcatBtn` accepts an ordered multi-selection; `ConcatCopyAsync` writes an escaped UTF-8 concat list and executes `-f concat -safe 0 -c copy -avoid_negative_ts make_zero`. | Media workflow guide; focused harness case 6. |
+| **GPU hardware encode with NVENC** | `DetectNvencBtn` parses ffmpeg's encoder list and performs a real one-frame hardware probe for each NVENC codec; `EncodeNvencBtn` re-probes the selected `h264_nvenc`/`hevc_nvenc`/`av1_nvenc` codec before encoding with preset/tune/RC/CQ controls. | Media workflow guide; focused harness cases 7–8. |
+| **Two-pass target-size encode (Discord/email cap)** | `TargetSizeBtn` takes MiB/audio-kbps inputs; ffprobe supplies duration, `ComputeTargetVideoBitrateKbps` applies the documented formula and bounds, and two x264 passes share a GUID-scoped passlog. | Media workflow guide; focused harness cases 9–10. |
+| **Burn-in or soft-mux subtitles (SRT/ASS)** | The subtitle picker accepts SRT/ASS and exposes libass burn-in or soft mux; filter paths are escaped, MP4 uses `mov_text`, other compatible containers copy, and soft tracks receive `language=yue`. | Media workflow guide; focused harness case 11. |
+| **Extract chapters and split video by chapter** | `ReadChaptersBtn` parses `ffprobe -show_chapters` JSON; `SplitChaptersBtn` bounds the set to 200, sanitizes/collision-proofs filenames, and makes one stream-copy output per valid interval. | Media workflow guide; focused harness case 12. |
 | **Contact sheet / storyboard thumbnails** | `Catalog/MediaOperations.cs`, `media.contact-sheet`, runs ffmpeg `select`, `scale`, and `tile` filters. | Generated feature page for `media.contact-sheet`. |
+| **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** | The folder workflow enumerates HEIC/HEIF/JXL locally, limits the batch to 500, requires a separate output folder, collision-proofs stems, and converts one frame per input to JPG or PNG. | Media workflow guide; focused harness case 13. |
+| **Strip EXIF/GPS metadata from photos** | `StripMetadataBtn` calls `-map_metadata -1 -map_metadata:s -1 -c:v copy` through a staged same-format output, removing metadata without re-encoding image pixels. | Media workflow guide; focused harness case 14. |
 | **Make animated WebP from video (smaller than GIF)** | `Catalog/MediaOperations.cs`, `media.to-animated-webp`, invokes `-vf "fps=15,scale=480:-1:flags=lanczos" -c:v libwebp -loop 0`; it does not set an explicit quality value. | Generated feature page for `media.to-animated-webp`. |
 
-### Remaining gaps — 11 · 餘下缺口 — 11
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Normalize loudness to broadcast standard (EBU R128)** | Media and Audio Editor expose one-pass `loudnorm`; no measurement pass parses `measured_I`, `measured_TP`, `measured_LRA`, and `measured_thresh` into a second linear pass. |
-| **Auto-trim silence from start/end and gaps** | Audio Editor has manual trim/delete operations, but no `silenceremove` workflow that handles start, end, and internal gaps. |
-| **Stabilize shaky video (vidstab two-pass)** | The catalog has a one-pass `deshake` example only; no `vidstabdetect` transform file followed by `vidstabtransform`. |
-| **Auto-detect and crop black bars** | No handler runs `cropdetect`, parses the suggested rectangle, and applies a second crop encode. |
-| **Concat / join clips without re-encoding** | No Media control accepts multiple video clips and builds a concat-demuxer list for `-c copy`; audio/GIF-specific concat paths do not satisfy this video workflow. |
-| **GPU hardware encode with NVENC** | No Media control detects NVIDIA capability or offers `h264_nvenc`, `hevc_nvenc`, or `av1_nvenc`. |
-| **Two-pass target-size encode (Discord/email cap)** | No duration/target-size UI computes bitrate and runs the two x264 pass commands. |
-| **Burn-in or soft-mux subtitles (SRT/ASS)** | No Media handler accepts a subtitle file and offers both libass burn-in and soft-mux modes. |
-| **Extract chapters and split video by chapter** | No control parses `ffprobe -show_chapters` JSON or creates one stream-copy output per chapter. |
-| **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** | No folder/batch control enumerates HEIC/JXL inputs and converts them to user-selected JPG/PNG outputs. |
-| **Strip EXIF/GPS metadata from photos** | No Media action exposes `-map_metadata -1` or an equivalent full metadata-strip workflow. |
+No unchecked Media item remains in this audited section. The new workflows preserve argument boundaries through `ProcessStartInfo.ArgumentList`, stage outputs before promotion, bound batches and chapter counts, and clean owned scratch files on failure or cancellation. · 呢個已審核 Media 章節冇剩低未交付項目；新工作流程會保留參數邊界、成功先升格暫存輸出、限制批次／章節數量，失敗或取消都會清理自家 scratch 檔。
 
 ## Maintenance · Maintenance
 
@@ -220,38 +219,40 @@ All catalog entries below are rendered by the Archives surface through `ControlR
 
 ## Browser Control · Browser Control
 
-### Shipped — 3 · 已交付 — 3
+### Shipped — 14 · 已交付 — 14
 
-`Catalog/BrowserTweaks.cs` is registered in the Browser Control category and rendered by `ControlRowList`; generated feature docs live under `docs/features/browser-control/`.
+`Controls/BrowserControlPanel.xaml(.cs)` is reachable at `--page browser` above the catalog rows. `Services/BrowserControlCore.cs` owns bounded validation, discovery, launch planning, containment, and cleanup contracts; `BrowserControlService.cs` performs argument-vector execution. Existing `Catalog/BrowserTweaks.cs` rows remain available as quick actions.
 
 | Roadmap capability | Concrete implementation evidence |
 |---|---|
+| **Launch site as desktop app window** | `UrlBox` feeds `BuildAppModePlan`; the bounded HTTP(S) URL leaves the app as one `--app=<url>` `ArgumentList` item. |
 | **Open in incognito / InPrivate window** | `br.chrome.incognito` uses `--incognito`; `br.edge.inprivate` uses `--inprivate`. |
+| **Launch full-screen kiosk URL** | `KioskBtn` emits Chrome `--kiosk <url>` or Edge `--kiosk <url> --edge-kiosk-type=fullscreen --kiosk-idle-timeout-minutes=0`. |
+| **Pick and launch a specific browser profile** | `DiscoverProfiles` reads real directories plus `Local State/profile.info_cache`; `ProfileBox` binds the selected display name/directory to a containment-checked `--profile-directory=` plan. |
+| **List and launch installed PWAs** | `DiscoverPwas` reads user/common Start-menu `.lnk` files through `IShellLinkW`, validates/deduplicates runtime app IDs and profiles, and launches the resolved installed browser with those values. |
 | **Open the Windows default-apps picker for a browser** | `br.edge.set-default`, `br.profiles.set-default-browser`, and `br.profiles.open-default-apps` launch `ms-settings:defaultapps`. |
+| **Open internal flags & policy pages** | `FlagsBtn` and `PolicyBtn` reach `chrome://flags`, `chrome://policy`, `edge://flags`, and `edge://policy` through discrete arguments. |
+| **Clear browsing cache for a profile** | `ClearCacheBtn` requires a decision; `ClearProfileCaches` rejects running browser processes, validates the selected profile path, rejects reparse points, and deletes only `Cache` and `Code Cache`. |
+| **Set per-launch proxy server** | Bounded proxy/bypass inputs feed independent switches in a GUID-isolated session; whitespace/control/quote injection is rejected. |
+| **Launch isolated throwaway browser sandbox** | `CreateEphemeralDirectory` creates a new GUID path below `%TEMP%\WinForge\BrowserSessions`; the owned process exit handler retries contained deletion and later launches retry stale owned sessions. |
+| **Force-enable a hidden browser feature flag** | `FeatureBox` plus enable/disable selection validates up to 16 names and emits one `--enable-features=` or `--disable-features=` argument in an isolated profile. |
 | **Apply enterprise browser policy** | `br.policies.*` rows bind real ADMX-backed HKLM values under `SOFTWARE\Policies\Google\Chrome` and `SOFTWARE\Policies\Microsoft\Edge`. |
+| **Open URL with remote debugging port** | `DebugPortBox` bounds 1024–65535; the plan binds `127.0.0.1`, supplies the port, and always uses a fresh isolated user-data directory. |
+| **Install/update a browser via winget** | Review-first buttons call `ShellRunner.RunArguments` with exact `Google.Chrome` / `Microsoft.Edge` package IDs, install/upgrade verbs, agreement flags, silent mode, and disabled interactivity. |
 
-### Remaining gaps — 11 · 餘下缺口 — 11
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Launch site as desktop app window** | Chrome and Edge app-mode rows hard-code Google/example.com. There is no URL input, so the user cannot launch a chosen site as requested. |
-| **Launch full-screen kiosk URL** | Kiosk rows hard-code Google/example.com and expose no URL input. |
-| **Pick and launch a specific browser profile** | Profile directories can be listed and the fixed `Default` profile can be launched, but there is no `Local State` display-name mapping or selected-profile binding into `--profile-directory`. |
-| **List and launch installed PWAs** | A catalog action lists Start-menu PWA shortcuts, but no action parses and launches a selected `--app-id`/profile target. |
-| **Open internal flags & policy pages** | Flags pages exist, but `chrome://policy` and `edge://policy` controls are absent; the combined roadmap capability is incomplete. |
-| **Clear browsing cache for a profile** | Clear actions are fixed to the Default profile's `Cache` directory and omit `Code Cache`; no profile picker or safe browser-closed validation exists. |
-| **Set per-launch proxy server** | The only proxy row hard-codes `127.0.0.1:8080`; no proxy/bypass input is exposed. |
-| **Launch isolated throwaway browser sandbox** | Safe mode reuses `%TEMP%\chrome-safe`; it does not create a GUID-scoped directory or delete it after use, so it is not throwaway. |
-| **Force-enable a hidden browser feature flag** | No action accepts a feature name or invokes `--enable-features` / `--disable-features`. |
-| **Open URL with remote debugging port** | No action invokes `--remote-debugging-port` with an isolated user-data directory. |
-| **Install/update a browser via winget** | No Browser Control action exposes verified browser package install/upgrade commands. |
+No Browser Control entries remain open. · 瀏覽器控制冇剩低未完成項目。
 
 ## Verification disposition · 驗證處置
 
 - Focused contract: `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`.
 - Source/route checks: `.agents/skills/winforge-exhaustive-smoke/scripts/Test-WinForgeSourceSurfaceAudit.ps1`, XAML literal safety, focused roadmap consistency, and docs-only site generation are run as part of this audit handoff.
-- Follow-up adversarial review compared all 43 Media, Archives, and Browser Control dispositions with the strict-review findings. The 4/11, 10/4, and 3/11 classifications remain unchanged; the four checked Media notes now describe the exact shipped paths, including animated WebP's `libwebp` command without an explicit quality value.
-- The Windows/System + Maintenance follow-up changes the live System Doctors page. Its self-contained headless capture disposition, inspected screenshots, and exact hashes are recorded in the task handoff; destructive system operations remain unexecuted during visual verification.
-- The 33 unchecked entries are intentional product gaps, not audit failures. Future work should check an entry only after its specific reason above is resolved and the focused contract is updated deliberately.
+- The historical adversarial review remains valid for Media and Archives; Browser Control subsequently advanced from 3/14 to 14/14 through the parameterized workbench and focused harness.
+- `tests/BrowserControl.Tests` covers 23 URL, profile, PWA, internal-page, cache, proxy, ephemeral-lifecycle, feature, debug-port, and winget plan contracts. Fresh Browser route visual evidence is required because `CategoryPage` and its layout changed.
+- Media's former 4/11 disposition is now 15/0. The four pre-existing items remain source-accurate, including animated WebP's `libwebp` command without an explicit quality value; all eleven former gaps have dedicated page handlers, executor evidence, and focused tests.
+- The Media WinUI surface changed. A fresh process-owned live-tree capture was inspected and promoted to `docs/screenshot-media.png` and `docs/wiki/images/screenshot-media.png` (SHA-256 `F89886CE200DA522E8C956B67B363A847E8E9DC0AC2926DFF382E9E52B870900`); LowLevel MCP was present only as repository guidance and was not callable in this session.
+- The Windows/System + Maintenance follow-up changes the live System Doctors page. Fresh self-contained LowLevel headless captures cover the normal, narrow, expanded Storage Sense, and expanded ResetBase-warning states; destructive system operations remained unexecuted during visual verification.
+- The remaining 11 unchecked entries are intentional product gaps in other sections, not audit failures. Future work should check an entry only after its specific reason is resolved and the focused contract is updated deliberately.
 
-Windows／System 加 Maintenance 跟進改咗即時「系統醫生」頁面；自包含 headless 擷取處置、已檢視圖同準確 hash 會記錄喺任務交接。視覺驗證冇執行破壞性系統操作。33 項未剔選係刻意保留嘅真實產品缺口，唔係審核漏咗。
+今次瀏覽器控制由 3/14 推進到 14/14，Media 由 4/15 推進到 15/15，Windows／System 同 Maintenance 亦全部補齊；相關 WinUI 都有最新已檢視畫面。系統醫生擷取冇執行破壞性系統操作，其餘 11 項未剔選係其他章節刻意保留嘅真實產品缺口，唔係審核漏咗。

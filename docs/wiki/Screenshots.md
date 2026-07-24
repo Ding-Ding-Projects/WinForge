@@ -20,6 +20,15 @@ This gallery documents the canonical .NET / WinUI 3 application. C++/WinRT port 
 
 ## System & Tweaks · 系統與調校
 
+### Language & Tone Settings · 語言與語氣設定
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-funny-level-settings.png)
+
+The live-control proof below uses English level 5 and Cantonese level 1 to demonstrate independent updates; the original profile values were restored to English 2 / Cantonese 3 before the owned process closed. The narrow 720×646 capture verifies that navigation collapses and both exact-step sliders remain readable without overlap. · 下面即時控制證據用英文第 5 級、粵語第 1 級示範兩邊獨立更新；關閉自家 process 前已將原本設定還原做英文 2／粵語 3。720×646 窄畫面圖亦驗證導覽會收窄，兩個準確步進 slider 保持清楚、冇重疊。
+
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-funny-level-settings-live.png)
+
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-funny-level-settings-narrow.png)
+
 ### Dashboard · 概覽
 > Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The Dashboard route remains launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。Dashboard 路由仍已驗證可以啟動。
 
@@ -82,6 +91,11 @@ Current 2026-07-24 evidence: the self-contained DEBUG app rendered this 1284×81
 
 ### Settings & Control Panel · 設定與控制台
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-settingshub.png)
+
+### Browser Control · 瀏覽器控制
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-browser-control.png)
+
+Current 2026-07-24 evidence: the process-owned driver rendered this 1033×637 frame (SHA-256 `400AF4B89FE16B6A22023BE1259442D8D1A0BF88C39C0445C9A7E7DFE161FB3C`) from the live WinUI tree on a dedicated LowLevel desktop. An inspected 784×691 narrow frame (SHA-256 `BDB186204A24F1AFFF927F1347E315A77FBCCD218D8B09D7423C7E4282DF94B3`) confirms bilingual wrapping without clipping or overlap. No browser launch, cache deletion, package mutation, or debugging session was triggered, and the dedicated desktop closed with zero retained windows. · 目前 2026-07-24 證據：process-owned driver 喺專用 LowLevel desktop 由即時 WinUI tree 輸出 1033×637 正式圖，同 784×691 窄版圖（SHA-256 如上）；雙語換行冇裁切／重疊，亦冇啟動瀏覽器、刪快取、改套件或者開除錯，專用 desktop 最後零殘留視窗並已關閉。
 
 ### Native Utilities · 原生工具
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-native.png)
@@ -268,6 +282,11 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Resume Writer · 履歷與求職信寫手
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-resume.png)
+
+### Regex Tester and guided builder · 正則測試器同引導砌法
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-regextester.png)
+
+Keyboard focus reaches the guided builder and remains visibly outlined; the page scrolls vertically and its five flags no longer overflow in one horizontal row. · 鍵盤 focus 可以去到引導砌法兼有清楚外框；頁面會垂直滾動，五個旗標亦唔再塞爆一條橫行。
 
 ### Regex Cheatsheet · 正則速查
 > **Capture status · 截圖狀態：** Fresh `regexcheat` capture is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable in this desktop session. The route passed a launch-only check, but no PNG was created, inspected, or claimed as visual verification. · 新嘅 `regexcheat` 截圖係 `capture-blocked`：呢個 desktop session 嘅 `CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。route launch-only check 通過，但冇 PNG 產生、檢查或者當成視覺驗證。

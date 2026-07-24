@@ -10,13 +10,13 @@ The 2026-07-24 source audit reconciles 115 previously unchecked entries across W
 |---|---:|---:|---:|
 | Windows 11 | 13 | 13 | 0 |
 | ViveTool | 15 | 15 | 0 |
-| Media | 15 | 4 | 11 |
+| Media | 15 | 15 | 0 |
 | Maintenance | 15 | 15 | 0 |
 | Dev & Terminal | 15 | 9 | 6 |
 | Home Assistant | 14 | 13 | 1 |
 | Archives | 14 | 10 | 4 |
-| Browser Control | 14 | 3 | 11 |
-| **Total · 總數** | **115** | **82** | **33** |
+| Browser Control | 14 | 14 | 0 |
+| **Total · 總數** | **115** | **104** | **11** |
 
 ## What the audit protects · 審核守住乜
 
@@ -25,6 +25,8 @@ The 2026-07-24 source audit reconciles 115 previously unchecked entries across W
 - All 115 titles must remain represented; a count-preserving swap cannot silently pass. · 115 個標題全部要有記錄，唔可以偷偷交換狀態但保持總數蒙混過關。
 - The focused guard runs with `tools/Test-RoadmapCoreAudit.ps1`. · 專項 gate 係 `tools/Test-RoadmapCoreAudit.ps1`。
 - A follow-up pass rechecked all 43 Media, Archives, and Browser Control dispositions. Animated WebP evidence follows the exact catalog action: 15 fps, 480px scale, `libwebp`, `-loop 0`, and no explicit quality value. · 跟進覆核重新檢查 Media、Archives 同 Browser Control 全部 43 項；動態 WebP 證據準確跟 catalog：15 fps、480px、`libwebp`、`-loop 0`，冇明確 quality 參數。
+- Browser Control subsequently closed all eleven gaps with its parameterized workbench and 23-case focused harness. · 瀏覽器控制之後用參數化工作台同 23 項專測補齊十一個缺口。
+- Media is now 15/15: eleven new guided workflows are reachable through bilingual controls and protected by the 17-case `MediaWorkflowCore.Tests` harness. The animated WebP evidence remains exact: 15 fps, 480px scale, `libwebp`, `-loop 0`, and no explicit quality value. · Media 而家 15/15；11 個新引導式工作流程有雙語控制同 17 項專測保護，動態 WebP 證據仍然準確。
 
 ## Detailed evidence · 詳細證據
 
@@ -37,3 +39,11 @@ Read the repository's categorized `docs/audits/roadmap-core-capability-audit-202
 The Windows/System + Maintenance follow-up changes the live System Doctors surface. Fresh headless evidence and its exact capture disposition are recorded in the System Doctors guide and task handoff; destructive operating-system actions were not executed for screenshot evidence.
 
 Windows／System 加 Maintenance 跟進改咗即時「系統醫生」畫面；最新 headless 證據同準確擷取處置會記錄喺系統醫生指南同交接。截圖驗證冇執行破壞性作業系統操作。
+
+Browser Control changes the live `CategoryPage` layout. Fresh inspected route evidence is recorded in [Browser Control Workbench](#/wiki/Browser-Control-Workbench); the capture performs no cache, package, or remote-debug side effect.
+
+瀏覽器控制改咗即時 `CategoryPage` 版面；最新已檢視 route 證據記錄喺[瀏覽器控制工作台](#/wiki/Browser-Control-Workbench)，擷取冇做快取、套件或者遠端除錯副作用。
+
+The Media controls and layout changed. A fresh process-owned live-tree capture was inspected and promoted to both canonical Media screenshot paths; LowLevel MCP headless tools were not callable in this session.
+
+今次 Media 控制同版面有改，已檢查 repo driver 嘅 process-owned live-tree 截圖並更新兩個正式 Media 圖片位置；今次 session 冇可呼叫嘅 LowLevel MCP headless 工具。
