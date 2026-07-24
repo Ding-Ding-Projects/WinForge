@@ -328,36 +328,36 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _Start-Process "ms-settings:defaultapps" opens the Default apps Settings page so the user reassigns mailto and the discord/tg/msteams/slack scheme handlers. Windows 10+ blocks programmatic UserChoice writes, so the suite deep-links the page for the user to confirm rather than forcing a handler._
 
 ### Browser Control · 🆕 new module / 新模組  (14)
-> **Strict source audit (2026-07-24): 3/14 shipped.** Eleven partial/absent browser workflows remain unchecked; evidence and precise gaps are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#browser-control--browser-control). · **嚴格原始碼審核：14 項有 3 項已交付；11 項仲未完整。**
+> **Browser Control completion (2026-07-24): 14/14 shipped.** The parameterized workbench, bounded core, 23-case regression harness, and fresh route evidence close all eleven audited gaps; exact mechanisms are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#browser-control--browser-control). · **瀏覽器控制完成：14 項全部交付。參數化工作台、有界 core、23 項回歸測試同最新 route 證據已補齊十一個缺口。**
 
-- [ ] **Launch site as desktop app window** · 用 App 模式開個網站做獨立視窗
-  - _Spawn msedge.exe / chrome.exe with --app=https://<url> for a chromeless standalone window (no tabs/omnibox). Optionally add --window-size=W,H and --window-position=X,Y. Real exe paths confirmed at C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe and C:\Program Files\Google\Chrome\Application\chrome.exe (resolved via HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths)._
+- [x] **Launch site as desktop app window** · 用 App 模式開個網站做獨立視窗
+  - _`BrowserControlPanel` accepts a bounded HTTP(S) URL; `BuildAppModePlan` emits one `--app=<url>` argument and resolves Chrome/Edge through installed paths and App Paths. Shell metacharacters never become a command line._
 - [x] **Open in incognito / InPrivate window** · 開個無痕視窗瀏覽
   - _msedge.exe --inprivate <url> for Edge; chrome.exe --incognito <url> for Chrome. Both are documented switches._
-- [ ] **Launch full-screen kiosk URL** · 開全螢幕 Kiosk 鎖死喺個網度
-  - _msedge.exe --kiosk https://<url> --edge-kiosk-type=fullscreen --kiosk-idle-timeout-minutes=0 (Edge kiosk switches); chrome.exe --kiosk https://<url>. Assigned-access-free kiosk launch._
-- [ ] **Pick and launch a specific browser profile** · 揀個 Profile 嚟開
-  - _Enumerate profiles by reading 'User Data\Local State' JSON (key profile.info_cache maps folder dir to display name; confirmed present for both Edge and Chrome). Launch chosen one with msedge.exe --profile-directory="Default" (or "Profile 1"). No registry, real on-disk profile dirs._
-- [ ] **List and launch installed PWAs** · 列晒啲裝咗嘅 PWA 出嚟開
-  - _PWAs install as .lnk shortcuts under %APPDATA%\Microsoft\Windows\Start Menu\Programs whose targets are msedge.exe/chrome.exe --profile-directory=... --app-id=<AppId>. Enumerate via shell:AppsFolder or parse the .lnk targets; launch with --app-id=<AppId>. App IDs must be read at runtime from existing shortcut targets, never fabricated._
+- [x] **Launch full-screen kiosk URL** · 開全螢幕 Kiosk 鎖死喺個網度
+  - _The same validated URL field emits Chrome `--kiosk <url>` or Edge `--kiosk <url> --edge-kiosk-type=fullscreen --kiosk-idle-timeout-minutes=0` as discrete arguments._
+- [x] **Pick and launch a specific browser profile** · 揀個 Profile 嚟開
+  - _Profiles are enumerated from real user-data directories and `Local State` `profile.info_cache`; the selected, containment-checked directory becomes `--profile-directory=<dir>`._
+- [x] **List and launch installed PWAs** · 列晒啲裝咗嘅 PWA 出嚟開
+  - _The workbench parses user/common Start-menu `.lnk` targets through `IShellLinkW`, extracts runtime `--app-id` and profile values, deduplicates them, then launches the resolved installed browser with those validated values._
 - [x] **Open the Windows default-apps picker for a browser** · 開預設 App 設定揀返個瀏覽器
   - _Windows 11 blocks silent default changes; deep-link the user to ms-settings:defaultapps (the per-app subpage / registeredAppUser anchor is build-dependent, so land on the page and let the user pick). For unattended provisioning, build an XML and apply with DISM /Online /Import-DefaultAppAssociations:assoc.xml. No fabricated keys._
-- [ ] **Open internal flags & policy pages** · 開 edge://flags 同 policy 內部頁
-  - _Launch the browser with an internal page as the URL arg: msedge.exe edge://flags | edge://policy | edge://version | edge://settings/profiles ; chrome.exe chrome://flags | chrome://policy | chrome://components | chrome://net-export . All real internal URLs._
-- [ ] **Clear browsing cache for a profile** · 清返個 Profile 嘅 cache
-  - _With the browser fully closed, delete on-disk caches: %LOCALAPPDATA%\Microsoft\Edge\User Data\<Profile>\Cache and \Code Cache (Cache dir confirmed present), plus the Chrome equivalent under Google\Chrome. For interactive scope, deep-link edge://settings/clearBrowserData or chrome://settings/clearBrowserData. No undocumented flag._
-- [ ] **Set per-launch proxy server** · 開個 session 行 proxy
-  - _msedge.exe/chrome.exe --proxy-server="socks5://127.0.0.1:1080" (or http://host:port) with optional --proxy-bypass-list="*.local;127.0.0.1". Real Chromium network switch; pair with --user-data-dir to keep it isolated._
-- [ ] **Launch isolated throwaway browser sandbox** · 開個獨立 user-data 沙盒用完即棄
-  - _msedge.exe/chrome.exe --user-data-dir="%TEMP%\WinForge-sandbox\<guid>" creates a brand-new isolated profile tree (own cookies/history/extensions). Delete the dir afterward for a clean throwaway session. Documented switch._
-- [ ] **Force-enable a hidden browser feature flag** · 夾硬開個隱藏功能 flag
-  - _msedge.exe --enable-features=<FeatureName> / --disable-features=<FeatureName> on the command line. Feature names are real Chromium/Edge strings; the suite should let the user type/select a name confirmed from edge://flags rather than hard-coding a fabricated id._
+- [x] **Open internal flags & policy pages** · 開 edge://flags 同 policy 內部頁
+  - _Dedicated controls open both `<browser>://flags` and `<browser>://policy`, completing the combined internal-page capability._
+- [x] **Clear browsing cache for a profile** · 清返個 Profile 嘅 cache
+  - _After an explicit confirmation, the service refuses while the selected browser has any process, revalidates profile containment, rejects reparse points, and deletes only `Cache` plus `Code Cache`._
+- [x] **Set per-launch proxy server** · 開個 session 行 proxy
+  - _Validated proxy and semicolon-separated bypass inputs emit independent `--proxy-server` / `--proxy-bypass-list` arguments inside a GUID-isolated session._
+- [x] **Launch isolated throwaway browser sandbox** · 開個獨立 user-data 沙盒用完即棄
+  - _Each launch creates `%TEMP%\WinForge\BrowserSessions\<browser>-throwaway-<guid>`, tracks the owned process, retries cleanup after exit, and safely retries stale owned sessions on a later launch._
+- [x] **Force-enable a hidden browser feature flag** · 夾硬開個隱藏功能 flag
+  - _The user selects enable/disable and enters up to 16 validated Chromium names; the isolated plan emits exactly one `--enable-features=` or `--disable-features=` argument._
 - [x] **Apply enterprise browser policy** · 落 policy 落去個瀏覽器
   - _Write real ADMX-backed policies under HKLM\SOFTWARE\Policies\Microsoft\Edge (e.g. HomepageLocation REG_SZ, RestoreOnStartup REG_DWORD, ExtensionInstallBlocklist) and HKLM\SOFTWARE\Policies\Google\Chrome. Verify applied state at edge://policy / chrome://policy. Documented policy keys, not invented._
-- [ ] **Open URL with remote debugging port** · 開個 remote debugging port 俾自動化用
-  - _msedge.exe/chrome.exe --remote-debugging-port=9222 --user-data-dir=<isolated dir> <url>. Exposes the DevTools/CDP JSON endpoint at http://127.0.0.1:9222/json for Playwright/Puppeteer attach. Switch requires a non-default user-data-dir on current Chromium._
-- [ ] **Install/update a browser via winget** · 用 winget 裝/升級瀏覽器
-  - _winget install --id Google.Chrome -e --silent / winget install --id Microsoft.Edge -e ; winget upgrade --id Google.Chrome -e --silent . Alternates Mozilla.Firefox, Brave.Brave. Real winget package identifiers._
+- [x] **Open URL with remote debugging port** · 開個 remote debugging port 俾自動化用
+  - _Ports are bounded to 1024–65535; launches always bind `--remote-debugging-address=127.0.0.1` and use a fresh isolated user-data directory._
+- [x] **Install/update a browser via winget** · 用 winget 裝/升級瀏覽器
+  - _Review-first install/update controls use `ShellRunner.RunArguments` with exact `Google.Chrome` / `Microsoft.Edge` IDs, agreements, silent mode, and disabled interactivity._
 
 ### Config & Backup · 🆕 new module / 新模組  (14)
 - [x] **Export all suite settings to a portable bundle** · 匯出成個套件嘅設定做一個檔案

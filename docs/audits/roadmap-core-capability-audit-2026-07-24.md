@@ -2,9 +2,9 @@
 
 ## Outcome · 結果
 
-This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The classification was formed from the managed application source and revalidated after rebasing onto mainline baseline `4af5e60e9d41f258f2d4697b1f0383138c8d1642`. Of 115 roadmap entries, **74 have complete source-backed delivery evidence** and **41 remain unchecked** because the implementation is absent or only partial.
+This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The original classification was revalidated after rebasing onto mainline baseline `4af5e60e9d41f258f2d4697b1f0383138c8d1642`; the 2026-07-24 Browser Control completion then closed its eleven evidence-backed gaps. Of 115 roadmap entries, **85 now have complete source-backed delivery evidence** and **30 remain unchecked** because the implementation is absent or only partial.
 
-今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對。115 項之中，**74 項有完整原始碼交付證據**，**41 項因為未有實作或者只做咗一部分而繼續留空**。
+今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對；2026-07-24 瀏覽器控制完成工作再補齊十一個有證據缺口。115 項之中，**85 項有完整原始碼交付證據**，**30 項因為未有實作或者只做咗一部分而繼續留空**。
 
 | Section · 章節 | Audited · 審核 | Shipped `[x]` · 已交付 | Remaining `[ ]` · 餘下 |
 |---|---:|---:|---:|
@@ -15,8 +15,8 @@ This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET
 | Dev & Terminal | 15 | 9 | 6 |
 | Home Assistant | 14 | 13 | 1 |
 | Archives | 14 | 10 | 4 |
-| Browser Control | 14 | 3 | 11 |
-| **Total · 總數** | **115** | **74** | **41** |
+| Browser Control | 14 | 14 | 0 |
+| **Total · 總數** | **115** | **85** | **30** |
 
 ## Evidence standard · 證據標準
 
@@ -28,7 +28,7 @@ An entry is checked only when all of the following are present:
 
 只有同時有可達控制、實際執行機制，同埋文件／驗證證據先會剔選。`Controls/ControlRowList.cs` is the shared binding proof for catalog rows: action buttons invoke `RunAsync`, toggles invoke `SetIsOn`, and choice/slider controls invoke their registered setters. Dedicated modules are registered in `Services/ModuleRegistry.cs`, mapped/deep-linked in `MainWindow.xaml.cs`, and documented by generated module/button pages.
 
-The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, and verifies the aggregate **74/115** result.
+The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, verifies Browser Control's implementation markers, and locks the aggregate **85/115** result.
 
 ## Windows 11 · Windows 11
 
@@ -222,38 +222,37 @@ All catalog entries below are rendered by the Archives surface through `ControlR
 
 ## Browser Control · Browser Control
 
-### Shipped — 3 · 已交付 — 3
+### Shipped — 14 · 已交付 — 14
 
-`Catalog/BrowserTweaks.cs` is registered in the Browser Control category and rendered by `ControlRowList`; generated feature docs live under `docs/features/browser-control/`.
+`Controls/BrowserControlPanel.xaml(.cs)` is reachable at `--page browser` above the catalog rows. `Services/BrowserControlCore.cs` owns bounded validation, discovery, launch planning, containment, and cleanup contracts; `BrowserControlService.cs` performs argument-vector execution. Existing `Catalog/BrowserTweaks.cs` rows remain available as quick actions.
 
 | Roadmap capability | Concrete implementation evidence |
 |---|---|
+| **Launch site as desktop app window** | `UrlBox` feeds `BuildAppModePlan`; the bounded HTTP(S) URL leaves the app as one `--app=<url>` `ArgumentList` item. |
 | **Open in incognito / InPrivate window** | `br.chrome.incognito` uses `--incognito`; `br.edge.inprivate` uses `--inprivate`. |
+| **Launch full-screen kiosk URL** | `KioskBtn` emits Chrome `--kiosk <url>` or Edge `--kiosk <url> --edge-kiosk-type=fullscreen --kiosk-idle-timeout-minutes=0`. |
+| **Pick and launch a specific browser profile** | `DiscoverProfiles` reads real directories plus `Local State/profile.info_cache`; `ProfileBox` binds the selected display name/directory to a containment-checked `--profile-directory=` plan. |
+| **List and launch installed PWAs** | `DiscoverPwas` reads user/common Start-menu `.lnk` files through `IShellLinkW`, validates/deduplicates runtime app IDs and profiles, and launches the resolved installed browser with those values. |
 | **Open the Windows default-apps picker for a browser** | `br.edge.set-default`, `br.profiles.set-default-browser`, and `br.profiles.open-default-apps` launch `ms-settings:defaultapps`. |
+| **Open internal flags & policy pages** | `FlagsBtn` and `PolicyBtn` reach `chrome://flags`, `chrome://policy`, `edge://flags`, and `edge://policy` through discrete arguments. |
+| **Clear browsing cache for a profile** | `ClearCacheBtn` requires a decision; `ClearProfileCaches` rejects running browser processes, validates the selected profile path, rejects reparse points, and deletes only `Cache` and `Code Cache`. |
+| **Set per-launch proxy server** | Bounded proxy/bypass inputs feed independent switches in a GUID-isolated session; whitespace/control/quote injection is rejected. |
+| **Launch isolated throwaway browser sandbox** | `CreateEphemeralDirectory` creates a new GUID path below `%TEMP%\WinForge\BrowserSessions`; the owned process exit handler retries contained deletion and later launches retry stale owned sessions. |
+| **Force-enable a hidden browser feature flag** | `FeatureBox` plus enable/disable selection validates up to 16 names and emits one `--enable-features=` or `--disable-features=` argument in an isolated profile. |
 | **Apply enterprise browser policy** | `br.policies.*` rows bind real ADMX-backed HKLM values under `SOFTWARE\Policies\Google\Chrome` and `SOFTWARE\Policies\Microsoft\Edge`. |
+| **Open URL with remote debugging port** | `DebugPortBox` bounds 1024–65535; the plan binds `127.0.0.1`, supplies the port, and always uses a fresh isolated user-data directory. |
+| **Install/update a browser via winget** | Review-first buttons call `ShellRunner.RunArguments` with exact `Google.Chrome` / `Microsoft.Edge` package IDs, install/upgrade verbs, agreement flags, silent mode, and disabled interactivity. |
 
-### Remaining gaps — 11 · 餘下缺口 — 11
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Launch site as desktop app window** | Chrome and Edge app-mode rows hard-code Google/example.com. There is no URL input, so the user cannot launch a chosen site as requested. |
-| **Launch full-screen kiosk URL** | Kiosk rows hard-code Google/example.com and expose no URL input. |
-| **Pick and launch a specific browser profile** | Profile directories can be listed and the fixed `Default` profile can be launched, but there is no `Local State` display-name mapping or selected-profile binding into `--profile-directory`. |
-| **List and launch installed PWAs** | A catalog action lists Start-menu PWA shortcuts, but no action parses and launches a selected `--app-id`/profile target. |
-| **Open internal flags & policy pages** | Flags pages exist, but `chrome://policy` and `edge://policy` controls are absent; the combined roadmap capability is incomplete. |
-| **Clear browsing cache for a profile** | Clear actions are fixed to the Default profile's `Cache` directory and omit `Code Cache`; no profile picker or safe browser-closed validation exists. |
-| **Set per-launch proxy server** | The only proxy row hard-codes `127.0.0.1:8080`; no proxy/bypass input is exposed. |
-| **Launch isolated throwaway browser sandbox** | Safe mode reuses `%TEMP%\chrome-safe`; it does not create a GUID-scoped directory or delete it after use, so it is not throwaway. |
-| **Force-enable a hidden browser feature flag** | No action accepts a feature name or invokes `--enable-features` / `--disable-features`. |
-| **Open URL with remote debugging port** | No action invokes `--remote-debugging-port` with an isolated user-data directory. |
-| **Install/update a browser via winget** | No Browser Control action exposes verified browser package install/upgrade commands. |
+No Browser Control entries remain open. · 瀏覽器控制冇剩低未完成項目。
 
 ## Verification disposition · 驗證處置
 
 - Focused contract: `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`.
 - Source/route checks: `.agents/skills/winforge-exhaustive-smoke/scripts/Test-WinForgeSourceSurfaceAudit.ps1`, XAML literal safety, focused roadmap consistency, and docs-only site generation are run as part of this audit handoff.
-- Follow-up adversarial review compared all 43 Media, Archives, and Browser Control dispositions with the strict-review findings. The 4/11, 10/4, and 3/11 classifications remain unchanged; the four checked Media notes now describe the exact shipped paths, including animated WebP's `libwebp` command without an explicit quality value.
-- This task changes documentation and a static verifier only. No WinUI page or layout changed, so a new application screenshot is not applicable; existing screenshots were not presented as fresh visual evidence.
-- The 41 unchecked entries are intentional product gaps, not audit failures. Future work should check an entry only after its specific reason above is resolved and the focused contract is updated deliberately.
+- The historical adversarial review remains valid for Media and Archives; Browser Control subsequently advanced from 3/14 to 14/14 through the parameterized workbench and focused harness.
+- `tests/BrowserControl.Tests` covers 23 URL, profile, PWA, internal-page, cache, proxy, ephemeral-lifecycle, feature, debug-port, and winget plan contracts. Fresh Browser route visual evidence is required because `CategoryPage` and its layout changed.
+- The 30 unchecked entries outside Browser Control are intentional product gaps, not audit failures. Future work should check an entry only after its specific reason is resolved and the focused contract is updated deliberately.
 
-今次只改文件同靜態驗證器，冇改 WinUI 畫面，所以唔需要新截圖。41 項未剔選係刻意保留嘅真實產品缺口，唔係審核漏咗。
+今次瀏覽器控制由 3/14 推進到 14/14，改咗 WinUI 畫面，所以要有最新 route 截圖；其餘 30 項未剔選係刻意保留嘅真實產品缺口，唔係審核漏咗。
