@@ -12,11 +12,12 @@ This roadmap covers the canonical .NET/WinUI 3 application. The experimental C++
 - [ ] Finish the remaining rich-table and review-first UX work for device, package, archive, and other command-backed modules. · 完成裝置、套件、壓縮檔同其他 command-backed 模組餘下嘅豐富表格同先檢視後執行 UX。
 - [ ] Expand safe import/export, configuration sync, diagnostics, and recovery while keeping secrets protected with DPAPI and destructive actions explicit. · 擴充安全 import／export、設定同步、診斷同復原，同時用 DPAPI 保護秘密，破壞性動作亦要明確確認。
 - [ ] Continue AWS service-specific workspaces beyond native S3 and EC2: verified Cloud Control identifiers, live operations dashboards, and review-first controls for the next highest-value services. · 繼續將 AWS 專用工作區擴展到原生 S3 同 EC2 之外：加入已驗證 Cloud Control identifier、即時營運儀表板，同下一批高價值服務嘅先覆核控制。
-- [ ] Preserve the reactor's 63-scenario gate and safety invariants while extending simulation, companion, and integration coverage. · 擴充模擬、companion 同整合覆蓋時，保持反應堆 63 個情境 gate 同安全 invariant。
+- [ ] Preserve the reactor's 65-scenario gate and safety invariants while extending simulation, companion, and integration coverage. · 擴充模擬、companion 同整合覆蓋時，保持反應堆 65 個情境 gate 同安全 invariant。
 
 ## Completed structural work · 已完成結構工作
 
 - [x] Make this repository and its release line unambiguously canonical for the .NET application. · 將呢個 repository 同 release 線明確定為正式 .NET app。
 - [x] Move the C++20/C++/WinRT experiment to [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native), with its own source, tests, documentation, automation, and releases. · 將 C++20/C++/WinRT 實驗移植版搬去獨立 repository，連 source、tests、文件、自動化同 release 一齊分開。
-- [x] Establish the reactor's stable backward-Euler kinetics, protection logic, thermal equilibrium, opt-in real-world effects, and 63/63 regression harness. · 完成反應堆穩定 backward-Euler kinetics、保護邏輯、熱平衡、可選現實效果，同 63/63 regression harness。
+- [x] Establish the reactor's stable backward-Euler kinetics, protection logic, thermal equilibrium, opt-in real-world effects, and 65/65 regression harness. · 完成反應堆穩定 backward-Euler kinetics、保護邏輯、熱平衡、可選現實效果，同 65/65 regression harness。
+- [x] Ship reactor-powered ammonia production and strict-priority grid load shedding with live-bus gating, duplicate-tick-safe accounting, responsive bilingual controls, and focused regression scenarios. · 推出反應堆供電合成氨同嚴格優先級電網卸載，加入即時母線閘門、重複 tick 安全計數、響應式雙語控制，同專項回歸情境。
 - [x] Establish the managed AWS Console shell, account/Region generation isolation, native S3 management, native EC2 inventory/lifecycle controls, and an optional CLI escape hatch. · 建立受管理 AWS Console shell、帳戶／Region generation 隔離、原生 S3 管理、原生 EC2 清單／生命週期控制，同選用 CLI 後備入口。

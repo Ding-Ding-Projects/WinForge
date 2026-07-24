@@ -21,6 +21,7 @@
 | **5. Fuel factory & nuclear waste · 燃料工廠與核廢料** | [Reactor Fuel & Waste · 反應堆燃料與廢料](Reactor-Fuel-and-Waste.md) |
 | **6. Makeup-water treatment plant · 補給水處理廠** | [Reactor Water Treatment · 反應堆水處理](Reactor-Water-Treatment.md) |
 | **7. Safety toggles, integrations & status API · 安全開關、整合與狀態 API** | [Reactor Safety & Integrations · 反應堆安全與整合](Reactor-Safety-and-Integrations.md) |
+| **8. Reactor-powered industrial loads · 反應堆供電工業負載** | [Reactor Industrial Loads · 反應堆工業負載](Reactor-Industrial-Loads.md) |
 
 ---
 
@@ -34,13 +35,13 @@
 
 ## Realism roadmap · 寫實度路線圖
 
-**EN —** WinForge's first multi-agent realism review found the instrumentation complete but the **core physics needs foundational fixes** before at-power scenarios behave correctly — currently the core runs away to meltdown if started up. Backward-Euler kinetics (P1) landed; the **reactivity calibration (P2)** is still unfinished, so the reactor is **safe at rest in cold shutdown but melts if started up**. Tracked in [reactor-realism-review-001.md](../reactor-realism-review-001.md); validation status in the [Test Report](Reactor-Test-Report.md).
+**EN —** The first multi-agent realism review is now an **archival baseline**, not an open-defect list. P1–P5 are implemented: stable backward-Euler kinetics, verified shutdown margin, a closed fuel/steam-generator energy balance, corrected decay-heat/xenon/pressurizer behavior, wired 2-of-4 RPS protection, and 1/M startup guidance. The current headless suite is **65/65 green**, including ammonia and grid load-shed regressions. Its sustained high-power regression holds **0.836→0.835 RTP** without emergency cooling, SCRAM, runaway, or meltdown. Historical analysis: [reactor-realism-review-001.md](../reactor-realism-review-001.md); live evidence: [Test Report](Reactor-Test-Report.md).
 
-**粵語 —** WinForge 首次多代理寫實度審查發現儀表已完整，但**核心物理需要基礎修正**，滿載情景先會正確運作——目前一起動就會失控走向熔毀。後向歐拉動力學（P1）已落地；**反應性校準（P2）**仍未完成，所以反應堆**靜止於冷停堆時安全，但一起動就會熔毀**。詳見[reactor-realism-review-001.md](../reactor-realism-review-001.md)；驗證狀態見[測試報告](Reactor-Test-Report.md)。
+**粵語 —** 首次多代理寫實度審查而家係**歷史基準**，唔再係未完成缺陷清單。P1–P5 已完成：穩定後向歐拉動力學、已驗證停堆裕度、閉合燃料／蒸汽產生器能量平衡、已修正衰變熱／氙／穩壓器行為、四取二 RPS 保護，同 1/M 起動指引。現時無介面測試 **65/65** 全綠，包括合成氨同電網卸載回歸；持續高功率回歸維持 **0.836→0.835 RTP**，冇應急冷卻、SCRAM、失控或者熔毀。歷史分析見 [reactor-realism-review-001.md](../reactor-realism-review-001.md)；現時證據見[測試報告](Reactor-Test-Report.md)。
 
 ---
 
 ### Reactor pages · 反應堆頁面導覽
-[🏠 Reactor Hub · 反應堆總覽](Nuclear-Reactor.md) · [Overview · 總覽](Reactor-Overview.md) · [Control Room · 控制室](Reactor-Control-Room.md) · [Operating Procedures · 操作程序](Reactor-Operating-Procedures.md) · [Emergencies & Scenarios · 緊急與情景](Reactor-Emergencies-and-Scenarios.md) · [Fuel & Waste · 燃料與廢料](Reactor-Fuel-and-Waste.md) · [Water Treatment · 水處理](Reactor-Water-Treatment.md) · [Safety & Integrations · 安全與整合](Reactor-Safety-and-Integrations.md) · [Operating Manual · 操作手冊](Nuclear-Reactor-Operating-Manual.md) · [Test Report · 測試報告](Reactor-Test-Report.md)
+[🏠 Reactor Hub · 反應堆總覽](Nuclear-Reactor.md) · [Overview · 總覽](Reactor-Overview.md) · [Control Room · 控制室](Reactor-Control-Room.md) · [Operating Procedures · 操作程序](Reactor-Operating-Procedures.md) · [Emergencies & Scenarios · 緊急與情景](Reactor-Emergencies-and-Scenarios.md) · [Fuel & Waste · 燃料與廢料](Reactor-Fuel-and-Waste.md) · [Water Treatment · 水處理](Reactor-Water-Treatment.md) · [Industrial Loads · 工業負載](Reactor-Industrial-Loads.md) · [Safety & Integrations · 安全與整合](Reactor-Safety-and-Integrations.md) · [Operating Manual · 操作手冊](Nuclear-Reactor-Operating-Manual.md) · [Test Report · 測試報告](Reactor-Test-Report.md)
 
 *Screenshots captured from the running self-contained build · 截圖擷取自實際運行的自包含建置 · `English + 繁體中文／粵語`*

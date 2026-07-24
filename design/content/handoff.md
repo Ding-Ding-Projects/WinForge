@@ -4,6 +4,16 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Reactor industrial loads · 反應堆工業負載
+
+The managed app now has two more reactor-bus consumers: an ammonia/fertilizer Haber–Bosch plant (`ammonia`, `fertilizer`, `fertiliser`) and an eight-feeder strict-priority load-shed dispatcher (`loadshed`, `mwbudget`). The plant's 280 MW default can reach its approximately 263 MW steady synthesis threshold; the dispatcher reports cold-bus enabled demand as shed without inventing a trip. Both services reject non-finite inputs and keep duplicate ticks from advancing accumulated state.
+
+正式 app 新增兩個反應堆母線負載：合成氨／肥料哈柏法工廠，同八饋線嚴格優先級卸載調度器。合成氨預設 280 MW 可以到約 263 MW 穩定門檻；卸載器會如實顯示冷母線啟用需求已卸載，但唔會虛構跳脫。兩個 service 都會拒絕非有限輸入，重複 tick 亦唔會推進累積狀態。
+
+Windows x64 build completed with zero errors and the production-source reactor harness passed **65/65**. Literal safety and source-surface audits passed. Generated documentation reports 321 module pages, 1,905 actionable-control pages, 1,216 app features, and 2,278 Pages wiki records. Both deep links opened on a dedicated LowLevel headless desktop, but the inspected 1574×887 WinUI captures were solid black; the repository driver also rejected a blank fallback and switching the desktop visible was denied. No invalid image is published, so visual evidence remains `capture-blocked`. Full behavior, failure, accessibility, and safety details are in [Reactor Industrial Loads](wiki/Reactor-Industrial-Loads.md).
+
+Windows x64 build 零 errors、正式 source reactor harness **65/65**、literal safety 同 source audit 全過；生成文件係 321 module／1,905 actionable control／1,216 app feature／2,278 Pages wiki。兩個 deep link 都喺專用 LowLevel desktop 成功開啟，但已檢視 WinUI capture 全黑；repo driver 亦拒絕空白 fallback，而切換 desktop 就被拒絕。冇無效圖片會發佈，所以 visual 如實係 `capture-blocked`。完整行為、故障、無障礙同安全資料喺 [反應堆工業負載](wiki/Reactor-Industrial-Loads.md)。
+
 ## AWS Manager EC2 continuation · AWS Manager EC2 延續開發
 
 The managed AWS Manager now has a native, bilingual EC2 workspace alongside S3 and Resource Explorer. It supports direct `ec2` and `s3` routes, paged instance discovery, local filtering, details, and guarded Start, Stop, Reboot, and Terminate reviews through AWSSDK.EC2. Context generations, operation ownership, stale-result rejection, post-dialog revalidation, fail-closed state policy, and atomic S3 `If-None-Match: *` uploads keep account and mutation boundaries explicit; discovered credentials remain metadata-only.
@@ -23,9 +33,9 @@ Local gates are green: the solution builds with zero errors; all **27/27** Relea
 
 ## Validation · 驗證
 
-The managed compile gate is `dotnet build WinForge.sln -c Debug -p:Platform=x64` with zero errors. The reactor/dependent-service gate is `dotnet run --project tests/ReactorSim.Tests -c Debug`, currently 63/63 with nonzero exit on failure. Use the repository's managed-only run driver for a process-owned deep-link launch or screenshot.
+The managed compile gate is `dotnet build WinForge.sln -c Debug -p:Platform=x64` with zero errors. The reactor/dependent-service gate is `dotnet run --project tests/ReactorSim.Tests -c Debug`, currently 65/65 with nonzero exit on failure. Use the repository's managed-only run driver for a process-owned deep-link launch or screenshot.
 
-正式編譯 gate 係指定 `dotnet build` command 同零 errors；反應堆／依賴服務 gate 係指定 `ReactorSim.Tests` command，目前 63/63，失敗時非零退出。直接開頁或者截圖要用 repo 嘅 managed-only driver，只控制自己開嘅 process。
+正式編譯 gate 係指定 `dotnet build` command 同零 errors；反應堆／依賴服務 gate 係指定 `ReactorSim.Tests` command，目前 65/65，失敗時非零退出。直接開頁或者截圖要用 repo 嘅 managed-only driver，只控制自己開嘅 process。
 
 ## Repository split proof · Repository 分拆證明
 

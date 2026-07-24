@@ -8,7 +8,7 @@ Open in-app · 喺 app 內開啟：`WinForge.exe --page reactor`
 
 ![Nuclear Reactor · 核反應堆](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactor.png)
 
-> **Verified state · 已驗證狀態 —** **EN:** Foundational realism P1–P5 is resolved. The headless reactor/dependent harness is **63/63 green**, including a stable fully-rodded startup and a sustained high-power thermal equilibrium without emergency cooling, SCRAM, or meltdown. · **粵語：**基礎寫實度 P1–P5 已解決。反應堆／相依服務無介面測試 **63/63** 全綠，包括全棒插入穩定起動，同唔需要應急冷卻、唔會 SCRAM、唔會熔毀嘅持續高功率熱平衡。
+> **Verified state · 已驗證狀態 —** **EN:** Foundational realism P1–P5 is resolved. The headless reactor/dependent harness is **65/65 green**, including a stable fully-rodded startup, sustained high-power thermal equilibrium, green-ammonia power gating, and strict-priority load shedding. · **粵語：**基礎寫實度 P1–P5 已解決。反應堆／相依服務無介面測試 **65/65** 全綠，包括全棒插入穩定起動、持續高功率熱平衡、綠氨供電閘門，同嚴格優先級卸載。
 
 ---
 
@@ -22,9 +22,10 @@ Open in-app · 喺 app 內開啟：`WinForge.exe --page reactor`
 | [Reactor Emergencies & Scenarios · 反應堆緊急與情景](Reactor-Emergencies-and-Scenarios.md) | SCRAM / E-0, meltdown recovery, scenario drills (LOCA, SBO, LOFW, ATWS, SGTR, MSLB). · SCRAM／E-0、熔毀復原、情景演習。 |
 | [Reactor Fuel & Waste · 反應堆燃料與廢料](Reactor-Fuel-and-Waste.md) | 17×17 UO₂ fuel factory, HMAC validate, load-consumes-file, forged harm, real waste files, caps & floors. · 燃料工廠、HMAC 驗證、入料即刪檔、偽冒損堆、真實廢料檔、上限與下限。 |
 | [Reactor Water Treatment · 反應堆水處理](Reactor-Water-Treatment.md) | Intake → clarifier → filter → RO → demin → degasifier → ultrapure; chemistry; reactor dependency. · 取水 → 澄清 → 過濾 → RO → 除鹽 → 除氣 → 超純；水質；反應堆依賴。 |
+| [Reactor Industrial Loads · 反應堆工業負載](Reactor-Industrial-Loads.md) | Green-ammonia synthesis, live-bus power gating, strict-priority feeder dispatch, and anti-flap reclose. · 綠氨合成、即時母線供電閘門、嚴格優先級饋線調度，同防拍翼重合閘。 |
 | [Reactor Safety & Integrations · 反應堆安全與整合](Reactor-Safety-and-Integrations.md) | ARM real-shutdown toggle, keep-awake, Windows linkage, crash-safe autosave, public status API. · ARM 真實關機開關、保持喚醒、Windows 連動、防崩潰自動儲存、公開狀態 API。 |
 | [Nuclear Reactor — Operating Manual · 核反應堆操作手冊](Nuclear-Reactor-Operating-Manual.md) | Manual index linking the focused pages above. · 連結上述聚焦頁面嘅手冊索引。 |
-| [Reactor Test Report · 反應堆測試報告](Reactor-Test-Report.md) | Latest headless run: **63 / 63** scenarios pass, including sustained high-power equilibrium. · 最新無介面運行：**63／63** 情景通過，包括持續高功率熱平衡。 |
+| [Reactor Test Report · 反應堆測試報告](Reactor-Test-Report.md) | Latest headless run: **65 / 65** scenarios pass, including sustained high-power equilibrium and industrial-load regressions. · 最新無介面運行：**65／65** 情景通過，包括持續高功率熱平衡同工業負載回歸。 |
 
 ---
 

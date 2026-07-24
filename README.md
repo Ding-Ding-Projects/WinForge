@@ -1,8 +1,8 @@
 # WinForge · 視窗鑄造
 
-WinForge is the canonical **.NET 11 / WinUI 3** Windows 11 control center. It combines 319 registered in-app entries, a large Windows-tweak catalog, and a hyper-realistic pressurized-water-reactor simulator in one self-contained x64 desktop app.
+WinForge is the canonical **.NET 11 / WinUI 3** Windows 11 control center. It combines 321 registered in-app entries, a large Windows-tweak catalog, and a hyper-realistic pressurized-water-reactor simulator in one self-contained x64 desktop app.
 
-WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 319 個已登記 app 內項目、大型 Windows 調校目錄，同超寫實壓水堆模擬器放喺同一個自包含 x64 桌面 app。
+WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 321 個已登記 app 內項目、大型 Windows 調校目錄，同超寫實壓水堆模擬器放喺同一個自包含 x64 桌面 app。
 
 `WinUI 3` · `.NET 11` · `English / 粵語 / bilingual` · `Windows 11 x64`
 
@@ -16,6 +16,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 319
 - **Three persisted language modes · 三種持久語言模式** — English, playful Hong Kong-style Cantonese, and compact bilingual mode.
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
 - **Flagship reactor · 旗艦反應堆** — a PWR control-room simulator with point kinetics, thermal hydraulics, turbine and electrical systems, protection logic, fuel and waste services, water treatment, and opt-in external integrations.
+- **Reactor-powered industrial loads · 反應堆工業負載** — a green-ammonia Haber–Bosch plant and strict-priority grid load-shed dispatcher consume the live simulated bus, fail dark, and preserve reactor safety boundaries. · 綠氨哈柏法工廠同嚴格優先級電網卸載調度器會用即時模擬母線；冇電就停，而且唔會越過反應堆安全界線。
 
 The complete bilingual module and button reference starts at [the wiki home](docs/wiki/Home.md). Generated feature pages live under `docs/wiki/features/`, while focused architecture, operating, and verification records live under `docs/` and `docs/wiki/`.
 
@@ -59,7 +60,7 @@ powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 
   -Page reactor -NoCapture
 ```
 
-Every registered deep link uses `WinForge.exe --page <alias>`. Examples include `dashboard`, `reactor`, `reactorsettings`, `monitor`, `docker`, `torrent`, `proxmox`, `ocr`, `keepass`, and `hexeditor`.
+Every registered deep link uses `WinForge.exe --page <alias>`. Examples include `dashboard`, `reactor`, `ammonia`, `loadshed`, `reactorsettings`, `monitor`, `docker`, `torrent`, `proxmox`, `ocr`, `keepass`, and `hexeditor`.
 
 ## Verification · 驗證
 
@@ -72,7 +73,7 @@ Remove-Item Env:DOTNET_ROOT -ErrorAction SilentlyContinue
 dotnet run --project tests\ReactorSim.Tests -c Debug
 ```
 
-The current contract is **63/63** scenarios, and the harness returns nonzero if any scenario fails or throws. Use `-- --verify-exit-code-contract` for its fast exit-code self-test.
+The current contract is **65/65** scenarios, and the harness returns nonzero if any scenario fails or throws. Use `-- --verify-exit-code-contract` for its fast exit-code self-test.
 
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 

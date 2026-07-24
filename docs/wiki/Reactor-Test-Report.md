@@ -1,10 +1,10 @@
 # Reactor Test Report · 反應堆測試報告
 
-**EN —** This is the current headless verification report for the real C# reactor engine and its dependent fuel, waste, water, app-gating, and cake-factory services. The harness compiles the production service sources directly; it does not substitute a mock reactor.
+**EN —** This is the current headless verification report for the real C# reactor engine and its dependent fuel, waste, water, app-gating, industrial-load, and cake-factory services. The harness compiles the production service sources directly; it does not substitute a mock reactor.
 
-**粵語 —** 呢份係現時真實 C# 反應堆引擎，同燃料、廢料、水處理、app 供電閘門、蛋糕工廠相依服務嘅無介面驗證報告。測試框架直接編譯正式服務程式碼，唔係用假反應堆代替。
+**粵語 —** 呢份係現時真實 C# 反應堆引擎，同燃料、廢料、水處理、app 供電閘門、工業負載、蛋糕工廠相依服務嘅無介面驗證報告。測試框架直接編譯正式服務程式碼，唔係用假反應堆代替。
 
-**Latest verified run · 最新已驗證執行：** 2026-07-11
+**Latest verified run · 最新已驗證執行：** 2026-07-24
 
 ```powershell
 dotnet run --project tests/ReactorSim.Tests -c Debug
@@ -20,11 +20,11 @@ dotnet run --project tests/ReactorSim.Tests -c Debug
 dotnet run --project tests/ReactorSim.Tests -c Debug -- --verify-exit-code-contract
 ```
 
-**Visual evidence · 視覺證據 —** Not applicable / 不適用. This change touches only the headless console harness and documentation; no WinUI page or visual layout changed, so no screenshot replacement is required or claimed.
+**Visual evidence · 視覺證據 —** `capture-blocked`. Both `ammonia` and `loadshed` launched in fresh WinUI windows on a dedicated LowLevel headless desktop, but the inspected 1574×887 client captures were solid black. The repository driver independently rejected a blank/near-uniform fallback, and switching the headless desktop visible failed with access denied. No invalid capture is published or claimed as a visual pass. · 兩頁都成功喺專用 LowLevel headless desktop 開出新 WinUI 視窗，但已檢視嘅 1574×887 client capture 全黑；repo driver 亦獨立拒絕空白／近乎單色 fallback，而切換到可見 desktop 就 access denied。冇無效圖片會發佈或者當視覺通過。
 
 **Build / harness · 建置／測試框架：** 0 compile errors · 0 個編譯錯誤
 
-**Result · 結果： 63 / 63 scenarios PASS · 63 / 63 個情景全部通過**
+**Result · 結果： 65 / 65 scenarios PASS · 65 / 65 個情景全部通過**
 
 > **EN —** The original P1–P5 realism findings are resolved. The suite now proves both ends of the operating envelope: a fresh fully-rodded core stays subcritical at **−1018 pcm**, and a fully hot plant sustains a high-power thermal equilibrium without emergency cooling, SCRAM, runaway, or meltdown.
 >
@@ -42,8 +42,9 @@ dotnet run --project tests/ReactorSim.Tests -c Debug -- --verify-exit-code-contr
 | Waste storage safety · 廢料儲存安全 | **2** | Capacity cap and disk free-space floor. · 容量上限同磁碟剩餘空間安全下限。 |
 | Water treatment · 水處理 | **2** | Ultrapure chemistry and empty-tank availability degradation. · 超純水化學同水箱耗盡後可用性下降。 |
 | Reactor-dependent app gating · 反應堆相依 app 閘門 | **1** | Live reactor-bus availability and ordinary-module exemption. · 即時反應堆母線可用性，同普通模組豁免。 |
+| Reactor industrial loads · 反應堆工業負載 | **2** | Ammonia pressurisation/production/power-loss behavior and strict-priority feeder dispatch, cold-bus accounting, unserved energy, anti-flap reclose, and duplicate-tick stability. · 合成氨加壓／生產／失電行為，同嚴格優先級饋線調度、冷母線計數、未供電能量、防拍翼重合閘、重複 tick 穩定性。 |
 | Cake-factory dependency chain · 蛋糕工廠相依鏈 | **37** | Reactor power gate, manual production, ingredient provenance, factory processes, QA, maintenance, dispatch, signed files, credits, and sanitation. · 反應堆供電閘門、手動生產、原料來源、工廠流程、品質檢驗、維修、出貨、簽署檔案、額度同清潔。 |
-| **Total · 總數** | **63** | **All pass · 全部通過** |
+| **Total · 總數** | **65** | **All pass · 全部通過** |
 
 ---
 
@@ -59,6 +60,8 @@ dotnet run --project tests/ReactorSim.Tests -c Debug -- --verify-exit-code-contr
 | SCRAM shutdown margin · SCRAM 停堆裕度 | PASS · 通過 | Fully-rodded tripped core remains **−1018 pcm** and does not melt. · 跳堆後全棒插入保持 **−1018 pcm**，唔會熔毀。 |
 | Decay heat and xenon · 衰變熱同氙 | PASS · 通過 | Decay heat charges at power and decays after trip; `XenonRestart` preserves and decays the axial xenon peak. · 衰變熱喺功率運行時累積、跳堆後衰減；`XenonRestart` 會保留並衰減軸向氙峰。 |
 | Protection and accidents · 保護同事故 | PASS · 通過 | Power Range Flux Hi initiates automatic SCRAM; every one of the 16 accident/training enum values is exercised. · 高功率量程中子通量會自動 SCRAM；全部 16 個事故／訓練 enum 值都有執行。 |
+| Green-ammonia plant · 綠氨工廠 | PASS · 通過 | The 280 MW default reaches synthesis pressure, production and CO₂ accounting advance only on distinct ticks, reactor loss stops output and depressurises the loop, and reset restores safe defaults. · 280 MW 預設值可到合成壓力；產量同 CO₂ 只會喺唔重複 tick 推進；反應堆失電會停產降壓，重設會還原安全預設。 |
+| Grid load shedding · 電網卸載 | PASS · 通過 | A cold bus reports 990 MW shed with no invented trip; healthy power serves all demand; sag preserves P1/P2 while shedding 640 MW; energy, anti-flap reclose, operator-off, blackout, reset, and duplicate ticks follow contract. · 冷母線顯示 990 MW 已卸載但唔虛構跳脫；健康供電滿足全部需求；下跌時保留 P1/P2 並卸載 640 MW；能量、防拍翼重合閘、操作員關閉、全黑、重設同重複 tick 都符合合約。 |
 
 ---
 
@@ -79,6 +82,6 @@ dotnet run --project tests/ReactorSim.Tests -c Debug -- --verify-exit-code-contr
 ---
 
 ### Reactor pages · 反應堆頁面導覽
-[Reactor Hub · 反應堆總覽](Nuclear-Reactor.md) · [Overview · 總覽](Reactor-Overview.md) · [Control Room · 控制室](Reactor-Control-Room.md) · [Operating Procedures · 操作程序](Reactor-Operating-Procedures.md) · [Emergencies & Scenarios · 緊急與情景](Reactor-Emergencies-and-Scenarios.md) · [Fuel & Waste · 燃料與廢料](Reactor-Fuel-and-Waste.md) · [Water Treatment · 水處理](Reactor-Water-Treatment.md) · [Safety & Integrations · 安全與整合](Reactor-Safety-and-Integrations.md) · [Operating Manual · 操作手冊](Nuclear-Reactor-Operating-Manual.md)
+[Reactor Hub · 反應堆總覽](Nuclear-Reactor.md) · [Overview · 總覽](Reactor-Overview.md) · [Control Room · 控制室](Reactor-Control-Room.md) · [Operating Procedures · 操作程序](Reactor-Operating-Procedures.md) · [Emergencies & Scenarios · 緊急與情景](Reactor-Emergencies-and-Scenarios.md) · [Fuel & Waste · 燃料與廢料](Reactor-Fuel-and-Waste.md) · [Water Treatment · 水處理](Reactor-Water-Treatment.md) · [Industrial Loads · 工業負載](Reactor-Industrial-Loads.md) · [Safety & Integrations · 安全與整合](Reactor-Safety-and-Integrations.md) · [Operating Manual · 操作手冊](Nuclear-Reactor-Operating-Manual.md)
 
 *English + 繁體中文／粵語*

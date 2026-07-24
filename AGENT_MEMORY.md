@@ -24,7 +24,7 @@ This file is the durable execution contract for the canonical WinForge repositor
 - Meltdown-to-real-PC-shutdown is off by default and abortable when explicitly armed. · 熔毀觸發真實電腦關機預設關閉，明確啟用後仍然可以中止。
 - Waste writes preserve a disk free-space floor and default 50 GB cap. · 廢料寫入要保留磁碟可用空間底線同預設 50 GB 上限。
 - Real-world side effects remain opt-in and reversible. · 現實世界副作用要保持明確 opt-in 同可還原。
-- The focused harness is `dotnet run --project tests/ReactorSim.Tests -c Debug`; its current contract is 63/63 and nonzero exit on any failure or exception. · 專項 harness 目前合約係 63/63，任何失敗或例外都要非零退出。
+- The focused harness is `dotnet run --project tests/ReactorSim.Tests -c Debug`; its current contract is 65/65 and nonzero exit on any failure or exception. · 專項 harness 目前合約係 65/65，任何失敗或例外都要非零退出。
 
 ## Completion and Git · 完成同 Git
 

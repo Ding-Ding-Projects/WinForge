@@ -1,7 +1,7 @@
 # WinForge Wiki · 視窗鑄造 Wiki
 
-**EN —** WinForge is the canonical, fully bilingual .NET 11 / WinUI 3 Windows 11 control center with 319 registered in-app entries, 895 tweak-catalog items, and 1,214 total app features including the flagship nuclear-reactor simulator. The experimental C++ port is maintained separately.
-**粵語 —** WinForge 係正式、全程雙語嘅 .NET 11／WinUI 3 Windows 11 控制中心，有 319 個已登記 app 內項目、895 項調校目錄項目，同 1,214 項總功能，包括旗艦核反應堆模擬器。實驗性 C++ 移植版會喺獨立 repository 維護。
+**EN —** WinForge is the canonical, fully bilingual .NET 11 / WinUI 3 Windows 11 control center with 321 registered in-app entries, 895 tweak-catalog items, and 1,216 total app features including the flagship nuclear-reactor simulator. The experimental C++ port is maintained separately.
+**粵語 —** WinForge 係正式、全程雙語嘅 .NET 11／WinUI 3 Windows 11 控制中心，有 321 個已登記 app 內項目、895 項調校目錄項目，同 1,216 項總功能，包括旗艦核反應堆模擬器。實驗性 C++ 移植版會喺獨立 repository 維護。
 
 ## Start Here · 由呢度開始
 
@@ -10,6 +10,7 @@
 | [Module Categories](Module-Categories.md) | Browse every module by area · 按分類瀏覽全部模組 |
 | [Native Port Relocation](Native-Cpp-Rewrite.md) | Link to the independent WinForge-Native project · 獨立 WinForge-Native project 連結 |
 | [Reactor Hub](#/wiki/Reactor-Hub) | Reactor manual, procedures, safety, fuel, waste, and tests · 反應堆手冊、程序、安全、燃料、廢料同測試 |
+| [Reactor Industrial Loads](#/wiki/Reactor-Industrial-Loads) | Ammonia production and priority load shedding · 合成氨生產同優先級卸載 |
 | [Generated References](#/wiki/Generated-References) | One page per feature and one page per button/control · 每功能一頁、每按鈕／控制項一頁 |
 | [Screenshots](#/wiki/Screenshots) | Screenshot gallery and redaction rules · 截圖集同遮蔽規則 |
 | [Smoke Test Campaign](Smoke-Test-Campaign.md) | Whole-app route, source, behavior, and evidence ledger · 全 app route、source、行為同證據清單 |

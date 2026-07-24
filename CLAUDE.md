@@ -3,7 +3,7 @@
 Guidance for AI agents working in this repo. Keep it current.
 
 ## What this is
-WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + 繁體中文/粵語)** Windows 11 control center — 320 registered in-app modules plus a large Windows-tweak catalog — with a **hyper-realistic nuclear-reactor simulator** as its flagship. **.NET `net11.0-windows10.0.26100.0`, WinUI 3**, self-contained, unpackaged.
+WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + 繁體中文/粵語)** Windows 11 control center — 321 registered in-app entries (Dashboard + 320 modules) plus a large Windows-tweak catalog — with a **hyper-realistic nuclear-reactor simulator** as its flagship. **.NET `net11.0-windows10.0.26100.0`, WinUI 3**, self-contained, unpackaged.
 
 ## Build / run / drive
 - **Compile check:** `dotnet build WinForge.sln -c Debug -p:Platform=x64` (must finish with 0 errors; do not hard-code a warning count).
@@ -31,7 +31,7 @@ WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + �
 - **Foundational realism review P1–P5 is resolved and test-verified.** Backward-Euler kinetics is stable; a fresh fully-rodded core is subcritical (**−1018 pcm**); the corrected fuel/SG heat balance sustains a high-power equilibrium (**0.836→0.835 RTP, ~992.5 °C fuel, ~293.4 °C Tavg, 15.46 MPa RCS**) without emergency cooling, SCRAM, or meltdown; decay heat, xenon, saturated-pressurizer behavior, 2-of-4 RPS, OTΔT/OPΔT, SG low-low/AFW, turbine-trip cascade, 109% overpower, and 1/M are implemented. The full harness is **65/65 green** (63 long-standing scenarios + the Ammonia Plant and Grid Load-Shed scenarios). Historical background: `docs/reactor-realism-review-001.md`; current evidence: `docs/wiki/Reactor-Test-Report.md`.
 
 ## Docs
-Bilingual wiki under `docs/wiki/` (Home → category pages, generated feature/button references, reactor hub with seven focused pages, manual, test report, and screenshot gallery). Canonical page screenshots live under `docs/`; selected wiki-local assets live under `docs/wiki/images/`.
+Bilingual wiki under `docs/wiki/` (Home → category pages, generated feature/button references, reactor hub with eight focused pages, manual, test report, and screenshot gallery). Canonical page screenshots live under `docs/`; selected wiki-local assets live under `docs/wiki/images/`.
 
 ## Gotchas
 - `audioeditor`, `lightswitch`, and `timelens` are fixed; if one captures blank via the driver, rerun with a longer `-WaitMs`.
