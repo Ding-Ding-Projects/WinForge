@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Services\AudioPolicyConfig.cs" Link="AudioPolicyConfig.cs" />
+    <None Include="..\..\Services\AudioMixer.cs" Link="AudioMixer.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

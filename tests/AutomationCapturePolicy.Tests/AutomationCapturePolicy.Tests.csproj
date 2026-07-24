@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Services\AutomationCapturePolicy.cs" Link="AutomationCapturePolicy.cs" />
+    <None Include="..\..\Services\AutomationCaptureService.cs" Link="AutomationCaptureService.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\.agents\skills\run-winforge\driver.ps1" Link="driver.ps1" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

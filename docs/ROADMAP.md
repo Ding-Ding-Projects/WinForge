@@ -670,7 +670,7 @@ This batch came from three parallel agent workflows: a forum pain-point sweep, a
 - [ ] **SMB shares + sessions auditor** · 共享同工作階段稽核 — `netapi32.dll` NetShareEnum (level 2) + NetSessionEnum (level 10) — what you publish + who's connected.
 - [ ] **Power-plan switcher (+ Ultimate Performance)** · 電源計劃切換 — `powrprof.dll` PowerEnumerate/PowerGetActiveScheme/PowerSetActiveScheme; unlock Ultimate Performance (duplicatescheme GUID e9a42b02…).
 - [ ] **Monitor brightness (DDC/CI)** · 螢幕亮度 — `dxva2.dll` GetPhysicalMonitorsFromHMONITOR + Get/SetMonitorBrightness (external monitors too).
-- [ ] **Per-app volume mixer** · 每個程式音量 — Core Audio COM: IMMDeviceEnumerator + IAudioSessionManager2 / ISimpleAudioVolume (mute/level per app), IAudioEndpointVolume (master).
+- [x] **Per-app volume mixer** · 每個程式音量 — Core Audio COM: IMMDeviceEnumerator + IAudioSessionManager2 / ISimpleAudioVolume (mute/level per app), IAudioEndpointVolume (master). Hardened with checked activation, nullable-safe cleanup/default routing, and adaptive accessible controls.
 - [ ] **In-app Event Viewer** · 事件檢視器 — `wevtapi.dll` EvtQuery/EvtNext/EvtRender with human-readable bilingual filters.
 - [ ] **Log off / disconnect other users** · 登出其他使用者 — `wtsapi32.dll` WTSEnumerateSessions + WTSLogoffSession/WTSDisconnectSession (admin).
 - [ ] **Certificate viewer** · 憑證檢視 — `crypt32.dll` CertEnumCertificatesInStore over My/Root/CA stores.
@@ -735,7 +735,7 @@ _Note: a planned "AI & Ads catalog batch" was dropped after the audit showed Rec
 
 From a generate+adversarial-verify workflow (Core Audio COM interop verified `correct=true`) + a discovery sweep (17 items).
 
-- [x] **Per-app Volume Mixer** · 每個 app 音量混合器 — DONE: master volume/mute + every audio session's volume/mute, live, via raw Core Audio (WASAPI) COM — IMMDeviceEnumerator → IAudioSessionManager2 → IAudioSessionControl2 / ISimpleAudioVolume / IAudioEndpointVolume. Adversarially-verified vtable order; runs without AccessViolation. `module.mixer` / `--page mixer`.
+- [x] **Per-app Volume Mixer** · 每個 app 音量混合器 — DONE: master volume/mute + every audio session's volume/mute, live, via raw Core Audio (WASAPI) COM — IMMDeviceEnumerator → IAudioSessionManager2 → IAudioSessionControl2 / ISimpleAudioVolume / IAudioEndpointVolume. Adversarially verified vtable order, nullable boundaries, single-owner RCW release, invalid-PID rejection, and explicit reset to system default. `module.mixer` / `--page mixer`.
 
 ### New module/feature candidates · 新模組／功能
 - [ ] **Custom right-click verb manager** · 自訂右鍵指令管理 — add/remove context-menu entries under HKCU\Software\Classes\*\shell\<verb>, …\Directory\shell, …\Directory\Background\shell (command + icon + position).

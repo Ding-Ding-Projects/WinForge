@@ -36,7 +36,7 @@ namespace WinForge.Services
         /// <summary>True if the undocumented policy-config factory could be activated on this build.</summary>
         public static bool IsSupported()
         {
-            object factory = null;
+            object? factory = null;
             try
             {
                 factory = CreateFactory();
@@ -51,9 +51,11 @@ namespace WinForge.Services
         /// output device). Pass a null/empty deviceId to clear the override (back to system default).
         /// Returns true on success.
         /// </summary>
-        public static bool SetAppDefaultDevice(int processId, string deviceId)
+        public static bool SetAppDefaultDevice(int processId, string? deviceId)
         {
-            object factory = null;
+            if (processId <= 0) return false;
+
+            object? factory = null;
             try
             {
                 factory = CreateFactory();
@@ -96,7 +98,7 @@ namespace WinForge.Services
 
         // -----------------------------------------------------------------
 
-        private static object CreateFactory()
+        private static object? CreateFactory()
         {
             // Try the 21H2+ shape first on modern builds, then fall back to downlevel.
             bool atLeast21H2 = Environment.OSVersion.Version.Build >= 22000;
@@ -124,7 +126,7 @@ namespace WinForge.Services
         private static void Release(object? o)
         {
             if (o is null) return;
-            if (o != null && Marshal.IsComObject(o))
+            if (Marshal.IsComObject(o))
             {
                 try { Marshal.ReleaseComObject(o); } catch { }
             }
