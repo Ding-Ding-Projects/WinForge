@@ -54,10 +54,10 @@ function Find-RelativeLine {
 }
 
 $specs = @(
-    [pscustomobject]@{ Name = 'Windows 11'; RoadmapPrefix = '### Windows 11  ('; AuditPrefix = '## Windows 11 '; Total = 13; Shipped = 10 },
+    [pscustomobject]@{ Name = 'Windows 11'; RoadmapPrefix = '### Windows 11  ('; AuditPrefix = '## Windows 11 '; Total = 13; Shipped = 13 },
     [pscustomobject]@{ Name = 'ViveTool'; RoadmapPrefix = '### ViveTool '; AuditPrefix = '## ViveTool '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Media'; RoadmapPrefix = '### Media '; AuditPrefix = '## Media '; Total = 15; Shipped = 4 },
-    [pscustomobject]@{ Name = 'Maintenance'; RoadmapPrefix = '### Maintenance '; AuditPrefix = '## Maintenance '; Total = 15; Shipped = 10 },
+    [pscustomobject]@{ Name = 'Maintenance'; RoadmapPrefix = '### Maintenance '; AuditPrefix = '## Maintenance '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Dev & Terminal'; RoadmapPrefix = '### Dev & Terminal '; AuditPrefix = '## Dev & Terminal '; Total = 15; Shipped = 9 },
     [pscustomobject]@{ Name = 'Home Assistant'; RoadmapPrefix = '### Home Assistant '; AuditPrefix = '## Home Assistant '; Total = 14; Shipped = 13 },
     [pscustomobject]@{ Name = 'Archives'; RoadmapPrefix = '### Archives '; AuditPrefix = '## Archives '; Total = 14; Shipped = 10 },
@@ -153,8 +153,8 @@ foreach ($spec in $specs) {
     })
 }
 
-if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 74) {
-    throw "Aggregate mismatch: expected 74/115 shipped, found $aggregateShipped/$aggregateTotal."
+if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 82) {
+    throw "Aggregate mismatch: expected 82/115 shipped, found $aggregateShipped/$aggregateTotal."
 }
 
 $artifactText = @(
@@ -162,8 +162,8 @@ $artifactText = @(
     Get-Content -LiteralPath $wikiPath -Raw -Encoding UTF8
     Get-Content -LiteralPath $pagesPath -Raw -Encoding UTF8
 ) -join "`n"
-if ($artifactText -notmatch '74/115' -or $artifactText -notmatch '41') {
-    throw 'Audit index/wiki mirrors do not report the 74/115 shipped and 41-gap result.'
+if ($artifactText -notmatch '82/115' -or $artifactText -notmatch '33') {
+    throw 'Audit index/wiki mirrors do not report the 82/115 shipped and 33-gap result.'
 }
 
 $mediaCatalogText = Get-Content -LiteralPath $mediaCatalogPath -Raw -Encoding UTF8

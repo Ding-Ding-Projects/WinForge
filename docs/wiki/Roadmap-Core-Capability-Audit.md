@@ -8,15 +8,15 @@ The 2026-07-24 source audit reconciles 115 previously unchecked entries across W
 
 | Section · 章節 | Audited · 審核 | Shipped · 已交付 | Remaining · 餘下 |
 |---|---:|---:|---:|
-| Windows 11 | 13 | 10 | 3 |
+| Windows 11 | 13 | 13 | 0 |
 | ViveTool | 15 | 15 | 0 |
 | Media | 15 | 4 | 11 |
-| Maintenance | 15 | 10 | 5 |
+| Maintenance | 15 | 15 | 0 |
 | Dev & Terminal | 15 | 9 | 6 |
 | Home Assistant | 14 | 13 | 1 |
 | Archives | 14 | 10 | 4 |
 | Browser Control | 14 | 3 | 11 |
-| **Total · 總數** | **115** | **74** | **41** |
+| **Total · 總數** | **115** | **82** | **33** |
 
 ## What the audit protects · 審核守住乜
 
@@ -34,6 +34,6 @@ Read the [categorized source evidence and gap ledger](../audits/roadmap-core-cap
 
 ## Visual evidence · 視覺證據
 
-This reconciliation changes documentation and a static verifier only. It does not change WinUI controls or layout, so no new application screenshot was required or claimed.
+The Windows/System + Maintenance follow-up changes the live System Doctors surface. Fresh headless evidence and its exact capture disposition are recorded in the System Doctors guide and task handoff; destructive operating-system actions were not executed for screenshot evidence.
 
-今次只改文件同靜態驗證器，冇改 WinUI 控制或版面，所以唔需要亦冇聲稱有新 app 截圖。
+Windows／System 加 Maintenance 跟進改咗即時「系統醫生」畫面；最新 headless 證據同準確擷取處置會記錄喺系統醫生指南同交接。截圖驗證冇執行破壞性作業系統操作。

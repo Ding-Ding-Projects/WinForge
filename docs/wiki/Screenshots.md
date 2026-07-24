@@ -27,6 +27,7 @@ This gallery documents the canonical .NET / WinUI 3 application. C++/WinRT port 
 > Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The `regedit` route, editable full-path navigation, and in-app value editing remain launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。`regedit` 路由、可編輯完整路徑導覽同 app 內值編輯仍已驗證可以啟動。
 
 ### System Doctors · 系統醫生
+Fresh guided-maintenance capture; destructive Windows actions were not invoked. · 最新引導式維護畫面；冇執行破壞性 Windows 操作。
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors.png)
 
 ### Services · 服務

@@ -2,21 +2,21 @@
 
 ## Outcome · 結果
 
-This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The classification was formed from the managed application source and revalidated after rebasing onto mainline baseline `4af5e60e9d41f258f2d4697b1f0383138c8d1642`. Of 115 roadmap entries, **74 have complete source-backed delivery evidence** and **41 remain unchecked** because the implementation is absent or only partial.
+This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The classification was formed from the managed application source and revalidated after rebasing onto mainline baseline `4af5e60e9d41f258f2d4697b1f0383138c8d1642`. The 2026-07-24 Windows/System + Maintenance delivery closed all eight gaps in those two sections, bringing the strict matrix to **82 shipped** and **33 remaining** out of 115.
 
-今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對。115 項之中，**74 項有完整原始碼交付證據**，**41 項因為未有實作或者只做咗一部分而繼續留空**。
+今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對。Windows／System 加 Maintenance 今次交付補齊晒嗰兩節八個缺口；115 項之中而家 **82 項有完整原始碼交付證據**，**33 項因為未有實作或者只做咗一部分而繼續留空**。
 
 | Section · 章節 | Audited · 審核 | Shipped `[x]` · 已交付 | Remaining `[ ]` · 餘下 |
 |---|---:|---:|---:|
-| Windows 11 | 13 | 10 | 3 |
+| Windows 11 | 13 | 13 | 0 |
 | ViveTool | 15 | 15 | 0 |
 | Media | 15 | 4 | 11 |
-| Maintenance | 15 | 10 | 5 |
+| Maintenance | 15 | 15 | 0 |
 | Dev & Terminal | 15 | 9 | 6 |
 | Home Assistant | 14 | 13 | 1 |
 | Archives | 14 | 10 | 4 |
 | Browser Control | 14 | 3 | 11 |
-| **Total · 總數** | **115** | **74** | **41** |
+| **Total · 總數** | **115** | **82** | **33** |
 
 ## Evidence standard · 證據標準
 
@@ -28,11 +28,11 @@ An entry is checked only when all of the following are present:
 
 只有同時有可達控制、實際執行機制，同埋文件／驗證證據先會剔選。`Controls/ControlRowList.cs` is the shared binding proof for catalog rows: action buttons invoke `RunAsync`, toggles invoke `SetIsOn`, and choice/slider controls invoke their registered setters. Dedicated modules are registered in `Services/ModuleRegistry.cs`, mapped/deep-linked in `MainWindow.xaml.cs`, and documented by generated module/button pages.
 
-The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, and verifies the aggregate **74/115** result.
+The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, and verifies the aggregate **82/115** result.
 
 ## Windows 11 · Windows 11
 
-### Shipped — 10 · 已交付 — 10
+### Shipped — 13 · 已交付 — 13
 
 | Roadmap capability | Concrete implementation evidence | Documentation evidence |
 |---|---|---|
@@ -46,14 +46,13 @@ The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section total
 | **Change Regional First Day of Week & Short Date Format** | `Catalog/Win11ProTweaks.cs`: `first-day-week` and `short-date` choices write `iFirstDayOfWeek` and `sShortDate`. | Generated feature pages for both IDs. |
 | **Enable 'End Task' on Taskbar Right-Click** | `Catalog/WinaeroTweaks.cs`, `winaero.desktop-explorer.taskbar-end-task`: registry toggle for `TaskbarDeveloperSettings\TaskbarEndTask`. | Generated Winaero feature page. |
 | **Restore Classic (Win10) Right-Click Context Menu in Explorer** | `Catalog/ExplorerTweaks.cs`, `explorer.classic-menu`: creates/removes the `{86ca1aa0-...}\InprocServer32` override. | Generated Explorer feature page. |
+| **Configure Storage Sense Cadence & Recycle Bin Purge** | `Pages/SystemDoctorsModule.xaml.cs::BuildStorageSenseDoctor` exposes enablement, cadence (`0/1/7/30`), Recycle Bin retention, and Downloads retention. `SystemMaintenanceService.ApplyStorageSense` validates and writes `01`, `2048`, `256`, and `512` under the current-user StoragePolicy key. | `docs/features/system-maintenance/storage-sense-policy.md` and the System Doctors wiki guide. |
+| **Enable Filter Keys / Slow Keys for Accessibility** | `BuildFilterKeysDoctor` exposes enablement plus all four bounded timings. `SystemMaintenanceService.ApplyFilterKeys` writes `Flags`, `DelayBeforeAcceptance`, `AutoRepeatDelay`, `AutoRepeatRate`, and `BounceTime`, then calls `SPI_SETFILTERKEYS` with persistent/live-notify flags; the catalog toggle reuses that path. | `docs/features/system-maintenance/filter-keys.md`; the pure contract harness verifies flags and timing bounds. |
+| **Export / Import Default App Associations (machine-wide)** | `BuildDefaultAssociationsDoctor` uses the repository COM file dialogs and an explicit import decision gate. `SystemMaintenanceService` validates an absolute `.xml` path and invokes DISM `/Export-DefaultAppAssociations:` or `/Import-DefaultAppAssociations:` through a real argument vector at administrator integrity. Copy explains that the template applies to new profiles and does not bypass protected per-user `UserChoice`. | `docs/features/system-maintenance/default-app-associations.md`; focused tests cover path/extension/existence validation. |
 
-### Remaining gaps — 3 · 餘下缺口 — 3
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Configure Storage Sense Cadence & Recycle Bin Purge** | `w11p.storagenotif.storage-sense` and `recyclebin-retention` implement values `01` and `256`, but there is no control for cadence value `2048` or Downloads retention value `512`. |
-| **Enable Filter Keys / Slow Keys for Accessibility** | `w11p.inputintl.filter-keys` only changes `Flags`; no controls exist for `DelayBeforeAcceptance`, `AutoRepeatDelay`, `AutoRepeatRate`, or `BounceTime`, and no `SPI_SETFILTERKEYS` live apply path is present. |
-| **Export / Import Default App Associations (machine-wide)** | No page/handler runs DISM `/Export-DefaultAppAssociations` or `/Import-DefaultAppAssociations`, and no protected per-user/manual-association workflow is implemented. |
+No unchecked Windows 11 item remains in this audited section. · 呢個已審核 Windows 11 章節冇剩低未交付項目。
 
 ## ViveTool · ViveTool
 
@@ -112,7 +111,7 @@ No unchecked ViveTool item remains in this audited section. · 呢個已審核�
 
 ## Maintenance · Maintenance
 
-### Shipped — 10 · 已交付 — 10
+### Shipped — 15 · 已交付 — 15
 
 | Roadmap capability | Concrete implementation evidence | Documentation evidence |
 |---|---|---|
@@ -126,16 +125,15 @@ No unchecked ViveTool item remains in this audited section. · 呢個已審核�
 | **Diagnose what blocks sleep / wakes the PC** | Maintenance operations run `powercfg /requests`, `/lastwake`, and `/devicequery wake_armed`; `SystemDoctors` contains parsed diagnostics too. | Generated maintenance/power documentation. |
 | **System file & image integrity repair** | `maint.sfc-scannow` and `maint.dism-restorehealth` run the real SFC/DISM repair commands with admin metadata. | Generated feature pages for both repair operations. |
 | **Bulk update all apps** | Package Manager Updates view gathers eligible updates across supported managers and queues per-manager/all-manager batches through its shared coordinator. | Existing checked roadmap note plus Package Manager module/button docs. |
+| **Pause / resume Windows Update** | `BuildWindowsUpdateDoctor` offers bounded 7–35 day pauses and resume. `SystemMaintenanceService.PauseWindowsUpdate` writes feature/quality/global start, end, and expiry values plus pause flags under HKLM; resume removes every present value and reports any failed deletion. | `docs/features/system-maintenance/windows-update-pause.md`; focused tests lock supported durations and UTC timestamp format. |
+| **Driver list / export / rollback hints** | `BuildDriverRollbackDoctor` lists actual `%WINDIR%\INF\oem*.inf` identities, exports one or all with `pnputil /export-driver`, restores exported INFs with `/add-driver ... /subdirs /install`, and enables conservative `/delete-driver <oem#.inf> /uninstall` rollback only after that exact package exported successfully in the current session. It never adds `/force` or `/reboot`. | `docs/features/system-maintenance/driver-backup-rollback.md`; focused tests cover validation, argument boundaries, restore switches, and the conservative rollback contract. |
+| **Startup impact / autoruns audit** | `BuildStartupAuditDoctor` calls `SystemMaintenanceService.AuditStartupAsync`, which inventories Run, RunOnce, both Startup folders, Winlogon, AppInit DLLs, automatic services, and boot/logon scheduled tasks. It labels a documented source-risk impact rather than inventing boot-time telemetry and renders commands locally for review. | `docs/features/system-maintenance/startup-autoruns-audit.md`; focused tests lock every source-to-impact classification. |
+| **Component store cleanup (WinSxS / ResetBase)** | `BuildComponentStoreDoctor` shows a persistent irreversible warning, requires a separate acknowledgement, and then shows a decision dialog before `dism /Online /Cleanup-Image /StartComponentCleanup /ResetBase`. Smoke verification does not execute the mutation. | `docs/features/system-maintenance/component-store-resetbase.md`; focused tests lock the exact argument vector. |
+| **Reset / re-register a stuck Store app** | `BuildStoreAppDoctor` loads a user-selected non-framework Store app through `UninstallManager`. Reset uses that identity with `Reset-AppxPackage` behind a destructive decision; re-register validates its installed `AppXManifest.xml` before `Add-AppxPackage -DisableDevelopmentMode -Register`. | `docs/features/system-maintenance/store-app-repair.md`; focused tests validate package identities and both PowerShell contracts. |
 
-### Remaining gaps — 5 · 餘下缺口 — 5
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Pause / resume Windows Update** | Update controls scan/download/install/reset services, but no handler writes/removes the pause expiry/start/end registry values or exposes a resume operation. |
-| **Driver list / export / rollback hints** | Listing and a text export of `pnputil /enum-drivers` exist, but there is no driver-package export (`pnputil /export-driver`), rollback control, or guided rollback workflow. |
-| **Startup impact / autoruns audit** | Startup Apps lists and toggles Run/StartupApproved entries, but it does not calculate startup impact or audit the broader Autoruns locations. |
-| **Component store cleanup (WinSxS / ResetBase)** | `Dism /StartComponentCleanup` exists; the roadmap explicitly includes `/ResetBase`, which is absent and irreversible-state guidance is not implemented. |
-| **Reset / re-register a stuck Store app** | `SystemDoctors` re-registers two fixed shell packages only; there is no user-selected Store-app reset/re-register workflow. |
+No unchecked Maintenance item remains in this audited section. · 呢個已審核 Maintenance 章節冇剩低未交付項目。
 
 ## Dev & Terminal · 開發同終端機
 
@@ -253,7 +251,7 @@ All catalog entries below are rendered by the Archives surface through `ControlR
 - Focused contract: `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`.
 - Source/route checks: `.agents/skills/winforge-exhaustive-smoke/scripts/Test-WinForgeSourceSurfaceAudit.ps1`, XAML literal safety, focused roadmap consistency, and docs-only site generation are run as part of this audit handoff.
 - Follow-up adversarial review compared all 43 Media, Archives, and Browser Control dispositions with the strict-review findings. The 4/11, 10/4, and 3/11 classifications remain unchanged; the four checked Media notes now describe the exact shipped paths, including animated WebP's `libwebp` command without an explicit quality value.
-- This task changes documentation and a static verifier only. No WinUI page or layout changed, so a new application screenshot is not applicable; existing screenshots were not presented as fresh visual evidence.
-- The 41 unchecked entries are intentional product gaps, not audit failures. Future work should check an entry only after its specific reason above is resolved and the focused contract is updated deliberately.
+- The Windows/System + Maintenance follow-up changes the live System Doctors page. Its self-contained headless capture disposition, inspected screenshots, and exact hashes are recorded in the task handoff; destructive system operations remain unexecuted during visual verification.
+- The 33 unchecked entries are intentional product gaps, not audit failures. Future work should check an entry only after its specific reason above is resolved and the focused contract is updated deliberately.
 
-今次只改文件同靜態驗證器，冇改 WinUI 畫面，所以唔需要新截圖。41 項未剔選係刻意保留嘅真實產品缺口，唔係審核漏咗。
+Windows／System 加 Maintenance 跟進改咗即時「系統醫生」頁面；自包含 headless 擷取處置、已檢視圖同準確 hash 會記錄喺任務交接。視覺驗證冇執行破壞性系統操作。33 項未剔選係刻意保留嘅真實產品缺口，唔係審核漏咗。
