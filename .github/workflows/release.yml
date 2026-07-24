@@ -38,6 +38,9 @@ jobs:
           REQUESTED_VERSION: ${{ inputs.release_version }}
           EVENT_SHA: ${{ github.sha }}
         run: |
+          if ($env:GITHUB_REPOSITORY -ne 'Ding-Ding-Projects/WinForge') {
+            throw "managed releases are restricted to Ding-Ding-Projects/WinForge: $env:GITHUB_REPOSITORY"
+          }
           $sha = ([string]$env:REQUESTED_SHA).Trim().ToLowerInvariant()
           if ([string]::IsNullOrWhiteSpace($sha)) {
             $sha = ([string]$env:EVENT_SHA).Trim().ToLowerInvariant()
@@ -132,8 +135,10 @@ jobs:
 
       - name: Publish launcher · 建置可靠啟動器
         shell: pwsh
+        env:
+          WINFORGE_VERSION: ${{ steps.source.outputs.version }}
         run: |
-          dotnet publish launcher/WinForgeLauncher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "${{ steps.publish.outputs.dir }}"
+          dotnet publish launcher/WinForgeLauncher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:Version=$env:WINFORGE_VERSION -p:FileVersion=$env:WINFORGE_VERSION.0 -p:InformationalVersion=$env:WINFORGE_VERSION -o "${{ steps.publish.outputs.dir }}"
           if ($LASTEXITCODE -ne 0) { throw 'launcher publish failed' }
           if (-not (Test-Path -LiteralPath "${{ steps.publish.outputs.dir }}\WinForgeLauncher.exe" -PathType Leaf)) {
             throw 'WinForgeLauncher.exe was not produced'
@@ -141,13 +146,70 @@ jobs:
 
       - name: Publish updater · 建置更新器
         shell: pwsh
+        env:
+          WINFORGE_VERSION: ${{ steps.source.outputs.version }}
         run: |
           $updaterDir = Join-Path "${{ steps.publish.outputs.dir }}" 'updater-runtime'
           New-Item -ItemType Directory -Force -Path $updaterDir | Out-Null
-          dotnet publish updater/WinForgeUpdater/WinForgeUpdater.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None -o $updaterDir
+          dotnet publish updater/WinForgeUpdater/WinForgeUpdater.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None -p:Version=$env:WINFORGE_VERSION -p:FileVersion=$env:WINFORGE_VERSION.0 -p:InformationalVersion=$env:WINFORGE_VERSION -o $updaterDir
           if ($LASTEXITCODE -ne 0) { throw 'updater publish failed' }
           if (-not (Test-Path -LiteralPath (Join-Path $updaterDir 'WinForgeUpdater.exe') -PathType Leaf)) {
             throw 'WinForgeUpdater.exe was not produced'
+          }
+
+      - name: Write and verify packaged release contract · 寫入同驗證發佈合約
+        shell: pwsh
+        env:
+          WINFORGE_VERSION: ${{ steps.source.outputs.version }}
+          WINFORGE_TAG: ${{ steps.source.outputs.tag }}
+          WINFORGE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          $publishDir = '${{ steps.publish.outputs.dir }}'
+          $portableName = "WinForge-portable-x64-$env:WINFORGE_VERSION.zip"
+          $manifest = [ordered]@{
+            schemaVersion = 1
+            repository = 'Ding-Ding-Projects/WinForge'
+            sourceSha = $env:WINFORGE_SHA
+            version = $env:WINFORGE_VERSION
+            tag = $env:WINFORGE_TAG
+            installerAsset = 'WinForge-Setup.exe'
+            portableAsset = $portableName
+            executable = 'WinForge.exe'
+            launcher = 'WinForgeLauncher.exe'
+            updater = 'updater-runtime/WinForgeUpdater.exe'
+          }
+          $manifestPath = Join-Path $publishDir 'WinForge.release.json'
+          [IO.File]::WriteAllText(
+            $manifestPath,
+            ($manifest | ConvertTo-Json -Depth 3),
+            [Text.UTF8Encoding]::new($false))
+
+          foreach ($relative in @(
+            'WinForge.exe',
+            'WinForgeLauncher.exe',
+            'WinForge.release.json',
+            'updater-runtime\WinForgeUpdater.exe')) {
+            $path = Join-Path $publishDir $relative
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -le 0) {
+              throw "managed runtime footprint is missing a required file: $relative"
+            }
+          }
+
+          foreach ($relative in @('WinForge.exe', 'WinForgeLauncher.exe', 'updater-runtime\WinForgeUpdater.exe')) {
+            $versionInfo = (Get-Item -LiteralPath (Join-Path $publishDir $relative)).VersionInfo
+            if ($versionInfo.ProductVersion.Trim() -ne $env:WINFORGE_VERSION -or
+                $versionInfo.FileVersion.Trim() -ne "$env:WINFORGE_VERSION.0") {
+              throw "$relative version mismatch: product=$($versionInfo.ProductVersion); file=$($versionInfo.FileVersion)"
+            }
+          }
+          $roundTrip = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+          if ($roundTrip.repository -ne 'Ding-Ding-Projects/WinForge' -or
+              $roundTrip.sourceSha -ne $env:WINFORGE_SHA -or
+              $roundTrip.version -ne $env:WINFORGE_VERSION -or
+              $roundTrip.tag -ne $env:WINFORGE_TAG -or
+              $roundTrip.installerAsset -ne 'WinForge-Setup.exe' -or
+              $roundTrip.portableAsset -ne $portableName) {
+            throw 'packaged release manifest did not round-trip through the canonical contract'
           }
 
       - name: Package portable build · 封裝可攜版
@@ -162,6 +224,23 @@ jobs:
           if (-not (Test-Path -LiteralPath $zip -PathType Leaf) -or (Get-Item -LiteralPath $zip).Length -le 0) {
             throw 'portable archive was not produced'
           }
+          $archive = [IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            $entries = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
+            foreach ($required in @(
+              'WinForge.exe',
+              'WinForgeLauncher.exe',
+              'WinForge.release.json',
+              'updater-runtime/WinForgeUpdater.exe')) {
+              if ($required -notin $entries) { throw "portable archive is missing $required" }
+            }
+            foreach ($entry in $entries) {
+              if ($entry.StartsWith('/') -or $entry -match '(^|/)\.\.(/|$)') {
+                throw "portable archive contains an unsafe path: $entry"
+              }
+            }
+          }
+          finally { $archive.Dispose() }
 
       - name: Build managed installer · 建置 .NET 安裝程式
         shell: pwsh
@@ -191,6 +270,12 @@ jobs:
             throw "expected exactly one non-empty WinForge-Setup.exe; found $($setups.Count)"
           }
           Copy-Item -LiteralPath $setups[0].FullName -Destination 'release-artifacts\WinForge-Setup.exe' -Force
+          $setupInfo = (Get-Item -LiteralPath 'release-artifacts\WinForge-Setup.exe').VersionInfo
+          if ($setupInfo.CompanyName -ne 'Ding-Ding-Projects' -or
+              $setupInfo.ProductVersion.Trim() -ne $env:WINFORGE_VERSION -or
+              $setupInfo.FileVersion.Trim() -ne "$env:WINFORGE_VERSION.0") {
+            throw "managed installer metadata mismatch: company=$($setupInfo.CompanyName); product=$($setupInfo.ProductVersion); file=$($setupInfo.FileVersion)"
+          }
 
       - name: Publish exactly one verified release · 發佈一個已驗證版本
         shell: pwsh
@@ -214,29 +299,28 @@ jobs:
           }
           $stable = $env:EVENT_REF -eq 'refs/heads/main' -and $expectedSha -eq $remoteMain
 
-          $releaseExists = $false
           & gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -eq 0) { $releaseExists = $true }
-          if (-not $releaseExists) {
-            $notes = @"
+          if ($LASTEXITCODE -eq 0) {
+            throw "managed release tag already exists and is immutable: $tag"
+          }
+          $notes = @"
           Automated managed WinUI 3 build from commit $expectedSha.
           由 commit $expectedSha 自動建置嘅 .NET WinUI 3 版本。
 
           - WinForge-Setup.exe — Windows installer / Windows 安裝程式
           - WinForge-portable-x64-$env:RELEASE_VERSION.zip — portable build / 免安裝可攜版
           "@
-            $createArgs = @(
-              'release', 'create', $tag, $setup, $zip,
-              '--repo', $env:GITHUB_REPOSITORY,
-              '--target', $expectedSha,
-              '--title', "WinForge $tag",
-              '--notes', $notes
-            )
-            if ($stable) { $createArgs += '--latest' }
-            else { $createArgs += '--prerelease' }
-            & gh @createArgs
-            if ($LASTEXITCODE -ne 0) { throw "managed release creation failed: $tag" }
-          }
+          $createArgs = @(
+            'release', 'create', $tag, $setup, $zip,
+            '--repo', $env:GITHUB_REPOSITORY,
+            '--target', $expectedSha,
+            '--title', "WinForge $tag",
+            '--notes', $notes
+          )
+          if ($stable) { $createArgs += '--latest' }
+          else { $createArgs += '--prerelease' }
+          & gh @createArgs
+          if ($LASTEXITCODE -ne 0) { throw "managed release creation failed: $tag" }
 
           $releaseJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | Out-String)
           if ($LASTEXITCODE -ne 0) { throw "could not read managed release: $tag" }
@@ -254,6 +338,17 @@ jobs:
           }
           foreach ($asset in @($release.assets)) {
             if ([long]$asset.size -le 0) { throw "managed release asset is empty: $($asset.name)" }
+            $localPath = if ($asset.name -eq 'WinForge-Setup.exe') { $setup } else { $zip }
+            $expectedDigest = (Get-FileHash -LiteralPath $localPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $publishedDigest = ([string]$asset.digest).Trim().ToLowerInvariant()
+            if ($publishedDigest -notmatch '^sha256:[0-9a-f]{64}$' -or
+                $publishedDigest -ne "sha256:$expectedDigest") {
+              throw "managed release digest mismatch for $($asset.name): $publishedDigest"
+            }
+            $expectedUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$($asset.name)"
+            if ([string]$asset.browser_download_url -ne $expectedUrl) {
+              throw "managed release download URL mismatch for $($asset.name): $($asset.browser_download_url)"
+            }
           }
 
           $refJson = (& gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" | Out-String)

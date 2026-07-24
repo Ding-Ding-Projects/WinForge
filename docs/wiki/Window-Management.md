@@ -8,7 +8,7 @@ Tile, cascade and pin windows always-on-top. · 並排、層疊同置頂視窗�
 
 Open in-app: `WinForge.exe --page windows`
 
-![Window Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-windows.png)
+![Window Manager](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-windows.png)
 
 ## Workspaces · 工作區
 
@@ -16,7 +16,7 @@ Capture and relaunch named app layouts and window positions. · 擷取同還原�
 
 Open in-app: `WinForge.exe --page workspaces`
 
-![Workspaces](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-workspaces.png)
+![Workspaces](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-workspaces.png)
 
 ## FancyZones · 視窗分區
 
@@ -24,7 +24,7 @@ Zone editor and snap layouts for window tiling. · 分區編輯器同貼齊版�
 
 Open in-app: `WinForge.exe --page fancyzones`
 
-![FancyZones](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-fancyzones.png)
+![FancyZones](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-fancyzones.png)
 
 ## AltSnap · Alt 拖曳視窗
 
@@ -32,7 +32,7 @@ Move and resize windows with a modifier key from anywhere. · 用修飾鍵喺任
 
 Open in-app: `WinForge.exe --page altsnap`
 
-![AltSnap](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-altsnap.png)
+![AltSnap](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-altsnap.png)
 
 ## Komorebi (Tiling WM) · Komorebi 平鋪視窗管理
 
@@ -40,7 +40,7 @@ Drive the komorebi tiling window manager daemon. · 驅動 komorebi 平鋪視窗
 
 Open in-app: `WinForge.exe --page komorebi`
 
-![Komorebi (Tiling WM)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-komorebi.png)
+![Komorebi (Tiling WM)](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-komorebi.png)
 
 ## GlazeWM Tiling · GlazeWM 平鋪視窗
 
@@ -48,6 +48,6 @@ Drive the GlazeWM tiling window manager. · 驅動 GlazeWM 平鋪視窗管理員
 
 Open in-app: `WinForge.exe --page glazewm`
 
-![GlazeWM Tiling](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-glazewm.png)
+![GlazeWM Tiling](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-glazewm.png)
 
 [← Wiki Home](Home.md)

@@ -31,6 +31,6 @@ The 23-case `tests/BrowserControl.Tests` harness exercises the pure contracts wi
 
 23 項 `tests/BrowserControl.Tests` 用 disposable fixture 驗證 pure contract；[功能指南](../features/browser-control/browser-workbench.md)列出設定、失敗情況同準確 command；[核心路線圖審核](Roadmap-Core-Capability-Audit.md)而家記錄瀏覽器控制 14/14。
 
-![Browser Control workbench](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-browser-control.png)
+![Browser Control workbench](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-browser-control.png)
 
 Fresh inspected app-owned evidence: 1033×637, SHA-256 `400AF4B89FE16B6A22023BE1259442D8D1A0BF88C39C0445C9A7E7DFE161FB3C`. A second 784×691 narrow capture (`docs/screenshot-browser-control-narrow.png`, SHA-256 `BDB186204A24F1AFFF927F1347E315A77FBCCD218D8B09D7423C7E4282DF94B3`) confirms readable bilingual wrapping without overlap. Both came from a dedicated LowLevel headless desktop and exercised no browser, cache, package, or debugging action. · 最新已檢視 app-owned 證據：1033×637 正式圖，同 784×691 窄版圖（SHA-256 如上）；雙語換行清楚、冇重疊，亦冇執行任何瀏覽器、快取、套件或者除錯操作。

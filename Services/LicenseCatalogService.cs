@@ -36,7 +36,7 @@ public static class LicenseCatalogService
 {
     public static readonly LicenseNotice[] Notices =
     {
-        Notice("WinForge", "MIT", "https://github.com/codingmachineedge/WinForge", "https://github.com/codingmachineedge/WinForge/blob/main/LICENSE",
+        Notice("WinForge", "MIT", "https://github.com/Ding-Ding-Projects/WinForge", "https://github.com/Ding-Ding-Projects/WinForge/blob/main/LICENSE",
             "Application", "應用程式", "", "WinForge app source.", "WinForge app 原始碼。",
             "Keep the MIT license and copyright notice with redistributed copies.", "重新散佈時保留 MIT 授權同版權聲明。"),
         Notice("Devolutions UniGetUI (pinned 21116375)", "MIT", "https://github.com/Devolutions/UniGetUI/tree/21116375c8299d1db38a3c3b4c2eb7e18bc97c4e", "https://github.com/Devolutions/UniGetUI/blob/21116375c8299d1db38a3c3b4c2eb7e18bc97c4e/LICENSE",

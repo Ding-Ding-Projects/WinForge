@@ -10,6 +10,7 @@ using System.Threading;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Services;
 
 namespace WinForgeUpdater;
 
@@ -24,7 +25,6 @@ public sealed partial class MainWindow : Window
 {
     private readonly DispatcherQueue _ui;
     private static readonly HttpClient Http = new();
-    private const long MaxInstallerBytes = 512L * 1024 * 1024;
     private string? _persistentLogPath;
     private bool _handedOff;
     private int _relaunchScheduled;
@@ -107,11 +107,25 @@ public sealed partial class MainWindow : Window
                 throw new InvalidOperationException(
                     "The release did not provide a valid SHA-256 installer digest. The update was stopped safely. · " +
                     "Release 冇提供有效嘅 SHA-256 安裝程式雜湊值，更新已安全停止。");
+            if (!ManagedReleaseContract.TryParseReleaseVersion(tag, out Version? releaseVersion))
+                throw new InvalidOperationException(
+                    "The update tag is outside WinForge's managed release line. · " +
+                    "更新 tag 唔屬於 WinForge 正式發佈版本線。");
+            tag = ManagedReleaseContract.NormalizeTag(releaseVersion.ToString(3));
+            ManagedInstallLayout layout = ManagedReleaseContract.ValidateInstallLayout(installDir, launcher, exe);
+            installDir = layout.InstallDirectory;
+            launcher = layout.LauncherPath;
+            exe = layout.ExecutablePath;
 
             // 1) Obtain the installer (download with progress unless one was already provided).
             if (string.IsNullOrEmpty(installer) || !File.Exists(installer))
             {
                 if (string.IsNullOrEmpty(url)) throw new InvalidOperationException("No installer or URL was provided.");
+                if (!ManagedReleaseContract.IsCanonicalReleaseDownload(
+                        url, tag, ManagedReleaseContract.InstallerAssetName))
+                    throw new InvalidDataException(
+                        "The installer URL is outside the canonical WinForge release path. · " +
+                        "安裝程式網址唔屬於正式 WinForge release 路徑。");
                 Status($"Downloading WinForge {(string.IsNullOrEmpty(tag) ? "" : "v" + tag)} … · 下載緊…");
                 Log("Downloading: " + url);
                 installer = await DownloadAsync(url, tag);
@@ -119,19 +133,20 @@ public sealed partial class MainWindow : Window
             }
             else
             {
+                installer = ManagedReleaseContract.ValidateStagedInstallerPath(installer, updateDir);
                 Log("Using downloaded installer: " + installer);
                 Progress(100);
             }
 
             long installerBytes = new FileInfo(installer).Length;
-            if (installerBytes <= 0 || installerBytes > MaxInstallerBytes)
+            if (installerBytes <= 0 || installerBytes > ManagedReleaseContract.MaximumInstallerBytes)
                 throw new InvalidDataException(
                     "Installer size is invalid or exceeds the 512 MB safety limit. · " +
                     "安裝程式大小無效，或者超過 512 MB 安全上限。");
 
             string actualSha256 = await ComputeSha256Async(installer);
             Log("Installer SHA-256: " + actualSha256);
-            if (!FixedTimeHexEquals(expectedSha256, actualSha256))
+            if (!ManagedReleaseContract.FixedTimeSha256Equals(expectedSha256, actualSha256))
             {
                 try { File.Delete(installer); } catch { }
                 throw new InvalidDataException(
@@ -186,38 +201,48 @@ public sealed partial class MainWindow : Window
         string tmp = path + ".tmp";
         try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
 
-        using var res = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-        res.EnsureSuccessStatusCode();
-        long? total = res.Content.Headers.ContentLength;
-        if (total is null or <= 0 or > MaxInstallerBytes)
-            throw new InvalidDataException("Installer download size is missing, empty, or exceeds 512 MB.");
-        await using (var input = await res.Content.ReadAsStreamAsync())
-        await using (var output = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+        try
         {
-            var buffer = new byte[81920];
+            using var res = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            res.EnsureSuccessStatusCode();
+            long? total = res.Content.Headers.ContentLength;
+            if (total is null or <= 0 or > ManagedReleaseContract.MaximumInstallerBytes)
+                throw new InvalidDataException("Installer download size is missing, empty, or exceeds 512 MB.");
             long read = 0;
-            int n;
-            var sw = Stopwatch.StartNew();
-            while ((n = await input.ReadAsync(buffer)) > 0)
+            await using (var input = await res.Content.ReadAsStreamAsync())
+            await using (var output = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                if (read > MaxInstallerBytes - n)
-                    throw new InvalidDataException("Installer download exceeded the 512 MB safety limit.");
-                await output.WriteAsync(buffer.AsMemory(0, n));
-                read += n;
-                if (total is > 0)
+                var buffer = new byte[81920];
+                int n;
+                var sw = Stopwatch.StartNew();
+                while ((n = await input.ReadAsync(buffer)) > 0)
                 {
+                    if (read > ManagedReleaseContract.MaximumInstallerBytes - n)
+                        throw new InvalidDataException("Installer download exceeded the 512 MB safety limit.");
+                    await output.WriteAsync(buffer.AsMemory(0, n));
+                    read += n;
                     double pct = read * 100.0 / total.Value;
                     Progress(pct);
-                    if (sw.ElapsedMilliseconds > 150) { Detail($"{Human(read)} / {Human(total.Value)}  ({pct:0}%)"); sw.Restart(); }
+                    if (sw.ElapsedMilliseconds > 150)
+                    {
+                        Detail($"{Human(read)} / {Human(total.Value)}  ({pct:0}%)");
+                        sw.Restart();
+                    }
                 }
-                else { Progress(null); Detail(Human(read) + " downloaded"); }
+                Detail(Human(read) + " downloaded");
             }
-            Detail(Human(read) + " downloaded");
+            if (read != total.Value)
+                throw new InvalidDataException("Installer download length did not match GitHub's content length.");
+            try { if (File.Exists(path)) File.Delete(path); } catch { }
+            File.Move(tmp, path);
+            Progress(100);
+            return path;
         }
-        try { if (File.Exists(path)) File.Delete(path); } catch { }
-        File.Move(tmp, path);
-        Progress(100);
-        return path;
+        catch
+        {
+            try { File.Delete(tmp); } catch { }
+            throw;
+        }
     }
 
     private static async Task<bool> WaitForExitAsync(int pid, TimeSpan timeout)
@@ -237,11 +262,17 @@ public sealed partial class MainWindow : Window
     private static int LaunchApplyHelper(string launcher, string installer, string installDir, string exe,
         string expectedSha256, string logPath)
     {
+        ManagedInstallLayout layout = ManagedReleaseContract.ValidateInstallLayout(installDir, launcher, exe);
+        launcher = layout.LauncherPath;
+        installDir = layout.InstallDirectory;
+        exe = layout.ExecutablePath;
+        string updateDir = Path.GetDirectoryName(logPath)!;
+        installer = ManagedReleaseContract.ValidateStagedInstallerPath(installer, updateDir);
+        logPath = ManagedReleaseContract.ValidateUpdateLogPath(logPath, updateDir);
         if (!File.Exists(launcher))
             throw new FileNotFoundException(
                 "The single-file WinForge launcher required for update handoff is missing.", launcher);
 
-        string updateDir = Path.GetDirectoryName(logPath)!;
         Directory.CreateDirectory(updateDir);
         string helper = Path.Combine(updateDir, $"WinForgeApplyUpdate-{Guid.NewGuid():N}.exe");
         File.Copy(launcher, helper, overwrite: false);
@@ -290,23 +321,13 @@ public sealed partial class MainWindow : Window
     {
         value = value.Trim();
         if (value.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)) value = value[7..];
-        return value.ToUpperInvariant();
+        return ManagedReleaseContract.NormalizeSha256(value);
     }
 
     private static async Task<string> ComputeSha256Async(string path)
     {
         await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return Convert.ToHexString(await SHA256.HashDataAsync(input));
-    }
-
-    private static bool FixedTimeHexEquals(string expected, string actual)
-    {
-        try
-        {
-            return CryptographicOperations.FixedTimeEquals(
-                Convert.FromHexString(expected), Convert.FromHexString(actual));
-        }
-        catch { return false; }
     }
 
     private static bool IsElevated()

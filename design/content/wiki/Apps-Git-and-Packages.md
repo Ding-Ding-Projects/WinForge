@@ -16,7 +16,7 @@ Multi-repo workbench for git and gh operations with repository overview, remotes
 
 Open in-app: `WinForge.exe --page git`
 
-![Git & GitHub](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-git.png)
+![Git & GitHub](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-git.png)
 
 ## Package Manager · 套件管理
 
@@ -26,9 +26,9 @@ The pinned source snapshot at `ThirdParty/UniGetUI` is provenance for audit and 
 
 Open in-app: `WinForge.exe --page packages`
 
-![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
+![Package Manager](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-packages.png)
 
-![Package Manager narrow layout](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages-narrow.png)
+![Package Manager narrow layout](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-packages-narrow.png)
 
 See [Package Manager](#/wiki/Package-Manager) for workspace behavior, configuration, safety boundaries, and failure modes. · 工作區行為、設定、安全界線同失敗模式請睇[套件管理](#/wiki/Package-Manager)。
 
@@ -70,7 +70,7 @@ adb devices, APK install, shell, logcat and scrcpy mirroring. Device input is pa
 
 Open in-app: `WinForge.exe --page adb`
 
-![Android (ADB)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-adb.png)
+![Android (ADB)](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-adb.png)
 
 ## Fastboot / Flasher · Fastboot／刷機
 
@@ -78,7 +78,7 @@ Unlock bootloaders and flash factory/boot images. · 解鎖 bootloader 同刷入
 
 Open in-app: `WinForge.exe --page fastboot`
 
-![Fastboot / Flasher](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-fastboot.png)
+![Fastboot / Flasher](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-fastboot.png)
 
 ## Android Emulator & SDK · Android 模擬器與 SDK
 
@@ -86,7 +86,7 @@ Manage AVDs and the Android SDK manager. · 管理 AVD 虛擬裝置同 Android S
 
 Open in-app: `WinForge.exe --page emulator`
 
-![Android Emulator & SDK](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-emulator.png)
+![Android Emulator & SDK](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-emulator.png)
 
 ## qBittorrent · 種子下載
 
@@ -94,7 +94,7 @@ Drive the qBittorrent Web API for torrents. An optional remembered WebUI passwor
 
 Open in-app: `WinForge.exe --page qbittorrent`
 
-![qBittorrent](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-qbittorrent.png)
+![qBittorrent](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-qbittorrent.png)
 
 ## Native Torrent · 原生種子下載
 
@@ -102,7 +102,7 @@ In-process managed BitTorrent engine for magnets and downloads. · 內建受控 
 
 Open in-app: `WinForge.exe --page torrent`
 
-![Native Torrent](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-torrent.png)
+![Native Torrent](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-torrent.png)
 
 ## Communications · 通訊
 
@@ -110,7 +110,7 @@ Mail, Teams, Discord and Telegram deep links and quick actions. · 信件、Team
 
 Open in-app: `WinForge.exe --page comms`
 
-![Communications](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-comms.png)
+![Communications](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-comms.png)
 
 ## Mail · 電郵
 
@@ -118,6 +118,6 @@ IMAP/SMTP mail client with compose, reply and attachments. · IMAP／SMTP 電郵
 
 Open in-app: `WinForge.exe --page mail`
 
-![Mail](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mail.png)
+![Mail](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-mail.png)
 
 [← Wiki Home](Home.md)

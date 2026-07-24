@@ -8,7 +8,7 @@ Compress, extract and test ZIP/7z/RAR/TAR archives. · 壓縮、解壓同測試 
 
 Open in-app: `WinForge.exe --page archives`
 
-![Archives](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-archives.png)
+![Archives](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-archives.png)
 
 See [Archive Safety Workflows](Archive-Safety-Workflows.md) for bounded filters, complete NTFS timestamp switches, integrity-gated move-to-Recycle-Bin, and reviewed in-archive deletion. · 有界篩選、完整 NTFS 時間開關、驗證後移到回收筒同先審閱檔內刪除請睇[壓縮檔安全工作流程](Archive-Safety-Workflows.md)。
 
@@ -18,7 +18,7 @@ Bulk rename files with regex and sequence patterns. · 用正規表示式同序�
 
 Open in-app: `WinForge.exe --page rename`
 
-![Batch Rename](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-rename.png)
+![Batch Rename](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-rename.png)
 
 ## Bulk File Ops · 批次檔案操作
 
@@ -26,7 +26,7 @@ Mass move, copy, delete and set attributes on files. · 批量移動、複製、
 
 Open in-app: `WinForge.exe --page bulkops`
 
-![Bulk File Ops](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-bulkops.png)
+![Bulk File Ops](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-bulkops.png)
 
 ## New+ · 範本新增
 
@@ -34,7 +34,7 @@ Create files and folders from templates in the New menu. · 由範本喺「新�
 
 Open in-app: `WinForge.exe --page newplus`
 
-![New+](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-newplus.png)
+![New+](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-newplus.png)
 
 ## Duplicate Finder · 重複檔案搜尋
 
@@ -42,7 +42,7 @@ Find and dedupe files by size and hash. · 按大小同雜湊搵出同清除重�
 
 Open in-app: `WinForge.exe --page duplicates`
 
-![Duplicate Finder](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-duplicates.png)
+![Duplicate Finder](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-duplicates.png)
 
 ## Instant File Search · 即時檔案搜尋
 
@@ -50,7 +50,7 @@ Instant filename search over the NTFS master file table (Everything). · 用 NTF
 
 Open in-app: `WinForge.exe --page everything`
 
-![Instant File Search](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-everything.png)
+![Instant File Search](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-everything.png)
 
 ## File Locksmith · 檔案鎖偵測
 
@@ -58,7 +58,7 @@ Find which process is locking a file or folder and unlock it. · 搵出邊個程
 
 Open in-app: `WinForge.exe --page filelocksmith`
 
-![File Locksmith](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-filelocksmith.png)
+![File Locksmith](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-filelocksmith.png)
 
 ## Disk Analyser · 磁碟分析
 
@@ -66,7 +66,7 @@ Visualize folder sizes with a disk-space treemap. · 用樹狀圖顯示資料夾
 
 Open in-app: `WinForge.exe --page disk`
 
-![Disk Analyser](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-disk.png)
+![Disk Analyser](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-disk.png)
 
 ## Hex Editor · 十六進位編輯器
 
@@ -74,7 +74,7 @@ View and edit binary files byte-by-byte with hashing and search. · 逐位元組
 
 Open in-app: `WinForge.exe --page hex`
 
-![Hex Editor](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-hex.png)
+![Hex Editor](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-hex.png)
 
 ## Drives · 磁碟機
 
@@ -82,7 +82,7 @@ Manage volumes, format drives and toggle BitLocker. · 管理磁碟區、格式�
 
 Open in-app: `WinForge.exe --page drives`
 
-![Drives](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-drives.png)
+![Drives](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-drives.png)
 
 ## Disk Health (SMART) · 硬碟健康（SMART）
 
@@ -90,7 +90,7 @@ Read SMART attributes, temperature, wear and failure prediction. · 讀取 SMART
 
 Open in-app: `WinForge.exe --page diskhealth`
 
-![Disk Health (SMART)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-diskhealth.png)
+![Disk Health (SMART)](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-diskhealth.png)
 
 ## Disk Benchmark · 硬碟速度測試
 
@@ -98,7 +98,7 @@ CrystalDiskMark-style sequential and random read/write benchmarks. · CrystalDis
 
 Open in-app: `WinForge.exe --page diskbench`
 
-![Disk Benchmark](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-diskbench.png)
+![Disk Benchmark](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-diskbench.png)
 
 ## TestDisk / PhotoRec Recovery · TestDisk / PhotoRec 資料救援
 
@@ -106,7 +106,7 @@ Recover lost partitions and carve deleted files. · 救援遺失分割區同雕�
 
 Open in-app: `WinForge.exe --page testdisk`
 
-![TestDisk / PhotoRec Recovery](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-testdisk.png)
+![TestDisk / PhotoRec Recovery](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-testdisk.png)
 
 ## Peek · 快速預覽
 
@@ -114,7 +114,7 @@ Quick-Look style instant file preview for images, text and more. · Quick-Look �
 
 Open in-app: `WinForge.exe --page peek`
 
-![Peek](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-peek.png)
+![Peek](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-peek.png)
 
 ## Rich Preview · 豐富預覽
 
@@ -122,7 +122,7 @@ Explorer preview-pane add-ons for SVG, Markdown, code and more. · 檔案總管�
 
 Open in-app: `WinForge.exe --page richpreview`
 
-![Rich Preview](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-richpreview.png)
+![Rich Preview](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-richpreview.png)
 
 ## OneDrive · OneDrive
 
@@ -130,7 +130,7 @@ Manage Files On-Demand pinning, dehydration and Storage Sense. · 管理隨選�
 
 Open in-app: `WinForge.exe --page onedrive`
 
-![OneDrive](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-onedrive.png)
+![OneDrive](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-onedrive.png)
 
 ## Font Manager · 字型管理
 
@@ -138,7 +138,7 @@ Install, preview and uninstall TTF/OTF fonts. · 安裝、預覽同移除 TTF／
 
 Open in-app: `WinForge.exe --page fonts`
 
-![Font Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-fonts.png)
+![Font Manager](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-fonts.png)
 
 ## FTP / SFTP · FTP／SFTP 檔案傳輸
 
@@ -146,7 +146,7 @@ Dual-pane FTP/SFTP/FTPS file transfers with a site manager. · 雙窗格 FTP／S
 
 Open in-app: `WinForge.exe --page filezilla`
 
-![FTP / SFTP](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-filezilla.png)
+![FTP / SFTP](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-filezilla.png)
 
 ## Config & Backup · 設定與備份
 
@@ -164,6 +164,6 @@ These are private local recovery artifacts and may contain sensitive configurati
 
 Open in-app: `WinForge.exe --page configbackup`
 
-![Config & Backup](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-configbackup.png)
+![Config & Backup](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-configbackup.png)
 
 [← Wiki Home](Home.md)

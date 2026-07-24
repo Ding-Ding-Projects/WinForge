@@ -4,9 +4,9 @@ WinForge's canonical .NET 11 Regex Tester now combines a raw pattern editor with
 
 Open it with `WinForge.exe --page regextester`. · 用 `WinForge.exe --page regextester` 開啟。
 
-![Managed Regex Tester · 正式受管理正則測試器](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-regextester.png)
+![Managed Regex Tester · 正式受管理正則測試器](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-regextester.png)
 
-![Visible keyboard focus on the guided builder · 引導砌法嘅可見鍵盤 focus](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-regextester-builder.png)
+![Visible keyboard focus on the guided builder · 引導砌法嘅可見鍵盤 focus](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-regextester-builder.png)
 
 ## Safety contract · 安全合約
 

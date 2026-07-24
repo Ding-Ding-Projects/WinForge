@@ -1,13 +1,13 @@
 # Wiki source · Wiki 原始檔
 
 **EN —** This folder is the **canonical source** for the GitHub wiki at
-<https://github.com/codingmachineedge/WinForge/wiki>. The wiki is a *separate* Git repo
+<https://github.com/Ding-Ding-Projects/WinForge/wiki>. The wiki is a *separate* Git repo
 (`WinForge.wiki.git`), so these pages are kept here in the main repo and published to the wiki.
 Images are embedded with absolute `raw.githubusercontent.com/.../main/docs/...` URLs so they
 resolve from the wiki repo. Keep this folder and the **Module gallery** in
 [`../../README.md`](../../README.md) in sync.
 
-**粵語 —** 呢個資料夾係 GitHub wiki（<https://github.com/codingmachineedge/WinForge/wiki>）嘅
+**粵語 —** 呢個資料夾係 GitHub wiki（<https://github.com/Ding-Ding-Projects/WinForge/wiki>）嘅
 **權威來源**。wiki 係一個*獨立*嘅 Git repo（`WinForge.wiki.git`），所以呢啲頁放喺主 repo
 再發佈去 wiki。圖片用絕對 `raw.githubusercontent.com/.../main/docs/...` 連結嵌入，
 咁喺 wiki repo 都顯示到。請保持呢個資料夾同 [`../../README.md`](../../README.md)
@@ -17,7 +17,7 @@ resolve from the wiki repo. Keep this folder and the **Module gallery** in
 
 ```bash
 # 1. Clone the (separate) wiki repo · 複製獨立嘅 wiki repo
-git clone https://github.com/codingmachineedge/WinForge.wiki.git
+git clone https://github.com/Ding-Ding-Projects/WinForge.wiki.git
 # 2. Copy these pages and generated reference folders in · 複製頁面同生成參考資料夾
 Remove-Item -Recurse -Force WinForge.wiki\*
 Copy-Item -Recurse docs\wiki\* WinForge.wiki\
@@ -52,7 +52,7 @@ git push
 > **Adding a module page · 新增模組頁:** name the file after the module (e.g. `SSH-Toolset.md`), embed its
 > `docs/screenshot-<key>.png` via an absolute `raw.githubusercontent.com/.../main/docs/...` URL, write a
 > bilingual description, then add a link to it from `Home.md`. Keep the module list aligned with
-> [`Services/ModuleRegistry.cs`](https://github.com/codingmachineedge/WinForge/blob/main/Services/ModuleRegistry.cs).
+> [`Services/ModuleRegistry.cs`](https://github.com/Ding-Ding-Projects/WinForge/blob/main/Services/ModuleRegistry.cs).
 > 新增模組頁時，用模組名做檔名（例如 `SSH-Toolset.md`），用絕對 `raw.githubusercontent.com/.../main/docs/...`
 > 連結嵌入 `docs/screenshot-<key>.png`，寫雙語說明，再喺 `Home.md` 加連結。模組清單請同
-> [`Services/ModuleRegistry.cs`](https://github.com/codingmachineedge/WinForge/blob/main/Services/ModuleRegistry.cs) 對齊。
+> [`Services/ModuleRegistry.cs`](https://github.com/Ding-Ding-Projects/WinForge/blob/main/Services/ModuleRegistry.cs) 對齊。

@@ -1,6 +1,6 @@
 # Language & Tone · 語言與語氣
 
-![Funny-level settings](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-funny-level-settings-live.png)
+![Funny-level settings](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-funny-level-settings-live.png)
 
 WinForge keeps its three persisted language modes—English, playful Hong Kong-style Cantonese, and compact bilingual—and now lets you choose English and Cantonese playfulness independently from level 1 through level 5. Open **Settings**, then use **Funny level (tone)**. Changes apply live to explicitly authored safe copy and persist across restarts. · WinForge 保留英文、香港地道玩味粵語、精簡雙語三種持久語言模式，而家仲可以將英文同粵語玩味程度分開揀第 1 至第 5 級。去 **設定**，再用 **搞笑等級（語氣）**；改動會即時套用落明確寫好嘅安全文案，重開 app 亦會保留。
 

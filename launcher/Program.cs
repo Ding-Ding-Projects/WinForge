@@ -28,7 +28,6 @@ internal static class Program
     private const int UserQuit = 0x5151;     // sentinel: the user explicitly quit
     private const int MaxAttempts = 5;
     private const int EarlyWindowMs = 8000;
-    private const long MaxInstallerBytes = 512L * 1024 * 1024;
 
     [STAThread]
     private static int Main(string[] args)
@@ -126,8 +125,23 @@ internal static class Program
         string logPath = values.GetValueOrDefault("log", "");
         _ = int.TryParse(values.GetValueOrDefault("wait-pid", ""), out int waitPid);
 
-        if (string.IsNullOrWhiteSpace(logPath))
-            logPath = Path.Combine(LocalAppData(), "WinForge", "updates", "update-helper.log");
+        string updateDirectory = Path.Combine(LocalAppData(), "WinForge", "updates");
+        if (string.IsNullOrWhiteSpace(logPath)) logPath = SafeHelperLogPath();
+        try
+        {
+            ManagedInstallLayout layout = ManagedReleaseContract.ValidateInstallLayout(
+                installDir, targetLauncher, targetExe);
+            installDir = layout.InstallDirectory;
+            targetLauncher = layout.LauncherPath;
+            targetExe = layout.ExecutablePath;
+            installer = ManagedReleaseContract.ValidateStagedInstallerPath(installer, updateDirectory);
+            logPath = ManagedReleaseContract.ValidateUpdateLogPath(logPath, updateDirectory);
+        }
+        catch (Exception ex)
+        {
+            AppendUpdateLog(SafeHelperLogPath(), "ERROR: rejected invalid update handoff: " + ex.Message);
+            return 1;
+        }
 
         var options = new UpdateOptions(installer, installDir, targetLauncher, targetExe, expectedSha256, logPath);
         using var updateMutex = new Mutex(false, "Local\\WinForge.Update");
@@ -161,7 +175,7 @@ internal static class Program
                     "The update handoff is incomplete or the installer digest is missing.",
                     "更新交接資料唔完整，或者欠缺安裝程式雜湊值。");
             long installerBytes = new FileInfo(installer).Length;
-            if (installerBytes <= 0 || installerBytes > MaxInstallerBytes)
+            if (installerBytes <= 0 || installerBytes > ManagedReleaseContract.MaximumInstallerBytes)
                 return FailUpdate(options,
                     "The installer size is invalid or exceeds the 512 MB safety limit.",
                     "安裝程式大小無效，或者超過 512 MB 安全上限。");
@@ -181,7 +195,7 @@ internal static class Program
                 installer, FileMode.Open, FileAccess.Read, FileShare.Read);
             string actualSha256 = ComputeSha256(verifiedInstaller);
             AppendUpdateLog(logPath, $"Installer SHA-256: {actualSha256}");
-            if (!FixedTimeHexEquals(expectedSha256, actualSha256))
+            if (!ManagedReleaseContract.FixedTimeSha256Equals(expectedSha256, actualSha256))
                 return FailUpdate(options,
                     "The downloaded installer failed SHA-256 verification and was not run.",
                     "下載嘅安裝程式未通過 SHA-256 驗證，所以冇執行。");
@@ -253,24 +267,13 @@ internal static class Program
 
     private static string NormalizeSha256(string value)
     {
-        value = value.Trim();
-        if (value.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)) value = value[7..];
-        return value.ToUpperInvariant();
+        return ManagedReleaseContract.NormalizeSha256(value);
     }
 
     private static string ComputeSha256(Stream input)
     {
         input.Position = 0;
         return Convert.ToHexString(SHA256.HashData(input));
-    }
-
-    private static bool FixedTimeHexEquals(string expected, string actual)
-    {
-        try
-        {
-            return CryptographicOperations.FixedTimeEquals(Convert.FromHexString(expected), Convert.FromHexString(actual));
-        }
-        catch { return false; }
     }
 
     private static bool WaitForProcessExit(int pid, TimeSpan timeout)
