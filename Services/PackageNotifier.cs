@@ -43,12 +43,33 @@ public static class PackageNotifier
     private static bool ManagerAllowed(string? managerKey)
         => string.IsNullOrEmpty(managerKey) || !PackageManagerSettings.IsManagerMuted(managerKey);
 
-    /// <summary>低層發送（包住所有錯誤）· Low-level send, swallowing every error.</summary>
-    private static void Show(string title, string body)
+    /// <summary>
+    /// Low-level send. The in-app centre is authoritative and remains available when unpackaged
+    /// Windows toast registration is unavailable; the operating-system toast is a best-effort mirror.
+    /// </summary>
+    private static void Show(
+        string titleEn,
+        string titleZh,
+        string bodyEn,
+        string bodyZh,
+        AppNoticeSeverity severity,
+        string key,
+        int? autoDismissMs = null)
     {
         try
         {
+            AppNotificationService.Publish(new AppNoticeDraft(
+                titleEn,
+                titleZh,
+                bodyEn,
+                bodyZh,
+                severity,
+                Key: key,
+                AutoDismissMs: autoDismissMs));
+
             if (!EnsureRegistered()) return;
+            var title = P(titleEn, titleZh);
+            var body = P(bodyEn, bodyZh);
             var builder = new AppNotificationBuilder().AddText(title);
             if (!string.IsNullOrEmpty(body)) builder.AddText(body);
             var notification = builder.BuildNotification();
@@ -67,10 +88,16 @@ public static class PackageNotifier
             if (count <= 0) return;
             if (!MasterOn || PackageManagerSettings.DisableUpdatesAvailableNotifications) return;
             Show(
-                P("Updates available", "有可用更新"),
+                "Updates available",
+                "有可用更新",
                 count == 1
-                    ? P("1 update is available.", "有 1 個更新可用。")
-                    : P($"{count} updates are available.", $"有 {count} 個更新可用。"));
+                    ? "1 update is available."
+                    : $"{count} updates are available.",
+                count == 1
+                    ? "有 1 個更新可用。"
+                    : $"有 {count} 個更新可用。",
+                AppNoticeSeverity.Informational,
+                "package.updates.available");
         }
         catch { }
     }
@@ -81,7 +108,14 @@ public static class PackageNotifier
         try
         {
             if (!MasterOn || PackageManagerSettings.DisableProgressNotifications || !ManagerAllowed(managerKey)) return;
-            Show(P("Updating package", "更新緊套件"), P($"Upgrading {name}…", $"升級緊 {name}…"));
+            Show(
+                "Updating package",
+                "更新緊套件",
+                $"Upgrading {name}…",
+                $"升級緊 {name}…",
+                AppNoticeSeverity.Progress,
+                OperationKey(managerKey, name),
+                autoDismissMs: 0);
         }
         catch { }
     }
@@ -92,7 +126,13 @@ public static class PackageNotifier
         try
         {
             if (!MasterOn || PackageManagerSettings.DisableProgressNotifications || !ManagerAllowed(managerKey)) return;
-            Show(P("Package manager", "套件管理"), message);
+            Show(
+                "Package manager",
+                "套件管理",
+                message,
+                message,
+                AppNoticeSeverity.Progress,
+                OperationKey(managerKey, "progress"));
         }
         catch { }
     }
@@ -103,7 +143,13 @@ public static class PackageNotifier
         try
         {
             if (!MasterOn || PackageManagerSettings.DisableSuccessNotifications || !ManagerAllowed(managerKey)) return;
-            Show(P("Update complete", "更新完成"), P($"{name} was updated successfully.", $"{name} 已成功更新。"));
+            Show(
+                "Update complete",
+                "更新完成",
+                $"{name} was updated successfully.",
+                $"{name} 已成功更新。",
+                AppNoticeSeverity.Success,
+                OperationKey(managerKey, name));
         }
         catch { }
     }
@@ -114,11 +160,23 @@ public static class PackageNotifier
         try
         {
             if (!MasterOn || PackageManagerSettings.DisableErrorNotifications || !ManagerAllowed(managerKey)) return;
-            var body = string.IsNullOrWhiteSpace(detail)
-                ? P($"Failed to update {name}.", $"{name} 更新失敗。")
-                : P($"Failed to update {name}: {detail}", $"{name} 更新失敗：{detail}");
-            Show(P("Update failed", "更新失敗"), body);
+            var bodyEn = string.IsNullOrWhiteSpace(detail)
+                ? $"Failed to update {name}."
+                : $"Failed to update {name}: {detail}";
+            var bodyZh = string.IsNullOrWhiteSpace(detail)
+                ? $"{name} 更新失敗。"
+                : $"{name} 更新失敗：{detail}";
+            Show(
+                "Update failed",
+                "更新失敗",
+                bodyEn,
+                bodyZh,
+                AppNoticeSeverity.Error,
+                OperationKey(managerKey, name));
         }
         catch { }
     }
+
+    private static string OperationKey(string? managerKey, string name)
+        => $"package.operation:{managerKey ?? "all"}:{name}";
 }

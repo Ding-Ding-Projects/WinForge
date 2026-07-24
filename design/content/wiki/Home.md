@@ -24,6 +24,7 @@
 | [Home Assistant Validated Restart](#/wiki/Home-Assistant-Validated-Restart) | Exact short-lived config-check gate before restart · 重啟前準確、短效設定檢查安全閘 |
 | [Archive Safety Workflows](#/wiki/Archive-Safety-Workflows) | Filters, NTFS times, integrity-gated move, and in-archive delete · 篩選、NTFS 時間、驗證後搬走同檔內刪除 |
 | [Managed Regex Builder](#/wiki/Regex-Builder) | Guided .NET construction, bounded live matches/captures, and safety evidence · 引導式 .NET 砌法、有界即時配對／擷取同安全證據 |
+| [Notification Centre](#/wiki/Notification-Centre) | Stacked non-blocking notices, actions, and reviewable local history · 堆疊式非阻塞通知、動作同可翻查本機記錄 |
 | [Smoke Closeout](../Exhaustive-Smoke-Closeout.md) | Final safe smoke coverage, source wiring, test, and capture disposition · 最後安全冒煙覆蓋、來源 wiring、測試同截圖處置 |
 | [Hardware Monitor Driver Lifecycle](Hardware-Monitor-Driver-Lifecycle.md) | Scoped LibreHardwareMonitor driver ownership and regression evidence · 有範圍嘅 LibreHardwareMonitor 驅動所屬同回歸證據 |
 | [Pumped-Hydro State Integrity](Pumped-Hydro-State-Integrity.md) | Deterministic timer boundary and MWh-based reward regression evidence · 確定性 timer 邊界同以 MWh 計獎勵嘅回歸證據 |

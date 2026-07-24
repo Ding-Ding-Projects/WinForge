@@ -80,8 +80,6 @@ public sealed partial class MainWindow : Window
         RootGrid.Loaded += CaptureRequestedVisualOnce;
     }
 
-    private int _appUpdateNoticeSerial;
-
     private void OnAppUpdateNotice(AppUpdateService.AppUpdateNotice notice)
     {
         try { DispatcherQueue.TryEnqueue(() => ShowAppUpdateNotice(notice)); } catch { }
@@ -89,42 +87,22 @@ public sealed partial class MainWindow : Window
 
     private void ShowAppUpdateNotice(AppUpdateService.AppUpdateNotice notice)
     {
-        int serial = ++_appUpdateNoticeSerial;
-        AppUpdateBar.Severity = notice.Severity switch
+        var severity = notice.Severity switch
         {
-            AppUpdateService.NoticeSeverity.Success => InfoBarSeverity.Success,
-            AppUpdateService.NoticeSeverity.Warning => InfoBarSeverity.Warning,
-            AppUpdateService.NoticeSeverity.Error => InfoBarSeverity.Error,
-            _ => InfoBarSeverity.Informational,
+            AppUpdateService.NoticeSeverity.Success => AppNoticeSeverity.Success,
+            AppUpdateService.NoticeSeverity.Warning => AppNoticeSeverity.Warning,
+            AppUpdateService.NoticeSeverity.Error => AppNoticeSeverity.Error,
+            _ when notice.AutoDismissMs <= 0 => AppNoticeSeverity.Progress,
+            _ => AppNoticeSeverity.Informational,
         };
-        AppUpdateBar.Title = Loc.I.Pick(notice.TitleEn, notice.TitleZh);
-        AppUpdateBar.Message = Loc.I.Pick(notice.MessageEn, notice.MessageZh);
-        AppUpdateBar.IsOpen = true;
-
-        // Show a live progress bar while an update is in flight (the persistent "downloading /
-        // installing" notices use AutoDismissMs == 0) so the update never looks silent.
-        bool inProgress = notice.AutoDismissMs <= 0
-            && notice.Severity == AppUpdateService.NoticeSeverity.Info;
-        AppUpdateProgress.Visibility = inProgress ? Visibility.Visible : Visibility.Collapsed;
-        AppUpdateProgress.IsIndeterminate = inProgress;
-
-        if (notice.AutoDismissMs > 0)
-            _ = AutoDismissAppUpdateNotice(serial, notice.AutoDismissMs);
-    }
-
-    private async Task AutoDismissAppUpdateNotice(int serial, int delayMs)
-    {
-        try { await Task.Delay(delayMs); }
-        catch { return; }
-        try
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                if (_appUpdateNoticeSerial == serial)
-                    AppUpdateBar.IsOpen = false;
-            });
-        }
-        catch { }
+        AppNotificationService.Publish(new AppNoticeDraft(
+            notice.TitleEn,
+            notice.TitleZh,
+            notice.MessageEn,
+            notice.MessageZh,
+            severity,
+            Key: "app.update",
+            AutoDismissMs: notice.AutoDismissMs));
     }
 
     private bool _bgStarted;
