@@ -19,30 +19,49 @@ public sealed partial class DashboardPage : Page
 {
     // One reused row list for the live search preview (replaces per-result TweakCards).
     private readonly ControlRowList _searchList = new();
+    private bool _subscriptionsActive;
 
     public DashboardPage()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += OnLanguageChanged;
-        BrandingService.Changed += OnBrandingChanged;
-        Loaded += (_, _) => Render();
-        Unloaded += (_, _) =>
-        {
-            Loc.I.LanguageChanged -= OnLanguageChanged;
-            BrandingService.Changed -= OnBrandingChanged;
-        };
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private void OnBrandingChanged(object? sender, EventArgs e) { try { Render(); } catch { } }
 
+    private void OnToneChanged(object? sender, EventArgs e) { try { Render(); } catch { } }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (!_subscriptionsActive)
+        {
+            Loc.I.LanguageChanged += OnLanguageChanged;
+            BrandingService.Changed += OnBrandingChanged;
+            FunnyLevelSettings.I.Changed += OnToneChanged;
+            _subscriptionsActive = true;
+        }
+
+        Render();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_subscriptionsActive) return;
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        BrandingService.Changed -= OnBrandingChanged;
+        FunnyLevelSettings.I.Changed -= OnToneChanged;
+        _subscriptionsActive = false;
+    }
+
     private void Render()
     {
         HeroNameEn.Text = BrandingService.NameEn;
         HeroNameZh.Text = BrandingService.NameZh;
-        HeroSubEn.Text = "An all-in-one, fully bilingual control center that genuinely tunes Windows 11.";
-        HeroSubZh.Text = "全方位、全雙語嘅控制中心，真係會幫你調校 Windows 11。";
+        HeroSubEn.Text = FunnyLevelSettings.I.English(PlayfulCopy.DashboardHero);
+        HeroSubZh.Text = FunnyLevelSettings.I.Cantonese(PlayfulCopy.DashboardHero);
         StatFeatures.Text = FeatureCountService.FullFeatureCount.ToString();
         StatCategories.Text = FeatureCountService.CategoryCount.ToString();
         StatModules.Text = FeatureCountService.ModuleCount.ToString();
