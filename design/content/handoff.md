@@ -4,9 +4,31 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Screen Recorder lifecycle reliability · 螢幕錄影 lifecycle 可靠性
+
+The original stderr-heavy recorder fixture exposed an intermittent failure on base `ec7c4bcb8`: the 29-project aggregate failed only Screen Recorder, and a captured-output stress loop failed **5/12** runs. Production now bulk-copies diagnostics to `Stream.Null` instead of dispatching one empty callback per line. The remaining aggregate instability was fixture-specific: its child executed 10,000 separate `cmd.exe echo` commands before reading `q`, measuring shell scheduling inside the encoder deadline. The deterministic self-hosted child emits the same 10,000 newline-rich records efficiently, then reads `q`; production deadlines and truthful failures are unchanged. · 原本 stderr-heavy fixture 喺 base `ec7c4bcb8` 令 29-project aggregate 只係 Screen Recorder 失敗，stress 亦有 **5/12** 失敗。Production 依家整批複製診斷去 `Stream.Null`，唔再逐行派空 callback；餘下不穩定係 fixture-specific：child 喺讀 `q` 前逐個跑 10,000 次 `cmd.exe echo`，誤測 shell 排程。Deterministic self-hosted child 會高效寫同樣 10,000 行再讀 `q`；production 時限同如實失敗保持不變。
+
+Focused evidence is **10/10** for the process-free lifecycle/registry seam, **1/1** for the deterministic self-hosted Windows process fixture, and **12/12** for the corrected fixture under concurrent captured-output load. The combined x64 solution builds with **0 warnings / 0 errors**; XAML/source audits pass; and the formerly failing aggregate passes **all 31 projects** in 15:16, including Reactor **65/65** and Package Manager **30/30**. This is service/test/documentation-only work: no UI or screenshot changed. Delivery remains on `codex/fix-screen-recorder-lifecycle` for parent integration; no main merge or hosted release is claimed here. · 專項證據係 process-free seam **10/10**、deterministic self-hosted fixture **1/1**、concurrent load **12/12**；combined x64 build 零 warning／零 error、XAML／source audit 全過，舊時失敗 aggregate 而家 15:16 **31 個 project 全過**，包括 Reactor 65/65、Package Manager 30/30。今次冇 UI 或截圖變更；交付保留喺分支俾上層整合。
+
 ## Small-module roadmap reconciliation · 細型模組路線圖對帳
 
 Six stale rows are now evidence-backed shipped: Hosts block/redirect, Cloudflare/Google/automatic DNS, WSL distro management, generated Windows Sandbox launch, persisted global hotkey macros, and world-clock/timezone conversion. Color Picker remains open because its working global click sampler and HEX/RGB/HSL copy still lack HSV output and the planned magnifying loupe. Launch-only checks passed for `hosts`, `wsl`, `colorpicker`, `hotkeys`, and `worldclock`; all **2,893/2,893** declared handlers and **1,937/1,937** direct actions resolve, with zero lifecycle mismatches/actionable markers, and XAML literal safety passes. No visual tree changed, so existing canonical screenshots remain applicable. · 六個過時項目已按證據確認交付：Hosts 封鎖／重新導向、Cloudflare／Google／自動 DNS、WSL 發行版管理、生成 Windows Sandbox 啟動、持久全域熱鍵巨集、世界時鐘／時區換算。Color Picker 已有全螢幕點擊取色同 HEX／RGB／HSL 複製，但 HSV 同放大鏡仍未有，所以保持未完成。五個 deep link launch-only、全部 handler／direct action、XAML safety 全過，零 lifecycle mismatch／actionable marker；visual tree 冇改，現有正式截圖仍適用。
+
+## Core roadmap capability reconciliation · 核心路線圖功能對帳
+
+Eight stale core backlog sections were reconciled against reachable controls, handler/catalog bindings, real service/registry/command mechanisms, and documentation. The strict result is **74/115 shipped** and **41 intentionally unchecked**: Windows 11 10/13, ViveTool 15/15, Media 4/15, Maintenance 10/15, Dev & Terminal 9/15, Home Assistant 13/14, Archives 10/14, and Browser Control 3/14. The focused contract locks every exact title into the shipped or gap block, so a count-preserving status swap cannot pass.
+
+八個過時核心待辦章節已同可達控制、handler／catalog binding、真實 service／registry／command 機制同文件逐項核對；嚴格結果係 **74/115 已交付**、**41 項刻意保留未剔選**。專項 contract 會鎖實每個標題只可以喺已交付或者缺口區，保持總數但偷偷換狀態都唔會通過。
+
+Browser app-mode/kiosk/proxy remain gaps because fixed example values do not supply their advertised configurable workflows. Cloudflare quick tunnel is counted only for its reachable real `cloudflared tunnel --url http://localhost:8080` action; arbitrary URL selection is not claimed. Home Assistant restart is not counted as “validate before restart” because it does not require a successful check. The full categorized reasons and exact code evidence are published in the Core Roadmap Capability Audit wiki page and repository audit ledger.
+
+Browser app-mode／kiosk／proxy 嘅固定示例冇提供所聲稱嘅可設定流程，所以繼續當缺口；Cloudflare quick tunnel 只按可達嘅真實 `cloudflared tunnel --url http://localhost:8080` 操作計已交付，唔聲稱可揀任意 URL。Home Assistant restart 亦冇強制先驗證成功。完整分類原因同準確 code 證據已發佈喺 Core Roadmap Capability Audit wiki 頁同 repository audit ledger。
+
+A follow-up adversarial pass rechecked all 43 Media, Archives, and Browser Control dispositions without changing the matrix. The checked Media notes now mirror the shipped handlers; animated WebP specifically uses `fps=15`, `scale=480`, `-c:v libwebp`, and `-loop 0`, with no explicit quality value. · 跟進對抗式覆核重新檢查三個分類全部 43 項，matrix 冇改；已剔選 Media 註解準確跟 shipped handler，動態 WebP 係 `fps=15`、`scale=480`、`-c:v libwebp`、`-loop 0`，冇明確 quality 參數。
+
+The post-rebase focused audit passes **74/115 + 41 gaps**. Source verification reports **337 XAML files**, **2,893/2,893 resolved handlers**, **1,937/1,937 resolved direct actions**, **322 feature docs**, **1,920 button docs**, and zero lifecycle/actionable markers; XAML literal safety passes. Full self-contained site generation/publish exits 0 with **322 modules, 22 categories, 1,217 features, and 2,296 wiki pages**. This task changes docs and a static verifier only, so new visual evidence is not applicable.
+
+Rebase 後專項 audit、source audit、XAML safety 同 self-contained site generation／publish 全過；handler／direct action 全部 resolve，生成資料係 322 modules／22 categories／1,217 features／2,296 wiki pages。今次只改文件同靜態驗證器，所以新視覺證據不適用。Source/audit commit `632d0e551383c143908cfc65e25fa4d60f937715` 以 `4af5e60e9d41f258f2d4697b1f0383138c8d1642` 為基線，已 push 並證明同 remote branch 完全一致；最終 memory commit 跟住喺 `codex/roadmap-reconcile-core`，而 `main` 整合交畀統籌 parent。
 
 ## Preserved package-stash reconciliation · 已保存套件 stash 對帳
 
@@ -55,7 +77,7 @@ The Volume Mixer COM boundary is nullable-clean and fail-closed; returning to �
 
 The final solution build is **0 warnings / 0 errors**; audio interop and capture-policy/source-contract harnesses pass **6/6** and **9/9**, and XAML/source audits pass. Every live-tree and `PrintWindow` result reaches the requested filename only by same-directory write-through atomic promotion, while persistent app logs omit target paths. Inspected app-owned **1264×791**, **784×691**, and canonical **1284×811**, plus independent fresh-HWND **1280×800**, **800×700**, and **1300×820** frames show no mixer clipping, overlap, stale/foreign pixels, or retained process/temp file. · 最終 solution build **0 warning／0 error**；audio interop／capture-policy／source-contract harness **6/6**、**9/9**，XAML／source audit 全過。所有 live-tree／`PrintWindow` 結果只經同目錄 write-through 原子升格到要求檔名，persistent app log 唔會記 target path。已檢視 app-owned **1264×791**、**784×691**、正式 **1284×811**，同獨立 fresh-HWND **1280×800**、**800×700**、**1300×820** 圖；冇 mixer 裁切、重疊、舊／其他視窗 pixels 或殘留 process／temp file。
 
-The full managed aggregate is not claimed green: it stopped at the unchanged `ScreenRecorderLifecycle.Tests` synthetic fixture, whose isolated rerun also reported “not saved”; the recorder paths have no review-lane diff. · 唔會聲稱 full managed aggregate 全綠：佢停喺未改過嘅 `ScreenRecorderLifecycle.Tests` synthetic fixture，獨立重跑亦回報「not saved」；recorder 路徑喺今次 review lane 冇 diff。
+That review-lane aggregate failure is resolved by the dedicated recorder follow-up above: the exact combined runner now passes all **31/31 projects**. · 當時 review lane aggregate 失敗已由上面專用 recorder 跟進解決；準確 combined runner 而家 **31/31 project 全過**。
 
 ## AWS Manager EC2 continuation · AWS Manager EC2 延續開發
 

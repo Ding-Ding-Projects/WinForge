@@ -60,9 +60,11 @@ Open in-app: `WinForge.exe --page pdf`
 
 ## Screen Recorder · 螢幕錄影
 
-Record the desktop with ffmpeg gdigrab; diagnostics are drained and Stop is bounded if ffmpeg stalls. · 用 ffmpeg gdigrab 錄製桌面畫面；會排走診斷輸出，ffmpeg 卡住時停止流程亦有時間上限。
+Record the desktop with ffmpeg gdigrab. Diagnostics are bulk-drained as bytes so dense progress output cannot consume the bounded graceful-save window; a forced or unconfirmed exit is never reported as saved. · 用 ffmpeg gdigrab 錄製桌面畫面。診斷輸出會整批按 byte 排走，密集進度唔會食晒有時限嘅正常儲存時間；強制或未確認退出絕對唔會當成已儲存。
 
 Open in-app: `WinForge.exe --page recorder`
+
+Behavior, failure modes, safety boundaries, and focused verification: [Screen Recorder lifecycle reliability](../features/media/screen-recorder.md). · 行為、失敗模式、安全界線同專項驗證請睇 [螢幕錄影 lifecycle 可靠性](../features/media/screen-recorder.md)。
 
 ![Screen Recorder](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-recorder.png)
 

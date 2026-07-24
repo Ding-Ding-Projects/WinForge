@@ -4,6 +4,7 @@ var failures = new List<string>();
 var passed = 0;
 
 Run("recording startup begins a managed stderr drain", StartsManagedErrorDrain);
+Run("recorder diagnostics are discarded through a bulk stream drain", BulkDiagnosticsDrain);
 Run("graceful recorder stop is bounded and does not force-kill", GracefulStop);
 Run("stalled recorder is force-stopped after bounded graceful wait", ForcedStop);
 Run("non-exiting recorder reports a bounded failure instead of hanging", StillRunningStop);
@@ -34,6 +35,18 @@ void StartsManagedErrorDrain()
     using var process = new FakeRecorderProcess();
     ScreenRecorderProcessLifecycle.Begin(process);
     Assert(process.ErrorDrainStarted, "lifecycle did not start the redirected stderr drain");
+}
+
+void BulkDiagnosticsDrain()
+{
+    byte[] diagnostics = System.Text.Encoding.UTF8.GetBytes(
+        string.Concat(Enumerable.Repeat("frame=12345 fps=60 bitrate=8000kbits/s\r\n", 10_000)));
+    using var source = new BulkCopyProbeStream(diagnostics);
+
+    ScreenRecorderErrorDrain.CopyToNullAsync(source).GetAwaiter().GetResult();
+
+    Assert(source.BulkCopyStarted, "diagnostics drain did not use Stream.CopyToAsync");
+    Equal(source.Length, source.Position, "discarded diagnostics byte count");
 }
 
 void GracefulStop()
@@ -212,6 +225,17 @@ sealed class FakeRecorderProcess : IScreenRecorderProcess
     }
 
     public void Dispose() { }
+}
+
+sealed class BulkCopyProbeStream(byte[] buffer) : MemoryStream(buffer)
+{
+    public bool BulkCopyStarted { get; private set; }
+
+    public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+    {
+        BulkCopyStarted = true;
+        return base.CopyToAsync(destination, bufferSize, cancellationToken);
+    }
 }
 
 sealed class FakeRegistryDeleteBackend : RegistryHelper.IValueDeleteBackend

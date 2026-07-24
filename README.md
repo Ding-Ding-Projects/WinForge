@@ -19,6 +19,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 322
 - **Three persisted language modes · 三種持久語言模式** — English, playful Hong Kong-style Cantonese, and compact bilingual mode.
 - **Independent funny levels · 英粵分開搞笑等級** — persisted 1–5 tone controls for English and Cantonese provide a live safe-copy preview; errors, security, destructive actions, accessibility wording, and other operational text stay exact at every level. · 英文同粵語各自有持久化 1–5 級語氣控制同安全文案即時預覽；錯誤、安全、破壞性操作、無障礙同其他操作文字喺任何級別都保持準確。
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
+- **Reliable whole-desktop recording · 可靠全桌面錄影** — Screen Recorder bulk-drains ffmpeg diagnostics, so heavy progress output cannot consume the bounded graceful-save window; forced or unconfirmed stops remain truthful failures. · 螢幕錄影會整批排走 ffmpeg 診斷輸出，繁忙進度唔會食晒有時限嘅正常儲存時間；強制或未確認停止仍然會如實報失敗。
 - **Flagship reactor · 旗艦反應堆** — a PWR control-room simulator with point kinetics, thermal hydraulics, turbine and electrical systems, protection logic, fuel and waste services, water treatment, and opt-in external integrations.
 - **Reactor-powered industrial loads · 反應堆工業負載** — a green-ammonia Haber–Bosch plant and strict-priority grid load-shed dispatcher consume the live simulated bus, fail dark, and preserve reactor safety boundaries. · 綠氨哈柏法工廠同嚴格優先級電網卸載調度器會用即時模擬母線；冇電就停，而且唔會越過反應堆安全界線。
 
@@ -91,6 +92,17 @@ dotnet run --project tests\DewEncryption.Tests -c Debug
 
 The current Dew contract is **23/23** tests, including writable and extracted read-only historical-deletion restores. Its watcher case uses a named 45-second loaded-host commit budget and proves rapid writes debounce into one commit containing the final value. · 目前 Dew 合約係 **23/23**，包括可寫同 extracted read-only 歷史刪除還原；watcher case 用具名 45 秒 loaded-host commit budget，並證明快速連續寫入只會 debounce 成一個包含最終值嘅 commit。
 
+Run both recorder lifecycle harnesses after changing screen capture, ffmpeg process ownership, redirected streams, or Stop behavior:
+
+改過螢幕擷取、ffmpeg process ownership、redirected stream 或 Stop 行為後，要跑兩個 recorder lifecycle harness：
+
+```powershell
+dotnet run --project tests\RecorderRegistrySafety.Tests -c Debug
+dotnet run --project tests\ScreenRecorderLifecycle.Tests -c Debug
+```
+
+The process-free seam currently passes **10/10**; the deterministic self-hosted stderr fixture passes **1/1** and protects the real bulk-drain/quit/exit path without measuring `cmd.exe` loop scheduling. · Process-free seam 目前 **10/10**；deterministic self-hosted stderr fixture **1/1**，會保護真實 bulk-drain／quit／exit 流程，唔會誤測 `cmd.exe` loop 排程。
+
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 
 視覺改動要為每個改過嘅頁面提供最新、已檢視截圖。如果環境擷取唔到畫面，要記低確實阻礙，並將功能、無障礙同視覺證據分開。
@@ -120,6 +132,7 @@ See the bilingual [extension-pack guide](docs/wiki/Command-Palette-Extensions.md
 - [Reactor hub · 反應堆中心](docs/wiki/Reactor-Hub.md)
 - [Native-port relocation · 原生移植版搬遷](docs/Native-Cpp-Rewrite.md)
 - [Roadmap · 路線圖](ROADMAP.md)
+- [Core roadmap capability audit · 核心路線圖功能審核](docs/audits/roadmap-core-capability-audit-2026-07-24.md)
 - [Current handoff · 最新交接](handoff-summary.md)
 
 ## License · 授權
