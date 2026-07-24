@@ -1,6 +1,9 @@
 using System;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using WinForge.Catalog;
 using WinForge.Models;
@@ -15,19 +18,54 @@ namespace WinForge.Pages;
 public sealed partial class SettingsPage : Page
 {
     private bool _suppress;
+    private bool _subscriptionsActive;
+    private TextBlock? _tonePreview;
+    private Slider? _englishToneSlider;
+    private Slider? _cantoneseToneSlider;
 
     public SettingsPage()
     {
         InitializeComponent();
-        Loaded += (_, _) => Build();
-        Loc.I.LanguageChanged += OnLang;
-        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLang;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private void OnLang(object? sender, EventArgs e) => Build();
 
+    private void OnToneChanged(object? sender, EventArgs e)
+    {
+        if (_englishToneSlider is not null)
+            _englishToneSlider.Value = FunnyLevelSettings.I.EnglishLevel;
+        if (_cantoneseToneSlider is not null)
+            _cantoneseToneSlider.Value = FunnyLevelSettings.I.CantoneseLevel;
+        UpdateTonePreview();
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (!_subscriptionsActive)
+        {
+            Loc.I.LanguageChanged += OnLang;
+            FunnyLevelSettings.I.Changed += OnToneChanged;
+            _subscriptionsActive = true;
+        }
+
+        Build();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_subscriptionsActive) return;
+        Loc.I.LanguageChanged -= OnLang;
+        FunnyLevelSettings.I.Changed -= OnToneChanged;
+        _subscriptionsActive = false;
+    }
+
     private void Build()
     {
+        _tonePreview = null;
+        _englishToneSlider = null;
+        _cantoneseToneSlider = null;
         Root.Children.Clear();
 
         Root.Children.Add(new TextBlock
@@ -36,8 +74,9 @@ public sealed partial class SettingsPage : Page
             Style = (Style)Application.Current.Resources["TitleTextBlockStyle"],
         });
 
-        Root.Children.Add(BuildBrandingCard());
         Root.Children.Add(BuildLanguageCard());
+        Root.Children.Add(BuildToneCard());
+        Root.Children.Add(BuildBrandingCard());
         Root.Children.Add(BuildThemeCard());
         Root.Children.Add(BuildBackupCard());
         Root.Children.Add(BuildAdminCard());
@@ -79,6 +118,7 @@ public sealed partial class SettingsPage : Page
                 {
                     int n = SettingsStore.ImportFrom(path);
                     App.ApplyThemeFromSettings();
+                    FunnyLevelSettings.I.ReloadFromSettings();
                     Show(bar, InfoBarSeverity.Success,
                         Loc.I.Pick($"Imported {n} setting(s).", $"已匯入 {n} 項設定。"),
                         Loc.I.Pick("Restart WinForge to fully apply.", "重啟 WinForge 完全生效。"));
@@ -131,6 +171,114 @@ public sealed partial class SettingsPage : Page
         _suppress = false;
         panel.Children.Add(radios);
         return Card(panel);
+    }
+
+    private Border BuildToneCard()
+    {
+        var panel = new StackPanel { Spacing = 12 };
+        panel.Children.Add(Heading(
+            Loc.I.Pick("Funny level (tone)", "搞笑等級（語氣）"),
+            Loc.I.Pick(
+                "Choose English and Cantonese playfulness independently. Level 1 is fully serious; level 5 is the most playful.",
+                "英文同粵語可以分開揀玩味程度。第 1 級完全正經；第 5 級最玩得。")));
+
+        panel.Children.Add(BuildToneLevelControl(isEnglish: true));
+        panel.Children.Add(BuildToneLevelControl(isEnglish: false));
+
+        var previewPanel = new StackPanel { Spacing = 4 };
+        previewPanel.Children.Add(new TextBlock
+        {
+            Text = Loc.I.Pick("Live non-safety preview", "非安全訊息即時預覽"),
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        });
+        _tonePreview = Muted(string.Empty);
+        _tonePreview.FontSize = 13;
+        AutomationProperties.SetName(_tonePreview, Loc.I.Pick("Funny-level live preview", "搞笑等級即時預覽"));
+        AutomationProperties.SetLiveSetting(_tonePreview, AutomationLiveSetting.Polite);
+        previewPanel.Children.Add(_tonePreview);
+
+        var previewBorder = new Border
+        {
+            Padding = new Thickness(12),
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = previewPanel,
+        };
+        panel.Children.Add(previewBorder);
+        panel.Children.Add(Muted(Loc.I.Pick(
+            "Only explicitly authored, non-safety copy changes. Errors, security, destructive actions, and accessibility wording stay clear and exact.",
+            "只會改明確寫好嘅非安全訊息；錯誤、安全、破壞性操作同無障礙文字永遠保持清楚準確。")));
+
+        UpdateTonePreview();
+        return Card(panel);
+    }
+
+    private StackPanel BuildToneLevelControl(bool isEnglish)
+    {
+        var settings = FunnyLevelSettings.I;
+        var current = isEnglish ? settings.EnglishLevel : settings.CantoneseLevel;
+        var language = isEnglish
+            ? Loc.I.Pick("English", "英文")
+            : Loc.I.Pick("Cantonese", "粵語");
+        var value = Muted(LevelValueText(isEnglish, current));
+        var slider = new Slider
+        {
+            Minimum = FunnyLevelSettings.MinimumLevel,
+            Maximum = FunnyLevelSettings.MaximumLevel,
+            Value = current,
+            StepFrequency = 1,
+            SnapsTo = SliderSnapsTo.StepValues,
+            IsThumbToolTipEnabled = true,
+            MinHeight = 44,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        AutomationProperties.SetName(slider, isEnglish
+            ? Loc.I.Pick("English funny level, 1 serious to 5 most playful", "英文搞笑等級，由第 1 級正經到第 5 級最玩得")
+            : Loc.I.Pick("Cantonese funny level, 1 serious to 5 most playful", "粵語搞笑等級，由第 1 級正經到第 5 級最玩得"));
+        AutomationProperties.SetHelpText(slider, Loc.I.Pick(
+            "Use Left and Right Arrow to choose an exact level from 1 through 5.",
+            "用向左同向右方向鍵揀 1 至 5 嘅準確等級。"));
+        ToolTipService.SetToolTip(slider, Loc.I.Pick(
+            "1 = fully serious · 5 = most playful",
+            "1 = 完全正經 · 5 = 最玩得"));
+
+        if (isEnglish) _englishToneSlider = slider;
+        else _cantoneseToneSlider = slider;
+
+        slider.ValueChanged += (_, args) =>
+        {
+            var level = (int)Math.Round(args.NewValue, MidpointRounding.AwayFromZero);
+            if (isEnglish) settings.EnglishLevel = level;
+            else settings.CantoneseLevel = level;
+            value.Text = LevelValueText(isEnglish, level);
+        };
+
+        return new StackPanel
+        {
+            Spacing = 2,
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = language,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    TextWrapping = TextWrapping.Wrap,
+                },
+                slider,
+                value,
+                Muted(Loc.I.Pick("1 = fully serious · 5 = most playful", "1 = 完全正經 · 5 = 最玩得")),
+            },
+        };
+    }
+
+    private static string LevelValueText(bool isEnglish, int level) => isEnglish
+        ? Loc.I.Pick($"English funny level: {level} of 5.", $"英文搞笑等級：5 級入面第 {level} 級。")
+        : Loc.I.Pick($"Cantonese funny level: {level} of 5.", $"粵語搞笑等級：5 級入面第 {level} 級。");
+
+    private void UpdateTonePreview()
+    {
+        if (_tonePreview is null) return;
+        _tonePreview.Text = FunnyLevelSettings.I.Pick(PlayfulCopy.DashboardHero, Loc.I.Language);
     }
 
     private Border BuildBrandingCard()
