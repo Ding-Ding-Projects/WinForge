@@ -140,13 +140,13 @@
 - [ ] **Auto-trim silence from start/end and gaps** · 自動剪走頭尾同中間嘅靜音
   - _ffmpeg -i in.mp3 -af silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB:stop_periods=-1:stop_silence=0.3:stop_threshold=-50dB:detection=peak out.mp3 (silenceremove filter + all listed options confirmed in this build)_
 - [x] **Make high-quality GIF (two-pass palette)** · 整靚 GIF（兩步調色板）
-  - _Two-pass palettegen/paletteuse for clean colors. Pass1: ffmpeg -i in.mp4 -vf "fps=15,scale=480:-1:flags=lanczos,palettegen=stats_mode=diff" palette.png ; Pass2: ffmpeg -i in.mp4 -i palette.png -lavfi "fps=15,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3" out.gif_
+  - _The shipped GifLab export writes the ordered frames to an ffmpeg concat list, then runs a separate `palettegen=stats_mode=diff` pass into a temporary palette and a `paletteuse=dither=bayer:bayer_scale=3` pass into the GIF. The page supplies FPS, optional scale and loop count; `GifLabService.Export` checks the palette pass before continuing._
 - [ ] **Stabilize shaky video (vidstab two-pass)** · 整定鏡頭、減震（vidstab 兩步）
   - _Two-pass libvidstab (vidstabdetect/vidstabtransform confirmed). Pass1 detect: ffmpeg -i in.mp4 -vf vidstabdetect=shakiness=8:accuracy=15:result=transforms.trf -f null - ; Pass2 transform: ffmpeg -i in.mp4 -vf vidstabtransform=input=transforms.trf:smoothing=30:zoom=0,unsharp=5:5:0.8:3:3:0.4 -c:a copy out.mp4_
 - [ ] **Auto-detect and crop black bars** · 自動偵測、剷走黑邊
   - _ffmpeg -ss 60 -i in.mp4 -vframes 200 -vf cropdetect=round=2 -f null - to read the suggested crop=w:h:x:y from stderr, then ffmpeg -i in.mp4 -vf crop=w:h:x:y -c:a copy out.mp4 (cropdetect + round option confirmed)_
 - [x] **Lossless cut on keyframes (no re-encode)** · 唔重新編碼、喺關鍵幀剪片
-  - _Stream-copy trim: ffmpeg -ss 00:01:30 -to 00:02:45 -i in.mp4 -c copy -avoid_negative_ts make_zero out.mp4 (instant, no quality loss; snaps to nearest keyframe). Pair with ffprobe -select_streams v -show_frames -show_entries frame=pts_time,key_frame to list keyframes._
+  - _The shipped Media page accepts a start time and duration, then runs `ffmpeg -ss {start} -i {in} -t {duration} -c copy {out}`. It stream-copies without re-encoding; the current UI does not list keyframes or add `-avoid_negative_ts`._
 - [ ] **Concat / join clips without re-encoding** · 唔重新編碼咁駁埋幾段片
   - _concat demuxer: write list.txt with lines like file 'C:/clip1.mp4' then ffmpeg -f concat -safe 0 -i list.txt -c copy out.mp4 (requires same codec/params; fall back to concat filter ffmpeg -i a -i b -filter_complex "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1" when they differ)_
 - [ ] **GPU hardware encode with NVENC** · 用顯示卡硬件編碼（NVENC）
@@ -158,13 +158,13 @@
 - [ ] **Extract chapters and split video by chapter** · 抽章節、按章節分割片段
   - _List: ffprobe -i in.mkv -show_chapters -print_format json (reads chapter start/end times). Split each: ffmpeg -i in.mkv -ss {start} -to {end} -c copy "Chapter NN.mkv" per chapter entry._
 - [x] **Contact sheet / storyboard thumbnails** · 整縮圖總表（storyboard）
-  - _ffmpeg -i in.mp4 -vf "select='not(mod(n\,300))',scale=320:-1,tile=4x5" -frames:v 1 -qscale:v 3 contact_sheet.jpg (select + tile filters confirmed). Or one representative frame per scene with the thumbnail filter._
+  - _The shipped `media.contact-sheet` action runs `ffmpeg -i {in} -vf "select=not(mod(n\,300)),scale=240:-1,tile=4x4" -frames:v 1 {out}` through the Media catalog._
 - [ ] **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** · 批次轉 HEIC/JXL 相做 JPG/PNG
   - _This build has libjxl decoder + hevc decoders. Per file: ffmpeg -i photo.heic -frames:v 1 -q:v 2 photo.jpg ; ffmpeg -i photo.jxl out.png . Loop a folder in PowerShell over *.heic/*.jxl. (ImageMagick magick mogrify -format jpg *.heic as alternative if installed.)_
 - [ ] **Strip EXIF/GPS metadata from photos** · 洗走相片 EXIF／GPS 資料
   - _ffmpeg -i in.jpg -map_metadata -1 -c:v copy clean.jpg (drops EXIF/GPS without re-encoding the JPEG). For full ICC/XMP scrub use ImageMagick magick in.jpg -strip clean.jpg if present._
 - [x] **Make animated WebP from video (smaller than GIF)** · 由片整動態 WebP（細過 GIF）
-  - _ffmpeg -i in.mp4 -vf "fps=20,scale=600:-1:flags=lanczos" -c:v libwebp_anim -lossless 0 -q:v 70 -loop 0 -an out.webp (libwebp_anim encoder confirmed in this build)_
+  - _The shipped `media.to-animated-webp` action runs `ffmpeg -i {in} -vf "fps=15,scale=480:-1:flags=lanczos" -c:v libwebp -loop 0 {out}`. It uses `libwebp` and does not set an explicit quality value._
 
 ### Maintenance · 🆕 new module / 新模組  (15)
 > **Strict source audit (2026-07-24): 10/15 shipped.** Five partial/absent workflows remain unchecked; exact handlers, commands, and gaps are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#maintenance--maintenance). · **嚴格原始碼審核：15 項有 10 項已交付，5 項仲未完整。**

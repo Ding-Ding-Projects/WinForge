@@ -92,7 +92,7 @@ No unchecked ViveTool item remains in this audited section. · 呢個已審核�
 | **Make high-quality GIF (two-pass palette)** | `Pages/GifLabModule.xaml.cs::Export_Click` calls `GifLabService.Export`; its GIF branch runs separate `palettegen` and `paletteuse` ffmpeg passes with a temporary palette file. | `docs/wiki/features/media-capture/giflab.md` and its generated Export button page. |
 | **Lossless cut on keyframes (no re-encode)** | `Pages/MediaModule.xaml` wires `TrimCopyBtn`; `TrimCopy_Click` accepts user start/duration and calls ffmpeg with `-ss`, `-t`, and `-c copy`. | Generated Media module/button documentation. |
 | **Contact sheet / storyboard thumbnails** | `Catalog/MediaOperations.cs`, `media.contact-sheet`, runs ffmpeg `select`, `scale`, and `tile` filters. | Generated feature page for `media.contact-sheet`. |
-| **Make animated WebP from video (smaller than GIF)** | `Catalog/MediaOperations.cs`, `media.to-animated-webp`, invokes `libwebp_anim` with fps/scale/quality/loop settings. | Generated feature page for `media.to-animated-webp`. |
+| **Make animated WebP from video (smaller than GIF)** | `Catalog/MediaOperations.cs`, `media.to-animated-webp`, invokes `-vf "fps=15,scale=480:-1:flags=lanczos" -c:v libwebp -loop 0`; it does not set an explicit quality value. | Generated feature page for `media.to-animated-webp`. |
 
 ### Remaining gaps — 11 · 餘下缺口 — 11
 
@@ -238,7 +238,7 @@ All catalog entries below are rendered by the Archives surface through `ControlR
 |---|---|
 | **Launch site as desktop app window** | Chrome and Edge app-mode rows hard-code Google/example.com. There is no URL input, so the user cannot launch a chosen site as requested. |
 | **Launch full-screen kiosk URL** | Kiosk rows hard-code Google/example.com and expose no URL input. |
-| **Pick and launch a specific browser profile** | Profiles can be listed and the fixed `Default` profile can be launched, but there is no selected-profile binding from discovered `Local State` data into `--profile-directory`. |
+| **Pick and launch a specific browser profile** | Profile directories can be listed and the fixed `Default` profile can be launched, but there is no `Local State` display-name mapping or selected-profile binding into `--profile-directory`. |
 | **List and launch installed PWAs** | A catalog action lists Start-menu PWA shortcuts, but no action parses and launches a selected `--app-id`/profile target. |
 | **Open internal flags & policy pages** | Flags pages exist, but `chrome://policy` and `edge://policy` controls are absent; the combined roadmap capability is incomplete. |
 | **Clear browsing cache for a profile** | Clear actions are fixed to the Default profile's `Cache` directory and omit `Code Cache`; no profile picker or safe browser-closed validation exists. |
@@ -252,6 +252,7 @@ All catalog entries below are rendered by the Archives surface through `ControlR
 
 - Focused contract: `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`.
 - Source/route checks: `.agents/skills/winforge-exhaustive-smoke/scripts/Test-WinForgeSourceSurfaceAudit.ps1`, XAML literal safety, focused roadmap consistency, and docs-only site generation are run as part of this audit handoff.
+- Follow-up adversarial review compared all 43 Media, Archives, and Browser Control dispositions with the strict-review findings. The 4/11, 10/4, and 3/11 classifications remain unchanged; the four checked Media notes now describe the exact shipped paths, including animated WebP's `libwebp` command without an explicit quality value.
 - This task changes documentation and a static verifier only. No WinUI page or layout changed, so a new application screenshot is not applicable; existing screenshots were not presented as fresh visual evidence.
 - The 41 unchecked entries are intentional product gaps, not audit failures. Future work should check an entry only after its specific reason above is resolved and the focused contract is updated deliberately.
 

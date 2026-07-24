@@ -24,6 +24,7 @@ The 2026-07-24 source audit reconciles 115 previously unchecked entries across W
 - Evidence placement: checked titles must be in the shipped ledger; unchecked titles must be in the factual gap ledger. · 已交付同缺口項目一定要放喺正確證據區。
 - All 115 titles must remain represented; a count-preserving swap cannot silently pass. · 115 個標題全部要有記錄，唔可以偷偷交換狀態但保持總數蒙混過關。
 - The focused guard runs with `tools/Test-RoadmapCoreAudit.ps1`. · 專項 gate 係 `tools/Test-RoadmapCoreAudit.ps1`。
+- A follow-up pass rechecked all 43 Media, Archives, and Browser Control dispositions. Animated WebP evidence follows the exact catalog action: 15 fps, 480px scale, `libwebp`, `-loop 0`, and no explicit quality value. · 跟進覆核重新檢查 Media、Archives 同 Browser Control 全部 43 項；動態 WebP 證據準確跟 catalog：15 fps、480px、`libwebp`、`-loop 0`，冇明確 quality 參數。
 
 ## Detailed evidence · 詳細證據
 

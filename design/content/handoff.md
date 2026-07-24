@@ -14,6 +14,8 @@ Browser app-mode/kiosk/proxy remain gaps because fixed example values do not sup
 
 Browser app-mode／kiosk／proxy 嘅固定示例冇提供所聲稱嘅可設定流程，所以繼續當缺口；Cloudflare quick tunnel 只按可達嘅真實 `cloudflared tunnel --url http://localhost:8080` 操作計已交付，唔聲稱可揀任意 URL。Home Assistant restart 亦冇強制先驗證成功。完整分類原因同準確 code 證據已發佈喺 Core Roadmap Capability Audit wiki 頁同 repository audit ledger。
 
+A follow-up adversarial pass rechecked all 43 Media, Archives, and Browser Control dispositions without changing the matrix. The checked Media notes now mirror the shipped handlers; animated WebP specifically uses `fps=15`, `scale=480`, `-c:v libwebp`, and `-loop 0`, with no explicit quality value. · 跟進對抗式覆核重新檢查三個分類全部 43 項，matrix 冇改；已剔選 Media 註解準確跟 shipped handler，動態 WebP 係 `fps=15`、`scale=480`、`-c:v libwebp`、`-loop 0`，冇明確 quality 參數。
+
 The post-rebase focused audit passes **74/115 + 41 gaps**. Source verification reports **337 XAML files**, **2,893/2,893 resolved handlers**, **1,937/1,937 resolved direct actions**, **322 feature docs**, **1,920 button docs**, and zero lifecycle/actionable markers; XAML literal safety passes. Full self-contained site generation/publish exits 0 with **322 modules, 22 categories, 1,217 features, and 2,296 wiki pages**. This task changes docs and a static verifier only, so new visual evidence is not applicable.
 
 Rebase 後專項 audit、source audit、XAML safety 同 self-contained site generation／publish 全過；handler／direct action 全部 resolve，生成資料係 322 modules／22 categories／1,217 features／2,296 wiki pages。今次只改文件同靜態驗證器，所以新視覺證據不適用。Source/audit commit `632d0e551383c143908cfc65e25fa4d60f937715` 以 `4af5e60e9d41f258f2d4697b1f0383138c8d1642` 為基線，已 push 並證明同 remote branch 完全一致；最終 memory commit 跟住喺 `codex/roadmap-reconcile-core`，而 `main` 整合交畀統籌 parent。

@@ -69,8 +69,9 @@ $auditPath = Join-Path $RepoRoot 'docs\audits\roadmap-core-capability-audit-2026
 $indexPath = Join-Path $RepoRoot 'docs\audits\README.md'
 $wikiPath = Join-Path $RepoRoot 'docs\wiki\Roadmap-Core-Capability-Audit.md'
 $pagesPath = Join-Path $RepoRoot 'design\content\wiki\Roadmap-Core-Capability-Audit.md'
+$mediaCatalogPath = Join-Path $RepoRoot 'Catalog\MediaOperations.cs'
 
-foreach ($path in @($roadmapPath, $auditPath, $indexPath, $wikiPath, $pagesPath)) {
+foreach ($path in @($roadmapPath, $auditPath, $indexPath, $wikiPath, $pagesPath, $mediaCatalogPath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Required audit artifact is missing: $path"
     }
@@ -163,6 +164,19 @@ $artifactText = @(
 ) -join "`n"
 if ($artifactText -notmatch '74/115' -or $artifactText -notmatch '41') {
     throw 'Audit index/wiki mirrors do not report the 74/115 shipped and 41-gap result.'
+}
+
+$mediaCatalogText = Get-Content -LiteralPath $mediaCatalogPath -Raw -Encoding UTF8
+$mediaEvidenceText = @(
+    Get-Content -LiteralPath $roadmapPath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $auditPath -Raw -Encoding UTF8
+) -join "`n"
+if (-not $mediaCatalogText.Contains('fps=15,scale=480:-1:flags=lanczos') -or
+    -not $mediaCatalogText.Contains('-c:v libwebp -loop 0')) {
+    throw 'Animated WebP source command no longer matches the audited libwebp/fps/scale/loop evidence.'
+}
+if ($mediaEvidenceText -match 'libwebp_anim|fps=20,scale=600|-q:v\s+70') {
+    throw 'Roadmap/audit Media evidence contains the superseded animated-WebP encoder or quality claim.'
 }
 
 $rows | Format-Table -AutoSize
