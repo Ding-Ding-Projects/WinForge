@@ -6,6 +6,14 @@ Current native correction — 2026-07-17: Debug and Release core each pass **417
 
 Developer tools for coding, debugging, databases, cloud and automation — all driven from inside WinForge. · 喺 WinForge 入面一站式驅動嘅開發者工具，涵蓋編碼、除錯、資料庫、雲端同自動化。
 
+## Developer & Terminal workbench · 開發與終端機工作台
+
+The review-first workbench handles ports, per-shell Node, Corepack, Defender folders, TCP tuning, and measured cache cleanup. See [Developer Workflow Workbench](Developer-Workflow-Workbench.md). · 先審閱工作台處理 ports、每 shell Node、Corepack、Defender 資料夾、TCP 調校同先量度後清快取；詳情請睇[開發工作流程工作台](Developer-Workflow-Workbench.md)。
+
+Open in-app: `WinForge.exe --page devterminal`
+
+![Developer & Terminal](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-devterminal.png)
+
 ## VS Code · VS Code 編輯器
 
 Drive the VS Code CLI to open files, diffs and manage extensions. · 驅動 VS Code CLI 開檔、比對同管理擴充功能。

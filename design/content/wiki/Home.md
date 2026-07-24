@@ -19,6 +19,9 @@
 | [Roadmap Status Reconciliation](#/wiki/Roadmap-Status-Reconciliation) | Evidence-backed shipped/partial decisions · 有證據嘅已交付／部分完成判定 |
 | [Core Roadmap Capability Audit](#/wiki/Roadmap-Core-Capability-Audit) | Strict shipped-versus-gap evidence for 115 roadmap capabilities · 115 項路線圖功能嘅嚴格已交付／缺口證據 |
 | [Browser Control Workbench](#/wiki/Browser-Control-Workbench) | Parameterized browser profiles, PWAs, isolation, cache, debugging, and packages · 參數化設定檔、PWA、隔離、快取、除錯同套件 |
+| [Developer Workflow Workbench](#/wiki/Developer-Workflow-Workbench) | Reviewed ports, Node/Corepack, Defender, TCP, and cache workflows · 先審閱 ports、Node／Corepack、Defender、TCP 同快取流程 |
+| [Home Assistant Validated Restart](#/wiki/Home-Assistant-Validated-Restart) | Exact short-lived config-check gate before restart · 重啟前準確、短效設定檢查安全閘 |
+| [Archive Safety Workflows](#/wiki/Archive-Safety-Workflows) | Filters, NTFS times, integrity-gated move, and in-archive delete · 篩選、NTFS 時間、驗證後搬走同檔內刪除 |
 | [Managed Regex Builder](#/wiki/Regex-Builder) | Guided .NET construction, bounded live matches/captures, and safety evidence · 引導式 .NET 砌法、有界即時配對／擷取同安全證據 |
 | [Smoke Closeout](../Exhaustive-Smoke-Closeout.md) | Final safe smoke coverage, source wiring, test, and capture disposition · 最後安全冒煙覆蓋、來源 wiring、測試同截圖處置 |
 | [Hardware Monitor Driver Lifecycle](Hardware-Monitor-Driver-Lifecycle.md) | Scoped LibreHardwareMonitor driver ownership and regression evidence · 有範圍嘅 LibreHardwareMonitor 驅動所屬同回歸證據 |

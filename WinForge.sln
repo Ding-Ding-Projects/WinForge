@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BrowserControl.Tests", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaWorkflowCore.Tests", "tests\MediaWorkflowCore.Tests\MediaWorkflowCore.Tests.csproj", "{6CBA1D39-5C1B-476D-8C3D-FB70F1D9D717}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoadmapWorkflowCore.Tests", "tests\RoadmapWorkflowCore.Tests\RoadmapWorkflowCore.Tests.csproj", "{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -197,6 +199,22 @@ Global
 		{6CBA1D39-5C1B-476D-8C3D-FB70F1D9D717}.Release|ARM64.Build.0 = Release|Any CPU
 		{6CBA1D39-5C1B-476D-8C3D-FB70F1D9D717}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6CBA1D39-5C1B-476D-8C3D-FB70F1D9D717}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Debug|x64.Build.0 = Debug|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Debug|x86.Build.0 = Debug|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Release|x64.ActiveCfg = Release|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Release|x64.Build.0 = Release|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Release|x86.ActiveCfg = Release|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Release|x86.Build.0 = Release|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Release|ARM64.Build.0 = Release|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -205,6 +223,7 @@ Global
 		{A0BF3852-7E79-477E-8622-D5B6764ADBCA} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{85ACCEAE-7CC8-427B-A216-638CF4328475} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{6CBA1D39-5C1B-476D-8C3D-FB70F1D9D717} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{48E116EA-A543-4FFC-BDDF-E2ED475B82D7} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0D9F1E3A-2C7B-4A56-9E8D-7F1A4B6C2D90}

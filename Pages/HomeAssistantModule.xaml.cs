@@ -30,6 +30,7 @@ public sealed partial class HomeAssistantModule : Page
     private readonly HomeAssistantService _ha = new();
     private readonly HomeAssistantAcDefenderService _acDefender = new();
     private readonly DockerService _docker = new();
+    private readonly HomeAssistantRestartGate _restartGate = new();
     private readonly ObservableCollection<HaCalendarEvent> _calEvents = new();
     private byte[]? _lastSnap;
 
@@ -100,7 +101,10 @@ public sealed partial class HomeAssistantModule : Page
         // Config
         CcBlurb.Text = P("Validate the configuration before restarting — restart is only safe after a valid check.", "重啟之前先驗下個 config — 驗到 valid 先好重啟。");
         CheckCfgBtn.Content = P("Check config · 驗證設定", "驗證設定");
-        RestartBtn.Content = P("Restart HA · 重啟 HA", "重啟 HA");
+        RestartBtn.Content = P("Validate & restart HA · 驗證再重啟 HA", "驗證再重啟 HA");
+        ConfigGateState.Text = P(
+            "Restart requires a valid check_config result for the current endpoint and token within the last two minutes.",
+            "重啟必須用目前 endpoint 同權杖喺兩分鐘內通過 check_config。");
         ReloadLbl.Text = P("Reload without a full restart · 唔使全部重啟", "唔使全部重啟");
         ReloadDomainBtn.Content = P("Reload domain · 重載網域", "重載網域");
         ReloadEntryBtn.Content = P("Reload entry · 重載整合", "重載整合");
@@ -257,8 +261,17 @@ public sealed partial class HomeAssistantModule : Page
         try
         {
             var r = await _ha.CheckConfig();
-            if (r.Ok && r.Body.Contains("\"valid\"")) Ok(CcResult, P("Config valid", "設定有效"), Trim(r.Body));
-            else Warn(CcResult, P("Config invalid — do NOT restart", "設定無效 — 唔好重啟"), Trim(r.Body));
+            var valid = _restartGate.RecordCheck(_ha.BaseUrl, _ha.Token, r.Ok, r.Body, DateTimeOffset.UtcNow);
+            if (valid)
+            {
+                Ok(CcResult, P("Config valid — restart gate armed for two minutes", "設定有效 — 兩分鐘內可以重啟"), Trim(r.Body));
+                ConfigGateState.Text = P("Valid check recorded for this connection.", "已為呢個連線記錄有效檢查。");
+            }
+            else
+            {
+                Warn(CcResult, P("Config invalid — restart is blocked", "設定無效 — 已封鎖重啟"), Trim(r.Body));
+                ConfigGateState.Text = P("Restart blocked: run a successful config check.", "重啟已封鎖：請先通過設定檢查。");
+            }
         }
         finally { CcBusy.IsActive = false; }
     }
@@ -266,19 +279,50 @@ public sealed partial class HomeAssistantModule : Page
     private async void Restart_Click(object sender, RoutedEventArgs e)
     {
         if (!Guard(CcResult)) return;
+        if (!_restartGate.CanRestart(_ha.BaseUrl, _ha.Token, DateTimeOffset.UtcNow))
+        {
+            CcBusy.IsActive = true;
+            try
+            {
+                ConfigGateState.Text = P("Checking configuration before restart…", "重啟前驗證緊設定…");
+                var check = await _ha.CheckConfig();
+                if (!_restartGate.RecordCheck(_ha.BaseUrl, _ha.Token, check.Ok, check.Body, DateTimeOffset.UtcNow))
+                {
+                    Warn(CcResult, P("Config invalid — restart was not sent", "設定無效 — 冇送出重啟"), Trim(check.Body));
+                    ConfigGateState.Text = P("Restart blocked by check_config.", "check_config 已封鎖重啟。");
+                    return;
+                }
+                Ok(CcResult, P("Config valid", "設定有效"), Trim(check.Body));
+                ConfigGateState.Text = P("Valid check recorded for this connection.", "已為呢個連線記錄有效檢查。");
+            }
+            finally { CcBusy.IsActive = false; }
+        }
         var dlg = new ContentDialog
         {
             XamlRoot = XamlRoot,
             Title = P("Restart Home Assistant?", "重啟 Home Assistant？"),
-            Content = P("This restarts the whole HA instance. Run a config check first if you have not.",
-                "呢個會重啟成個 HA。如果未驗過 config，建議先驗。"),
+            Content = P("The current endpoint and token just passed check_config. This now restarts the whole HA instance.",
+                "目前 endpoint 同權杖啱啱通過 check_config。繼續會重啟成個 HA。") + $"\n\n{_ha.BaseUrl}",
             PrimaryButtonText = P("Restart", "重啟"),
             CloseButtonText = P("Cancel", "取消"),
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
         CcBusy.IsActive = true;
-        try { Show(CcResult, await _ha.Restart(), P("Restart requested", "已要求重啟")); }
+        try
+        {
+            if (!_restartGate.CanRestart(_ha.BaseUrl, _ha.Token, DateTimeOffset.UtcNow))
+            {
+                Warn(CcResult, P("Validation expired — restart was not sent", "驗證已過期 — 冇送出重啟"), "");
+                return;
+            }
+            var result = await _ha.Restart();
+            _restartGate.Consume();
+            Show(CcResult, result, P("Restart requested", "已要求重啟"));
+            ConfigGateState.Text = result.Ok
+                ? P("Restart sent; a new config check is required next time.", "已送出重啟；下次要重新驗證設定。")
+                : P("Restart failed; run a new config check before retrying.", "重啟失敗；重試前要重新驗證設定。");
+        }
         finally { CcBusy.IsActive = false; }
     }
 

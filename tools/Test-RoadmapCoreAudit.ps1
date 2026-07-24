@@ -58,9 +58,9 @@ $specs = @(
     [pscustomobject]@{ Name = 'ViveTool'; RoadmapPrefix = '### ViveTool '; AuditPrefix = '## ViveTool '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Media'; RoadmapPrefix = '### Media '; AuditPrefix = '## Media '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Maintenance'; RoadmapPrefix = '### Maintenance '; AuditPrefix = '## Maintenance '; Total = 15; Shipped = 10 },
-    [pscustomobject]@{ Name = 'Dev & Terminal'; RoadmapPrefix = '### Dev & Terminal '; AuditPrefix = '## Dev & Terminal '; Total = 15; Shipped = 9 },
-    [pscustomobject]@{ Name = 'Home Assistant'; RoadmapPrefix = '### Home Assistant '; AuditPrefix = '## Home Assistant '; Total = 14; Shipped = 13 },
-    [pscustomobject]@{ Name = 'Archives'; RoadmapPrefix = '### Archives '; AuditPrefix = '## Archives '; Total = 14; Shipped = 10 },
+    [pscustomobject]@{ Name = 'Dev & Terminal'; RoadmapPrefix = '### Dev & Terminal '; AuditPrefix = '## Dev & Terminal '; Total = 15; Shipped = 15 },
+    [pscustomobject]@{ Name = 'Home Assistant'; RoadmapPrefix = '### Home Assistant '; AuditPrefix = '## Home Assistant '; Total = 14; Shipped = 14 },
+    [pscustomobject]@{ Name = 'Archives'; RoadmapPrefix = '### Archives '; AuditPrefix = '## Archives '; Total = 14; Shipped = 14 },
     [pscustomobject]@{ Name = 'Browser Control'; RoadmapPrefix = '### Browser Control '; AuditPrefix = '## Browser Control '; Total = 14; Shipped = 14 }
 )
 
@@ -81,10 +81,27 @@ $mediaPagePath = Join-Path $RepoRoot 'Pages\MediaModule.xaml'
 $mediaPageCodePath = Join-Path $RepoRoot 'Pages\MediaModule.xaml.cs'
 $mediaTestPath = Join-Path $RepoRoot 'tests\MediaWorkflowCore.Tests\Program.cs'
 $mediaGuidePath = Join-Path $RepoRoot 'docs\features\media-capture\media-studio-workflows.md'
+$roadmapWorkflowTestPath = Join-Path $RepoRoot 'tests\RoadmapWorkflowCore.Tests\Program.cs'
+$developerCorePath = Join-Path $RepoRoot 'Services\DeveloperWorkflowCore.cs'
+$developerServicePath = Join-Path $RepoRoot 'Services\DeveloperWorkflowService.cs'
+$developerPanelPath = Join-Path $RepoRoot 'Controls\DeveloperWorkflowPanel.xaml'
+$developerPanelCodePath = Join-Path $RepoRoot 'Controls\DeveloperWorkflowPanel.xaml.cs'
+$developerGuidePath = Join-Path $RepoRoot 'docs\features\developer-terminal\developer-workflow-workbench.md'
+$archiveCorePath = Join-Path $RepoRoot 'Services\ArchiveWorkflowCore.cs'
+$archiveServicePath = Join-Path $RepoRoot 'Services\ArchiveWorkflowService.cs'
+$archivePagePath = Join-Path $RepoRoot 'Pages\ArchivesModule.xaml'
+$archivePageCodePath = Join-Path $RepoRoot 'Pages\ArchivesModule.xaml.cs'
+$archiveGuidePath = Join-Path $RepoRoot 'docs\features\archives\safe-create-and-delete.md'
+$homeAssistantGatePath = Join-Path $RepoRoot 'Services\HomeAssistantRestartGate.cs'
+$homeAssistantPageCodePath = Join-Path $RepoRoot 'Pages\HomeAssistantModule.xaml.cs'
+$homeAssistantGuidePath = Join-Path $RepoRoot 'docs\features\home-assistant\validated-restart.md'
 
 foreach ($path in @($roadmapPath, $auditPath, $indexPath, $wikiPath, $pagesPath, $mediaCatalogPath,
         $browserCorePath, $browserServicePath, $browserPanelPath, $browserPanelCodePath, $browserTestPath, $browserDocsPath,
-        $mediaCorePath, $mediaPagePath, $mediaPageCodePath, $mediaTestPath, $mediaGuidePath)) {
+        $mediaCorePath, $mediaPagePath, $mediaPageCodePath, $mediaTestPath, $mediaGuidePath,
+        $roadmapWorkflowTestPath, $developerCorePath, $developerServicePath, $developerPanelPath, $developerPanelCodePath, $developerGuidePath,
+        $archiveCorePath, $archiveServicePath, $archivePagePath, $archivePageCodePath, $archiveGuidePath,
+        $homeAssistantGatePath, $homeAssistantPageCodePath, $homeAssistantGuidePath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Required audit artifact is missing: $path"
     }
@@ -166,8 +183,8 @@ foreach ($spec in $specs) {
     })
 }
 
-if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 96) {
-    throw "Aggregate mismatch: expected 96/115 shipped, found $aggregateShipped/$aggregateTotal."
+if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 107) {
+    throw "Aggregate mismatch: expected 107/115 shipped, found $aggregateShipped/$aggregateTotal."
 }
 
 $artifactText = @(
@@ -175,8 +192,8 @@ $artifactText = @(
     Get-Content -LiteralPath $wikiPath -Raw -Encoding UTF8
     Get-Content -LiteralPath $pagesPath -Raw -Encoding UTF8
 ) -join "`n"
-if ($artifactText -notmatch '96/115' -or $artifactText -notmatch '19') {
-    throw 'Audit index/wiki mirrors do not report the 96/115 shipped and 19-gap result.'
+if ($artifactText -notmatch '107/115' -or $artifactText -notmatch '8 gaps|8-gap|8 remaining|8 項') {
+    throw 'Audit index/wiki mirrors do not report the 107/115 shipped and 8-gap result.'
 }
 
 $mediaCatalogText = Get-Content -LiteralPath $mediaCatalogPath -Raw -Encoding UTF8
@@ -261,6 +278,56 @@ if ($mediaTestText -notmatch '17/17 tests passed|tests\.Length' -or
     -not $mediaTestText.Contains('cancellation removes owned workspace and staged files') -or
     -not $mediaTestText.Contains('failure preserves a pre-existing destination')) {
     throw 'Media focused harness no longer preserves its sequencing, cancellation, and staged-output contracts.'
+}
+
+$roadmapWorkflowTestText = Get-Content -LiteralPath $roadmapWorkflowTestPath -Raw -Encoding UTF8
+$developerEvidenceText = @(
+    Get-Content -LiteralPath $developerCorePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $developerServicePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $developerPanelPath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $developerPanelCodePath -Raw -Encoding UTF8
+) -join "`n"
+foreach ($marker in @(
+        'InspectPortAsync', 'TerminateReviewedListenersAsync', 'BuildNodeShellPlan',
+        'BuildCorepackPreparePlan', 'BuildDefenderMutationScript', 'BuildTcpTuningScript',
+        'InspectCachesAsync', 'BuildCacheCleanPlan', 'DeveloperWorkflowCachePnpm',
+        'DeveloperWorkflowCachePip', 'DeveloperWorkflowCacheDocker')) {
+    if (-not $developerEvidenceText.Contains($marker)) {
+        throw "Developer workflow evidence is missing marker: $marker"
+    }
+}
+
+$archiveEvidenceText = @(
+    Get-Content -LiteralPath $archiveCorePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $archiveServicePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $archivePagePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $archivePageCodePath -Raw -Encoding UTF8
+) -join "`n"
+foreach ($marker in @(
+        'ArchiveDeleteMasks', 'ArchiveMoveSourceAfterTest', 'BuildDeleteArguments',
+        '-ir!', '-xr!', '-mtc=on', '-mta=on', '-mtm=on', '-ssp',
+        'MoveToRecycleBin', 'IntegrityArguments')) {
+    if (-not $archiveEvidenceText.Contains($marker)) {
+        throw "Archive workflow evidence is missing marker: $marker"
+    }
+}
+if ($archiveEvidenceText.Contains('arguments.Add("-sdel")')) {
+    throw 'Archive move workflow must not bypass the separate integrity gate with -sdel.'
+}
+
+$homeAssistantEvidenceText = @(
+    Get-Content -LiteralPath $homeAssistantGatePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $homeAssistantPageCodePath -Raw -Encoding UTF8
+) -join "`n"
+foreach ($marker in @('RecordCheck', 'CanRestart', 'FixedTimeEquals', 'CheckConfig', '_restartGate.Consume')) {
+    if (-not $homeAssistantEvidenceText.Contains($marker)) {
+        throw "Home Assistant restart-gate evidence is missing marker: $marker"
+    }
+}
+if ($roadmapWorkflowTestText -notmatch 'Roadmap workflow contract passed' -or
+    -not $roadmapWorkflowTestText.Contains('archive integrity test targets the first split volume') -or
+    -not $roadmapWorkflowTestText.Contains('Home Assistant restart consumes validation')) {
+    throw 'Roadmap workflow focused harness no longer covers the completion safety contracts.'
 }
 
 $rows | Format-Table -AutoSize

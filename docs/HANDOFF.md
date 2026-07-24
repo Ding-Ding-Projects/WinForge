@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## 2026-07-24 Developer, Home Assistant, and Archives checkpoint · 開發、Home Assistant 同壓縮檔 checkpoint
+
+- All eleven audited gaps in Developer & Terminal (6), Home Assistant (1), and Archives (4) have coherent implementations, offline contracts, bilingual guides, and source-backed roadmap dispositions on `codex/dev-ha-archives-gaps`. · 三個分類合共十一個 audited gap 已有完整實作、離線 contract、雙語指南同 source-backed 路線圖處置。
+- Verification reached **44/44** focused contracts, **107/115** on this isolated branch's roadmap audit, clean XAML/source audits, a **0 warning / 0 error** x64 solution build, and a successful self-contained publish. Fresh LowLevel frames for all three pages were inspected without executing live mutations or HA calls; every exact PID and desktop was closed. · 專項、roadmap、XAML／source audit、build、publish 同三頁安全畫面檢視全部如實通過，所有自家 PID／desktop 已關閉。
+- Work stopped on explicit request before canonical driver screenshots, site-data regeneration, final hashes, and integration with current `origin/main`. This is a pushed checkpoint, not a completed-main claim. · 按明確要求即時停止；正式 driver 截圖、site data、最終 hash 同 current `origin/main` 整合未完成，只係已 push checkpoint。
+
 ## Current Browser Control roadmap verification · 目前瀏覽器控制路線圖驗證
 
 - The accessible bilingual Browser workbench closes all eleven prior gaps: configurable app/kiosk URLs, real profiles/PWAs, flags/policy, contained cache cleanup, isolated proxy/throwaway/features/debugging, and exact-ID winget actions. Browser Control is **14/14**; with Media at 15/15, the core matrix is **96/115**. · 無障礙雙語工作台補齊十一個缺口；Browser Control **14/14**，連同 Media 15/15，核心 matrix **96/115**。

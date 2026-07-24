@@ -3771,6 +3771,12 @@ public sealed partial class MainWindow : Window
     {
         var group = GroupFor(data.GroupId);
         var title = string.IsNullOrWhiteSpace(data.Name) ? TitleFor(data.Key, type, param) : data.Name.Trim();
+        // The tab strip is intentionally compact. In bilingual mode the full title remains
+        // available to assistive technology and in the tooltip, while the English primary
+        // label is shown in the constrained header as progressive disclosure.
+        var displayTitle = Loc.I.IsBilingual && title.Contains(" · ", StringComparison.Ordinal)
+            ? title[..title.IndexOf(" · ", StringComparison.Ordinal)]
+            : title;
         var accent = FirstNonEmpty(data.Color, group?.Color, "#FF0078D4");
         var font = EffectiveFont(data.Font, group?.Font);
 
@@ -3808,7 +3814,7 @@ public sealed partial class MainWindow : Window
 
         var titleText = new TextBlock
         {
-            Text = title,
+            Text = displayTitle,
             FontSize = font.Size > 0 ? font.Size : 13,
             TextTrimming = TextTrimming.CharacterEllipsis,
             MaxWidth = 230,

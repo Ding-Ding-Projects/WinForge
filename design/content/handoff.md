@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Developer, Home Assistant, and Archives checkpoint · 開發、Home Assistant 同壓縮檔 checkpoint
+
+The isolated checkpoint implements all eleven audited gaps across Developer & Terminal, Home Assistant, and Archives. Evidence is 44/44 focused contracts, 107/115 on this branch's roadmap matrix, clean XAML/source audits, a zero-warning/zero-error solution build, and a successful self-contained publish. Fresh LowLevel frames for all three changed pages were inspected without executing live mutations, archive operations, HA calls, or restart; every owned PID and desktop was closed. · 隔離 checkpoint 已實作三個分類十一項缺口；專項、roadmap、audit、build、publish 同三頁安全畫面檢視全過，冇真實副作用，所有自家 PID／desktop 已關閉。
+
+Work stopped on explicit request before canonical driver screenshots, site-data regeneration, current-main integration/revalidation, and hosted completion. Treat the pushed branch as a reviewable checkpoint only. · 按明確要求即時停止；正式截圖、site data、current-main 整合重驗同 hosted 完成未做，只可以視為可審閱 checkpoint。
+
 ## Browser Control roadmap completion · 瀏覽器控制路線圖完成
 
 - The parameterized Browser Control workbench closes all eleven audited gaps, taking Browser Control to **14/14**. Together with the completed Media section, the core matrix is now **96/115** with 19 honest gaps elsewhere. It covers app/kiosk URLs, real profiles/PWAs, flags/policy, safe cache cleanup, proxy/throwaway/feature/debug isolation, and exact-ID winget actions. · 參數化瀏覽器工作台補齊十一個缺口，Browser Control **14/14**；連同已完成 Media，核心 matrix 而家 **96/115**，其餘 19 個缺口繼續如實保留。

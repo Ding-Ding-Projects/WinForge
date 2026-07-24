@@ -24,6 +24,9 @@ public sealed partial class ArchivesModule : Page
     public ArchivesModule()
     {
         InitializeComponent();
+        PreserveNtfsTimesCheck.IsChecked = false;
+        MoveSourceCheck.IsChecked = false;
+        DeleteRecursiveCheck.IsChecked = true;
         Loc.I.LanguageChanged += OnLang;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -66,9 +69,27 @@ public sealed partial class ArchivesModule : Page
         HeaderEncCheck.Content = P("Encrypt file names", "加密檔名");
         SolidCheck.Content = P("Solid", "實體壓縮");
         MtCheck.Content = P("Multi-thread", "多執行緒");
+        CreateSafetyExpander.Header = P("Filters, NTFS timestamps & move-after-test safety", "篩選、NTFS 時間同驗證後搬走來源");
+        IncludeMasksBox.Header = P("Recursive include masks (semicolon or newline separated)", "遞迴包括樣式（分號或換行分隔）");
+        IncludeMasksBox.PlaceholderText = "*.jpg; src\\*.cs";
+        ExcludeMasksBox.Header = P("Recursive exclude masks", "遞迴排除樣式");
+        ExcludeMasksBox.PlaceholderText = "*.tmp; node_modules\\*";
+        PreserveNtfsTimesCheck.Content = P("Preserve created/accessed/modified times and do not bump source Last-Access", "保留建立／存取／修改時間，亦唔改來源 Last-Access");
+        MoveSourceCheck.Content = P("After a successful pack and integrity test, move the source to the Recycle Bin", "成功壓縮並通過完整性測試後，將來源移到回收筒");
+        MoveSafetyText.Text = P(
+            "Move mode never uses 7-Zip -sdel: WinForge keeps the source until a separate '7z t' succeeds, then uses the Recycle Bin. An archive inside the source folder is rejected.",
+            "搬走模式唔會用 7-Zip -sdel：WinForge 會保留來源，等獨立「7z t」成功先移到回收筒；壓縮檔放喺來源資料夾入面會被拒絕。");
         RarNote.Text = P("Tip: 7-Zip can create 7z, zip, tar, gzip, bzip2, xz and wim — but not .rar. Self-extracting, solid and encrypt-file-names apply to 7z only.",
             "提示：7-Zip 可以整 7z、zip、tar、gzip、bzip2、xz、wim — 但係整唔到 .rar。自解壓、實體同加密檔名淨係 7z 先用得。");
         CreateBtn.Content = P("Create", "建立");
+        CreateBtn.MinHeight = 48;
+        DeleteEntriesExpander.Header = P("Delete selected entries from inside the archive", "直接刪除壓縮檔內揀選項目");
+        DeleteMasksBox.Header = P("Entry names or masks (semicolon or newline separated)", "項目名稱或樣式（分號或換行分隔）");
+        DeleteMasksBox.PlaceholderText = "logs\\*.log; temp\\*";
+        DeleteRecursiveCheck.Content = P("Match recursively", "遞迴配對");
+        DeleteEntriesBtn.Content = P("Review and delete matching archive entries", "檢視並刪除符合嘅壓縮檔項目");
+        DeleteEntriesBtn.MinHeight = 48;
+        DeleteSafetyText.Text = P("This changes the selected archive in place. The exact masks are shown again before 7-Zip runs.", "呢個會直接修改揀選壓縮檔；執行 7-Zip 前會再顯示確實樣式。");
         OpsFilter.PlaceholderText = P("Filter operations…", "篩選操作…");
         AdvancedHeader.Text = P($"Advanced operations ({GitOpsCount()})", $"進階操作（{GitOpsCount()}）");
 
@@ -170,10 +191,70 @@ public sealed partial class ArchivesModule : Page
         bool hdr = HeaderEncCheck.IsChecked == true;
         bool solid = SolidCheck.IsChecked == true;
         bool mt = MtCheck.IsChecked == true;
-        await RunAndShow(CreateBtn, () => ArchiveService.Create(
+        IReadOnlyList<string> include;
+        IReadOnlyList<string> exclude;
+        try
+        {
+            include = ArchiveWorkflowCore.ParseMasks(IncludeMasksBox.Text);
+            exclude = ArchiveWorkflowCore.ParseMasks(ExcludeMasksBox.Text);
+        }
+        catch (Exception ex) { ShowOpError(ex); return; }
+
+        var move = MoveSourceCheck.IsChecked == true;
+        if (move)
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = P("Move source after verified packing?", "驗證壓縮後搬走來源？"),
+                Content = new TextBlock
+                {
+                    Text = P(
+                        "WinForge will create the archive, run a separate integrity test, and only then move the exact selected source to the Recycle Bin. Continue?",
+                        "WinForge 會先建立壓縮檔、獨立驗證完整性，成功先將確實揀選來源移到回收筒。繼續？") +
+                        $"\n\n{P("Archive", "壓縮檔")}: {ArchiveService.Archive}\n{P("Source", "來源")}: {ArchiveService.Source}",
+                    TextWrapping = TextWrapping.Wrap,
+                },
+                PrimaryButtonText = P("Create and verify", "建立並驗證"),
+                CloseButtonText = P("Cancel", "取消"),
+                DefaultButton = ContentDialogButton.Close,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        }
+
+        var options = new ArchiveCreateOptions(
             fmt, level, string.IsNullOrEmpty(pwd) ? null : pwd,
-            encryptHeader: hdr, solid: solid, multithread: mt, sfx: sfx,
-            volumeSize: string.IsNullOrWhiteSpace(vol) ? null : vol));
+            hdr, solid, mt, sfx,
+            string.IsNullOrWhiteSpace(vol) ? null : vol,
+            include, exclude,
+            PreserveNtfsTimesCheck.IsChecked == true,
+            move);
+        await RunAndShow(CreateBtn, () => ArchiveWorkflowService.CreateAsync(options));
+    }
+
+    private async void DeleteEntries_Click(object sender, RoutedEventArgs e)
+    {
+        IReadOnlyList<string> masks;
+        try { masks = ArchiveWorkflowCore.ParseMasks(DeleteMasksBox.Text); }
+        catch (Exception ex) { ShowOpError(ex); return; }
+        if (masks.Count == 0) { ShowOpError(new ArgumentException(P("Enter at least one entry or mask.", "請輸入至少一個項目或樣式。"))); return; }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Delete matching entries from this archive?", "由呢個壓縮檔刪除符合項目？"),
+            Content = new TextBlock
+            {
+                Text = $"{ArchiveService.Archive}\n\n{string.Join("\n", masks)}",
+                FontFamily = new FontFamily("Consolas"),
+                TextWrapping = TextWrapping.Wrap,
+            },
+            PrimaryButtonText = P("Delete entries", "刪除項目"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        await RunAndShow(DeleteEntriesBtn, () => ArchiveWorkflowService.DeleteEntriesAsync(masks, DeleteRecursiveCheck.IsChecked == true));
     }
 
     private void OpsFilter_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
@@ -504,7 +585,11 @@ public sealed partial class ArchivesModule : Page
     {
         OpsResultBar.Severity = InfoBarSeverity.Error;
         OpsResultBar.Title = P("Failed", "失敗");
-        OpsResultBar.Message = ex.Message;
+        OpsResultBar.Message = P(
+            ex.Message,
+            "動作失敗；請檢查輸入同所選檔案／資料夾。");
         OpsResultBar.IsOpen = true;
+        OpsOutText.Text = ex.Message;
+        OpsOutBorder.Visibility = Visibility.Visible;
     }
 }

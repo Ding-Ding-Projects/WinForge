@@ -247,8 +247,8 @@
 | [AddCardBtn](apps-git-git/flashcards/009-addcardbtn.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `Button` | `AddCard_Click` |
 | [AgainBtn](apps-git-git/flashcards/014-againbtn.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `Button` | `Grade_Again` |
 | [binding:CardsText](apps-git-git/flashcards/005-deckcards-click.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `DeckCards_Click` |
-| [binding:DeleteText](apps-git-git/flashcards/011-carddelete-click.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `CardDelete_Click` |
 | [binding:DeleteText](apps-git-git/flashcards/008-deckdelete-click.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `DeckDelete_Click` |
+| [binding:DeleteText](apps-git-git/flashcards/011-carddelete-click.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `CardDelete_Click` |
 | [binding:EditText](apps-git-git/flashcards/010-cardedit-click.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `CardEdit_Click` |
 | [binding:ExportText](apps-git-git/flashcards/007-deckexport-click.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `DeckExport_Click` |
 | [binding:RenameText](apps-git-git/flashcards/006-deckrename-click.md) | Flashcards · 間隔重複記憶卡 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `DeckRename_Click` |
@@ -265,21 +265,21 @@
 | [CancelTransferBtn](apps-git-git/filezilla/022-canceltransferbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `CancelTransfer_Click` |
 | [ClearQueueBtn](apps-git-git/filezilla/023-clearqueuebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `ClearQueue_Click` |
 | [Connect · 連線](apps-git-git/filezilla/006-connectsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `ConnectSite_Click` |
-| [Delete · 刪除](apps-git-git/filezilla/021-remotedeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteDelete_Click` |
 | [Delete · 刪除](apps-git-git/filezilla/013-localdeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalDelete_Click` |
+| [Delete · 刪除](apps-git-git/filezilla/021-remotedeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteDelete_Click` |
 | [Delete site · 刪除站台](apps-git-git/filezilla/005-deletesitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `DeleteSite_Click` |
 | [DisconnectBtn](apps-git-git/filezilla/002-disconnectbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Disconnect_Click` |
 | [Download · 下載](apps-git-git/filezilla/019-remotedownloadmenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `Download_Click` |
 | [Download selected · 下載所選](apps-git-git/filezilla/015-downloadbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Download_Click` |
 | [Edit site · 編輯站台](apps-git-git/filezilla/004-editsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `EditSite_Click` |
-| [New folder · 新資料夾](apps-git-git/filezilla/017-remotemkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteMkdir_Click` |
 | [New folder · 新資料夾](apps-git-git/filezilla/009-localmkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalMkdir_Click` |
+| [New folder · 新資料夾](apps-git-git/filezilla/017-remotemkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteMkdir_Click` |
 | [New site · 新增站台](apps-git-git/filezilla/003-newsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `NewSite_Click` |
 | [QcConnectBtn](apps-git-git/filezilla/001-qcconnectbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `QuickConnect_Click` |
 | [Refresh · 重新整理](apps-git-git/filezilla/018-remoterefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteRefresh_Click` |
 | [Refresh · 重新整理](apps-git-git/filezilla/010-localrefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalRefresh_Click` |
-| [Rename · 重新命名](apps-git-git/filezilla/012-localrenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalRename_Click` |
 | [Rename · 重新命名](apps-git-git/filezilla/020-remoterenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteRename_Click` |
+| [Rename · 重新命名](apps-git-git/filezilla/012-localrenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalRename_Click` |
 | [Up · 上層](apps-git-git/filezilla/007-localup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalUp_Click` |
 | [Up · 上層](apps-git-git/filezilla/016-remoteup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteUp_Click` |
 | [Upload · 上載](apps-git-git/filezilla/011-localuploadmenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `Upload_Click` |
@@ -333,8 +333,8 @@
 | [UninstallButton](apps-git-git/githubdesktopprofiles/013-uninstallbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `Uninstall_Click` |
 | [[icon U+E711]](apps-git-git/homeassistant/023-rowoff-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOff_Click` |
 | [[icon U+E711]](apps-git-git/homeassistant/020-rowoff-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOff_Click` |
-| [[icon U+E7E8]](apps-git-git/homeassistant/022-rowon-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOn_Click` |
 | [[icon U+E7E8]](apps-git-git/homeassistant/019-rowon-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOn_Click` |
+| [[icon U+E7E8]](apps-git-git/homeassistant/022-rowon-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOn_Click` |
 | [AcBrowseBtn](apps-git-git/homeassistant/035-acbrowsebtn.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `AcBrowse_Click` |
 | [AcExportBtn](apps-git-git/homeassistant/037-acexportbtn.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `AcExport_Click` |
 | [AcGenerateBtn](apps-git-git/homeassistant/036-acgeneratebtn.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `AcGenerate_Click` |
@@ -771,10 +771,10 @@
 | [ListPickBtn](calculators-numbers/randomizer/006-listpickbtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListPick_Click` |
 | [ListShuffleBtn](calculators-numbers/randomizer/007-listshufflebtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListShuffle_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/005-sicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+2212]](calculators-numbers/tally/002-minus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Minus_Click` |
 | [[icon U+2B]](calculators-numbers/tally/003-plus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Plus_Click` |
 | [AddBtn](calculators-numbers/tally/001-addbtn.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Add_Click` |
@@ -937,6 +937,7 @@
 | [NewBtn](everyday-life/notes/001-newbtn.md) | Scratchpad · 便箋 | Everyday & Life · 日常生活 | `Button` | `New_Click` |
 | [RenameBtn](everyday-life/notes/002-renamebtn.md) | Scratchpad · 便箋 | Everyday & Life · 日常生活 | `Button` | `Rename_Click` |
 | [CreateBtn](files-disks/archives/005-createbtn.md) | Archives · 壓縮檔 | Files & Disks · 檔案與磁碟 | `Button` | `Create_Click` |
+| [DeleteEntriesBtn](files-disks/archives/006-deleteentriesbtn.md) | Archives · 壓縮檔 | Files & Disks · 檔案與磁碟 | `Button` | `DeleteEntries_Click` |
 | [NewArcBtn](files-disks/archives/002-newarcbtn.md) | Archives · 壓縮檔 | Files & Disks · 檔案與磁碟 | `Button` | `NewArchive_Click` |
 | [OpenArcBtn](files-disks/archives/001-openarcbtn.md) | Archives · 壓縮檔 | Files & Disks · 檔案與磁碟 | `Button` | `OpenArchive_Click` |
 | [SrcFileBtn](files-disks/archives/003-srcfilebtn.md) | Archives · 壓縮檔 | Files & Disks · 檔案與磁碟 | `Button` | `SourceFile_Click` |
@@ -1284,12 +1285,32 @@
 | [SaveBtn](media-capture/imageeditor/003-savebtn.md) | Image Editor · 點陣圖影像編輯器 | Media & Capture · 媒體與擷取 | `Button` | `Save_Click` |
 | [UndoBtn](media-capture/imageeditor/005-undobtn.md) | Image Editor · 點陣圖影像編輯器 | Media & Capture · 媒體與擷取 | `Button` | `Undo_Click` |
 | [Zoom100Btn](media-capture/imageeditor/008-zoom100btn.md) | Image Editor · 點陣圖影像編輯器 | Media & Capture · 媒體與擷取 | `Button` | `Zoom100_Click` |
-| [FrameBtn](media-capture/media/006-framebtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `GrabFrame_Click` |
-| [GifBtn](media-capture/media/005-gifbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `MakeGif_Click` |
-| [InputBtn](media-capture/media/001-inputbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `PickInput_Click` |
-| [OutputBtn](media-capture/media/002-outputbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `PickOutput_Click` |
-| [TrimCopyBtn](media-capture/media/003-trimcopybtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `TrimCopy_Click` |
-| [TrimEncodeBtn](media-capture/media/004-trimencodebtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `TrimEncode_Click` |
+| [Burn or soft-mux the selected subtitle · 燒入或軟掛已揀字幕](media-capture/media/013-subtitlerunbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `SubtitleRun_Click` |
+| [Cancel active media workflow · 取消進行中媒體工作流程](media-capture/media/002-cancelworkflowbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `CancelWorkflow_Click` |
+| [Choose a separate converted-photo output folder · 揀另一個轉換相片輸出資料夾](media-capture/media/018-pickphotooutputbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `PickPhotoOutput_Click` |
+| [Choose an SRT or ASS subtitle file · 揀 SRT 或 ASS 字幕檔](media-capture/media/012-picksubtitlebtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `PickSubtitle_Click` |
+| [Choose chapter output folder · 揀章節輸出資料夾](media-capture/media/014-pickchapterfolderbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `PickChapterFolder_Click` |
+| [Choose HEIC HEIF or JPEG-XL source folder · 揀 HEIC HEIF 或 JPEG-XL 來源資料夾](media-capture/media/017-pickphotoinputbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `PickPhotoInput_Click` |
+| [Choose the media workflow input file · 揀媒體工作流程輸入檔](media-capture/media/001-studiopickinputbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `StudioPickInput_Click` |
+| [Choose video clips in join order · 按合併次序揀影片片段](media-capture/media/007-chooseconcatbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `ChooseConcat_Click` |
+| [Convert the bounded photo batch · 轉換有限量相片批次](media-capture/media/019-convertphotosbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `ConvertPhotos_Click` |
+| [Detect and crop black bars · 偵測同裁走影片黑邊](media-capture/media/006-autocropbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `AutoCrop_Click` |
+| [Detect working NVIDIA NVENC encoders · 偵測可用 NVIDIA NVENC 編碼器](media-capture/media/009-detectnvencbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `DetectNvenc_Click` |
+| [Encode with selected NVENC codec · 用已揀 NVENC codec 編碼](media-capture/media/010-encodenvencbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `EncodeNvenc_Click` |
+| [FrameBtn](media-capture/media/026-framebtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `GrabFrame_Click` |
+| [GifBtn](media-capture/media/025-gifbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `MakeGif_Click` |
+| [InputBtn](media-capture/media/021-inputbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `PickInput_Click` |
+| [Join selected clips without re-encoding · 無重編碼合併已揀片段](media-capture/media/008-joinconcatbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `JoinConcat_Click` |
+| [Measured EBU R128 two-pass normalization · EBU R128 量度式兩步正規化](media-capture/media/003-normalizer128btn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `NormalizeR128_Click` |
+| [OutputBtn](media-capture/media/022-outputbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `PickOutput_Click` |
+| [Read embedded media chapters · 讀取媒體內嵌章節](media-capture/media/015-readchaptersbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `ReadChapters_Click` |
+| [Run two-pass target-size encoding · 執行兩步目標容量編碼](media-capture/media/011-targetsizebtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `TargetSize_Click` |
+| [Split every chapter without re-encoding · 無重編碼分割全部章節](media-capture/media/016-splitchaptersbtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `SplitChapters_Click` |
+| [Strip EXIF GPS and image metadata · 移除 EXIF GPS 同相片 metadata](media-capture/media/020-stripmetadatabtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `StripMetadata_Click` |
+| [Trim leading trailing and internal silence from audio · 剪走音訊頭尾同中間靜音](media-capture/media/004-trimsilencebtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `TrimSilence_Click` |
+| [TrimCopyBtn](media-capture/media/023-trimcopybtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `TrimCopy_Click` |
+| [TrimEncodeBtn](media-capture/media/024-trimencodebtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `TrimEncode_Click` |
+| [Two-pass vidstab video stabilization · 兩步 vidstab 影片防震](media-capture/media/005-stabilizebtn.md) | Media · 媒體 | Media & Capture · 媒體與擷取 | `Button` | `Stabilize_Click` |
 | [CancelBtn](media-capture/ytdlp/006-cancelbtn.md) | Media Downloader · 媒體下載器 | Media & Capture · 媒體與擷取 | `Button` | `Cancel_Click` |
 | [ClearCacheBtn](media-capture/ytdlp/008-clearcachebtn.md) | Media Downloader · 媒體下載器 | Media & Capture · 媒體與擷取 | `Button` | `ClearCache_Click` |
 | [DownloadBtn](media-capture/ytdlp/005-downloadbtn.md) | Media Downloader · 媒體下載器 | Media & Capture · 媒體與擷取 | `Button` | `Download_Click` |
@@ -1373,13 +1394,13 @@
 | [WriteBackBtn](network-tools/hostsedit/009-writebackbtn.md) | Hosts File Editor · 主機檔編輯器 | Network Tools · 網絡工具 | `Button` | `WriteBack_Click` |
 | [CopyBtn](network-tools/ipinfo/002-copybtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Copy_Click` |
 | [RefreshBtn](network-tools/ipinfo/001-refreshbtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Refresh_Click` |
-| [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
-| [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
-| [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
-| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
 | [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
-| [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
+| [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
 | [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
+| [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
+| [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
+| [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
+| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
 | [RandomBtn](network-tools/mactools/001-randombtn.md) | MAC Address Tools · MAC 位址工具 | Network Tools · 網絡工具 | `Button` | `Random_Click` |
 | [PingStartBtn](network-tools/ping/001-pingstartbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStart_Click` |
 | [PingStopBtn](network-tools/ping/002-pingstopbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStop_Click` |
@@ -1913,13 +1934,13 @@
 | [DecodedToggle](web-http-http/queryedit/009-decodedtoggle.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `ToggleButton` | `DecodedToggle_Click` |
 | [ParseBtn](web-http-http/queryedit/001-parsebtn.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `Button` | `Parse_Click` |
 | [SortBtn](web-http-http/queryedit/003-sortbtn.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `Button` | `Sort_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/004-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/006-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/007-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/008-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/003-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [[icon U+E8C8]](web-http-http/urltools/002-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/004-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/003-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/007-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [[icon U+E8C8]](web-http-http/urltools/005-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/008-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/006-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [AddBtn](web-http-http/urltools/009-addbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `Add_Click` |
 | [CopyCodecBtn](web-http-http/urltools/016-copycodecbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyCodec_Click` |
 | [CopyUrlBtn](web-http-http/urltools/013-copyurlbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyUrl_Click` |

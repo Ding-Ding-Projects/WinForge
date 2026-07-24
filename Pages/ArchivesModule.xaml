@@ -55,14 +55,16 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <StackPanel Spacing="10">
                     <TextBlock x:Name="CreateLabel" FontWeight="SemiBold" />
-                    <Grid ColumnSpacing="8">
+                    <Grid ColumnSpacing="8" RowSpacing="8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="FormatBox" Grid.Column="0" MinWidth="110" SelectedIndex="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <ComboBox x:Name="FormatBox" Grid.Row="0" Grid.Column="0" MinWidth="110" SelectedIndex="0">
                             <ComboBoxItem Content="7z" Tag="7z" />
                             <ComboBoxItem Content="zip" Tag="zip" />
                             <ComboBoxItem Content="tar" Tag="tar" />
@@ -70,35 +72,58 @@
                             <ComboBoxItem Content="bzip2" Tag="bzip2" />
                             <ComboBoxItem Content="xz" Tag="xz" />
                         </ComboBox>
-                        <ComboBox x:Name="LevelBox" Grid.Column="1" MinWidth="150" SelectedIndex="2">
+                        <ComboBox x:Name="LevelBox" Grid.Row="0" Grid.Column="1" MinWidth="150" SelectedIndex="2">
                             <ComboBoxItem Content="0 · Store · 唔壓縮" Tag="0" />
                             <ComboBoxItem Content="1 · Fast · 快" Tag="1" />
                             <ComboBoxItem Content="5 · Normal · 普通" Tag="5" />
                             <ComboBoxItem Content="9 · Ultra · 極限" Tag="9" />
                         </ComboBox>
-                        <PasswordBox x:Name="PasswordBox" Grid.Column="2" />
-                        <Button x:Name="CreateBtn" Grid.Column="3" Click="Create_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <PasswordBox x:Name="PasswordBox" Grid.Row="1" Grid.Column="0" />
+                        <Button x:Name="CreateBtn" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" Click="Create_Click" Style="{StaticResource AccentButtonStyle}" />
                     </Grid>
-                    <Grid ColumnSpacing="14">
+                    <Grid ColumnSpacing="14" RowSpacing="8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="VolumeBox" Grid.Column="0" Width="150" />
-                        <CheckBox x:Name="SfxCheck" Grid.Column="1" />
-                        <CheckBox x:Name="HeaderEncCheck" Grid.Column="2" IsChecked="True" />
-                        <CheckBox x:Name="SolidCheck" Grid.Column="3" />
-                        <CheckBox x:Name="MtCheck" Grid.Column="4" IsChecked="True" />
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="VolumeBox" Grid.Row="0" Grid.ColumnSpan="2" />
+                        <CheckBox x:Name="SfxCheck" Grid.Row="1" Grid.Column="0" />
+                        <CheckBox x:Name="HeaderEncCheck" Grid.Row="1" Grid.Column="1" IsChecked="True" />
+                        <CheckBox x:Name="SolidCheck" Grid.Row="2" Grid.Column="0" />
+                        <CheckBox x:Name="MtCheck" Grid.Row="2" Grid.Column="1" IsChecked="True" />
                     </Grid>
+                    <Expander x:Name="CreateSafetyExpander">
+                        <StackPanel Spacing="8">
+                            <TextBox x:Name="IncludeMasksBox" AutomationProperties.AutomationId="ArchiveIncludeMasks" AcceptsReturn="True" MaxLength="4096" MinHeight="56" TextWrapping="Wrap" />
+                            <TextBox x:Name="ExcludeMasksBox" AutomationProperties.AutomationId="ArchiveExcludeMasks" AcceptsReturn="True" MaxLength="4096" MinHeight="56" TextWrapping="Wrap" />
+                            <CheckBox x:Name="PreserveNtfsTimesCheck" AutomationProperties.AutomationId="ArchivePreserveNtfsTimes" />
+                            <CheckBox x:Name="MoveSourceCheck" AutomationProperties.AutomationId="ArchiveMoveSourceAfterTest" />
+                            <TextBlock x:Name="MoveSafetyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Expander>
                     <TextBlock x:Name="RarNote" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
             <!-- Quick ops -->
             <StackPanel x:Name="QuickOps" Orientation="Horizontal" Spacing="8" />
+
+            <Expander x:Name="DeleteEntriesExpander">
+                <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="8">
+                        <TextBox x:Name="DeleteMasksBox" AutomationProperties.AutomationId="ArchiveDeleteMasks" AcceptsReturn="True" MaxLength="4096" MinHeight="56" TextWrapping="Wrap" />
+                        <CheckBox x:Name="DeleteRecursiveCheck" AutomationProperties.AutomationId="ArchiveDeleteRecursive" />
+                        <Button x:Name="DeleteEntriesBtn" AutomationProperties.AutomationId="ArchiveDeleteEntries" HorizontalAlignment="Stretch" Click="DeleteEntries_Click" />
+                        <TextBlock x:Name="DeleteSafetyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Expander>
 
             <!-- Output -->
             <Border x:Name="OutBorder" Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" Visibility="Collapsed">

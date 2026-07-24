@@ -22,6 +22,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 322
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
 - **Reliable whole-desktop recording · 可靠全桌面錄影** — Screen Recorder bulk-drains ffmpeg diagnostics, so heavy progress output cannot consume the bounded graceful-save window; forced or unconfirmed stops remain truthful failures. · 螢幕錄影會整批排走 ffmpeg 診斷輸出，繁忙進度唔會食晒有時限嘅正常儲存時間；強制或未確認停止仍然會如實報失敗。
 - **Complete guided Media studio · 完整引導式 Media 工作台** — eleven production ffmpeg/ffprobe workflows add measured EBU R128, silence cleanup, two-pass stabilization, black-bar crop, lossless concat, hardware-probed NVENC, target-size encoding, subtitles, chapter splitting, HEIC/JXL batches, and metadata privacy. Every path uses argument vectors, staged outputs, bounded batches, cancellation, and owned scratch cleanup. · 新增 11 個正式 ffmpeg／ffprobe 工作流程，涵蓋 EBU R128、靜音、防震、黑邊、無損合併、NVENC、目標容量、字幕、章節、HEIC／JXL 同 metadata 私隱；全部用參數清單、暫存輸出、有界批次、取消同自家 scratch 清理。
+- **Review-first developer, HA, and archive workflows · 先審閱開發、HA 同壓縮檔流程** — parameterized ports/Node/Corepack/Defender/TCP/cache controls, an exact short-lived Home Assistant config-check restart gate, and bounded archive filters/delete plus integrity-before-Recycle-Bin moves close eleven audited gaps with a 44-case pure harness. · 參數化 ports／Node／Corepack／Defender／TCP／快取、準確短效 HA 重啟驗證閘、有界壓縮檔篩選／刪除同完整性測試後先移回收筒，用 44 項純測試補齊十一個審核缺口。
 - **Flagship reactor · 旗艦反應堆** — a PWR control-room simulator with point kinetics, thermal hydraulics, turbine and electrical systems, protection logic, fuel and waste services, water treatment, and opt-in external integrations.
 - **Reactor-powered industrial loads · 反應堆工業負載** — a green-ammonia Haber–Bosch plant and strict-priority grid load-shed dispatcher consume the live simulated bus, fail dark, and preserve reactor safety boundaries. · 綠氨哈柏法工廠同嚴格優先級電網卸載調度器會用即時模擬母線；冇電就停，而且唔會越過反應堆安全界線。
 
@@ -114,6 +115,16 @@ dotnet run --project tests\RegexBuilder.Tests -c Debug
 ```
 
 The current contract is **13/13**, covering guided tokens, syntax failures, Unicode, multiline anchors, capture groups, no-match, zero-width progress, result/size caps, adversarial timeout, and plain-text-versus-regex behavior. · 目前合約係 **13/13**，覆蓋引導 token、語法錯誤、Unicode、多行錨點、擷取群組、無配對、零寬度安全推進、結果／大小上限、對抗式超時，同純文字對 regex 行為。
+
+Run the pure roadmap-workflow harness after changing Developer & Terminal, the Home Assistant restart gate, or the bespoke Archives create/delete workflows:
+
+改過開發與終端機、Home Assistant 重啟安全閘，或者壓縮檔專用建立／刪除流程之後，要跑：
+
+```powershell
+dotnet run --project tests\RoadmapWorkflowCore.Tests -c Debug
+```
+
+The contract is **44/44** and does not terminate a process, alter Defender/TCP/cache state, modify a real archive, or contact Home Assistant. · 合約係 **44/44**，唔會終止程序、改 Defender／TCP／快取狀態、修改真實壓縮檔，亦唔會連去 Home Assistant。
 
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 

@@ -40,6 +40,16 @@ public sealed partial class CategoryPage : Page
             BrowserWorkbenchHost.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
             BrowserWorkbenchHost.Content = null;
         }
+        if (ReferenceEquals(_category, Categories.DevTerminal))
+        {
+            DeveloperWorkbenchHost.Content ??= new DeveloperWorkflowPanel();
+            DeveloperWorkbenchHost.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+        }
+        else
+        {
+            DeveloperWorkbenchHost.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+            DeveloperWorkbenchHost.Content = null;
+        }
         RenderHeader();
         Populate(string.Empty);
     }

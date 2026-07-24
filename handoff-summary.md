@@ -1,5 +1,12 @@
 # WinForge Full Development Handoff
 
+## 2026-07-24 Developer, HA, and Archives stop checkpoint · 開發、HA 同壓縮檔停止 checkpoint
+
+- Implemented the six Developer & Terminal gaps, the exact Home Assistant `check_config` restart gate, and four Archives gaps (arbitrary in-archive masks, integrity-before-source-removal, include/exclude masks, and the complete NTFS time/access switch set). · 已實作開發六項、HA 準確驗證重啟安全閘，同壓縮檔四項缺口。
+- Stop-time evidence: focused contracts **44/44**; roadmap **107/115** on this branch; XAML safety pass; source audit **2,919/2,919 handlers**, **1,962/1,962 direct actions**, zero lifecycle/actionable findings; solution build **0 warnings / 0 errors**; self-contained publish exit 0. · 停止前所有離線驗證如實通過。
+- Inspected LowLevel frames cover Developer 800×720, Archives 852×720 and 852×1200, and Home Assistant 852×900. No live mutation/network/restart action ran. Every exact owned PID exited and every dedicated desktop closed at zero windows. Local ignored evidence was not promoted to canonical docs before the stop. · 已檢視三頁新鮮證據，冇真實副作用，所有 PID／desktop 已清零；停止前未及升格正式圖。
+- Stop boundary: branch base `664fd4b453c4c10196891d6dac63a2d646985b3b`; fetched `origin/main` `b0828ada5d0ac501fc1f33f42c3135961675517d`. Canonical driver captures, site-data regeneration, current-main integration/revalidation, and hosted completion remain unfinished. · 正式截圖、site data、current-main 合併重驗同 hosted 完成仍未做，唔可以當已完成。
+
 ## Current 2026-07-24 Browser Control roadmap completion — verified branch · 2026-07-24 瀏覽器控制路線圖完成 — 分支驗證
 
 - **Scope and outcome / 範圍同結果：** the Browser Control category now embeds an accessible, bilingual parameterized workbench above its existing quick-action catalog. It closes all eleven audited gaps: configurable app/kiosk URL launch, real `Local State` profile selection, installed-PWA discovery/launch, flags and policy pages, browser-closed selected-profile cache cleanup, isolated proxy/bypass and throwaway sessions, validated feature enable/disable, loopback remote debugging, and exact-ID winget install/update. The evidence matrix advances Browser Control from 3/14 to **14/14**, and the eight-section aggregate from 74/115 to **85/115** with 30 factual gaps retained elsewhere. · 瀏覽器控制分類而家喺原有快捷目錄上面加入無障礙雙語參數工作台，十一個審核缺口全部補齊；Browser Control 由 3/14 變成 **14/14**，八節總數由 74/115 變成 **85/115**，其餘 30 個真實缺口繼續如實保留。

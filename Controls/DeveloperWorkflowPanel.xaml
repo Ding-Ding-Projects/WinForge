@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WinForge.Controls.DeveloperWorkflowPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Loaded="Panel_Loaded"
+    Unloaded="Panel_Unloaded"
+    mc:Ignorable="d">
+
+    <Border
+        Padding="16"
+        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="8">
+        <StackPanel Spacing="12">
+            <StackPanel Spacing="2">
+                <TextBlock x:Name="TitleText" AutomationProperties.HeadingLevel="Level2" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock x:Name="DescriptionText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Expander x:Name="PortExpander" IsExpanded="True">
+                <StackPanel Spacing="8">
+                    <NumberBox x:Name="PortBox" AutomationProperties.AutomationId="DeveloperWorkflowPort" SpinButtonPlacementMode="Inline" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Button x:Name="InspectPortBtn" Grid.Column="0" HorizontalAlignment="Stretch" Click="InspectPort_Click" />
+                        <Button x:Name="TerminatePortBtn" Grid.Column="1" HorizontalAlignment="Stretch" Click="TerminatePort_Click" IsEnabled="False" />
+                    </Grid>
+                    <TextBlock x:Name="PortOutput" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="NodeExpander">
+                <StackPanel Spacing="8">
+                    <ComboBox x:Name="NodeManagerBox" AutomationProperties.AutomationId="DeveloperWorkflowNodeManager" DisplayMemberPath="DisplayName" HorizontalAlignment="Stretch" />
+                    <TextBox x:Name="NodeVersionBox" AutomationProperties.AutomationId="DeveloperWorkflowNodeVersion" MaxLength="64" />
+                    <Grid ColumnSpacing="8" RowSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Button x:Name="RefreshNodeBtn" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch" Click="RefreshNode_Click" />
+                        <Button x:Name="ListNodeBtn" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" Click="ListNode_Click" />
+                        <Button x:Name="InstallNodeBtn" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Stretch" Click="InstallNode_Click" />
+                        <Button x:Name="OpenNodeShellBtn" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" Click="OpenNodeShell_Click" />
+                    </Grid>
+                    <TextBlock x:Name="NodeSafetyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="CorepackExpander">
+                <StackPanel Spacing="8">
+                    <TextBox x:Name="CorepackChannelBox" AutomationProperties.AutomationId="DeveloperWorkflowCorepackChannel" MaxLength="64" />
+                    <Grid ColumnSpacing="8" RowSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Button x:Name="CorepackStatusBtn" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch" Click="CorepackStatus_Click" />
+                        <Button x:Name="CorepackEnableBtn" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" Click="CorepackEnable_Click" />
+                        <Button x:Name="CorepackPnpmBtn" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Stretch" Click="CorepackPnpm_Click" />
+                        <Button x:Name="CorepackYarnBtn" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" Click="CorepackYarn_Click" />
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="DefenderExpander">
+                <StackPanel Spacing="8">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="DefenderFolderBox" Grid.Column="0" AutomationProperties.AutomationId="DeveloperWorkflowDefenderFolder" IsReadOnly="True" />
+                        <Button x:Name="PickDefenderFolderBtn" Grid.Column="1" Click="PickDefenderFolder_Click" />
+                    </Grid>
+                    <ComboBox x:Name="DefenderExclusionBox" AutomationProperties.AutomationId="DeveloperWorkflowDefenderExclusions" HorizontalAlignment="Stretch" />
+                    <Grid ColumnSpacing="8" RowSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Button x:Name="ListDefenderBtn" Grid.Column="0" HorizontalAlignment="Stretch" Click="ListDefender_Click" />
+                        <Button x:Name="AddDefenderBtn" Grid.Column="1" HorizontalAlignment="Stretch" Click="AddDefender_Click" />
+                    </Grid>
+                    <Button x:Name="RemoveDefenderBtn" HorizontalAlignment="Stretch" Click="RemoveDefender_Click" />
+                    <TextBlock x:Name="DefenderSafetyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="TcpExpander">
+                <StackPanel Spacing="8">
+                    <Grid ColumnSpacing="8" RowSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <NumberBox x:Name="DynamicStartBox" Grid.Column="0" AutomationProperties.AutomationId="DeveloperWorkflowDynamicStart" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="DynamicCountBox" Grid.Column="1" AutomationProperties.AutomationId="DeveloperWorkflowDynamicCount" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="TimedWaitBox" Grid.Column="2" AutomationProperties.AutomationId="DeveloperWorkflowTimedWait" SpinButtonPlacementMode="Inline" />
+                    </Grid>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Button x:Name="InspectTcpBtn" Grid.Column="0" HorizontalAlignment="Stretch" Click="InspectTcp_Click" />
+                        <Button x:Name="ApplyTcpBtn" Grid.Column="1" HorizontalAlignment="Stretch" Click="ApplyTcp_Click" />
+                    </Grid>
+                    <TextBlock x:Name="TcpOutput" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="CacheExpander">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="CacheSafetyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <CheckBox x:Name="NpmCacheCheck" AutomationProperties.AutomationId="DeveloperWorkflowCacheNpm" />
+                    <CheckBox x:Name="PnpmCacheCheck" AutomationProperties.AutomationId="DeveloperWorkflowCachePnpm" />
+                    <CheckBox x:Name="PipCacheCheck" AutomationProperties.AutomationId="DeveloperWorkflowCachePip" />
+                    <CheckBox x:Name="DockerCacheCheck" AutomationProperties.AutomationId="DeveloperWorkflowCacheDocker" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Button x:Name="InspectCachesBtn" Grid.Column="0" HorizontalAlignment="Stretch" Click="InspectCaches_Click" />
+                        <Button x:Name="CleanCachesBtn" Grid.Column="1" HorizontalAlignment="Stretch" Click="CleanCaches_Click" IsEnabled="False" />
+                    </Grid>
+                    <TextBlock x:Name="CacheOutput" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                </StackPanel>
+            </Expander>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <ProgressRing x:Name="BusyRing" Width="24" Height="24" IsActive="False" Visibility="Collapsed" />
+                <Button x:Name="CancelBtn" Click="Cancel_Click" Visibility="Collapsed" />
+            </StackPanel>
+            <InfoBar x:Name="StatusBar" AutomationProperties.AutomationId="DeveloperWorkflowStatus" AutomationProperties.LiveSetting="Polite" IsClosable="True" IsOpen="False" />
+            <Border x:Name="OutputBorder" Padding="10" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" Visibility="Collapsed">
+                <TextBlock x:Name="OutputText" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -10,7 +10,7 @@
 | Category · 分類 | Files & Disks · 檔案與磁碟 |
 | Page class · 頁面類別 | <code>ArchivesModule</code> |
 | Page XAML · 頁面 XAML | <code>Pages/ArchivesModule.xaml</code> |
-| Button docs · 按鈕文件 | 5 |
+| Button docs · 按鈕文件 | 6 |
 
 ## What It Covers · 功能範圍
 
@@ -27,3 +27,4 @@
 | [SrcFileBtn](../../buttons/files-disks/archives/003-srcfilebtn.md) | `Button` | `SrcFileBtn` | `SourceFile_Click` |
 | [SrcFolderBtn](../../buttons/files-disks/archives/004-srcfolderbtn.md) | `Button` | `SrcFolderBtn` | `SourceFolder_Click` |
 | [CreateBtn](../../buttons/files-disks/archives/005-createbtn.md) | `Button` | `CreateBtn` | `Create_Click` |
+| [DeleteEntriesBtn](../../buttons/files-disks/archives/006-deleteentriesbtn.md) | `Button` | `DeleteEntriesBtn` | `DeleteEntries_Click` |
