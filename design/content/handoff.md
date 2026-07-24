@@ -14,6 +14,8 @@ Windows x64 build completed with zero errors and the production-source reactor h
 
 Windows x64 build 零 errors、正式 source reactor harness **65/65**、literal safety 同 source audit 全過；生成文件係 321 module／1,905 actionable control／1,216 app feature／2,278 Pages wiki。兩個 deep link 都喺專用 LowLevel desktop 成功開啟，但已檢視 WinUI capture 全黑；repo driver 亦拒絕空白 fallback，而切換 desktop 就被拒絕。冇無效圖片會發佈，所以 visual 如實係 `capture-blocked`。完整行為、故障、無障礙同安全資料喺 [反應堆工業負載](wiki/Reactor-Industrial-Loads.md)。
 
+Delivery commits `cf7b28b8` and `593b89d1` are pushed on `codex/integrate-claude-remaining`; fetch plus `ls-remote` proved exact remote tip `593b89d13bef8d8444faf8f3367269023a6e0e9c`. This integration branch is deliberately left unmerged for the parent owner. · 交付 commit 已 push，fetch 同 `ls-remote` 證明 remote tip 完全一致；branch 按分工保留未 merge，交畀上層負責人整合。
+
 ## AWS Manager EC2 continuation · AWS Manager EC2 延續開發
 
 The managed AWS Manager now has a native, bilingual EC2 workspace alongside S3 and Resource Explorer. It supports direct `ec2` and `s3` routes, paged instance discovery, local filtering, details, and guarded Start, Stop, Reboot, and Terminate reviews through AWSSDK.EC2. Context generations, operation ownership, stale-result rejection, post-dialog revalidation, fail-closed state policy, and atomic S3 `If-None-Match: *` uploads keep account and mutation boundaries explicit; discovered credentials remain metadata-only.
