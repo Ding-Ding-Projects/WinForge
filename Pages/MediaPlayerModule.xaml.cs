@@ -33,7 +33,7 @@ public sealed partial class MediaPlayerModule : Page
     private bool _attached;
     private bool _seeking;          // user is dragging the seek slider
     private bool _suppressSeek;     // we're programmatically updating the slider
-    private bool _suppressVol;
+    private bool _suppressVol = false;
     private int _currentIndex = -1;
     private bool _suppressTrackEvents;
 

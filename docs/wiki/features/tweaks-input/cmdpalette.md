@@ -10,7 +10,7 @@
 | Category · 分類 | Tweaks & Input · 調校與輸入 |
 | Page class · 頁面類別 | <code>CommandPaletteModule</code> |
 | Page XAML · 頁面 XAML | <code>Pages/CommandPaletteModule.xaml</code> |
-| Button docs · 按鈕文件 | 1 |
+| Button docs · 按鈕文件 | 8 |
 
 ## What It Covers · 功能範圍
 
@@ -23,3 +23,10 @@
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
 | [OpenNowButton](../../buttons/tweaks-input/cmdpalette/001-opennowbutton.md) | `Button` | `OpenNowButton` | `OpenNow_Click` |
+| [BackgroundImageBrowseButton](../../buttons/tweaks-input/cmdpalette/002-backgroundimagebrowsebutton.md) | `Button` | `BackgroundImageBrowseButton` | `BackgroundImageBrowse_Click` |
+| [BackgroundImageClearButton](../../buttons/tweaks-input/cmdpalette/003-backgroundimageclearbutton.md) | `Button` | `BackgroundImageClearButton` | `BackgroundImageClear_Click` |
+| [ExtensionImportButton](../../buttons/tweaks-input/cmdpalette/004-extensionimportbutton.md) | `Button` | `ExtensionImportButton` | `ExtensionImport_Click` |
+| [ExtensionTemplateButton](../../buttons/tweaks-input/cmdpalette/005-extensiontemplatebutton.md) | `Button` | `ExtensionTemplateButton` | `ExtensionTemplate_Click` |
+| [BookmarkAddButton](../../buttons/tweaks-input/cmdpalette/006-bookmarkaddbutton.md) | `Button` | `BookmarkAddButton` | `BookmarkAdd_Click` |
+| [RemoteDesktopAddButton](../../buttons/tweaks-input/cmdpalette/007-remotedesktopaddbutton.md) | `Button` | `RemoteDesktopAddButton` | `RemoteDesktopAdd_Click` |
+| [DockOpenButton](../../buttons/tweaks-input/cmdpalette/008-dockopenbutton.md) | `Button` | `DockOpenButton` | `DockOpen_Click` |

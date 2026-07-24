@@ -13,7 +13,7 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class TextStatsModule : Page
 {
-    private bool _suppress;
+    private bool _suppress = false;
 
     public TextStatsModule()
     {

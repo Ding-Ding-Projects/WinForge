@@ -192,7 +192,7 @@ foreach ($line in ($startPageText -split "\r?\n")) {
     # Package Manager view aliases resolve through the shared managed routing helper
     # rather than a string literal. They are still aliases of the module.packages
     # route, so preserve them in its inventory entry instead of flagging them unmapped.
-    $packageViewTargetMatch = [System.Text.RegularExpressions.Regex]::Match($line, 'Navigator\.GoToModule\?\.Invoke\(PackageManagerViewRouting\.NavigationKey\(PackageManagerViewTarget\.(?<view>Discover|Updates|Installed)\)\)')
+    $packageViewTargetMatch = [System.Text.RegularExpressions.Regex]::Match($line, 'Navigator\.GoToModule\?\.Invoke\(PackageManagerViewRouting\.NavigationKey\(PackageManagerViewTarget\.(?<view>Discover|Updates|Installed|Bundles|Sources|Ignored|Setup|Settings|Operations)\)\)')
     if ($packageViewTargetMatch.Success) {
         $target = 'module.packages'
         if (-not $aliasesByTarget.ContainsKey($target)) {
@@ -307,7 +307,7 @@ $dynamicRouteFamilies = @(
         initialStatus = 'not-started'
     },
     [pscustomobject]@{
-        id = 'module.packages#(discover|updates|installed)'
+        id = 'module.packages#(discover|updates|installed|bundles|sources|ignored|setup|settings|operations)'
         kind = 'dynamic-route-family'
         expectedSurface = 'PackageManagerModule selected view'
         source = @('MainWindow.xaml.cs', 'Services/PackageManagerViewRouting.cs', 'Pages/PackageManagerModule.xaml.cs')
@@ -478,8 +478,7 @@ foreach ($file in $sourceFiles) {
 }
 
 $testProjects = @(
-    Get-ChildItem -LiteralPath (Join-Path $repo 'tests') -Recurse -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.Extension -in @('.csproj', '.vcxproj') } |
+    Get-ChildItem -LiteralPath (Join-Path $repo 'tests') -Recurse -Filter '*.csproj' -File -ErrorAction SilentlyContinue |
         ForEach-Object { Get-RepoRelativePath -FullPath $_.FullName -Root $repo } |
         Sort-Object
 )

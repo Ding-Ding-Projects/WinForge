@@ -1,5 +1,9 @@
 # Regex Cheatsheet & Reactor Settings Lifecycle Repair · 正則速查同反應堆設定生命週期修復
 
+Current correction — 2026-07-17: Regex Cheatsheet is the **fourth of six** native regex-search surfaces. The current Debug/Release core baseline is **417/417**; earlier 395/403 and 224/226 UI figures are historical. Headless WinUI visual evidence remains `capture-blocked` with no visible-desktop fallback.
+
+目前更正 — 2026-07-17：Regex Cheatsheet 係六個 native regex-search surface 入面的**第四個**。目前 Debug/Release core 基線係 **417/417**；舊的 395/403 同 224/226 UI 數字只屬歷史。headless WinUI 視覺證據仍然 `capture-blocked`，不會回退去可見桌面。
+
 ## Scope · 範圍
 
 **EN —** This repair is deliberately narrow: it corrects a .NET-regex documentation claim and the lifetime of two UI event subscriptions. It does not change reactor physics, system linkage, Home Assistant configuration or I/O, any toggle default, status-API policy, autosave, keep-awake behavior, or the real-shutdown path.
@@ -28,6 +32,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\Administrator\.code
 **EN —** On 2026-07-11, each focused harness passed **3/3**. The Debug x64 solution build passed with **0 errors** (318 existing warnings), and the XAML literal-safety guard passed. The lifecycle test is source-level/headless, so it never starts the reactor or an external integration.
 
 **粵語 —** 喺 2026-07-11，兩個專注 harness 各自 **3/3** 通過。Debug x64 solution build 以 **0 errors**（318 個既有 warnings）通過，XAML literal-safety guard 亦通過。生命週期測試係 source-level／headless，所以絕對唔會啟動反應堆或者外部整合。
+
+## Native C++ Regex Cheatsheet evidence · 原生 C++ Regex 速查表證據
+
+**EN —** The current native `module.regexcheat` slice is separate from this managed repair and is deliberately scoped: a pure-C++ 67-row bilingual catalog in nine categories, eight explicit Copy-only patterns, literal-default filtering, and explicit bounded local PCRE2 mode. Invalid patterns retain the prior visible entries; the full Regex Builder can return a verified expression to the fourth registered native regex-search target. .NET-only syntax remains static reference data only, with no executable, process, network, or package-argument path. Debug and Release native tests pass **395/395**; catalog parity passes 346 fixed routes plus five dynamic families; the isolated LowLevel MCP UI Automation shell passes **224/224**.
+
+**粵語 —** 而家嘅原生 `module.regexcheat` 批次同呢個受控版修補係分開，範圍亦刻意收窄：純 C++ 67 項雙語目錄、九個分類、八個明確 Copy-only 模式、literal 預設篩選，同明確嘅有界本機 PCRE2 mode。無效模式會保留之前可見項目；完整 Regex Builder 可以將已驗證表達式交返第四個已登記嘅原生 regex-search target。.NET 專用語法仍然只係靜態參考資料，冇可執行、process、network 或 package-argument 路徑。Debug 同 Release 原生測試係 **395/395**；catalog parity 通過 346 條固定 routes 同五組 dynamic families；隔離 LowLevel MCP UI Automation shell 係 **224/224**。
 
 ## Route and capture evidence · Route 同截圖證據
 

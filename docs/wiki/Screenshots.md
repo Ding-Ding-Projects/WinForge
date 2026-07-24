@@ -6,221 +6,9 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
-**EN —** On 2026-07-15, the changed native Package Manager Bundle pages (`package-discover`, `package-installed`, and `package-bundles`) were launched separately through the repository driver at `-WaitMs 16000`. `CopyFromScreen` was unavailable; every driver's `PrintWindow` fallback was blank or near-uniform and was rejected. The repo-local LowLevel fallback then created `WinForgeBundleWorkspaceAudit`, launched all three pages, listed their native HWNDs, and captured blank client frames. No valid PNG was accepted, `docs/screenshot-packages.png` was not replaced, and that existing image remains a managed-production reference only; the native pages are `capture-blocked`.
+This gallery documents the canonical .NET / WinUI 3 application. C++/WinRT port screenshots and capture-blocked evidence moved with the independent [WinForge-Native repository](https://github.com/codingmachineedge/WinForge-Native). No native-port image is presented here as managed-app evidence.
 
-**粵語 —** 2026-07-15 改過嘅原生 Package Manager Bundle 頁（`package-discover`、`package-installed` 同 `package-bundles`）已經分別經 repository driver 用 `-WaitMs 16000` 開啟。`CopyFromScreen` 用唔到；每個 driver 嘅 `PrintWindow` fallback 都係空白／接近單色，所以已被拒絕。repo 本機 LowLevel fallback 跟住建立 `WinForgeBundleWorkspaceAudit`、開三個頁、列出佢哋嘅原生 HWND，再擷取到空白 client frame。冇接受有效 PNG、冇替換 `docs/screenshot-packages.png`，而呢張既有圖片仍然只係受控正式版參考；原生頁面仍然係 `capture-blocked`。
-
-**EN —** On 2026-07-13 the newly native Check Digit Validator was launched through `driver.ps1 -Native -Page checkdigit`; its required fresh capture was attempted again after the standards and accessibility hardening rendered. `CopyFromScreen` was unavailable; the `PrintWindow` fallback produced a blank or near-uniform WinUI client frame and was rejected. The route separately passed all six live UI Automation scheme checks plus localized-name and stale-detail accessibility checks, but that is behavioral—not visual—evidence. No `screenshot-checkdigit.png` was created, replaced, reused, or synthesized; the page is `capture-blocked`.
-
-**粵語 —** 2026-07-13 新完成原生功能嘅檢查碼驗證器已經用 `driver.ps1 -Native -Page checkdigit` 開啟；標準同無障礙加固 render 後亦再次按要求嘗試新截圖。`CopyFromScreen` 用唔到；`PrintWindow` 後備產生空白／接近單色 WinUI client frame，所以已被拒絕。route 另外通過六個格式嘅即時 UI Automation 檢查、本地化名稱同清除舊 detail 無障礙檢查，但嗰啲係行為證據，唔係視覺證據。冇建立、替換、重用或者合成 `screenshot-checkdigit.png`；頁面係 `capture-blocked`。
-
-**EN —** On 2026-07-15 the native Case Converter route was retried through `driver.ps1 -Native -Page caseconvert -WaitMs 15000` and a LowLevel headless desktop. `CopyFromScreen` was unavailable; the driver's `PrintWindow` fallback was blank or near-uniform, and the inspected LowLevel HWND capture showed only a title bar and blank client frame. No current PNG was accepted. `screenshot-caseconvert.png` and its wiki-local copy were retired rather than reused; the page is `capture-blocked`.
-
-**粵語 —** 2026-07-15 原生 Case Converter route 重新用 `driver.ps1 -Native -Page caseconvert -WaitMs 15000` 同 LowLevel 無頭 desktop 嘗試。`CopyFromScreen` 用唔到；driver 嘅 `PrintWindow` fallback 係空白／接近單色，而檢查過嘅 LowLevel HWND 擷取只有 title bar 同空白 client frame。冇接受任何最新 PNG。`screenshot-caseconvert.png` 同 wiki 本機副本已移除，唔會重用；頁面係 `capture-blocked`。
-
-**EN —** On 2026-07-15 the native Roman Numerals route was launched through `driver.ps1 -Native -Page romannum -WaitMs 15000`. `CopyFromScreen` was unavailable and the driver's `PrintWindow` fallback was blank or near-uniform, so no PNG was accepted. An inspected LowLevel headless-desktop HWND capture likewise showed only the WinForge title bar and a blank client frame. No `screenshot-romannum.png` was created, replaced, reused, or synthesized. The current 326/326 native tests and 146/146 UI Automation smoke still include 17 focused Roman cases and 13 Roman assertions, but those are behavior—not visual—evidence; Roman Numerals is `capture-blocked`.
-
-**粵語 —** 2026-07-15 原生羅馬數字 route 已經用 `driver.ps1 -Native -Page romannum -WaitMs 15000` 開啟。`CopyFromScreen` 用唔到，而 driver 嘅 `PrintWindow` fallback 係空白／接近單色，所以冇接受 PNG。檢查過嘅 LowLevel 無頭 desktop HWND 擷取同樣只有 WinForge title bar 同空白 client frame。冇建立、替換、重用或者合成 `screenshot-romannum.png`。目前 326/326 原生測試同 146/146 UI Automation smoke 仍然包含 17 個羅馬數字專項案例同 13 個 Roman assertion，但嗰啲係行為而唔係視覺證據；羅馬數字係 `capture-blocked`。
-
-**EN —** On 2026-07-13 the newly native Text to Binary route was launched through `driver.ps1 -Native -Page binarytext -WaitMs 5000`; its required current capture attempted `CopyFromScreen`, then rejected the blank or near-uniform `PrintWindow` fallback. The exact result was `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` No `screenshot-binarytext.png` exists or was created, replaced, reused, or synthesized. The separate 59/59 UI Automation smoke exercised binary and hex conversion, Move output to input, explicit Copy, malformed-code clearing, accessibility, selected-base/input/output language-state retention, and all aliases; that is behavior evidence only. Text to Binary is `capture-blocked`, not visual-pass.
-
-**粵語 —** 2026-07-13 新完成原生功能嘅文字轉二進位 route 已經用 `driver.ps1 -Native -Page binarytext -WaitMs 5000` 開啟；指定嘅最新截圖先試 `CopyFromScreen`，再拒絕空白／接近單色嘅 `PrintWindow` 後備。確實結果係：`CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` 冇 `screenshot-binarytext.png`，亦冇建立、替換、重用或者合成。獨立 59/59 UI Automation smoke 會操作二進位同十六進位轉換、搬輸出去輸入、明確 Copy、錯誤碼清空、無障礙、轉語言後保留已揀進位／輸入／輸出同全部 alias；嗰啲只係行為證據。文字轉二進位係 `capture-blocked`，唔係 visual-pass。
-
-**EN —** On 2026-07-11, a fresh self-contained Dashboard capture reproduced
-`CopyFromScreen`: `The handle is invalid`. The direct `PrintWindow` fallback
-returned success but its inspected 682×1311 PNG was uniformly
-`ARGB #FF000000` across 3,198 samples. Windows.Graphics.Capture
-`CreateForWindow` could create capture items for both WinForge and an owned
-coloured diagnostic window, but neither free-threaded frame pool received a
-frame within 12 seconds. Therefore this desktop session has no valid capture
-fallback: no PNG was created/replaced, no stale image was substituted, and no
-visual-pass result is published.
-
-**粵語 —** 2026-07-11 嘅新 self-contained Dashboard 截圖重現咗
-`CopyFromScreen`: `The handle is invalid`。直接 `PrintWindow` fallback 雖然
-回傳成功，但已檢查嘅 682×1311 PNG 喺 3,198 個抽樣都係
-`ARGB #FF000000`。Windows.Graphics.Capture `CreateForWindow` 雖然可以為
-WinForge 同自有有色診斷視窗建立 capture item，但兩個 free-threaded frame pool
-喺 12 秒內都收唔到 frame。所以呢個 desktop session 冇有效 capture fallback：
-冇建立／替換 PNG、冇用舊圖頂替，亦冇發佈 visual-pass 結果。
-
-**EN —** Batch 06 repeated the capture check against H2 Plant after its fresh
-self-contained route launch. `driver.ps1 -Out` again stopped at
-`CopyFromScreen`: `The handle is invalid`; a `PrintWindow` fallback attempt
-then reported `ERROR: bad window rect`, while the previously successful-call
-fallback output is uniformly black. No valid PNG exists for this batch, so no
-canonical screenshot was replaced and no visual-pass status is claimed.
-
-**粵語 —** Batch 06 喺新 self-contained route launch 之後，再試咗 H2 Plant
-capture。`driver.ps1 -Out` 又喺 `CopyFromScreen` 報 `The handle is invalid`；
-`PrintWindow` fallback 跟住報 `ERROR: bad window rect`，而之前成功 call 到嘅
-fallback output 仍然係 uniform-black。呢批冇有效 PNG，所以冇換 canonical
-截圖，亦唔會聲稱 visual-pass。
-
-**EN —** The fresh self-contained Package Manager deep-link check selected Discover,
-Updates, and Installed through UI Automation on 2026-07-11. Its required
-`driver.ps1 -Out` screenshot attempt for `package-updates` again fell back from
-`CopyFromScreen` to `PrintWindow`, then stopped because the result was a uniform
-frame: `CopyFromScreen is unavailable and the PrintWindow fallback produced a uniform
-frame; graphics capture is unavailable in this desktop session.` No PNG was created
-or replaced, and this is not a visual-pass claim.
-
-**粵語 —** 2026-07-11 嘅新 self-contained Package Manager 深層連結檢查用 UI
-Automation 成功揀到搜尋安裝、可更新同已安裝。指定嘅 `package-updates`
-`driver.ps1 -Out` 截圖再一次由 `CopyFromScreen` fallback 去 `PrintWindow`，但因為
-結果係 uniform frame 而停止：`CopyFromScreen is unavailable and the PrintWindow
-fallback produced a uniform frame; graphics capture is unavailable in this desktop
-session.` 冇建立或者替換 PNG，亦唔係 visual-pass 聲稱。
-
-**EN —** Batch 08 made a fresh 15-second mactools capture attempt after its
-bounded launch retry had passed. CopyFromScreen was unavailable; the driver
-then tried PrintWindow, detected a uniform frame, and stopped with
-CopyFromScreen is unavailable and the PrintWindow fallback produced a uniform
-frame; graphics capture is unavailable in this desktop session. No
-mactools-default.png was saved, no canonical image was replaced or reused, and
-the batch is capture-blocked, not visual-pass.
-
-**粵語 —** Batch 08 喺受限 launch retry 通過之後，為 mactools 做咗新嘅 15 秒
-capture 嘗試。CopyFromScreen 唔可用；driver 跟住試 PrintWindow、發現係 uniform
-frame，再以 CopyFromScreen is unavailable and the PrintWindow fallback produced a
-uniform frame; graphics capture is unavailable in this desktop session. 停止。
-冇儲存 mactools-default.png、冇替換或者重用 canonical image，呢一批係
-capture-blocked，唔係 visual-pass。
-
-**EN —** Batch 07’s post-fix KeePass launch succeeded, then its fresh
-15-second `driver.ps1 -Out` attempt again stopped at `CopyFromScreen`: `The
-handle is invalid`. No `keepass-clipboard-safety.png` was produced, so the
-existing canonical KeePass image was neither replaced nor reused as evidence;
-the route has `capture-blocked`, not visual-pass, status.
-
-**粵語 —** Batch 07 修正後嘅 KeePass launch 通過，之後新嘅 15 秒
-`driver.ps1 -Out` 嘗試又喺 `CopyFromScreen` 停咗：`The handle is invalid`。
-冇產生 `keepass-clipboard-safety.png`，所以既有 canonical KeePass 圖冇換、亦
-冇當新證據使用；呢條 route 係 `capture-blocked`，唔係 visual-pass。
-**EN —** The subsequent numeric-literal reliability audit attempted a fresh
-12-second `driver.ps1 -Out` capture for each changed page: Markdown TOC, Name
-Generator, Number Formatter, Scientific Notation, Subnet Calculator, and Unit
-Converter. Every route reached the capture step but each `CopyFromScreen` call
-returned `The handle is invalid`. No page produced a valid PNG, no stale
-canonical screenshot was substituted, and these six pages are
-`capture-blocked`, not visual-pass.
-
-**粵語 —** 跟住嘅 numeric-literal reliability 審查，為每個改過頁面都用新鮮
-12 秒 `driver.ps1 -Out` 試過截圖：Markdown 目錄、名稱產生器、數字格式化、科學
-記數法、子網計算器同單位換算器。每條 route 都去到 capture step，但每次
-`CopyFromScreen` 都回傳 `The handle is invalid`。冇一頁產生有效 PNG、冇用舊
-canonical 截圖頂替，呢 6 頁係 `capture-blocked`，唔係 visual-pass。
-
-**EN —** The Package Manager source-preservation P0 change received a fresh
-`driver.ps1 -Page packages -Publish -WaitMs 15000 -Out …` attempt. The driver
-reported `CopyFromScreen unavailable`; its `PrintWindow` fallback produced a
-uniform frame and graphics capture was unavailable in this desktop session.
-No new Package Manager PNG was produced, inspected, replaced or reused. Its
-follow-up `-NoCapture` launch passed, but this evidence is `capture-blocked`,
-not visual verification.
-
-**粵語 —** Package Manager 來源保留 P0 變更已經用新嘅
-`driver.ps1 -Page packages -Publish -WaitMs 15000 -Out …` 嘗試。driver 報
-`CopyFromScreen unavailable`；`PrintWindow` fallback 產生 uniform frame，而
-呢個 desktop session 嘅 graphics capture 亦唔可用。冇產生、檢查、替換或者重用
-新嘅 Package Manager PNG。之後 `-NoCapture` launch 通過，但呢份證據係
-`capture-blocked`，唔係視覺驗證。
-
-**EN —** The Pumped-Hydro state-integrity repair is nonvisual service/code-behind work: no XAML layout or control surface changed. To avoid interfering with the active Batch 09 route sweep, no competing GUI, screenshot attempt, PNG creation/replacement, or visual-pass claim was made; screenshot replacement is not applicable.
-
-**粵語 —** 抽水蓄能狀態完整性修正係非視覺嘅 service／code-behind 工作：冇改 XAML 排版或者控制介面。為咗唔干擾進行中嘅 Batch 09 route sweep，冇開另一個 GUI、冇試截圖、冇產生／替換 PNG，亦冇聲稱 visual-pass；唔適用截圖替換。
-**EN —** Batch 09 made fresh 15-second capture attempts after the Percentage
-Calculator typed-default repair, the qBittorrent lifecycle repair, and the
-Pixel Editor and Proxmox safety repairs. Every changed route reached its
-capture step; `CopyFromScreen` was unavailable and the `PrintWindow` fallback
-produced a uniform frame, with graphics capture unavailable in this desktop
-session. No PNG was created for Percentage Calculator, qBittorrent, Pixel
-Editor, or Proxmox; no canonical image was replaced or reused. These are
-`capture-blocked` results, never visual-pass claims.
-
-**粵語 —** Batch 09 喺 Percentage Calculator typed-default 修正、qBittorrent
-lifecycle 修正，同埋 Pixel Editor 同 Proxmox 安全修正之後，做咗新鮮 15 秒 capture
-嘗試。每條改過嘅 route 都到咗 capture step；`CopyFromScreen` 唔可用，
-`PrintWindow` fallback 產生 uniform frame，而呢個 desktop session 嘅 graphics
-capture 亦唔可用。Percentage Calculator、qBittorrent、Pixel Editor 同 Proxmox 都冇
-PNG 產生；冇 canonical image 被替換或者重用。呢啲係 `capture-blocked` 結果，
-絕對唔係 visual-pass 聲稱。
-
-**EN —** The Screen Recorder and Registry Editor reliability repair received fresh driver
-attempts on 2026-07-11: `recorder` with a self-contained publish and `regedit` from that
-fresh publish. Both reached the capture stage, but `CopyFromScreen` was unavailable and the
-`PrintWindow` fallback produced a uniform frame; graphics capture is unavailable in this
-desktop session. Launch-only follow-ups passed for both routes. No PNG was created,
-inspected, replaced, or reused, so no recorder or Registry Editor canonical image is visual
-evidence for this repair. These are `capture-blocked`, never visual-pass, results.
-
-**粵語 —** 螢幕錄影同登錄編輯器可靠性修正喺 2026-07-11 收到新嘅 driver 嘗試：
-`recorder` 用 self-contained publish，而 `regedit` 用嗰個新 publish。兩條都去到
-capture stage，但 `CopyFromScreen` 未可用，而 `PrintWindow` fallback 產生 uniform frame；
-呢個 desktop session 嘅 graphics capture 未可用。兩條 route 嘅 launch-only 後續都通過。
-冇 PNG 被產生、檢查、替換或者重用，所以既有 recorder/regedit canonical image 唔係
-呢個修正嘅視覺證據。呢啲係 `capture-blocked`，絕對唔係 visual-pass 結果。
-**EN —** Batch 10 made fresh 15-second `driver.ps1 -Out` attempts after the
-Quick Accent persistence, quicktype argument-vector, Rainmeter copy-link,
-Randomizer, Screen Recorder, and Registry Editor repairs. Every changed route
-reached its capture step; `CopyFromScreen` was unavailable and the
-`PrintWindow` fallback produced a uniform frame while graphics capture remained
-unavailable in this desktop session. No PNG was created for Quick Accent,
-quicktype, Rainmeter, Randomizer, Screen Recorder, or Registry Editor; no
-canonical image was replaced or reused. These are `capture-blocked` results,
-never visual-pass claims.
-
-**粵語 —** Batch 10 喺 Quick Accent persistence、quicktype argument-vector、
-Rainmeter copy-link、Randomizer、Screen Recorder 同 Registry Editor 修正之後，
-為每條改過 route 做咗新鮮 15 秒 `driver.ps1 -Out` 嘗試。全部都到咗 capture step；
-`CopyFromScreen` 唔可用，而 `PrintWindow` fallback 產生 uniform frame，呢個
-desktop session 嘅 graphics capture 仍然唔可用。Quick Accent、quicktype、
-Rainmeter、Randomizer、Screen Recorder 同 Registry Editor 都冇 PNG 產生；
-冇 canonical image 被替換或者重用。呢啲係 `capture-blocked` 結果，絕對唔係
-visual-pass 聲稱。
-**EN —** Batch 11 made a fresh self-contained Short ID capture attempt before its
-25-route launch-only slice. The page window appeared, but `CopyFromScreen` was
-unavailable and the `PrintWindow` fallback produced a uniform frame. No
-`shortid-default.png` was saved, inspected, replaced, or reused; the entire slice is
-`capture-blocked`, not visual-pass.
-
-**粵語 —** Batch 11 喺 25-route launch-only slice 之前做咗一次新嘅 self-contained
-Short ID capture 嘗試。頁面視窗有出現，但 `CopyFromScreen` 唔可用，而
-`PrintWindow` fallback 產生 uniform frame。冇 `shortid-default.png` 儲存、檢查、
-替換或者重用；成個 slice 係 `capture-blocked`，唔係 visual-pass。
-
-**EN —** Batch 12 made a fresh self-contained Text Sort capture attempt before its
-25-route launch-only slice. The window was reached, but `CopyFromScreen` was unavailable
-and the `PrintWindow` fallback produced a uniform frame. No `textsort-default.png` was
-saved, inspected, replaced, or reused; the slice is `capture-blocked`, not visual-pass.
-
-**粵語 —** Batch 12 喺 25-route launch-only slice 之前，為文字排序做咗新嘅
-self-contained capture 嘗試。視窗有去到，但 `CopyFromScreen` 唔可用，而 `PrintWindow`
-fallback 產生 uniform frame。冇 `textsort-default.png` 儲存、檢查、替換或者重用；
-成個 slice 係 `capture-blocked`，唔係 visual-pass。
-
-**EN —** Batch 13 made fresh self-contained capture attempts for VirtualBox and the
-repaired All Apps dialog. Both reached WinForge, but `CopyFromScreen` was unavailable
-and `PrintWindow` produced a uniform frame. No `virtualbox-default.png` or
-`shell-allapps-default.png` was saved, inspected, replaced, or reused; these are
-`capture-blocked`, not visual-pass results.
-
-**粵語 —** Batch 13 為 VirtualBox 同修正後嘅 All Apps dialog 做咗新嘅
-self-contained capture 嘗試。兩個都有去到 WinForge，但 `CopyFromScreen` 唔可用，而
-`PrintWindow` 產生 uniform frame。冇 `virtualbox-default.png` 或
-`shell-allapps-default.png` 儲存、檢查、替換或者重用；呢啲係 `capture-blocked`，
-唔係 visual-pass 結果。
-
-**EN —** The exhaustive-smoke closeout preserves the same visual boundary across the
-323-route campaign: every fresh driver attempt that reached capture was blocked because
-CopyFromScreen is unavailable and PrintWindow is uniform. No generated, stale, or
-uninspected PNG is promoted to evidence; consult the closeout record for the exact
-route, source, test, and safety coverage behind this capture-blocked status.
-
-**粵語 —** 完整冒煙測試結案喺 323-route campaign 保留同一個視覺界線：每次有去到
-capture 嘅新 driver 嘗試，都因為 CopyFromScreen 唔可用同 PrintWindow uniform 而受阻。
-冇 generated、stale 或未檢查 PNG 會升格為證據；請睇結案記錄入面支援呢個
-capture-blocked status 嘅 route、source、test 同 safety coverage。
+呢個圖庫記錄正式 .NET／WinUI 3 app。C++/WinRT 移植版截圖同 capture-blocked 證據已搬去獨立 [WinForge-Native repository](https://github.com/codingmachineedge/WinForge-Native)；呢度唔會將原生移植版圖片當成 managed app 證據。
 
 ## Redaction Rules · 遮蔽規則
 
@@ -481,6 +269,12 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Regex Cheatsheet · 正則速查
 > **Capture status · 截圖狀態：** Fresh `regexcheat` capture is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable in this desktop session. The route passed a launch-only check, but no PNG was created, inspected, or claimed as visual verification. · 新嘅 `regexcheat` 截圖係 `capture-blocked`：呢個 desktop session 嘅 `CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。route launch-only check 通過，但冇 PNG 產生、檢查或者當成視覺驗證。
 
+### Password Generator · 密碼產生器
+> No current canonical managed-app screenshot is published for this page. · 呢個頁面目前未有正式 managed-app 截圖。
+
+### UUID v7 · UUID v7 識別碼
+> No current canonical managed-app screenshot is published for this page. · 呢個頁面目前未有正式 managed-app 截圖。
+
 ---
 
 ## Network · 網絡
@@ -522,13 +316,11 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Package Manager · 套件管理
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
-> Managed production reference · 受控正式版參考：this image documents the shipping managed page. The changed native C++ Bundle-workspace routes are `capture-blocked`, so no managed image is substituted as native visual evidence. · 呢張圖記錄發佈中嘅受控頁。改過嘅原生 C++ Bundle 工作區 routes 係 `capture-blocked`，唔會用受控圖片當原生視覺證據。
-
 ### Cake Factory & Farm · 蛋糕工廠與農場
 ![](images/screenshot-cakefactory.png)
 
 ### App Uninstaller · 應用程式解除安裝
-![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-uninstall.png)
+> No current canonical managed-app screenshot is published for this page. · 呢個頁面目前未有正式 managed-app 截圖。
 
 ### Android (ADB) · Android（ADB）
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-adb.png)
@@ -612,9 +404,7 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouseutils.png)
 
 ### CursorWrap · 游標環繞
-> Fresh native capture is blocked in this desktop session: `CopyFromScreen` is unavailable and the driver rejected the blank / near-uniform fallback, so no `screenshot-cursorwrap.png` was created or replaced. The feature remains documented through the live Mouse Utilities page and its text entry here.
-
-> 新原生截圖喺呢個 desktop session 受阻：`CopyFromScreen` 唔可用，而 driver 又拒絕咗空白／接近單色 fallback，所以冇建立或者替換 `screenshot-cursorwrap.png`。呢個功能仍然透過即時 Mouse Utilities 頁面同此處文字條目記錄。
+> CursorWrap is documented through the live managed Mouse Utilities page and its feature reference. · CursorWrap 由正式 managed Mouse Utilities 頁面同功能參考文件記錄。
 
 ### Mouse & Pointer · 滑鼠與指標
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouse.png)
@@ -626,7 +416,7 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-quickaccent.png)
 
 ### Case Converter · 大小寫轉換
-> Fresh native capture is `capture-blocked`: the repository driver rejected a blank/near-uniform `PrintWindow` client frame, and the inspected LowLevel headless-desktop HWND capture was title-bar-only. The stale Case Converter images were retired rather than reused as visual evidence. · 最新原生擷取係 `capture-blocked`：repository driver 拒絕咗空白／接近單色嘅 `PrintWindow` client frame，而檢查過嘅 LowLevel 無頭 desktop HWND 擷取只有 title bar。過時嘅 Case Converter 圖片已移除，唔會重用做視覺證據。
+> No current canonical managed-app screenshot is published for this page. · 呢個頁面目前未有正式 managed-app 截圖。
 
 ### Command Not Found · 搵唔到指令
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cmdnotfound.png)
@@ -656,6 +446,8 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Time & Unit Tools · 時間與單位工具
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-time.png)
+
+> Native Unit Price (`priceper` / `unitprice` / `module.unitprice`) has no replacement image yet: `CopyFromScreen` was unavailable and the `PrintWindow` fallback was blank or near-uniform. No invalid PNG was retained or promoted; see the capture-blocked record above. · 原生單位價格暫時冇替換圖：`CopyFromScreen` 不可用，`PrintWindow` fallback 空白／近乎單色。冇保留或升格無效 PNG；見上面 capture-blocked 紀錄。
 
 ### Flashcards · 間隔重複記憶卡
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-flashcards.png)
@@ -756,7 +548,7 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](images/screenshot-taskbar-tweaker.png)
 
 ### App Uninstaller · 應用程式解除安裝
-![](images/screenshot-uninstaller.png)
+> No current canonical managed-app screenshot is published for this page. · 呢個頁面目前未有正式 managed-app 截圖。
 
 ### Winaero · Winaero 調校
 ![](images/screenshot-winaero.png)

@@ -148,10 +148,10 @@ public static class Ascii85Service
             }
             else
             {
-                Span<char> five = stackalloc char[5];
+                var five = new char[5];
                 for (int k = 4; k >= 0; k--) { five[k] = (char)('!' + (int)(tuple % 85)); tuple /= 85; }
                 // For a partial group, emit n+1 chars only.
-                sb.Append(five.Slice(0, n + 1).ToString());
+                sb.Append(new string(five, 0, n + 1));
             }
             i += 4;
         }
@@ -164,10 +164,10 @@ public static class Ascii85Service
         if ((data.Length & 3) != 0)
             return Result.Fail("Z85 needs the byte length to be a multiple of 4. · Z85 要求位元組長度係 4 嘅倍數。");
         var sb = new StringBuilder(data.Length / 4 * 5);
+        var five = new char[5];
         for (int i = 0; i < data.Length; i += 4)
         {
             uint tuple = ((uint)data[i] << 24) | ((uint)data[i + 1] << 16) | ((uint)data[i + 2] << 8) | data[i + 3];
-            Span<char> five = stackalloc char[5];
             for (int k = 4; k >= 0; k--) { five[k] = Z85Alphabet[(int)(tuple % 85)]; tuple /= 85; }
             sb.Append(five);
         }
@@ -179,15 +179,15 @@ public static class Ascii85Service
     {
         var sb = new StringBuilder();
         int i = 0;
+        var five = new char[5];
         while (i < data.Length)
         {
             int n = Math.Min(4, data.Length - i);
             uint tuple = 0;
             for (int k = 0; k < 4; k++)
                 tuple = (tuple << 8) | (k < n ? data[i + k] : 0u);
-            Span<char> five = stackalloc char[5];
             for (int k = 4; k >= 0; k--) { five[k] = alphabet[(int)(tuple % 85)]; tuple /= 85; }
-            sb.Append(five.Slice(0, n + 1).ToString());
+            sb.Append(new string(five, 0, n + 1));
             i += 4;
         }
         return sb.ToString();

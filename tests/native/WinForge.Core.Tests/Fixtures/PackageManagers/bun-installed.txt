@@ -1,4 +1,0 @@
-C:\Users\tester\.bun\install\global node_modules (3)
-├── typescript@5.7.3
-├── @devcontainers/cli@0.81.1
-└── bunx@1.0.24

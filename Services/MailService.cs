@@ -270,7 +270,9 @@ public static class MailService
     public static async Task SaveAttachmentAsync(MailAttachment att, string path, CancellationToken ct = default)
     {
         await using var fs = File.Create(path);
-        await att.Part.Content.DecodeToAsync(fs, ct);
+        var partContent = att.Part?.Content;
+        if (partContent == null) return;
+        await partContent.DecodeToAsync(fs, ct);
     }
 
     // ----- flags / delete -----

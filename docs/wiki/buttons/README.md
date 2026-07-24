@@ -75,20 +75,51 @@
 | [ClearBtn](apps-git-git/applauncher/001-clearbtn.md) | App Launcher · 原生 App 啟動器 | Apps & Git · 程式與 Git | `Button` | `Clear_Click` |
 | [Actions_Click](apps-git-git/uninstall/002-actions-click.md) | App Uninstaller · 應用程式解除安裝 | Apps & Git · 程式與 Git | `Button` | `Actions_Click` |
 | [RefreshBtn](apps-git-git/uninstall/001-refreshbtn.md) | App Uninstaller · 應用程式解除安裝 | Apps & Git · 程式與 Git | `Button` | `Refresh_Click` |
-| [BuildRunBtn](apps-git-git/aws/006-buildrunbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `BuildRun_Click` |
-| [ClearHistBtn](apps-git-git/aws/014-clearhistbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `ClearHist_Click` |
-| [ConfigureBtn](apps-git-git/aws/003-configurebtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `Configure_Click` |
-| [RawClearBtn](apps-git-git/aws/012-rawclearbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `RawClear_Click` |
-| [RawCopyBtn](apps-git-git/aws/010-rawcopybtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `RawCopy_Click` |
-| [RawFavBtn](apps-git-git/aws/013-rawfavbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `RawFav_Click` |
-| [RawRunBtn](apps-git-git/aws/008-rawrunbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `RawRun_Click` |
-| [RawSaveBtn](apps-git-git/aws/011-rawsavebtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `RawSave_Click` |
-| [RawStopBtn](apps-git-git/aws/009-rawstopbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `RawStop_Click` |
-| [RefreshProfilesBtn](apps-git-git/aws/004-refreshprofilesbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `RefreshProfiles_Click` |
-| [ShowHelpBtn](apps-git-git/aws/007-showhelpbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `ShowHelp_Click` |
-| [SsoBtn](apps-git-git/aws/002-ssobtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `Sso_Click` |
-| [ToggleJsonBtn](apps-git-git/aws/005-togglejsonbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `ToggleJson_Click` |
-| [WhoAmIBtn](apps-git-git/aws/001-whoamibtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `WhoAmI_Click` |
+| [BuildRunBtn](apps-git-git/aws/044-buildrunbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `BuildRun_Click` |
+| [ClearHistBtn](apps-git-git/aws/042-clearhistbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ClearHist_Click` |
+| [ConfigureBtn](apps-git-git/aws/034-configurebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Configure_Click` |
+| [Ec2LoadMoreBtn](apps-git-git/aws/032-ec2loadmorebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2LoadMore_Click` |
+| [Ec2RebootBtn](apps-git-git/aws/030-ec2rebootbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Reboot_Click` |
+| [Ec2RefreshBtn](apps-git-git/aws/027-ec2refreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Refresh_Click` |
+| [Ec2StartBtn](apps-git-git/aws/028-ec2startbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Start_Click` |
+| [Ec2StopBtn](apps-git-git/aws/029-ec2stopbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Stop_Click` |
+| [Ec2TerminateBtn](apps-git-git/aws/031-ec2terminatebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Ec2Terminate_Click` |
+| [HomeRefreshBtn](apps-git-git/aws/002-homerefreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `HomeRefresh_Click` |
+| [HomeSearchBtn](apps-git-git/aws/006-homesearchbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `HomeSearch_Click` |
+| [OpenEc2Btn](apps-git-git/aws/004-openec2btn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `OpenEc2_Click` |
+| [OpenResourcesBtn](apps-git-git/aws/005-openresourcesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `OpenResources_Click` |
+| [OpenS3Btn](apps-git-git/aws/003-opens3btn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `OpenS3_Click` |
+| [RawClearBtn](apps-git-git/aws/040-rawclearbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawClear_Click` |
+| [RawCopyBtn](apps-git-git/aws/038-rawcopybtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawCopy_Click` |
+| [RawFavBtn](apps-git-git/aws/041-rawfavbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawFav_Click` |
+| [RawRunBtn](apps-git-git/aws/036-rawrunbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawRun_Click` |
+| [RawSaveBtn](apps-git-git/aws/039-rawsavebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawSave_Click` |
+| [RawStopBtn](apps-git-git/aws/037-rawstopbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RawStop_Click` |
+| [RefreshProfilesBtn](apps-git-git/aws/035-refreshprofilesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `RefreshProfiles_Click` |
+| [ResourceCopyArnBtn](apps-git-git/aws/009-resourcecopyarnbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceCopyArn_Click` |
+| [ResourceCreateBtn](apps-git-git/aws/007-resourcecreatebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceCreate_Click` |
+| [ResourceDeleteBtn](apps-git-git/aws/013-resourcedeletebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceDelete_Click` |
+| [ResourceEditBtn](apps-git-git/aws/012-resourceeditbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceEdit_Click` |
+| [ResourceInspectBtn](apps-git-git/aws/011-resourceinspectbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceInspect_Click` |
+| [ResourceLoadMoreBtn](apps-git-git/aws/014-resourceloadmorebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceLoadMore_Click` |
+| [ResourceOpenServiceBtn](apps-git-git/aws/010-resourceopenservicebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceOpenService_Click` |
+| [ResourceRefreshBtn](apps-git-git/aws/008-resourcerefreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ResourceRefresh_Click` |
+| [S3CancelBtn](apps-git-git/aws/026-s3cancelbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Cancel_Click` |
+| [S3CreateBucketBtn](apps-git-git/aws/016-s3createbucketbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3CreateBucket_Click` |
+| [S3DeleteBtn](apps-git-git/aws/018-s3deletebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Delete_Click` |
+| [S3DownloadBtn](apps-git-git/aws/020-s3downloadbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Download_Click` |
+| [S3ObjectLoadMoreBtn](apps-git-git/aws/021-s3objectloadmorebtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3ObjectLoadMore_Click` |
+| [S3RefreshBtn](apps-git-git/aws/015-s3refreshbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Refresh_Click` |
+| [S3SaveManagementBtn](apps-git-git/aws/024-s3savemanagementbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveManagement_Click` |
+| [S3SavePermissionsBtn](apps-git-git/aws/023-s3savepermissionsbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SavePermissions_Click` |
+| [S3SavePropertiesBtn](apps-git-git/aws/022-s3savepropertiesbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveProperties_Click` |
+| [S3SaveTagsBtn](apps-git-git/aws/025-s3savetagsbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3SaveTags_Click` |
+| [S3UpBtn](apps-git-git/aws/019-s3upbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Up_Click` |
+| [S3UploadBtn](apps-git-git/aws/017-s3uploadbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `S3Upload_Click` |
+| [ShowHelpBtn](apps-git-git/aws/045-showhelpbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ShowHelp_Click` |
+| [SsoBtn](apps-git-git/aws/033-ssobtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `Sso_Click` |
+| [ToggleJsonBtn](apps-git-git/aws/043-togglejsonbtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `ToggleJson_Click` |
+| [WhoAmIBtn](apps-git-git/aws/001-whoamibtn.md) | AWS Manager · AWS 管理中心 | Apps & Git · 程式與 Git | `Button` | `WhoAmI_Click` |
 | [CreateServerBtn](apps-git-git/bitwarden/001-createserverbtn.md) | Bitwarden Vault · Bitwarden 密碼庫 | Apps & Git · 程式與 Git | `Button` | `CreateServer_Click` |
 | [RefreshServersBtn](apps-git-git/bitwarden/002-refreshserversbtn.md) | Bitwarden Vault · Bitwarden 密碼庫 | Apps & Git · 程式與 Git | `Button` | `RefreshServers_Click` |
 | [DisableBtn](apps-git-git/cmdnotfound/003-disablebtn.md) | Command Not Found · 搵唔到指令 | Apps & Git · 程式與 Git | `Button` | `Disable_Click` |
@@ -234,23 +265,23 @@
 | [CancelTransferBtn](apps-git-git/filezilla/022-canceltransferbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `CancelTransfer_Click` |
 | [ClearQueueBtn](apps-git-git/filezilla/023-clearqueuebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `ClearQueue_Click` |
 | [Connect · 連線](apps-git-git/filezilla/006-connectsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `ConnectSite_Click` |
-| [Delete · 刪除](apps-git-git/filezilla/013-localdeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalDelete_Click` |
 | [Delete · 刪除](apps-git-git/filezilla/021-remotedeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteDelete_Click` |
+| [Delete · 刪除](apps-git-git/filezilla/013-localdeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalDelete_Click` |
 | [Delete site · 刪除站台](apps-git-git/filezilla/005-deletesitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `DeleteSite_Click` |
 | [DisconnectBtn](apps-git-git/filezilla/002-disconnectbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Disconnect_Click` |
 | [Download · 下載](apps-git-git/filezilla/019-remotedownloadmenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `Download_Click` |
 | [Download selected · 下載所選](apps-git-git/filezilla/015-downloadbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Download_Click` |
 | [Edit site · 編輯站台](apps-git-git/filezilla/004-editsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `EditSite_Click` |
-| [New folder · 新資料夾](apps-git-git/filezilla/009-localmkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalMkdir_Click` |
 | [New folder · 新資料夾](apps-git-git/filezilla/017-remotemkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteMkdir_Click` |
+| [New folder · 新資料夾](apps-git-git/filezilla/009-localmkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalMkdir_Click` |
 | [New site · 新增站台](apps-git-git/filezilla/003-newsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `NewSite_Click` |
 | [QcConnectBtn](apps-git-git/filezilla/001-qcconnectbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `QuickConnect_Click` |
-| [Refresh · 重新整理](apps-git-git/filezilla/010-localrefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalRefresh_Click` |
 | [Refresh · 重新整理](apps-git-git/filezilla/018-remoterefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteRefresh_Click` |
-| [Rename · 重新命名](apps-git-git/filezilla/020-remoterenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteRename_Click` |
+| [Refresh · 重新整理](apps-git-git/filezilla/010-localrefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalRefresh_Click` |
 | [Rename · 重新命名](apps-git-git/filezilla/012-localrenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalRename_Click` |
-| [Up · 上層](apps-git-git/filezilla/016-remoteup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteUp_Click` |
+| [Rename · 重新命名](apps-git-git/filezilla/020-remoterenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteRename_Click` |
 | [Up · 上層](apps-git-git/filezilla/007-localup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalUp_Click` |
+| [Up · 上層](apps-git-git/filezilla/016-remoteup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteUp_Click` |
 | [Upload · 上載](apps-git-git/filezilla/011-localuploadmenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `Upload_Click` |
 | [Upload selected · 上載所選](apps-git-git/filezilla/014-uploadbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Upload_Click` |
 | [AddRemoteBtn2](apps-git-git/git/009-addremotebtn2.md) | Git & GitHub · Git 與 GitHub | Apps & Git · 程式與 Git | `Button` | `AddRemote_Click` |
@@ -300,8 +331,8 @@
 | [RefreshButton](apps-git-git/githubdesktopprofiles/001-refreshbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `Refresh_Click` |
 | [RepairButton](apps-git-git/githubdesktopprofiles/003-repairbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `Repair_Click` |
 | [UninstallButton](apps-git-git/githubdesktopprofiles/013-uninstallbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `Uninstall_Click` |
-| [[icon U+E711]](apps-git-git/homeassistant/020-rowoff-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOff_Click` |
 | [[icon U+E711]](apps-git-git/homeassistant/023-rowoff-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOff_Click` |
+| [[icon U+E711]](apps-git-git/homeassistant/020-rowoff-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOff_Click` |
 | [[icon U+E7E8]](apps-git-git/homeassistant/022-rowon-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOn_Click` |
 | [[icon U+E7E8]](apps-git-git/homeassistant/019-rowon-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOn_Click` |
 | [AcBrowseBtn](apps-git-git/homeassistant/035-acbrowsebtn.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `AcBrowse_Click` |
@@ -472,11 +503,12 @@
 | [ReloadRunningBtn](apps-git-git/ollama/008-reloadrunningbtn.md) | Ollama · 本地大模型 | Apps & Git · 程式與 Git | `Button` | `ReloadRunning_Click` |
 | [SaveUrlBtn](apps-git-git/ollama/002-saveurlbtn.md) | Ollama · 本地大模型 | Apps & Git · 程式與 Git | `Button` | `SaveUrl_Click` |
 | [Unload · 卸載](apps-git-git/ollama/009-stopmodel-click.md) | Ollama · 本地大模型 | Apps & Git · 程式與 Git | `Button` | `StopModel_Click` |
-| [BatchClearBtn](apps-git-git/packages/009-batchclearbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchClear_Click` |
-| [BatchExportBtn](apps-git-git/packages/008-batchexportbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchExport_Click` |
-| [BatchInstallBtn](apps-git-git/packages/005-batchinstallbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchInstall_Click` |
-| [BatchUninstallBtn](apps-git-git/packages/007-batchuninstallbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchUninstall_Click` |
-| [BatchUpdateBtn](apps-git-git/packages/006-batchupdatebtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchUpdate_Click` |
+| [BatchClearBtn](apps-git-git/packages/010-batchclearbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchClear_Click` |
+| [BatchExportBtn](apps-git-git/packages/009-batchexportbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchExport_Click` |
+| [BatchInstallBtn](apps-git-git/packages/006-batchinstallbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchInstall_Click` |
+| [BatchUninstallBtn](apps-git-git/packages/008-batchuninstallbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchUninstall_Click` |
+| [BatchUpdateBtn](apps-git-git/packages/007-batchupdatebtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `BatchUpdate_Click` |
+| [OperationsBtn](apps-git-git/packages/005-operationsbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `Operations_Click` |
 | [PrimaryActionBtn](apps-git-git/packages/002-primaryactionbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `PrimaryAction_Click` |
 | [SearchOptionsBtn](apps-git-git/packages/001-searchoptionsbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `` |
 | [SecondaryActionBtn](apps-git-git/packages/003-secondaryactionbtn.md) | Package Manager · 套件管理 | Apps & Git · 程式與 Git | `Button` | `SecondaryAction_Click` |
@@ -650,9 +682,9 @@
 | [WgImportBtn](apps-git-git/vpn/022-wgimportbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgImport_Click` |
 | [WgRefreshBtn](apps-git-git/vpn/023-wgrefreshbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgRefresh_Click` |
 | [WinVpnAddBtn](apps-git-git/vpn/017-winvpnaddbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WinVpnAdd_Click` |
-| […](apps-git-git/vscode/002-diffapick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffAPick_Click` |
 | […](apps-git-git/vscode/005-gotopick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `GotoPick_Click` |
 | […](apps-git-git/vscode/003-diffbpick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffBPick_Click` |
+| […](apps-git-git/vscode/002-diffapick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffAPick_Click` |
 | [DiffBtn](apps-git-git/vscode/004-diffbtn.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `Diff_Click` |
 | [ExtExportBtn](apps-git-git/vscode/012-extexportbtn.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `ExtExport_Click` |
 | [ExtImportBtn](apps-git-git/vscode/013-extimportbtn.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `ExtImport_Click` |
@@ -739,10 +771,10 @@
 | [ListPickBtn](calculators-numbers/randomizer/006-listpickbtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListPick_Click` |
 | [ListShuffleBtn](calculators-numbers/randomizer/007-listshufflebtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListShuffle_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/005-sicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+2212]](calculators-numbers/tally/002-minus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Minus_Click` |
 | [[icon U+2B]](calculators-numbers/tally/003-plus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Plus_Click` |
 | [AddBtn](calculators-numbers/tally/001-addbtn.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Add_Click` |
@@ -803,8 +835,8 @@
 | [ImportBtn](crypto-passwords/totp/002-importbtn.md) | TOTP Authenticator · TOTP 驗證器 | Crypto & Passwords · 加密與密碼 | `Button` | `Import_Click` |
 | [ReadBtn](dev-helpers/clipinspect/001-readbtn.md) | Clipboard Inspector · 剪貼簿檢查器 | Dev Helpers · 開發小工具 | `Button` | `Read_Click` |
 | [RefreshBtn](dev-helpers/clipinspect/002-refreshbtn.md) | Clipboard Inspector · 剪貼簿檢查器 | Dev Helpers · 開發小工具 | `Button` | `Read_Click` |
-| [[icon U+E71B]](dev-helpers/envdiff/005-diffexportbtn.md) | Env Snapshot & Diff · 環境變數快照同差異 | Dev Helpers · 開發小工具 | `Button` | `DiffExport_Click` |
 | [[icon U+E71B]](dev-helpers/envdiff/002-export-click.md) | Env Snapshot & Diff · 環境變數快照同差異 | Dev Helpers · 開發小工具 | `Button` | `Export_Click` |
+| [[icon U+E71B]](dev-helpers/envdiff/005-diffexportbtn.md) | Env Snapshot & Diff · 環境變數快照同差異 | Dev Helpers · 開發小工具 | `Button` | `DiffExport_Click` |
 | [[icon U+E74D]](dev-helpers/envdiff/003-delete-click.md) | Env Snapshot & Diff · 環境變數快照同差異 | Dev Helpers · 開發小工具 | `Button` | `Delete_Click` |
 | [CaptureBtn](dev-helpers/envdiff/001-capturebtn.md) | Env Snapshot & Diff · 環境變數快照同差異 | Dev Helpers · 開發小工具 | `Button` | `Capture_Click` |
 | [DiffBtn](dev-helpers/envdiff/004-diffbtn.md) | Env Snapshot & Diff · 環境變數快照同差異 | Dev Helpers · 開發小工具 | `Button` | `Diff_Click` |
@@ -1189,12 +1221,14 @@
 | [CopyHsl_Click](media-capture/colorpicker/004-copyhsl-click.md) | Color Picker · 螢幕取色 | Media & Capture · 媒體與擷取 | `Button` | `CopyHsl_Click` |
 | [CopyRgb_Click](media-capture/colorpicker/003-copyrgb-click.md) | Color Picker · 螢幕取色 | Media & Capture · 媒體與擷取 | `Button` | `CopyRgb_Click` |
 | [PickBtn](media-capture/colorpicker/001-pickbtn.md) | Color Picker · 螢幕取色 | Media & Capture · 媒體與擷取 | `Button` | `Pick_Click` |
-| [CloseAllBtn](media-capture/cropandlock/006-closeallbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `CloseAll_Click` |
-| [CloseOne_Click](media-capture/cropandlock/007-closeone-click.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `CloseOne_Click` |
-| [CropBtn](media-capture/cropandlock/005-cropbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `Crop_Click` |
+| [CloseAllBtn](media-capture/cropandlock/008-closeallbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `CloseAll_Click` |
+| [CloseOne_Click](media-capture/cropandlock/009-closeone-click.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `CloseOne_Click` |
+| [CropBtn](media-capture/cropandlock/006-cropbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `Crop_Click` |
 | [CropHkBtn](media-capture/cropandlock/002-crophkbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `CropHk_Click` |
-| [RefreshBtn](media-capture/cropandlock/003-refreshbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `Refresh_Click` |
-| [ThumbBtn](media-capture/cropandlock/004-thumbbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `Thumb_Click` |
+| [RefreshBtn](media-capture/cropandlock/004-refreshbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `Refresh_Click` |
+| [ScreenshotBtn](media-capture/cropandlock/007-screenshotbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `Screenshot_Click` |
+| [ScreenshotHkBtn](media-capture/cropandlock/003-screenshothkbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `ScreenshotHk_Click` |
+| [ThumbBtn](media-capture/cropandlock/005-thumbbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `Thumb_Click` |
 | [ThumbHkBtn](media-capture/cropandlock/001-thumbhkbtn.md) | Crop And Lock · 裁切與鎖定 | Media & Capture · 媒體與擷取 | `Button` | `ThumbHk_Click` |
 | [AddFilesBtn](media-capture/libreoffice/001-addfilesbtn.md) | Document Converter · 文件轉換器 | Media & Capture · 媒體與擷取 | `Button` | `AddFiles_Click` |
 | [AddFolderBtn](media-capture/libreoffice/002-addfolderbtn.md) | Document Converter · 文件轉換器 | Media & Capture · 媒體與擷取 | `Button` | `AddFolder_Click` |
@@ -1310,6 +1344,13 @@
 | [HistoryClearBtn](media-capture/ocr/005-historyclearbtn.md) | Text Extractor (OCR) · 原生文字辨識 | Media & Capture · 媒體與擷取 | `Button` | `HistoryClear_Click` |
 | [AddCityBtn](media-capture/time/001-addcitybtn.md) | Time & Unit Tools · 時間與單位工具 | Media & Capture · 媒體與擷取 | `Button` | `AddCity_Click` |
 | [NowBtn](media-capture/time/002-nowbtn.md) | Time & Unit Tools · 時間與單位工具 | Media & Capture · 媒體與擷取 | `Button` | `Now_Click` |
+| [AllButton](media-capture/videoconference/001-allbutton.md) | Video Conference Mute · 視像會議靜音 | Media & Capture · 媒體與擷取 | `Button` | `All_Click` |
+| [AllHotkeyButton](media-capture/videoconference/005-allhotkeybutton.md) | Video Conference Mute · 視像會議靜音 | Media & Capture · 媒體與擷取 | `Button` | `AllHotkey_Click` |
+| [CameraButton](media-capture/videoconference/003-camerabutton.md) | Video Conference Mute · 視像會議靜音 | Media & Capture · 媒體與擷取 | `Button` | `Camera_Click` |
+| [CameraHotkeyButton](media-capture/videoconference/007-camerahotkeybutton.md) | Video Conference Mute · 視像會議靜音 | Media & Capture · 媒體與擷取 | `Button` | `CameraHotkey_Click` |
+| [MicrophoneButton](media-capture/videoconference/002-microphonebutton.md) | Video Conference Mute · 視像會議靜音 | Media & Capture · 媒體與擷取 | `Button` | `Microphone_Click` |
+| [MicrophoneHotkeyButton](media-capture/videoconference/006-microphonehotkeybutton.md) | Video Conference Mute · 視像會議靜音 | Media & Capture · 媒體與擷取 | `Button` | `MicrophoneHotkey_Click` |
+| [RefreshButton](media-capture/videoconference/004-refreshbutton.md) | Video Conference Mute · 視像會議靜音 | Media & Capture · 媒體與擷取 | `Button` | `Refresh_Click` |
 | [RefreshBtn](media-capture/mixer/001-refreshbtn.md) | Volume Mixer · 音量混合器 | Media & Capture · 媒體與擷取 | `Button` | `Refresh_Click` |
 | [SetDefaultBtn](media-capture/mixer/002-setdefaultbtn.md) | Volume Mixer · 音量混合器 | Media & Capture · 媒體與擷取 | `Button` | `SetDefault_Click` |
 | [BreakBtn](media-capture/zoomit/003-breakbtn.md) | ZoomIt · 螢幕放大與標註 | Media & Capture · 媒體與擷取 | `Button` | `BreakBtn_Click` |
@@ -1329,12 +1370,12 @@
 | [CopyBtn](network-tools/ipinfo/002-copybtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Copy_Click` |
 | [RefreshBtn](network-tools/ipinfo/001-refreshbtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Refresh_Click` |
 | [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
-| [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
-| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
 | [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
 | [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
+| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
 | [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
 | [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
+| [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
 | [RandomBtn](network-tools/mactools/001-randombtn.md) | MAC Address Tools · MAC 位址工具 | Network Tools · 網絡工具 | `Button` | `Random_Click` |
 | [PingStartBtn](network-tools/ping/001-pingstartbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStart_Click` |
 | [PingStopBtn](network-tools/ping/002-pingstopbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStop_Click` |
@@ -1403,14 +1444,14 @@
 | [Delete · 刪除](security-privacy/camoufox/004-deletebtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Delete_Click` |
 | [DetectBtn](security-privacy/camoufox/019-detectbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Detect_Click` |
 | [Diff · 差異](security-privacy/camoufox/016-commitdiff-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `CommitDiff_Click` |
-| [Edit · 編輯](security-privacy/camoufox/002-editbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Edit_Click` |
 | [Edit · 編輯](security-privacy/camoufox/010-rowedit-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowEdit_Click` |
+| [Edit · 編輯](security-privacy/camoufox/002-editbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Edit_Click` |
 | [EmptyNewBtn](security-privacy/camoufox/011-emptynewbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `New_Click` |
 | [Export all · 全部匯出](security-privacy/camoufox/006-exportallbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `ExportAll_Click` |
 | [Export selected · 匯出已選](security-privacy/camoufox/005-exportselbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `ExportSelected_Click` |
 | [Import · 匯入](security-privacy/camoufox/007-importbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Import_Click` |
-| [Launch · 啟動](security-privacy/camoufox/003-launchbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Launch_Click` |
 | [Launch · 啟動](security-privacy/camoufox/009-rowlaunch-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowLaunch_Click` |
+| [Launch · 啟動](security-privacy/camoufox/003-launchbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Launch_Click` |
 | [NewBtn](security-privacy/camoufox/001-newbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `New_Click` |
 | [PushNowBtn](security-privacy/camoufox/015-pushnowbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `PushNow_Click` |
 | [Refresh · 重新整理](security-privacy/camoufox/008-refreshprofilesbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RefreshProfiles_Click` |
@@ -1456,7 +1497,9 @@
 | [HaRefreshButton](suite/reactorsettings/003-harefreshbutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `HaRefresh_Click` |
 | [EnergyBtn](system/battery/002-energybtn.md) | Battery & Thermal · 電池與散熱 | System · 系統 | `Button` | `EnergyReport_Click` |
 | [HealthBtn](system/battery/001-healthbtn.md) | Battery & Thermal · 電池與散熱 | System · 系統 | `Button` | `HealthReport_Click` |
-| [ClearBtn](system/clipboard/001-clearbtn.md) | Clipboard · 剪貼簿 | System · 系統 | `Button` | `Clear_Click` |
+| [ClearBtn](system/clipboard/003-clearbtn.md) | Clipboard · 剪貼簿 | System · 系統 | `Button` | `Clear_Click` |
+| [NativeRefreshBtn](system/clipboard/002-nativerefreshbtn.md) | Clipboard · 剪貼簿 | System · 系統 | `Button` | `RefreshNativeHistory_Click` |
+| [QrBtn](system/clipboard/001-qrbtn.md) | Clipboard · 剪貼簿 | System · 系統 | `Button` | `MakeQrFromClipboard_Click` |
 | [Drop this connection · 切斷呢條連線](system/connections/002-kill-click.md) | Connections · 連線 | System · 系統 | `Button` | `Kill_Click` |
 | [End process · 結束程序](system/connections/003-endproc-click.md) | Connections · 連線 | System · 系統 | `Button` | `EndProc_Click` |
 | [RefreshBtn](system/connections/001-refreshbtn.md) | Connections · 連線 | System · 系統 | `Button` | `Refresh_Click` |
@@ -1503,10 +1546,11 @@
 | [EndTreeBtn](system/procexp/006-endtreebtn.md) | Process Explorer · 程序總管 | System · 系統 | `Button` | `EndTree_Click` |
 | [LocationBtn](system/procexp/002-locationbtn.md) | Process Explorer · 程序總管 | System · 系統 | `Button` | `Location_Click` |
 | [PriorityBtn](system/procexp/004-prioritybtn.md) | Process Explorer · 程序總管 | System · 系統 | `Button` | `Priority_Click` |
-| [DeleteBtn](system/regedit/003-deletebtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `Delete_Click` |
-| [EditBtn](system/regedit/002-editbtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `Edit_Click` |
-| [NewBtn](system/regedit/001-newbtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `New_Click` |
-| [RefreshBtn](system/regedit/004-refreshbtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `Refresh_Click` |
+| [DeleteBtn](system/regedit/004-deletebtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `Delete_Click` |
+| [EditBtn](system/regedit/003-editbtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `Edit_Click` |
+| [GoBtn](system/regedit/001-gobtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `Go_Click` |
+| [NewBtn](system/regedit/002-newbtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `New_Click` |
+| [RefreshBtn](system/regedit/005-refreshbtn.md) | Registry Editor · 登錄編輯器 | System · 系統 | `Button` | `Refresh_Click` |
 | [Actions_Click](system/tasks/002-actions-click.md) | Scheduled Tasks · 排程工作 | System · 系統 | `Button` | `Actions_Click` |
 | [RefreshBtn](system/tasks/001-refreshbtn.md) | Scheduled Tasks · 排程工作 | System · 系統 | `Button` | `Refresh_Click` |
 | [Actions_Click](system/services/002-actions-click.md) | Services · 服務 | System · 系統 | `Button` | `Actions_Click` |
@@ -1674,7 +1718,14 @@
 | [RawSaveBtn](tweaks-input/altsnap/010-rawsavebtn.md) | AltSnap · Alt 拖曳視窗 | Tweaks & Input · 調校與輸入 | `Button` | `RawSave_Click` |
 | [RefreshBtn](tweaks-input/altsnap/001-refreshbtn.md) | AltSnap · Alt 拖曳視窗 | Tweaks & Input · 調校與輸入 | `Button` | `Refresh_Click` |
 | [RestartBtn](tweaks-input/altsnap/005-restartbtn.md) | AltSnap · Alt 拖曳視窗 | Tweaks & Input · 調校與輸入 | `Button` | `Restart_Click` |
+| [BackgroundImageBrowseButton](tweaks-input/cmdpalette/002-backgroundimagebrowsebutton.md) | Command Palette · 指令面板 | Tweaks & Input · 調校與輸入 | `Button` | `BackgroundImageBrowse_Click` |
+| [BackgroundImageClearButton](tweaks-input/cmdpalette/003-backgroundimageclearbutton.md) | Command Palette · 指令面板 | Tweaks & Input · 調校與輸入 | `Button` | `BackgroundImageClear_Click` |
+| [BookmarkAddButton](tweaks-input/cmdpalette/006-bookmarkaddbutton.md) | Command Palette · 指令面板 | Tweaks & Input · 調校與輸入 | `Button` | `BookmarkAdd_Click` |
+| [DockOpenButton](tweaks-input/cmdpalette/008-dockopenbutton.md) | Command Palette · 指令面板 | Tweaks & Input · 調校與輸入 | `Button` | `DockOpen_Click` |
+| [ExtensionImportButton](tweaks-input/cmdpalette/004-extensionimportbutton.md) | Command Palette · 指令面板 | Tweaks & Input · 調校與輸入 | `Button` | `ExtensionImport_Click` |
+| [ExtensionTemplateButton](tweaks-input/cmdpalette/005-extensiontemplatebutton.md) | Command Palette · 指令面板 | Tweaks & Input · 調校與輸入 | `Button` | `ExtensionTemplate_Click` |
 | [OpenNowButton](tweaks-input/cmdpalette/001-opennowbutton.md) | Command Palette · 指令面板 | Tweaks & Input · 調校與輸入 | `Button` | `OpenNow_Click` |
+| [RemoteDesktopAddButton](tweaks-input/cmdpalette/007-remotedesktopaddbutton.md) | Command Palette · 指令面板 | Tweaks & Input · 調校與輸入 | `Button` | `RemoteDesktopAdd_Click` |
 | [AddBtn](tweaks-input/contextmenu/002-addbtn.md) | Context Menu · 右鍵選單 | Tweaks & Input · 調校與輸入 | `Button` | `Add_Click` |
 | [BrowseBtn](tweaks-input/contextmenu/001-browsebtn.md) | Context Menu · 右鍵選單 | Tweaks & Input · 調校與輸入 | `Button` | `Browse_Click` |
 | [PresetCmd](tweaks-input/contextmenu/004-presetcmd.md) | Context Menu · 右鍵選單 | Tweaks & Input · 調校與輸入 | `Button` | `PresetCmd_Click` |
@@ -1763,6 +1814,28 @@
 | [OcrClearBtn](tweaks-input/powertoys/007-ocrclearbtn.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `OcrClear_Click` |
 | [OcrCopyBtn](tweaks-input/powertoys/006-ocrcopybtn.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `OcrCopy_Click` |
 | [OcrFullBtn](tweaks-input/powertoys/005-ocrfullbtn.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `OcrFull_Click` |
+| [Open Advanced Paste · 開啟進階貼上](tweaks-input/powertoys/023-moreadvancedpaste-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreAdvancedPaste_Click` |
+| [Open Awake · 開啟保持喚醒](tweaks-input/powertoys/017-moreawake-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreAwake_Click` |
+| [Open Batch Rename · 開啟批次改名](tweaks-input/powertoys/026-morerename-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreRename_Click` |
+| [Open Color Picker · 開啟螢幕取色](tweaks-input/powertoys/018-morecolorpicker-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreColorPicker_Click` |
+| [Open Command Not Found · 開啟搵唔到指令](tweaks-input/powertoys/024-morecmdnotfound-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreCmdNotFound_Click` |
+| [Open Command Palette · 開啟指令面板](tweaks-input/powertoys/031-morecmdpalette-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreCmdPalette_Click` |
+| [Open Environment Variables · 開啟環境變數](tweaks-input/powertoys/029-moreenvvars-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreEnvVars_Click` |
+| [Open FancyZones · 開啟視窗分區](tweaks-input/powertoys/021-morefancyzones-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreFancyZones_Click` |
+| [Open Hosts Editor · 開啟 hosts 編輯器](tweaks-input/powertoys/028-morehosts-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreHosts_Click` |
+| [Open Keyboard Remapper · 開啟鍵盤重新對應](tweaks-input/powertoys/027-morekeyboard-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreKeyboard_Click` |
+| [Open Mouse Utilities · 開啟滑鼠工具](tweaks-input/powertoys/013-moremouseutils-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreMouseUtils_Click` |
+| [Open Mouse Without Borders · 開啟無界滑鼠](tweaks-input/powertoys/030-moremwb-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreMwb_Click` |
+| [Open New+ · 開啟範本新增](tweaks-input/powertoys/022-morenewplus-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreNewPlus_Click` |
+| [Open Peek · 開啟快速預覽](tweaks-input/powertoys/019-morepeek-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MorePeek_Click` |
+| [Open Power Display · 開啟顯示器控制](tweaks-input/powertoys/032-morepowerdisplay-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MorePowerDisplay_Click` |
+| [Open Quick Accent · 開啟快速重音符](tweaks-input/powertoys/014-morequickaccent-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreQuickAccent_Click` |
+| [Open Registry Editor · 開啟登錄編輯器](tweaks-input/powertoys/025-moreregistry-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreRegistry_Click` |
+| [Open Screen Ruler · 開啟螢幕間尺](tweaks-input/powertoys/012-morescreenruler-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreScreenRuler_Click` |
+| [Open Shortcut Guide · 開啟快捷鍵指南](tweaks-input/powertoys/015-moreshortcutguide-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreShortcutGuide_Click` |
+| [Open Text Extractor (OCR) · 開啟文字擷取（OCR）](tweaks-input/powertoys/016-moretextocr-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreTextOcr_Click` |
+| [Open Video Conference Mute · 開啟視像會議靜音](tweaks-input/powertoys/033-morevideoconferencemute-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreVideoConferenceMute_Click` |
+| [Open Workspaces · 開啟工作區](tweaks-input/powertoys/020-moreworkspaces-click.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `MoreWorkspaces_Click` |
 | [OutFolderBtn](tweaks-input/powertoys/003-outfolderbtn.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `OutFolder_Click` |
 | [PasteStripBtn](tweaks-input/powertoys/011-pastestripbtn.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `PasteStrip_Click` |
 | [ResizeAddBtn](tweaks-input/powertoys/001-resizeaddbtn.md) | PowerToys Extras · PowerToys 額外工具 | Tweaks & Input · 調校與輸入 | `Button` | `ResizeAdd_Click` |
@@ -1818,13 +1891,13 @@
 | [DecodedToggle](web-http-http/queryedit/009-decodedtoggle.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `ToggleButton` | `DecodedToggle_Click` |
 | [ParseBtn](web-http-http/queryedit/001-parsebtn.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `Button` | `Parse_Click` |
 | [SortBtn](web-http-http/queryedit/003-sortbtn.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `Button` | `Sort_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/005-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/004-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/008-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/006-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/007-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [[icon U+E8C8]](web-http-http/urltools/002-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [[icon U+E8C8]](web-http-http/urltools/003-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/004-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/005-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/008-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/007-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/006-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [AddBtn](web-http-http/urltools/009-addbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `Add_Click` |
 | [CopyCodecBtn](web-http-http/urltools/016-copycodecbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyCodec_Click` |
 | [CopyUrlBtn](web-http-http/urltools/013-copyurlbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyUrl_Click` |

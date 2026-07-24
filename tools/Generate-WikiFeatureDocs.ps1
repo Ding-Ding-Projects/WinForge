@@ -1,8 +1,13 @@
 param(
-    [string]$Root = (Resolve-Path ".").Path
+    [string]$Root = (Resolve-Path ".").Path,
+    [string[]]$ModuleTags = @()
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($PSVersionTable.PSEdition -ne "Core") {
+    throw "Generate-WikiFeatureDocs.ps1 requires PowerShell 7 (pwsh) so UTF-8 bilingual source literals are preserved."
+}
 
 function ConvertTo-Slug([string]$Text) {
     if ($null -eq $Text) { $Text = "" }
@@ -44,20 +49,24 @@ function Get-Attrs([string]$AttrText) {
 
 function Write-Utf8NoBom([string]$Path, [string]$Value) {
     $encoding = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($Path, $Value, $encoding)
+    $normalized = $Value -replace "`r`n|`r|`n", "`n"
+    [System.IO.File]::WriteAllText($Path, $normalized, $encoding)
 }
 
 $wiki = Join-Path $Root "docs/wiki"
 $featuresRoot = Join-Path $wiki "features"
 $buttonsRoot = Join-Path $wiki "buttons"
-foreach ($generatedRoot in @($featuresRoot, $buttonsRoot)) {
-    if (Test-Path -LiteralPath $generatedRoot) {
-        Remove-Item -LiteralPath $generatedRoot -Recurse -Force
+$partialGeneration = $ModuleTags.Count -gt 0
+if (!$partialGeneration) {
+    foreach ($generatedRoot in @($featuresRoot, $buttonsRoot)) {
+        if (Test-Path -LiteralPath $generatedRoot) {
+            Remove-Item -LiteralPath $generatedRoot -Recurse -Force
+        }
     }
 }
 New-Item -ItemType Directory -Force -Path $featuresRoot, $buttonsRoot | Out-Null
 
-$registryText = Get-Content -LiteralPath (Join-Path $Root "Services/ModuleRegistry.cs") -Raw
+$registryText = Get-Content -LiteralPath (Join-Path $Root "Services/ModuleRegistry.cs") -Raw -Encoding UTF8
 $moduleMatches = [regex]::Matches(
     $registryText,
     'new\(\)\s*\{\s*Tag\s*=\s*"(?<tag>[^"]+)"\s*,\s*En\s*=\s*"(?<en>[^"]+)"\s*,\s*Zh\s*=\s*"(?<zh>[^"]+)"\s*,.*?Keywords\s*=\s*"(?<keywords>[^"]*)"',
@@ -81,7 +90,7 @@ foreach ($m in $moduleMatches) {
     }
 }
 
-$mainXaml = Get-Content -LiteralPath (Join-Path $Root "MainWindow.xaml")
+$mainXaml = Get-Content -LiteralPath (Join-Path $Root "MainWindow.xaml") -Encoding UTF8
 $currentCategory = "Suite"
 foreach ($line in $mainXaml) {
     if ($line -match '<NavigationViewItem\s+Content="(?<content>[^"]+)"\s+SelectsOnInvoked="False"') {
@@ -97,7 +106,7 @@ foreach ($line in $mainXaml) {
     }
 }
 
-$mainCs = Get-Content -LiteralPath (Join-Path $Root "MainWindow.xaml.cs") -Raw
+$mainCs = Get-Content -LiteralPath (Join-Path $Root "MainWindow.xaml.cs") -Raw -Encoding UTF8
 foreach ($m in [regex]::Matches($mainCs, '"(?<tag>module\.[^"]+)"\s*=>\s*typeof\((?<class>[A-Za-z0-9_]+)\)')) {
     $tag = $m.Groups["tag"].Value
     if ($modules.Contains($tag)) {
@@ -123,7 +132,7 @@ foreach ($tag in @($modules.Keys)) {
     if ([string]::IsNullOrWhiteSpace($module["PageFile"])) { continue }
     $xamlPath = Join-Path $Root $module["PageFile"]
     if (!(Test-Path -LiteralPath $xamlPath)) { continue }
-    $xaml = Get-Content -LiteralPath $xamlPath -Raw
+    $xaml = Get-Content -LiteralPath $xamlPath -Raw -Encoding UTF8
     $buttons = New-Object System.Collections.Generic.List[object]
     $index = 0
     foreach ($m in [regex]::Matches($xaml, "<(?<type>$controlTypes)\b(?<attrs>[^>]*)>", [System.Text.RegularExpressions.RegexOptions]::Singleline)) {
@@ -153,8 +162,24 @@ foreach ($tag in @($modules.Keys)) {
     $module["Buttons"] = @($buttons.ToArray())
 }
 
+$generationTags = @($modules.Keys)
+if ($partialGeneration) {
+    $requestedTags = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($tag in $ModuleTags) {
+        if (![string]::IsNullOrWhiteSpace($tag)) {
+            [void]$requestedTags.Add($tag.Trim())
+        }
+    }
+    $missingTags = @($requestedTags | Where-Object { !$modules.Contains($_) })
+    if ($missingTags.Count -gt 0) {
+        throw "Unknown module tag(s): $($missingTags -join ', ')"
+    }
+    $generationTags = @($modules.Keys | Where-Object { $requestedTags.Contains($_) })
+}
+
 $allButtons = New-Object System.Collections.Generic.List[object]
-foreach ($tag in @($modules.Keys)) {
+foreach ($tag in $generationTags) {
     $module = $modules[$tag]
     $categoryDir = Join-Path $featuresRoot $module["CategorySlug"]
     New-Item -ItemType Directory -Force -Path $categoryDir | Out-Null
@@ -163,6 +188,9 @@ foreach ($tag in @($modules.Keys)) {
     $module["FeaturePath"] = $featureRel
 
     $buttonDir = Join-Path (Join-Path $buttonsRoot $module["CategorySlug"]) $module["Alias"]
+    if ($partialGeneration -and (Test-Path -LiteralPath $buttonDir)) {
+        Remove-Item -LiteralPath $buttonDir -Recurse -Force
+    }
     New-Item -ItemType Directory -Force -Path $buttonDir | Out-Null
 
     foreach ($button in $module["Buttons"]) {
@@ -256,6 +284,11 @@ foreach ($tag in @($modules.Keys)) {
 $buttonRows
 "@
     Write-Utf8NoBom -Path $featureFile -Value $featureDoc
+}
+
+if ($partialGeneration) {
+    Write-Host "Generated $($generationTags.Count) selected feature docs and $($allButtons.Count) button docs."
+    return
 }
 
 $categoryGroups = $modules.Values | Group-Object { $_["Category"] } | Sort-Object Name

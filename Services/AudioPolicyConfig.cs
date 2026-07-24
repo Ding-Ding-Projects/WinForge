@@ -1,4 +1,4 @@
-// AudioPolicyConfig.cs
+﻿// AudioPolicyConfig.cs
 // Per-application default audio endpoint ("move this app's stream to another device").
 // Native port of EarTrumpet's AudioPolicyConfigService — raw COM, no third-party libs.
 //
@@ -121,8 +121,9 @@ namespace WinForge.Services
             }
         }
 
-        private static void Release(object o)
+        private static void Release(object? o)
         {
+            if (o is null) return;
             if (o != null && Marshal.IsComObject(o))
             {
                 try { Marshal.ReleaseComObject(o); } catch { }

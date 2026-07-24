@@ -13,6 +13,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
 using WinForge.Catalog;
+using WinForge.Models;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -30,7 +31,8 @@ public sealed partial class AwsCliModule
         string Summary,
         string Glyph,
         string Capability,
-        string Scope);
+        string Scope,
+        string ResourceNamespace);
 
     private sealed record AwsResourceRowView(
         string Name,
@@ -54,12 +56,27 @@ public sealed partial class AwsCliModule
         string Glyph,
         bool IsPrefix);
 
+    private sealed record AwsEc2InstanceRowView(
+        string Name,
+        string InstanceId,
+        string State,
+        string InstanceType,
+        string AvailabilityZone,
+        string PrivateIpAddress,
+        string PublicIpAddress,
+        AwsEc2Instance Instance);
+
     private readonly List<AwsServiceCardView> _consoleServices = new();
     private readonly List<AwsResourceRowView> _resourceRows = new();
     private readonly List<S3BucketRowView> _bucketRows = new();
     private readonly List<S3ObjectRowView> _objectRows = new();
-    private CancellationTokenSource? _consoleCts;
+    private readonly List<AwsEc2InstanceRowView> _ec2Rows = new();
+    private readonly AwsContextGeneration _awsContext = new();
     private CancellationTokenSource? _s3OperationCts;
+    private int _s3OperationId;
+    private CancellationTokenSource? _ec2OperationCts;
+    private int _ec2OperationId;
+    private bool _ec2ReviewPending;
     private bool _consoleInitialized;
     private bool _cliInstalled;
     private bool _suppressS3Settings;
@@ -70,6 +87,7 @@ public sealed partial class AwsCliModule
     private bool _s3LifecycleDirty;
     private bool _s3CorsDirty;
     private bool _s3TagsDirty;
+    private int _awsMutationCount;
     private string? _loadedS3BucketName;
     private long _s3BucketLoadGeneration;
     private string? _resourceNextToken;
@@ -77,6 +95,8 @@ public sealed partial class AwsCliModule
     private string? _s3ObjectNextToken;
     private string? _s3ObjectPageBucket;
     private string? _s3ObjectPagePrefix;
+    private string? _ec2NextToken;
+    private int _ec2LoadedContextGeneration = -1;
     private string _activeConsoleView = "home";
     private string _activeS3Prefix = string.Empty;
 
@@ -84,6 +104,7 @@ public sealed partial class AwsCliModule
     {
         if (_consoleInitialized) return;
         _consoleInitialized = true;
+        _awsContext.Restart();
 
         _suppressS3Settings = true;
         S3EncryptionBox.Items.Add("SSE-S3 (AES-256)");
@@ -96,6 +117,8 @@ public sealed partial class AwsCliModule
 
         ResourceTypeFilter.Items.Add(P("All resource types", "所有資源類型"));
         ResourceTypeFilter.SelectedIndex = 0;
+
+        RebuildEc2StateFilter();
 
         BuildOperationsDashboard();
         ConsoleNavigation.SelectedItem = ConsoleHomeNav;
@@ -113,6 +136,7 @@ public sealed partial class AwsCliModule
         ConsoleHomeNav.Content = P("Console home", "Console 首頁");
         ResourcesNav.Content = P("All resources", "所有資源");
         S3Nav.Content = P("S3 storage", "S3 儲存");
+        Ec2Nav.Content = P("EC2 instances", "EC2 執行個體");
         ServicesNav.Content = P("All services", "所有服務");
         OperationsNav.Content = P("Operations", "營運管理");
         AdvancedNav.Content = P("CLI workbench", "CLI 工作台");
@@ -123,6 +147,7 @@ public sealed partial class AwsCliModule
             "用資源同服務管理帳戶。跨區域搜尋、開原生服務工作區，或者喺同一處檢視營運同管治狀態。");
         HomeRefreshBtn.Content = P("Refresh", "重新整理");
         OpenS3Btn.Content = P("S3", "S3");
+        OpenEc2Btn.Content = P("EC2", "EC2");
         OpenResourcesBtn.Content = P("Resources", "資源");
         IdentityCardTitle.Text = P("Current identity", "目前身份");
         ResourceCountLabel.Text = P("Resources found", "搵到嘅資源");
@@ -202,6 +227,30 @@ public sealed partial class AwsCliModule
         if (_bucketRows.Count == 0)
             S3StatusText.Text = P("Choose a profile, then refresh to load buckets.", "揀 profile，再重新整理以載入儲存桶。");
 
+        Ec2Title.Text = P("Amazon EC2 instances", "Amazon EC2 執行個體");
+        Ec2Hint.Text = P(
+            "Native, Region-scoped instance inventory and guarded lifecycle controls. WinForge never starts, stops, reboots, or terminates an instance without an explicit review step.",
+            "原生、按 Region 劃分嘅執行個體清單同受保護生命週期控制。未經明確覆核，WinForge 絕對唔會啟動、停止、重新啟動或者終止執行個體。");
+        Ec2RefreshBtn.Content = P("Refresh", "重新整理");
+        Ec2FilterBox.PlaceholderText = P("Filter by name, ID, type, IP, zone or tag", "按名稱、ID、類型、IP、區域或標籤篩選");
+        Ec2NameColumn.Text = P("Name / instance ID", "名稱／執行個體 ID");
+        Ec2StateColumn.Text = P("State", "狀態");
+        Ec2TypeColumn.Text = P("Type", "類型");
+        Ec2ZoneColumn.Text = P("Availability Zone", "可用區域");
+        Ec2IpColumn.Text = P("Private / public IP", "私人／公開 IP");
+        Ec2DetailsTitle.Text = P("Instance details", "執行個體詳情");
+        Ec2StartBtn.Content = P("Start", "啟動");
+        Ec2StopBtn.Content = P("Stop", "停止");
+        Ec2RebootBtn.Content = P("Reboot", "重新啟動");
+        Ec2TerminateBtn.Content = P("Terminate", "終止");
+        Ec2LoadMoreBtn.Content = P("Load more", "載入更多");
+        Ec2ActionHint.Text = P(
+            "Starting can incur charges; stop and reboot interrupt workloads. Termination is permanent and attached volumes may be deleted according to their DeleteOnTermination settings.",
+            "啟動可能產生費用；停止同重新啟動會中斷工作。終止係永久操作，而已連接磁碟區可能會按 DeleteOnTermination 設定一併刪除。");
+        if (_ec2Rows.Count == 0)
+            Ec2StatusText.Text = P("Choose a profile, then refresh this Region.", "揀 profile，再重新整理呢個 Region。");
+        RebuildEc2StateFilter();
+
         ServicesTitle.Text = P("All AWS services", "所有 AWS 服務");
         ServicesHint.Text = P(
             "Browse by category or search by service, feature and resource type. Native and generic resource workspaces progressively cover the full installed AWS surface.",
@@ -245,7 +294,7 @@ public sealed partial class AwsCliModule
         foreach (var service in AwsConsoleCatalog.Build(_services))
         {
             var category = categories[service.Category];
-            var capability = service.CliId.Equals("s3", StringComparison.OrdinalIgnoreCase)
+            var capability = service.CliId is "s3" or "ec2"
                 ? P("Native manager", "原生管理")
                 : service.AdapterCapability switch
             {
@@ -262,7 +311,8 @@ public sealed partial class AwsCliModule
                 P(service.DescriptionEn, service.DescriptionZh),
                 service.Glyph,
                 capability,
-                global ? P("Global", "Global") : P("Regional", "區域")));
+                global ? P("Global", "Global") : P("Regional", "區域"),
+                service.ResourceExplorerNamespace));
         }
 
         ConsoleCategoryBox.Items.Clear();
@@ -288,6 +338,15 @@ public sealed partial class AwsCliModule
         foreach (var service in _consoleServices.OrderBy(s => s.Name)) ResourceTypeFilter.Items.Add(service.Name);
         ResourceTypeFilter.SelectedIndex = 0;
         FilterConsoleServices();
+    }
+
+    private void RebuildConsoleServiceCatalogForLanguage()
+    {
+        if (!_consoleInitialized) return;
+        _consoleServices.Clear();
+        FavoriteServicesGrid.Items.Clear();
+        AllServicesGrid.Items.Clear();
+        BuildInitialServiceCatalog();
     }
 
     private void FilterConsoleServices()
@@ -316,7 +375,7 @@ public sealed partial class AwsCliModule
         SetOperationsCard(SecurityCard, "\uE7BA", P("Security posture", "安全狀態"),
             P("Security Hub, GuardDuty, Config and IAM findings", "Security Hub、GuardDuty、Config 同 IAM finding"), "securityhub");
         SetOperationsCard(CostCard, "\uE8C7", P("Cost and usage", "成本同用量"),
-            P("Budgets, forecasts, anomalies and cost allocation", "預算、預測、異常同成本分配"), "cost-explorer");
+            P("Budgets, forecasts, anomalies and cost allocation", "預算、預測、異常同成本分配"), "ce");
         SetOperationsCard(HealthCard, "\uE95E", P("Account health", "帳戶健康"),
             P("AWS Health events, maintenance and affected resources", "AWS Health 事件、維護同受影響資源"), "health");
         SetOperationsCard(QuotasCard, "\uE9F9", P("Service quotas", "服務 quota"),
@@ -349,6 +408,7 @@ public sealed partial class AwsCliModule
         ConsoleHomeView.Visibility = view == "home" ? Visibility.Visible : Visibility.Collapsed;
         ResourcesView.Visibility = view == "resources" ? Visibility.Visible : Visibility.Collapsed;
         S3View.Visibility = view == "s3" ? Visibility.Visible : Visibility.Collapsed;
+        Ec2View.Visibility = view == "ec2" ? Visibility.Visible : Visibility.Collapsed;
         ServicesView.Visibility = view == "services" ? Visibility.Visible : Visibility.Collapsed;
         OperationsView.Visibility = view == "operations" ? Visibility.Visible : Visibility.Collapsed;
         AdvancedView.Visibility = view == "advanced" ? Visibility.Visible : Visibility.Collapsed;
@@ -365,6 +425,31 @@ public sealed partial class AwsCliModule
             if (!_cliInstalled) ShowAdvancedCliInstall();
             if (_services.Count == 0) await LoadServices();
         }
+        else if (view == "ec2" && _ec2LoadedContextGeneration != _awsContext.CurrentGeneration)
+        {
+            await RefreshEc2Async();
+        }
+        else if (view == "s3" && _bucketRows.Count == 0)
+        {
+            await RefreshS3Async();
+        }
+    }
+
+    private void ApplyPendingConsoleView()
+    {
+        var view = _pendingConsoleView;
+        _pendingConsoleView = null;
+        var item = view switch
+        {
+            "resources" => ResourcesNav,
+            "s3" => S3Nav,
+            "ec2" => Ec2Nav,
+            "services" => ServicesNav,
+            "operations" => OperationsNav,
+            "advanced" => AdvancedNav,
+            _ => ConsoleHomeNav,
+        };
+        NavigateConsole(item, view ?? "home");
     }
 
     private void ShowAdvancedCliInstall()
@@ -396,6 +481,7 @@ public sealed partial class AwsCliModule
         => await RefreshConsoleContextAsync(loadResources: true);
 
     private void OpenS3_Click(object sender, RoutedEventArgs e) => NavigateConsole(S3Nav, "s3");
+    private void OpenEc2_Click(object sender, RoutedEventArgs e) => NavigateConsole(Ec2Nav, "ec2");
     private void OpenResources_Click(object sender, RoutedEventArgs e) => NavigateConsole(ResourcesNav, "resources");
 
     private void HomeResourceSearch_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -433,7 +519,14 @@ public sealed partial class AwsCliModule
             NavigateConsole(S3Nav, "s3");
             return;
         }
-        OpenResourceSearch($"service:{serviceId}");
+        if (serviceId.Equals("ec2", StringComparison.OrdinalIgnoreCase))
+        {
+            NavigateConsole(Ec2Nav, "ec2");
+            return;
+        }
+        var resourceNamespace = _consoleServices.FirstOrDefault(service =>
+            service.Id.Equals(serviceId, StringComparison.OrdinalIgnoreCase))?.ResourceNamespace ?? serviceId;
+        OpenResourceSearch($"service:{resourceNamespace}");
     }
 
     private void ConsoleServiceSearch_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
@@ -462,7 +555,7 @@ public sealed partial class AwsCliModule
         var selectedServiceId = string.IsNullOrWhiteSpace(selected)
             ? null
             : _consoleServices.FirstOrDefault(service =>
-                service.Name.Equals(selected, StringComparison.OrdinalIgnoreCase))?.Id;
+                service.Name.Equals(selected, StringComparison.OrdinalIgnoreCase))?.ResourceNamespace;
         foreach (var row in _resourceRows.Where(r => string.IsNullOrEmpty(selected)
             || (!string.IsNullOrWhiteSpace(selectedServiceId)
                 && r.Service.Equals(selectedServiceId, StringComparison.OrdinalIgnoreCase))))
@@ -638,6 +731,114 @@ public sealed partial class AwsCliModule
     private async void S3SaveManagement_Click(object sender, RoutedEventArgs e) => await SaveS3ManagementAsync();
     private async void S3SaveTags_Click(object sender, RoutedEventArgs e) => await SaveS3TagsAsync();
 
+    private void RebuildEc2StateFilter()
+    {
+        if (Ec2StateFilter is null) return;
+        var selected = Math.Max(0, Ec2StateFilter.SelectedIndex);
+        Ec2StateFilter.Items.Clear();
+        foreach (var value in new[]
+                 {
+                     P("All states", "所有狀態"), P("Pending", "等待中"), P("Running", "運行中"),
+                     P("Stopping", "停止緊"), P("Stopped", "已停止"), P("Shutting down", "關閉緊"),
+                     P("Terminated", "已終止"),
+                 })
+            Ec2StateFilter.Items.Add(value);
+        Ec2StateFilter.SelectedIndex = Math.Min(selected, Ec2StateFilter.Items.Count - 1);
+    }
+
+    private static string? SelectedEc2State(int index) => index switch
+    {
+        1 => "pending",
+        2 => "running",
+        3 => "stopping",
+        4 => "stopped",
+        5 => "shutting-down",
+        6 => "terminated",
+        _ => null,
+    };
+
+    private void Ec2Filter_TextChanged(object sender, TextChangedEventArgs e) => ApplyEc2Filter();
+    private void Ec2StateFilter_Changed(object sender, SelectionChangedEventArgs e) => ApplyEc2Filter();
+    private async void Ec2Refresh_Click(object sender, RoutedEventArgs e) => await RefreshEc2Async();
+    private async void Ec2LoadMore_Click(object sender, RoutedEventArgs e) => await LoadMoreEc2Async();
+    private async void Ec2Start_Click(object sender, RoutedEventArgs e) => await ChangeEc2StateAsync(AwsEc2InstanceAction.Start);
+    private async void Ec2Stop_Click(object sender, RoutedEventArgs e) => await ChangeEc2StateAsync(AwsEc2InstanceAction.Stop);
+    private async void Ec2Reboot_Click(object sender, RoutedEventArgs e) => await ChangeEc2StateAsync(AwsEc2InstanceAction.Reboot);
+    private async void Ec2Terminate_Click(object sender, RoutedEventArgs e) => await ChangeEc2StateAsync(AwsEc2InstanceAction.Terminate);
+
+    private void ApplyEc2Filter()
+    {
+        if (Ec2InstanceList is null) return;
+        var query = (Ec2FilterBox.Text ?? string.Empty).Trim();
+        var state = SelectedEc2State(Ec2StateFilter.SelectedIndex);
+        Ec2InstanceList.Items.Clear();
+        foreach (var row in _ec2Rows.Where(row =>
+                     (state is null || row.State.Equals(state, StringComparison.Ordinal))
+                     && (query.Length == 0
+                         || row.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || row.InstanceId.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || row.InstanceType.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || row.AvailabilityZone.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || row.PrivateIpAddress.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || row.PublicIpAddress.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || row.Instance.Tags.Any(tag => tag.Key.Contains(query, StringComparison.OrdinalIgnoreCase)
+                                                        || tag.Value.Contains(query, StringComparison.OrdinalIgnoreCase)))))
+            Ec2InstanceList.Items.Add(row);
+        Ec2StatusText.Text = P(
+            $"Showing {Ec2InstanceList.Items.Count} of {_ec2Rows.Count} loaded instance(s).",
+            $"顯示已載入 {_ec2Rows.Count} 個執行個體之中嘅 {Ec2InstanceList.Items.Count} 個。");
+    }
+
+    private void Ec2InstanceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (Ec2InstanceList.SelectedItem is not AwsEc2InstanceRowView row)
+        {
+            ResetEc2Details();
+            return;
+        }
+
+        var instance = row.Instance;
+        Ec2DetailName.Text = instance.Name;
+        Ec2DetailId.Text = instance.InstanceId;
+        Ec2DetailStateType.Text = P($"State: {instance.State} · Type: {instance.InstanceType} · Monitoring: {instance.MonitoringState}",
+            $"狀態：{instance.State} · 類型：{instance.InstanceType} · 監察：{instance.MonitoringState}");
+        Ec2DetailLocation.Text = P($"Zone: {instance.AvailabilityZone} · VPC: {instance.VpcId ?? "—"} · Subnet: {instance.SubnetId ?? "—"}",
+            $"可用區域：{instance.AvailabilityZone} · VPC：{instance.VpcId ?? "—"} · 子網絡：{instance.SubnetId ?? "—"}");
+        Ec2DetailNetwork.Text = P($"Private: {instance.PrivateIpAddress ?? "—"} · Public: {instance.PublicIpAddress ?? "—"}",
+            $"私人：{instance.PrivateIpAddress ?? "—"} · 公開：{instance.PublicIpAddress ?? "—"}");
+        Ec2DetailImage.Text = P($"AMI: {instance.ImageId} · Launched: {instance.LaunchTime?.LocalDateTime.ToString("g") ?? "—"}",
+            $"AMI：{instance.ImageId} · 啟動時間：{instance.LaunchTime?.LocalDateTime.ToString("g") ?? "—"}");
+        Ec2DetailPlatform.Text = P($"Platform: {instance.PlatformDetails} · Architecture: {instance.Architecture} · Lifecycle: {instance.Lifecycle} · Tenancy: {instance.Tenancy}",
+            $"平台：{instance.PlatformDetails} · 架構：{instance.Architecture} · 生命週期：{instance.Lifecycle} · 租用：{instance.Tenancy}");
+        Ec2DetailProfile.Text = P($"IAM profile: {instance.IamInstanceProfileArn ?? "—"} · Key pair: {instance.KeyName ?? "—"}",
+            $"IAM profile：{instance.IamInstanceProfileArn ?? "—"} · Key pair：{instance.KeyName ?? "—"}");
+        Ec2DetailSecurity.Text = P("Security groups: ", "保安群組：") + (instance.SecurityGroups.Count == 0
+            ? "—"
+            : string.Join(", ", instance.SecurityGroups.Select(group => $"{group.GroupName} ({group.GroupId})")));
+        Ec2DetailTags.Text = instance.Tags.Count == 0
+            ? P("Tags: none", "標籤：冇")
+            : P("Tags: ", "標籤：") + string.Join(" · ", instance.Tags.OrderBy(tag => tag.Key).Select(tag => $"{tag.Key}={tag.Value}"));
+        SetEc2ActionButtonsForState(instance.State);
+    }
+
+    private void ResetEc2Details()
+    {
+        Ec2DetailName.Text = "—";
+        Ec2DetailId.Text = string.Empty;
+        Ec2DetailStateType.Text = string.Empty;
+        Ec2DetailLocation.Text = string.Empty;
+        Ec2DetailNetwork.Text = string.Empty;
+        Ec2DetailImage.Text = string.Empty;
+        Ec2DetailPlatform.Text = string.Empty;
+        Ec2DetailProfile.Text = string.Empty;
+        Ec2DetailSecurity.Text = string.Empty;
+        Ec2DetailTags.Text = string.Empty;
+        Ec2StartBtn.IsEnabled = false;
+        Ec2StopBtn.IsEnabled = false;
+        Ec2RebootBtn.IsEnabled = false;
+        Ec2TerminateBtn.IsEnabled = false;
+    }
+
     private bool HasLoadedS3Bucket()
         => S3BucketList.SelectedItem is S3BucketRowView bucket
            && string.Equals(bucket.Name, _loadedS3BucketName, StringComparison.Ordinal);
@@ -670,7 +871,7 @@ public sealed partial class AwsCliModule
     private void ResetS3WorkspaceForBucketChange()
     {
         unchecked { _s3BucketLoadGeneration++; }
-        _s3OperationCts?.Cancel();
+        CancelCurrentS3Operation();
         _loadedS3BucketName = null;
         _s3ObjectNextToken = null;
         _s3ObjectPageBucket = null;
@@ -736,21 +937,113 @@ public sealed partial class AwsCliModule
     private void ScheduleConsoleContextRefresh()
     {
         if (!_consoleInitialized) return;
-        _consoleCts?.Cancel();
-        _consoleCts?.Dispose();
-        _consoleCts = new CancellationTokenSource();
-        _ = RefreshConsoleContextAsync(loadResources: false, _consoleCts.Token);
+        _awsContext.Restart();
+        _s3OperationCts?.Cancel();
+        DisposeAwsManager();
+        InvalidateConsoleAccountState();
+        _ = RefreshConsoleContextAsync(loadResources: false);
     }
 
     private void DisposeConsoleSession()
     {
-        _consoleCts?.Cancel();
-        _consoleCts?.Dispose();
-        _consoleCts = null;
-        _s3OperationCts?.Cancel();
-        _s3OperationCts?.Dispose();
-        _s3OperationCts = null;
+        _awsContext.Dispose();
+        CancelCurrentS3Operation();
+        _ec2OperationCts?.Cancel();
+        _ec2OperationCts?.Dispose();
+        _ec2OperationCts = null;
+        _ec2OperationId++;
         DisposeAwsManager();
+    }
+
+    private bool TryCaptureAwsContext(out int generation, out CancellationToken token)
+    {
+        generation = _awsContext.CurrentGeneration;
+        if (_awsContext.TryGetToken(generation, out token)) return true;
+        if (!_consoleInitialized) return false;
+        generation = _awsContext.Restart();
+        return _awsContext.TryGetToken(generation, out token);
+    }
+
+    private void InvalidateConsoleAccountState()
+    {
+        _resourceRows.Clear();
+        ResourceList.Items.Clear();
+        ResourceList.SelectedItem = null;
+        _resourceNextToken = null;
+        _resourceActiveQuery = null;
+        ResourceCountText.Text = "—";
+        ResourceStatusText.Text = P("Choose a profile and search to load this account.", "揀 profile 再搜尋，載入呢個帳戶。");
+        ResourceLoadMoreBtn.Visibility = Visibility.Collapsed;
+        ResourceLoadMoreBtn.IsEnabled = false;
+        ResourceDetailName.Text = "—";
+        ResourceDetailType.Text = string.Empty;
+        ResourceDetailArn.Text = string.Empty;
+        ResourceDetailMeta.Text = string.Empty;
+        ResourceCopyArnBtn.IsEnabled = false;
+        ResourceOpenServiceBtn.IsEnabled = false;
+        ResourceInspectBtn.IsEnabled = false;
+        ResourceEditBtn.IsEnabled = false;
+        ResourceDeleteBtn.IsEnabled = false;
+
+        _bucketRows.Clear();
+        S3BucketList.Items.Clear();
+        S3BucketList.SelectedItem = null;
+        BucketCountText.Text = "—";
+        ResetS3WorkspaceForBucketChange();
+        S3StatusText.Text = P("Choose a profile, then refresh to load buckets.", "揀 profile，再重新整理以載入儲存桶。");
+
+        _ec2OperationCts?.Cancel();
+        _ec2OperationCts?.Dispose();
+        _ec2OperationCts = null;
+        _ec2OperationId++;
+        _ec2ReviewPending = false;
+        _ec2Rows.Clear();
+        Ec2InstanceList.Items.Clear();
+        Ec2InstanceList.SelectedItem = null;
+        _ec2NextToken = null;
+        _ec2LoadedContextGeneration = -1;
+        Ec2LoadMoreBtn.Visibility = Visibility.Collapsed;
+        Ec2LoadMoreBtn.IsEnabled = false;
+        Ec2Progress.IsActive = false;
+        Ec2StatusText.Text = P("Choose a profile, then refresh this Region.", "揀 profile，再重新整理呢個 Region。");
+        ResetEc2Details();
+
+        IdentityNameText.Text = P("Switching context…", "切換緊情境…");
+        IdentityArnText.Text = string.Empty;
+        ConsoleScopeText.Text = P("Verifying", "驗證緊");
+        ResultBar.IsOpen = false;
+    }
+
+    private IDisposable BeginAwsMutation()
+    {
+        _awsMutationCount++;
+        SetAwsContextControlsEnabled(false);
+        return new AwsMutationLease(this);
+    }
+
+    private void EndAwsMutation()
+    {
+        if (_awsMutationCount > 0) _awsMutationCount--;
+        if (_awsMutationCount == 0) SetAwsContextControlsEnabled(true);
+    }
+
+    private void SetAwsContextControlsEnabled(bool enabled)
+    {
+        ProfileBox.IsEnabled = enabled;
+        RegionBox.IsEnabled = enabled;
+        SsoBtn.IsEnabled = enabled;
+        ConfigureBtn.IsEnabled = enabled;
+    }
+
+    private sealed class AwsMutationLease(AwsCliModule owner) : IDisposable
+    {
+        private AwsCliModule? _owner = owner;
+
+        public void Dispose()
+        {
+            var current = Interlocked.Exchange(ref _owner, null);
+            current?.EndAwsMutation();
+        }
     }
 
     /// <summary>
@@ -764,7 +1057,10 @@ public sealed partial class AwsCliModule
         if (string.IsNullOrWhiteSpace(path) || App.Shell?.Content is not FrameworkElement root) return;
         try
         {
-            await Task.Delay(3000);
+            var delayMs = int.TryParse(Environment.GetEnvironmentVariable("WINFORGE_CAPTURE_DELAY_MS"), out var requestedDelay)
+                ? Math.Clamp(requestedDelay, 1_000, 30_000)
+                : 3_000;
+            await Task.Delay(delayMs);
             root.UpdateLayout();
             var bitmap = new RenderTargetBitmap();
             await bitmap.RenderAsync(root);
@@ -790,6 +1086,9 @@ public sealed partial class AwsCliModule
     private partial Task RefreshResourcesAsync();
     private partial Task LoadMoreResourcesAsync();
     private partial Task RefreshS3Async();
+    private partial Task RefreshEc2Async();
+    private partial Task LoadMoreEc2Async();
+    private partial Task ChangeEc2StateAsync(AwsEc2InstanceAction action);
     private partial Task LoadMoreS3ObjectsAsync();
     private partial Task LoadSelectedBucketAsync();
     private partial Task LoadObjectsAsync();

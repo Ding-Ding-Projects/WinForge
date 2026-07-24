@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -221,8 +221,8 @@ public sealed partial class VolumeMixerModule : Page
     }
 
     private Border Card(string title, string sub, float level, bool muted, bool accent,
-        IReadOnlyList<AudioDeviceInfo> moveTargets,
-        Action<float> onLevel, Action<bool> onMute, Action<string> onMove = null)
+        IReadOnlyList<AudioDeviceInfo>? moveTargets,
+        Action<float> onLevel, Action<bool> onMute, Action<string>? onMove = null)
     {
         var grid = new Grid { ColumnSpacing = 12 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });   // mute
@@ -300,7 +300,7 @@ public sealed partial class VolumeMixerModule : Page
             }
             flyout.Items.Add(new MenuFlyoutSeparator());
             var reset = new MenuFlyoutItem { Text = P("Reset to system default", "重設為系統預設") };
-            reset.Click += (_, _) => onMove(null);
+            reset.Click += (_, _) => { if (onMove != null) onMove.Invoke((string?)null); };
             flyout.Items.Add(reset);
 
             moveBtn.Flyout = flyout;

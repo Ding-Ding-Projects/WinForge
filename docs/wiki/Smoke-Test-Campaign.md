@@ -1,8 +1,8 @@
 # WinForge Exhaustive Smoke Campaign · WinForge 全面冒煙驗證
 
-**Status · 狀態：** Baseline active · 基線已啟動
+**Repository scope · 儲存庫範圍：** This historical campaign records the canonical .NET WinUI 3 app. C++/WinRT smoke evidence now lives in [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). · 呢份歷史 campaign 記錄正式 .NET WinUI 3 app；C++/WinRT smoke 證據而家放喺 [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)。
 
-> **Coverage correction · 覆蓋修正：** The 323-route figures on this historical campaign page describe the exact legacy manifest used for those batches. The corrected current whole-shell contract is **346 fixed routes plus five dynamic route families** because that manifest omitted 22 runtime category routes and Settings. Historical results remain valid only for their recorded subset. · 呢個歷史 campaign 頁面嘅 323-route 數字係當時 batches 所用舊 manifest 嘅準確記錄。修正後目前全 shell 合約係 **346 條固定路線加五組動態路線**，因為嗰份 manifest 漏咗 22 條執行時分類路線同 Settings。歷史結果只對佢記錄嘅子集有效。
+**Status · 狀態：** Baseline active · 基線已啟動
 
 **EN —** This page records the repeatable evidence model for whole-app WinForge verification. It is deliberately a coverage ledger, not a marketing feature count: a route is complete only when its applicable routing, build, test, launch, visual, behavior, side-effect, and documentation evidence is recorded.
 

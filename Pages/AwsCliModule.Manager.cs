@@ -39,6 +39,12 @@ public sealed partial class AwsCliModule
         if (_awsManager is not null && string.Equals(key, _awsManagerContextKey, StringComparison.Ordinal))
             return _awsManager;
 
+        if (_awsManager is not null)
+        {
+            _awsContext.Restart();
+            _s3OperationCts?.Cancel();
+            InvalidateConsoleAccountState();
+        }
         _awsManager?.Dispose();
         _awsManager = new AwsManagerService(new AwsManagerSessionOptions
         {
@@ -59,14 +65,19 @@ public sealed partial class AwsCliModule
     private partial async Task RefreshConsoleContextAsync(bool loadResources, CancellationToken cancellationToken)
     {
         var manager = EnsureAwsManager();
+        if (!TryCaptureAwsContext(out var contextGeneration, out var contextToken)) return;
+        using var linkedSource = cancellationToken.CanBeCanceled && cancellationToken != contextToken
+            ? CancellationTokenSource.CreateLinkedTokenSource(contextToken, cancellationToken)
+            : null;
+        var requestToken = linkedSource?.Token ?? contextToken;
         IdentityNameText.Text = P("Connecting…", "連線緊…");
         IdentityArnText.Text = manager.Context.CredentialSource;
         IdentityRegionText.Text = P(
             $"Region: {manager.Context.RegionDisplayName} ({manager.RegionName})",
             $"區域：{manager.Context.RegionDisplayName}（{manager.RegionName}）");
 
-        var identity = await manager.GetCallerIdentityAsync(cancellationToken);
-        if (cancellationToken.IsCancellationRequested) return;
+        var identity = await manager.GetCallerIdentityAsync(requestToken);
+        if (requestToken.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
         if (identity.Success && identity.Value is { } caller)
         {
             IdentityNameText.Text = $"{FriendlyIdentity(caller.Arn)} · {caller.AccountId}";
@@ -104,7 +115,7 @@ public sealed partial class AwsCliModule
     private async Task SearchResourcesPageAsync(bool append)
     {
         var manager = EnsureAwsManager();
-        var token = _consoleCts?.Token ?? CancellationToken.None;
+        if (!TryCaptureAwsContext(out var contextGeneration, out var token)) return;
         if (append && string.IsNullOrWhiteSpace(_resourceNextToken)) return;
         ResourceProgress.IsActive = true;
         ResourceRefreshBtn.IsEnabled = false;
@@ -130,7 +141,7 @@ public sealed partial class AwsCliModule
                 {
                     var service = _consoleServices.FirstOrDefault(s => s.Name.Equals(selected, StringComparison.OrdinalIgnoreCase));
                     if (service is not null && !query.Contains("service:", StringComparison.OrdinalIgnoreCase))
-                        query = query == "*" ? $"service:{service.Id}" : $"{query} service:{service.Id}";
+                        query = query == "*" ? $"service:{service.ResourceNamespace}" : $"{query} service:{service.ResourceNamespace}";
                 }
                 _resourceActiveQuery = query;
                 _resourceNextToken = null;
@@ -144,6 +155,7 @@ public sealed partial class AwsCliModule
                 UseTaggingFallback = true,
             }, token);
             token.ThrowIfCancellationRequested();
+            if (!_awsContext.IsCurrent(contextGeneration)) return;
             if (!result.Success || result.Value is null)
             {
                 ResourceStatusText.Text = ManagerMessage(result.Message);
@@ -185,13 +197,17 @@ public sealed partial class AwsCliModule
         }
         catch (OperationCanceledException)
         {
-            ResourceStatusText.Text = P("Resource search cancelled.", "已取消資源搜尋。");
+            if (_awsContext.IsCurrent(contextGeneration))
+                ResourceStatusText.Text = P("Resource search cancelled.", "已取消資源搜尋。");
         }
         finally
         {
-            ResourceProgress.IsActive = false;
-            ResourceRefreshBtn.IsEnabled = true;
-            ResourceLoadMoreBtn.IsEnabled = !string.IsNullOrWhiteSpace(_resourceNextToken);
+            if (_awsContext.IsCurrent(contextGeneration))
+            {
+                ResourceProgress.IsActive = false;
+                ResourceRefreshBtn.IsEnabled = true;
+                ResourceLoadMoreBtn.IsEnabled = !string.IsNullOrWhiteSpace(_resourceNextToken);
+            }
         }
     }
 
@@ -229,16 +245,299 @@ public sealed partial class AwsCliModule
         catch { return value.Trim('"'); }
     }
 
+    private partial Task RefreshEc2Async() => LoadEc2PageAsync(append: false);
+
+    private partial Task LoadMoreEc2Async() => LoadEc2PageAsync(append: true);
+
+    private async Task LoadEc2PageAsync(bool append)
+    {
+        var manager = EnsureAwsManager();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        if (append && string.IsNullOrWhiteSpace(_ec2NextToken)) return;
+        var operation = BeginEc2Operation();
+        var token = operation.Token;
+        var selectedId = (Ec2InstanceList.SelectedItem as AwsEc2InstanceRowView)?.InstanceId;
+        if (!append)
+        {
+            _ec2NextToken = null;
+            Ec2LoadMoreBtn.Visibility = Visibility.Collapsed;
+        }
+        Ec2Progress.IsActive = true;
+        Ec2RefreshBtn.IsEnabled = false;
+        Ec2LoadMoreBtn.IsEnabled = false;
+        SetEc2ActionButtonsEnabled(false);
+        Ec2StatusText.Text = append
+            ? P("Loading more EC2 instances…", "載入緊更多 EC2 執行個體…")
+            : P($"Loading EC2 instances from {manager.RegionName}…", $"由 {manager.RegionName} 載入緊 EC2 執行個體…");
+        try
+        {
+            var result = await manager.ListEc2InstancesAsync(new AwsEc2ListInstancesRequest
+            {
+                MaxResults = 100,
+                NextToken = append ? _ec2NextToken : null,
+            }, token);
+            token.ThrowIfCancellationRequested();
+            if (!_awsContext.IsCurrent(contextGeneration)) return;
+            if (!result.Success || result.Value is null)
+            {
+                if (!append)
+                {
+                    _ec2Rows.Clear();
+                    _ec2NextToken = null;
+                    Ec2LoadMoreBtn.Visibility = Visibility.Collapsed;
+                    ApplyEc2Filter();
+                    ResetEc2Details();
+                }
+                Ec2StatusText.Text = ManagerMessage(result.Message);
+                ShowManagerError(result.Error, result.Message);
+                _ec2LoadedContextGeneration = contextGeneration;
+                return;
+            }
+
+            if (!append) _ec2Rows.Clear();
+            foreach (var instance in result.Value.Items)
+            {
+                if (_ec2Rows.Any(row => row.InstanceId.Equals(instance.InstanceId, StringComparison.Ordinal)))
+                    continue;
+                _ec2Rows.Add(ToEc2Row(instance));
+            }
+            _ec2Rows.Sort((left, right) =>
+            {
+                var byName = StringComparer.OrdinalIgnoreCase.Compare(left.Name, right.Name);
+                return byName != 0 ? byName : StringComparer.Ordinal.Compare(left.InstanceId, right.InstanceId);
+            });
+            _ec2NextToken = result.Value.NextToken;
+            _ec2LoadedContextGeneration = contextGeneration;
+            ApplyEc2Filter();
+            if (!string.IsNullOrWhiteSpace(selectedId))
+                Ec2InstanceList.SelectedItem = Ec2InstanceList.Items.OfType<AwsEc2InstanceRowView>()
+                    .FirstOrDefault(row => row.InstanceId.Equals(selectedId, StringComparison.Ordinal));
+            Ec2LoadMoreBtn.Visibility = result.Value.HasMore ? Visibility.Visible : Visibility.Collapsed;
+            Ec2LoadMoreBtn.IsEnabled = result.Value.HasMore;
+            Ec2StatusText.Text = P(
+                $"{_ec2Rows.Count} instance(s) loaded from {manager.RegionName}{(result.Value.HasMore ? " · more available" : string.Empty)}.",
+                $"已由 {manager.RegionName} 載入 {_ec2Rows.Count} 個執行個體{(result.Value.HasMore ? " · 仲有更多" : string.Empty)}。");
+        }
+        catch (OperationCanceledException)
+        {
+            if (_awsContext.IsCurrent(contextGeneration))
+                Ec2StatusText.Text = P("EC2 refresh cancelled.", "已取消 EC2 重新整理。");
+        }
+        finally
+        {
+            var ownsOperation = IsCurrentEc2Operation(operation.Id);
+            if (ownsOperation) EndEc2Operation(operation.Id);
+            if (ownsOperation && _awsContext.IsCurrent(contextGeneration))
+            {
+                Ec2Progress.IsActive = false;
+                Ec2RefreshBtn.IsEnabled = true;
+                Ec2LoadMoreBtn.IsEnabled = !string.IsNullOrWhiteSpace(_ec2NextToken);
+                if (Ec2InstanceList.SelectedItem is AwsEc2InstanceRowView current)
+                    SetEc2ActionButtonsForState(current.State);
+            }
+        }
+    }
+
+    private static AwsEc2InstanceRowView ToEc2Row(AwsEc2Instance instance) => new(
+        instance.Name,
+        instance.InstanceId,
+        instance.State,
+        instance.InstanceType,
+        instance.AvailabilityZone,
+        instance.PrivateIpAddress ?? "—",
+        instance.PublicIpAddress ?? "—",
+        instance);
+
+    private partial async Task ChangeEc2StateAsync(AwsEc2InstanceAction action)
+    {
+        if (_ec2ReviewPending) return;
+        var manager = EnsureAwsManager();
+        if (Ec2InstanceList.SelectedItem is not AwsEc2InstanceRowView row
+            || !AwsEc2InstancePolicy.IsAllowed(action, row.State)) return;
+        if (!TryCaptureAwsContext(out var reviewGeneration, out _)) return;
+
+        var confirmed = false;
+        _ec2ReviewPending = true;
+        SetEc2ActionButtonsEnabled(false);
+        try
+        {
+            confirmed = await ConfirmEc2ActionAsync(row, action);
+        }
+        finally
+        {
+            _ec2ReviewPending = false;
+            if (_awsContext.IsCurrent(reviewGeneration)
+                && Ec2InstanceList.SelectedItem is AwsEc2InstanceRowView current)
+                SetEc2ActionButtonsForState(current.State);
+        }
+        if (!confirmed) return;
+        if (!_awsContext.IsCurrent(reviewGeneration)
+            || Ec2InstanceList.SelectedItem is not AwsEc2InstanceRowView reviewed
+            || !reviewed.InstanceId.Equals(row.InstanceId, StringComparison.Ordinal))
+        {
+            Ec2StatusText.Text = P(
+                "AWS context or selection changed; the EC2 action was not submitted.",
+                "AWS 情境或選擇已變更；未有提交 EC2 操作。");
+            return;
+        }
+
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        if (contextGeneration != reviewGeneration) return;
+        var operation = BeginEc2Operation();
+        var token = operation.Token;
+        Ec2Progress.IsActive = true;
+        Ec2RefreshBtn.IsEnabled = false;
+        Ec2LoadMoreBtn.IsEnabled = false;
+        SetEc2ActionButtonsEnabled(false);
+        var actionLabel = AwsEc2InstancePolicy.ActionLabel(action);
+        Ec2StatusText.Text = P(
+            $"Submitting {actionLabel.En} for {row.InstanceId}…",
+            $"提交緊 {row.InstanceId} 嘅{actionLabel.Zh}要求…");
+        try
+        {
+            var result = await manager.ChangeEc2InstanceStateAsync(row.InstanceId, action, row.State, token);
+            token.ThrowIfCancellationRequested();
+            if (!_awsContext.IsCurrent(contextGeneration)) return;
+            if (!result.Success || result.Value is null)
+            {
+                Ec2StatusText.Text = ManagerMessage(result.Message);
+                ShowManagerError(result.Error, result.Message);
+                return;
+            }
+
+            var index = _ec2Rows.FindIndex(item => item.InstanceId.Equals(row.InstanceId, StringComparison.Ordinal));
+            if (index >= 0)
+                _ec2Rows[index] = ToEc2Row(_ec2Rows[index].Instance with { State = result.Value.CurrentState });
+            ApplyEc2Filter();
+            Ec2InstanceList.SelectedItem = Ec2InstanceList.Items.OfType<AwsEc2InstanceRowView>()
+                .FirstOrDefault(item => item.InstanceId.Equals(row.InstanceId, StringComparison.Ordinal));
+            Ec2StatusText.Text = ManagerMessage(result.Message);
+            ShowManagerSuccess(result.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            if (_awsContext.IsCurrent(contextGeneration))
+                Ec2StatusText.Text = P("EC2 action cancelled.", "已取消 EC2 操作。");
+        }
+        finally
+        {
+            var ownsOperation = IsCurrentEc2Operation(operation.Id);
+            if (ownsOperation) EndEc2Operation(operation.Id);
+            if (ownsOperation && _awsContext.IsCurrent(contextGeneration))
+            {
+                Ec2Progress.IsActive = false;
+                Ec2RefreshBtn.IsEnabled = true;
+                Ec2LoadMoreBtn.IsEnabled = !string.IsNullOrWhiteSpace(_ec2NextToken);
+                if (Ec2InstanceList.SelectedItem is AwsEc2InstanceRowView current)
+                    SetEc2ActionButtonsForState(current.State);
+            }
+        }
+    }
+
+    private async Task<bool> ConfirmEc2ActionAsync(AwsEc2InstanceRowView row, AwsEc2InstanceAction action)
+    {
+        if (action == AwsEc2InstanceAction.Terminate)
+        {
+            return await ConfirmTypedAsync(
+                P("Permanently terminate EC2 instance", "永久終止 EC2 執行個體"),
+                P(
+                    $"Terminate {row.Name} ({row.InstanceId})? Termination protection may block this request. Volumes with DeleteOnTermination enabled will also be deleted. Type the exact instance ID to continue.",
+                    $"終止 {row.Name}（{row.InstanceId}）？終止保護可能會封鎖要求；已啟用 DeleteOnTermination 嘅磁碟區亦會一併刪除。輸入完整執行個體 ID 先繼續。"),
+                row.InstanceId,
+                "Terminate permanently",
+                "永久終止");
+        }
+
+        var (titleEn, titleZh, messageEn, messageZh, primaryEn, primaryZh) = action switch
+        {
+            AwsEc2InstanceAction.Start => (
+                "Start EC2 instance", "啟動 EC2 執行個體",
+                $"Start {row.Name} ({row.InstanceId})? Compute and attached-service charges may resume.",
+                $"啟動 {row.Name}（{row.InstanceId}）？運算同已連接服務可能會重新開始收費。",
+                "Start instance", "啟動執行個體"),
+            AwsEc2InstanceAction.Stop => (
+                "Stop EC2 instance", "停止 EC2 執行個體",
+                $"Stop {row.Name} ({row.InstanceId})? In-memory work will be lost and the workload will become unavailable.",
+                $"停止 {row.Name}（{row.InstanceId}）？記憶體內工作會遺失，服務亦會暫時用唔到。",
+                "Stop instance", "停止執行個體"),
+            AwsEc2InstanceAction.Reboot => (
+                "Reboot EC2 instance", "重新啟動 EC2 執行個體",
+                $"Reboot {row.Name} ({row.InstanceId})? The workload will be interrupted.",
+                $"重新啟動 {row.Name}（{row.InstanceId}）？工作負載會中斷。",
+                "Reboot instance", "重新啟動執行個體"),
+            _ => ("Change EC2 instance", "變更 EC2 執行個體", "Review this instance action.", "請覆核呢個執行個體操作。", "Continue", "繼續"),
+        };
+        var dialog = new ContentDialog
+        {
+            Title = P(titleEn, titleZh),
+            Content = new TextBlock { Text = P(messageEn, messageZh), TextWrapping = TextWrapping.Wrap, MaxWidth = 440 },
+            PrimaryButtonText = P(primaryEn, primaryZh),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = XamlRoot,
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private (int Id, CancellationToken Token) BeginEc2Operation()
+    {
+        _ec2OperationCts?.Cancel();
+        _ec2OperationCts?.Dispose();
+        _ec2OperationId++;
+        if (!TryCaptureAwsContext(out _, out var contextToken))
+            return (_ec2OperationId, new CancellationToken(canceled: true));
+        _ec2OperationCts = CancellationTokenSource.CreateLinkedTokenSource(contextToken);
+        return (_ec2OperationId, _ec2OperationCts.Token);
+    }
+
+    private bool IsCurrentEc2Operation(int operationId)
+        => operationId == _ec2OperationId && _ec2OperationCts is not null;
+
+    private void EndEc2Operation(int operationId)
+    {
+        if (!IsCurrentEc2Operation(operationId)) return;
+        _ec2OperationCts!.Dispose();
+        _ec2OperationCts = null;
+    }
+
+    private void SetEc2ActionButtonsEnabled(bool enabled)
+    {
+        Ec2StartBtn.IsEnabled = enabled;
+        Ec2StopBtn.IsEnabled = enabled;
+        Ec2RebootBtn.IsEnabled = enabled;
+        Ec2TerminateBtn.IsEnabled = enabled;
+    }
+
+    private void SetEc2ActionButtonsForState(string state)
+    {
+        if (_ec2ReviewPending || _ec2OperationCts is not null)
+        {
+            SetEc2ActionButtonsEnabled(false);
+            return;
+        }
+        Ec2StartBtn.IsEnabled = AwsEc2InstancePolicy.IsAllowed(AwsEc2InstanceAction.Start, state);
+        Ec2StopBtn.IsEnabled = AwsEc2InstancePolicy.IsAllowed(AwsEc2InstanceAction.Stop, state);
+        Ec2RebootBtn.IsEnabled = AwsEc2InstancePolicy.IsAllowed(AwsEc2InstanceAction.Reboot, state);
+        Ec2TerminateBtn.IsEnabled = AwsEc2InstancePolicy.IsAllowed(AwsEc2InstanceAction.Terminate, state);
+    }
+
     private partial async Task RefreshS3Async()
     {
         var manager = EnsureAwsManager();
-        var token = BeginS3Operation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        S3BucketList.SelectedItem = null;
+        ResetS3WorkspaceForBucketChange();
+        using var operation = BeginS3Operation();
+        var token = operation.Token;
         S3Progress.IsActive = true;
         S3RefreshBtn.IsEnabled = false;
         S3StatusText.Text = P("Loading S3 buckets…", "載入緊 S3 儲存桶…");
         try
         {
             var result = await manager.ListBucketsAsync(new AwsS3ListBucketsRequest { MaxResults = 10_000 }, token);
+            token.ThrowIfCancellationRequested();
+            if (!_awsContext.IsCurrent(contextGeneration)) return;
             if (!result.Success || result.Value is null)
             {
                 S3StatusText.Text = ManagerMessage(result.Message);
@@ -258,23 +557,27 @@ public sealed partial class AwsCliModule
         }
         catch (OperationCanceledException)
         {
-            S3StatusText.Text = P("S3 refresh cancelled.", "已取消 S3 重新整理。");
+            if (_awsContext.IsCurrent(contextGeneration))
+                S3StatusText.Text = P("S3 refresh cancelled.", "已取消 S3 重新整理。");
         }
         finally
         {
-            EndS3Operation();
-            S3Progress.IsActive = false;
-            S3RefreshBtn.IsEnabled = true;
+            if (operation.IsCurrent && _awsContext.IsCurrent(contextGeneration))
+            {
+                S3Progress.IsActive = false;
+                S3RefreshBtn.IsEnabled = true;
+            }
         }
     }
 
     private partial async Task LoadSelectedBucketAsync()
     {
+        var manager = EnsureAwsManager();
         if (S3BucketList.SelectedItem is not S3BucketRowView bucket) return;
         var bucketName = bucket.Name;
         var loadGeneration = _s3BucketLoadGeneration;
-        var manager = EnsureAwsManager();
-        var token = BeginS3Operation();
+        using var operation = BeginS3Operation();
+        var token = operation.Token;
         S3Progress.IsActive = true;
         S3StatusText.Text = P($"Loading {bucketName}…", $"載入緊 {bucketName}…");
         try
@@ -431,10 +734,9 @@ public sealed partial class AwsCliModule
         }
         finally
         {
-            if (loadGeneration == _s3BucketLoadGeneration)
+            if (operation.IsCurrent && loadGeneration == _s3BucketLoadGeneration)
             {
                 _suppressS3Settings = false;
-                EndS3Operation();
                 S3Progress.IsActive = false;
             }
         }
@@ -443,20 +745,20 @@ public sealed partial class AwsCliModule
     private partial async Task LoadObjectsAsync()
     {
         if (!TryGetLoadedS3Bucket(out var bucket)) return;
-        var token = BeginS3Operation();
+        using var operation = BeginS3Operation();
         S3Progress.IsActive = true;
-        try { await LoadObjectsCoreAsync(bucket.Name, token); }
-        finally { EndS3Operation(); S3Progress.IsActive = false; }
+        try { await LoadObjectsCoreAsync(bucket.Name, operation.Token); }
+        finally { if (operation.IsCurrent) S3Progress.IsActive = false; }
     }
 
     private partial async Task LoadMoreS3ObjectsAsync()
     {
         if (!TryGetLoadedS3Bucket(out var bucket) || string.IsNullOrWhiteSpace(_s3ObjectNextToken)) return;
-        var token = BeginS3Operation();
+        using var operation = BeginS3Operation();
         S3Progress.IsActive = true;
         S3ObjectLoadMoreBtn.IsEnabled = false;
-        try { await LoadObjectsCoreAsync(bucket.Name, token, append: true); }
-        finally { EndS3Operation(); S3Progress.IsActive = false; }
+        try { await LoadObjectsCoreAsync(bucket.Name, operation.Token, append: true); }
+        finally { if (operation.IsCurrent) S3Progress.IsActive = false; }
     }
 
     private async Task<bool> LoadObjectsCoreAsync(string bucketName, CancellationToken token, bool append = false)
@@ -473,7 +775,7 @@ public sealed partial class AwsCliModule
             MaxResults = 1_000,
             NextToken = append ? _s3ObjectNextToken : null,
         }, token);
-        token.ThrowIfCancellationRequested();
+        if (token.IsCancellationRequested) return false;
         if (S3BucketList.SelectedItem is not S3BucketRowView selected
             || !string.Equals(selected.Name, bucketName, StringComparison.Ordinal)
             || !string.Equals(_activeS3Prefix, requestedPrefix, StringComparison.Ordinal)) return false;
@@ -533,11 +835,13 @@ public sealed partial class AwsCliModule
 
     private partial async Task CreateBucketAsync()
     {
+        var manager = EnsureAwsManager();
+        if (!TryCaptureAwsContext(out var reviewGeneration, out _)) return;
         var name = new TextBox { Header = P("Bucket name", "儲存桶名稱"), PlaceholderText = "example-company-assets" };
         var region = new TextBlock
         {
-            Text = P($"Region: {EnsureAwsManager().RegionName} (change it in the top bar first)",
-                $"區域：{EnsureAwsManager().RegionName}（如要更改，請先用頂部列）"),
+            Text = P($"Region: {manager.RegionName} (change it in the top bar first)",
+                $"區域：{manager.RegionName}（如要更改，請先用頂部列）"),
             Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
         };
         var objectLock = new ToggleSwitch { Header = P("Enable Object Lock (cannot be disabled later)", "啟用 Object Lock（之後唔可以關閉）") };
@@ -598,30 +902,37 @@ public sealed partial class AwsCliModule
             XamlRoot = XamlRoot,
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (!_awsContext.IsCurrent(reviewGeneration)) return;
         if ((!blockPublic.IsOn || !blockSseC.IsOn)
             && !await ConfirmTypedAsync(
                 P("Confirm reduced bucket protections", "確認降低儲存桶保護"),
                 P("One or more recommended protections are disabled. Type UNPROTECTED to continue.",
                     "一個或以上建議保護已停用。輸入 UNPROTECTED 先繼續。"),
                 "UNPROTECTED")) return;
+        if (!_awsContext.IsCurrent(reviewGeneration)) return;
 
-        var token = BeginS3Operation();
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        if (contextGeneration != reviewGeneration) return;
+        using var operation = BeginS3Operation();
+        var token = operation.Token;
         S3Progress.IsActive = true;
         S3StatusText.Text = P("Creating bucket…", "建立緊儲存桶…");
         try
         {
-            var manager = EnsureAwsManager();
             var result = await manager.CreateBucketAsync(new AwsS3CreateBucketRequest
             {
                 BucketName = name.Text.Trim(),
                 EnableObjectLock = objectLock.IsOn,
             }, token);
+            if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
             if (!result.Success || result.Value is null) { ShowManagerError(result.Error, result.Message); return; }
 
             async Task<bool> ContinueOrRollbackAsync(AwsManagerResult step, string stageEn, string stageZh)
             {
                 if (step.Success) return true;
                 var rollback = await manager.DeleteBucketAsync(result.Value.Name, CancellationToken.None);
+                if (!_awsContext.IsCurrent(contextGeneration)) return false;
                 var rollbackEn = rollback.Success
                     ? "The empty bucket was rolled back."
                     : "Automatic cleanup also failed; the bucket may still exist and needs review.";
@@ -639,6 +950,7 @@ public sealed partial class AwsCliModule
 
             var publicResult = await manager.PutPublicAccessBlockAsync(result.Value.Name,
                 new AwsS3PublicAccessBlockConfiguration(true, blockPublic.IsOn, blockPublic.IsOn, blockPublic.IsOn, blockPublic.IsOn), token);
+            if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
             if (!await ContinueOrRollbackAsync(publicResult, "public-access protection", "公開存取保護設定")) return;
 
             var algorithm = encryption.SelectedIndex switch
@@ -657,25 +969,31 @@ public sealed partial class AwsCliModule
                             encryption.SelectedIndex == 1 ? bucketKey.IsOn : null,
                             blockSseC.IsOn ? "SSE-C" : null),
                     }), token);
+            if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
             if (!await ContinueOrRollbackAsync(encryptionResult, "default encryption", "預設加密設定")) return;
 
             if (versioning.IsOn || objectLock.IsOn)
             {
                 var versioningResult = await manager.PutBucketVersioningAsync(result.Value.Name,
                     new AwsS3VersioningConfiguration(true, "Enabled", null), token);
+                if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
                 if (!await ContinueOrRollbackAsync(versioningResult, "versioning", "版本控制設定")) return;
             }
             ShowManagerSuccess(result.Message);
             await RefreshS3Async();
         }
-        finally { EndS3Operation(); S3Progress.IsActive = false; }
+        finally { if (operation.IsCurrent) S3Progress.IsActive = false; }
     }
 
     private partial async Task UploadObjectAsync()
     {
+        var manager = EnsureAwsManager();
         if (!TryGetLoadedS3Bucket(out var bucket)) return;
+        if (!TryCaptureAwsContext(out var reviewGeneration, out _)) return;
         var path = await FileDialogs.OpenFileAsync();
         if (path is null) return;
+        if (!_awsContext.IsCurrent(reviewGeneration) || !TryGetLoadedS3Bucket(out var currentBucket)
+            || !currentBucket.Name.Equals(bucket.Name, StringComparison.Ordinal)) return;
         var key = new TextBox { Header = P("Object key", "物件 key"), Text = _activeS3Prefix + Path.GetFileName(path) };
         var contentType = new TextBox { Header = P("Content type (optional)", "Content type（選填）"), PlaceholderText = "application/octet-stream" };
         var storage = new ComboBox { Header = P("Storage class", "儲存級別"), HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -698,8 +1016,14 @@ public sealed partial class AwsCliModule
             XamlRoot = XamlRoot,
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (!_awsContext.IsCurrent(reviewGeneration) || !TryGetLoadedS3Bucket(out currentBucket)
+            || !currentBucket.Name.Equals(bucket.Name, StringComparison.Ordinal)) return;
 
-        var token = BeginS3Operation(showCancel: true);
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        if (contextGeneration != reviewGeneration) return;
+        using var operation = BeginS3Operation(showCancel: true);
+        var token = operation.Token;
         S3TransferProgress.Value = 0;
         S3TransferProgress.Visibility = Visibility.Visible;
         S3TransferText.Text = P("Starting upload…", "開始上傳…");
@@ -711,7 +1035,7 @@ public sealed partial class AwsCliModule
         });
         try
         {
-            var result = await EnsureAwsManager().UploadObjectAsync(new AwsS3UploadRequest
+            var request = new AwsS3UploadRequest
             {
                 BucketName = bucket.Name,
                 Key = key.Text.Trim(),
@@ -722,22 +1046,54 @@ public sealed partial class AwsCliModule
                 KmsKeyId = encryption.SelectedIndex is 2 or 3 ? NullIfWhiteSpace(kms.Text) : null,
                 Tags = ParseKeyValueLines(tags.Text),
                 Metadata = ParseKeyValueLines(metadata.Text),
-            }, progress, token);
-            if (result.Success) { ShowManagerSuccess(result.Message); await LoadObjectsCoreAsync(bucket.Name, CancellationToken.None); }
+            };
+            var result = await manager.UploadObjectAsync(request, progress, token);
+            token.ThrowIfCancellationRequested();
+            if (!result.Success && result.Error?.Kind == AwsManagerErrorKind.Conflict
+                && await ConfirmTypedAsync(
+                    P("Replace existing S3 object", "取代現有 S3 物件"),
+                    P($"An object may already exist at '{request.Key}'. Type the exact object key to replace it. This can permanently replace the current data when versioning is off.",
+                        $"「{request.Key}」可能已有物件。輸入完整 object key 先取代；如果版本控制關閉，現有資料可能會永久被覆寫。"),
+                    request.Key,
+                    "Replace object",
+                    "取代物件"))
+            {
+                S3TransferProgress.Value = 0;
+                result = await manager.UploadObjectAsync(request with { Overwrite = true }, progress, token);
+                token.ThrowIfCancellationRequested();
+            }
+            if (result.Success) { ShowManagerSuccess(result.Message); await LoadObjectsCoreAsync(bucket.Name, token); }
             else ShowManagerError(result.Error, result.Message);
         }
-        catch (OperationCanceledException) { S3TransferText.Text = P("Upload cancelled.", "已取消上傳。"); }
-        finally { EndS3Operation(); S3TransferProgress.Visibility = Visibility.Collapsed; }
+        catch (OperationCanceledException)
+        {
+            if (_awsContext.IsCurrent(contextGeneration))
+                S3TransferText.Text = P("Upload cancelled.", "已取消上傳。");
+        }
+        finally
+        {
+            if (operation.IsCurrent && _awsContext.IsCurrent(contextGeneration))
+            {
+                S3TransferProgress.Visibility = Visibility.Collapsed;
+            }
+        }
     }
 
     private partial async Task DownloadObjectAsync()
     {
+        var manager = EnsureAwsManager();
         if (!TryGetLoadedS3Bucket(out var bucket)
             || S3ObjectList.SelectedItem is not S3ObjectRowView { IsPrefix: false } item
             || !string.Equals(item.BucketName, bucket.Name, StringComparison.Ordinal)) return;
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
         var destination = await FileDialogs.SaveFileAsync(Path.GetFileName(item.Key));
         if (destination is null) return;
-        var token = BeginS3Operation(showCancel: true);
+        if (!_awsContext.IsCurrent(contextGeneration)
+            || S3ObjectList.SelectedItem is not S3ObjectRowView currentItem
+            || !currentItem.BucketName.Equals(bucket.Name, StringComparison.Ordinal)
+            || !currentItem.Key.Equals(item.Key, StringComparison.Ordinal)) return;
+        using var operation = BeginS3Operation(showCancel: true);
+        var token = operation.Token;
         S3TransferProgress.Value = 0;
         S3TransferProgress.Visibility = Visibility.Visible;
         var progress = new Progress<AwsTransferProgress>(p =>
@@ -747,30 +1103,48 @@ public sealed partial class AwsCliModule
         });
         try
         {
-            var result = await EnsureAwsManager().DownloadObjectAsync(new AwsS3DownloadRequest
+            var result = await manager.DownloadObjectAsync(new AwsS3DownloadRequest
             {
                 BucketName = bucket.Name,
                 Key = item.Key,
                 DestinationPath = destination,
                 Overwrite = true,
             }, progress, token);
+            token.ThrowIfCancellationRequested();
+            if (!_awsContext.IsCurrent(contextGeneration)) return;
             if (result.Success) ShowManagerSuccess(result.Message); else ShowManagerError(result.Error, result.Message);
         }
-        catch (OperationCanceledException) { S3TransferText.Text = P("Download cancelled.", "已取消下載。"); }
-        finally { EndS3Operation(); S3TransferProgress.Visibility = Visibility.Collapsed; }
+        catch (OperationCanceledException)
+        {
+            if (_awsContext.IsCurrent(contextGeneration))
+                S3TransferText.Text = P("Download cancelled.", "已取消下載。");
+        }
+        finally
+        {
+            if (operation.IsCurrent && _awsContext.IsCurrent(contextGeneration))
+            {
+                S3TransferProgress.Visibility = Visibility.Collapsed;
+            }
+        }
     }
 
     private partial async Task DeleteS3SelectionAsync()
     {
+        var manager = EnsureAwsManager();
         if (!TryGetLoadedS3Bucket(out var bucket)) return;
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        using var operation = BeginS3Operation();
+        var token = operation.Token;
         if (S3ObjectList.SelectedItem is S3ObjectRowView { IsPrefix: false } item
             && string.Equals(item.BucketName, bucket.Name, StringComparison.Ordinal))
         {
             if (!await ConfirmTypedAsync(P("Delete S3 object", "刪除 S3 物件"),
                     P($"Delete '{item.Key}'? In a versioned bucket this normally creates a delete marker and retains older versions. Type DELETE to confirm.",
                         $"刪除「{item.Key}」？如果儲存桶有版本控制，通常會建立 delete marker 並保留舊版本。輸入 DELETE 確認。"), "DELETE")) return;
-            var result = await EnsureAwsManager().DeleteObjectsAsync(bucket.Name,
-                new[] { new AwsS3ObjectIdentifier(item.Key) });
+            var result = await manager.DeleteObjectsAsync(bucket.Name,
+                new[] { new AwsS3ObjectIdentifier(item.Key) }, token);
+            if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
             if (result.Success) { ShowManagerSuccess(result.Message); await LoadObjectsAsync(); }
             else ShowManagerError(result.Error, result.Message);
             return;
@@ -778,13 +1152,15 @@ public sealed partial class AwsCliModule
 
         if (!await ConfirmTypedAsync(P("Delete S3 bucket", "刪除 S3 儲存桶"),
                 P($"The bucket must be empty. Type its exact name to delete it: {bucket.Name}", $"儲存桶必須係空。輸入完整名稱以刪除：{bucket.Name}"), bucket.Name)) return;
-        var bucketResult = await EnsureAwsManager().DeleteBucketAsync(bucket.Name);
+        var bucketResult = await manager.DeleteBucketAsync(bucket.Name, token);
+        if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
         if (bucketResult.Success) { ShowManagerSuccess(bucketResult.Message); await RefreshS3Async(); }
         else ShowManagerError(bucketResult.Error, bucketResult.Message);
     }
 
     private partial async Task SaveS3PropertiesAsync()
     {
+        var manager = EnsureAwsManager();
         if (!TryGetLoadedS3Bucket(out var bucket)) return;
         if (!_s3VersioningDirty && !_s3EncryptionDirty)
         {
@@ -792,12 +1168,16 @@ public sealed partial class AwsCliModule
             return;
         }
 
-        var manager = EnsureAwsManager();
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        using var operation = BeginS3Operation();
+        var token = operation.Token;
         AwsManagerResult? last = null;
         if (_s3VersioningDirty)
         {
             last = await manager.PutBucketVersioningAsync(bucket.Name,
-                new AwsS3VersioningConfiguration(true, S3VersioningToggle.IsOn ? "Enabled" : "Suspended", null));
+                new AwsS3VersioningConfiguration(true, S3VersioningToggle.IsOn ? "Enabled" : "Suspended", null), token);
+            if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
             if (!last.Success) { ShowManagerOutcome(last); return; }
         }
 
@@ -836,7 +1216,8 @@ public sealed partial class AwsCliModule
                     new[] { new AwsS3EncryptionRule("aws:kms:dsse", NullIfWhiteSpace(S3KmsKeyBox.Text), null, blockedType) }),
                 _ => new AwsS3EncryptionConfiguration(false, Array.Empty<AwsS3EncryptionRule>()),
             };
-            last = await manager.PutBucketEncryptionAsync(bucket.Name, encryption);
+            last = await manager.PutBucketEncryptionAsync(bucket.Name, encryption, token);
+            if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
             if (!last.Success) { ShowManagerOutcome(last); return; }
         }
 
@@ -846,6 +1227,7 @@ public sealed partial class AwsCliModule
 
     private partial async Task SaveS3PermissionsAsync()
     {
+        var manager = EnsureAwsManager();
         if (!TryGetLoadedS3Bucket(out var bucket)) return;
         if (!_s3PublicAccessDirty && !_s3PolicyDirty)
         {
@@ -853,7 +1235,10 @@ public sealed partial class AwsCliModule
             return;
         }
 
-        var manager = EnsureAwsManager();
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        using var operation = BeginS3Operation();
+        var token = operation.Token;
         AwsManagerResult? last = null;
         if (_s3PublicAccessDirty)
         {
@@ -874,7 +1259,8 @@ public sealed partial class AwsCliModule
                     S3BlockPublicAclsToggle.IsOn,
                     S3IgnorePublicAclsToggle.IsOn,
                     S3BlockPublicPolicyToggle.IsOn,
-                    S3RestrictPublicBucketsToggle.IsOn));
+                    S3RestrictPublicBucketsToggle.IsOn), token);
+            if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
             if (!last.Success) { ShowManagerOutcome(last); return; }
         }
 
@@ -887,7 +1273,8 @@ public sealed partial class AwsCliModule
                     P("The bucket policy will be deleted. Type POLICY to continue.", "儲存桶政策將會刪除。輸入 POLICY 先繼續。"),
                     "POLICY")) return;
             last = await manager.PutBucketPolicyAsync(bucket.Name,
-                new AwsS3BucketPolicy(!string.IsNullOrEmpty(policy), policy));
+                new AwsS3BucketPolicy(!string.IsNullOrEmpty(policy), policy), token);
+            if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
             if (!last.Success) { ShowManagerOutcome(last); return; }
         }
 
@@ -897,6 +1284,7 @@ public sealed partial class AwsCliModule
 
     private partial async Task SaveS3ManagementAsync()
     {
+        var manager = EnsureAwsManager();
         if (!TryGetLoadedS3Bucket(out var bucket)) return;
         if (!_s3LifecycleDirty && !_s3CorsDirty)
         {
@@ -904,9 +1292,12 @@ public sealed partial class AwsCliModule
             return;
         }
 
+        using var mutation = BeginAwsMutation();
         try
         {
-            var manager = EnsureAwsManager();
+            if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+            using var operation = BeginS3Operation();
+            var token = operation.Token;
             AwsManagerResult? last = null;
             if (_s3LifecycleDirty)
             {
@@ -919,7 +1310,8 @@ public sealed partial class AwsCliModule
                 if (_loadedLifecycle?.Configured == true && (!lifecycle.Configured || lifecycle.Rules.Count == 0)
                     && !await ConfirmTypedAsync(P("Delete lifecycle rules", "刪除生命週期規則"),
                         P("All lifecycle rules will be removed. Type DELETE to continue.", "全部生命週期規則將會移除。輸入 DELETE 先繼續。"), "DELETE")) return;
-                last = await manager.PutLifecycleConfigurationAsync(bucket.Name, lifecycle);
+                last = await manager.PutLifecycleConfigurationAsync(bucket.Name, lifecycle, token);
+                if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
                 if (!last.Success) { ShowManagerOutcome(last); return; }
             }
 
@@ -934,7 +1326,8 @@ public sealed partial class AwsCliModule
                 if (_loadedCors?.Configured == true && (!cors.Configured || cors.Rules.Count == 0)
                     && !await ConfirmTypedAsync(P("Delete CORS rules", "刪除 CORS 規則"),
                         P("All CORS rules will be removed. Type DELETE to continue.", "全部 CORS 規則將會移除。輸入 DELETE 先繼續。"), "DELETE")) return;
-                last = await manager.PutCorsConfigurationAsync(bucket.Name, cors);
+                last = await manager.PutCorsConfigurationAsync(bucket.Name, cors, token);
+                if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
                 if (!last.Success) { ShowManagerOutcome(last); return; }
             }
 
@@ -953,6 +1346,7 @@ public sealed partial class AwsCliModule
 
     private partial async Task SaveS3TagsAsync()
     {
+        var manager = EnsureAwsManager();
         if (!TryGetLoadedS3Bucket(out var bucket)) return;
         if (!_s3TagsDirty)
         {
@@ -960,17 +1354,24 @@ public sealed partial class AwsCliModule
             return;
         }
 
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out _)) return;
+        using var operation = BeginS3Operation();
+        var token = operation.Token;
         var tags = ParseKeyValueLines(S3TagsBox.Text);
         if ((_loadedTags?.Tags.Count ?? 0) > 0 && tags.Count == 0
             && !await ConfirmTypedAsync(P("Delete all bucket tags", "刪除全部儲存桶標籤"),
                 P("All bucket tags will be removed. Type DELETE to continue.", "全部儲存桶標籤將會移除。輸入 DELETE 先繼續。"), "DELETE")) return;
-        var result = await EnsureAwsManager().PutBucketTagsAsync(bucket.Name, new AwsS3BucketTags(tags));
+        var result = await manager.PutBucketTagsAsync(bucket.Name, new AwsS3BucketTags(tags), token);
+        if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
         ShowManagerOutcome(result);
         if (result.Success) await LoadSelectedBucketAsync();
     }
 
     private partial async Task CreateCloudResourceAsync()
     {
+        var manager = EnsureAwsManager();
+        if (!TryCaptureAwsContext(out var reviewGeneration, out _)) return;
         var type = new TextBox { Header = P("CloudFormation resource type", "CloudFormation 資源類型"), PlaceholderText = "AWS::EC2::SecurityGroup" };
         var json = new TextBox { Header = P("Desired state (JSON)", "目標狀態（JSON）"), Text = "{\n  \n}", AcceptsReturn = true, Height = 250, FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas") };
         var wait = new CheckBox { Content = P("Wait for completion", "等候完成"), IsChecked = true };
@@ -978,63 +1379,138 @@ public sealed partial class AwsCliModule
         panel.Children.Add(type); panel.Children.Add(json); panel.Children.Add(wait);
         var dialog = new ContentDialog { Title = P("Create resource with Cloud Control", "用 Cloud Control 建立資源"), Content = panel, PrimaryButtonText = P("Create", "建立"), CloseButtonText = P("Cancel", "取消"), XamlRoot = XamlRoot };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-        var result = await EnsureAwsManager().CreateCloudResourceAsync(new AwsCloudControlCreateRequest { TypeName = type.Text.Trim(), DesiredStateJson = json.Text });
+        if (!_awsContext.IsCurrent(reviewGeneration)) return;
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out var token)) return;
+        if (contextGeneration != reviewGeneration) return;
+        var result = await manager.CreateCloudResourceAsync(new AwsCloudControlCreateRequest { TypeName = type.Text.Trim(), DesiredStateJson = json.Text }, token);
         if (result.Success && result.Value is { } op && wait.IsChecked == true)
-            result = await EnsureAwsManager().WaitForCloudOperationAsync(op.RequestToken);
+            result = await manager.WaitForCloudOperationAsync(op.RequestToken, cancellationToken: token);
+        if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
         ShowManagerOutcome(result);
         if (result.Success) await RefreshResourcesAsync();
     }
 
     private partial async Task InspectCloudResourceAsync()
     {
+        var manager = EnsureAwsManager();
         if (ResourceList.SelectedItem is not AwsResourceRowView { CloudFormationType: { Length: > 0 } type, Identifier: { Length: > 0 } id } row) return;
-        var result = await EnsureAwsManager().GetCloudResourceAsync(new AwsCloudControlGetRequest { TypeName = type, Identifier = id });
+        if (!TryCaptureAwsContext(out var contextGeneration, out var token)) return;
+        var result = await manager.GetCloudResourceAsync(new AwsCloudControlGetRequest { TypeName = type, Identifier = id }, token);
+        if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
         if (!result.Success || result.Value is null) { ShowManagerError(result.Error, result.Message); return; }
         await ShowJsonDialogAsync(P($"{row.Name} · resource JSON", $"{row.Name} · 資源 JSON"), result.Value.PropertiesJson);
     }
 
     private partial async Task UpdateCloudResourceAsync()
     {
+        var manager = EnsureAwsManager();
         if (ResourceList.SelectedItem is not AwsResourceRowView { CloudFormationType: { Length: > 0 } type, Identifier: { Length: > 0 } id } row) return;
+        if (!TryCaptureAwsContext(out var reviewGeneration, out _)) return;
         var patch = new TextBox { Header = P("JSON Patch document", "JSON Patch 文件"), Text = "[\n  { \"op\": \"replace\", \"path\": \"/Property\", \"value\": \"new-value\" }\n]", AcceptsReturn = true, Height = 260, FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas") };
         var wait = new CheckBox { Content = P("Wait for completion", "等候完成"), IsChecked = true };
         var panel = new StackPanel { Width = 500, Spacing = 8 }; panel.Children.Add(patch); panel.Children.Add(wait);
         var dialog = new ContentDialog { Title = P($"Update {row.Name}", $"更新 {row.Name}"), Content = panel, PrimaryButtonText = P("Submit update", "提交更新"), CloseButtonText = P("Cancel", "取消"), XamlRoot = XamlRoot };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-        var result = await EnsureAwsManager().UpdateCloudResourceAsync(new AwsCloudControlUpdateRequest { TypeName = type, Identifier = id, PatchDocumentJson = patch.Text });
+        if (!_awsContext.IsCurrent(reviewGeneration)
+            || ResourceList.SelectedItem is not AwsResourceRowView currentRow
+            || !string.Equals(currentRow.Identifier, id, StringComparison.Ordinal)) return;
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out var token)) return;
+        if (contextGeneration != reviewGeneration) return;
+        var result = await manager.UpdateCloudResourceAsync(new AwsCloudControlUpdateRequest { TypeName = type, Identifier = id, PatchDocumentJson = patch.Text }, token);
         if (result.Success && result.Value is { } op && wait.IsChecked == true)
-            result = await EnsureAwsManager().WaitForCloudOperationAsync(op.RequestToken);
+            result = await manager.WaitForCloudOperationAsync(op.RequestToken, cancellationToken: token);
+        if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
         ShowManagerOutcome(result);
         if (result.Success) await RefreshResourcesAsync();
     }
 
     private partial async Task DeleteCloudResourceAsync()
     {
+        var manager = EnsureAwsManager();
         if (ResourceList.SelectedItem is not AwsResourceRowView { CloudFormationType: { Length: > 0 } type, Identifier: { Length: > 0 } id } row) return;
+        if (!TryCaptureAwsContext(out var reviewGeneration, out _)) return;
         if (!await ConfirmTypedAsync(P("Delete AWS resource", "刪除 AWS 資源"),
                 P($"This uses Cloud Control and is destructive. Type DELETE to remove {row.Name}.", $"呢個操作會用 Cloud Control，而且有破壞性。輸入 DELETE 刪除 {row.Name}。"), "DELETE")) return;
-        var result = await EnsureAwsManager().DeleteCloudResourceAsync(new AwsCloudControlDeleteRequest { TypeName = type, Identifier = id });
+        if (!_awsContext.IsCurrent(reviewGeneration)
+            || ResourceList.SelectedItem is not AwsResourceRowView currentRow
+            || !string.Equals(currentRow.Identifier, id, StringComparison.Ordinal)) return;
+        using var mutation = BeginAwsMutation();
+        if (!TryCaptureAwsContext(out var contextGeneration, out var token)) return;
+        if (contextGeneration != reviewGeneration) return;
+        var result = await manager.DeleteCloudResourceAsync(new AwsCloudControlDeleteRequest { TypeName = type, Identifier = id }, token);
         if (result.Success && result.Value is { } op)
-            result = await EnsureAwsManager().WaitForCloudOperationAsync(op.RequestToken);
+            result = await manager.WaitForCloudOperationAsync(op.RequestToken, cancellationToken: token);
+        if (token.IsCancellationRequested || !_awsContext.IsCurrent(contextGeneration)) return;
         ShowManagerOutcome(result);
         if (result.Success) await RefreshResourcesAsync();
     }
 
-    private CancellationToken BeginS3Operation(bool showCancel = false)
+    private S3OperationLease BeginS3Operation(bool showCancel = false)
     {
-        _s3OperationCts?.Cancel();
-        _s3OperationCts?.Dispose();
-        _s3OperationCts = new CancellationTokenSource();
+        CancelCurrentS3Operation();
+        unchecked { _s3OperationId++; }
+        if (TryCaptureAwsContext(out _, out var contextToken))
+        {
+            _s3OperationCts = CancellationTokenSource.CreateLinkedTokenSource(contextToken);
+        }
+        else
+        {
+            _s3OperationCts = new CancellationTokenSource();
+            _s3OperationCts.Cancel();
+        }
+        S3BusyShield.Visibility = Visibility.Visible;
         S3CancelBtn.Visibility = showCancel ? Visibility.Visible : Visibility.Collapsed;
-        return _s3OperationCts.Token;
+        return new S3OperationLease(this, _s3OperationId, _s3OperationCts.Token);
     }
 
-    private void EndS3Operation()
+    private bool IsCurrentS3Operation(int operationId)
+        => operationId == _s3OperationId && _s3OperationCts is not null;
+
+    private void EndS3Operation(int operationId)
     {
+        if (!IsCurrentS3Operation(operationId)) return;
+        _s3OperationCts!.Dispose();
+        _s3OperationCts = null;
+        S3BusyShield.Visibility = Visibility.Collapsed;
         S3CancelBtn.Visibility = Visibility.Collapsed;
     }
 
-    private async Task<bool> ConfirmTypedAsync(string title, string message, string expected)
+    private void CancelCurrentS3Operation()
+    {
+        _s3OperationCts?.Cancel();
+        _s3OperationCts?.Dispose();
+        _s3OperationCts = null;
+        unchecked { _s3OperationId++; }
+        S3BusyShield.Visibility = Visibility.Collapsed;
+        S3CancelBtn.Visibility = Visibility.Collapsed;
+    }
+
+    private sealed class S3OperationLease(
+        AwsCliModule owner,
+        int operationId,
+        CancellationToken token) : IDisposable
+    {
+        private AwsCliModule? _owner = owner;
+
+        public CancellationToken Token { get; } = token;
+
+        public bool IsCurrent => _owner?.IsCurrentS3Operation(operationId) == true;
+
+        public void Dispose()
+        {
+            var current = Interlocked.Exchange(ref _owner, null);
+            current?.EndS3Operation(operationId);
+        }
+    }
+
+    private async Task<bool> ConfirmTypedAsync(
+        string title,
+        string message,
+        string expected,
+        string primaryEn = "Delete permanently",
+        string primaryZh = "永久刪除")
     {
         var input = new TextBox { Header = P("Confirmation", "確認"), PlaceholderText = expected };
         var panel = new StackPanel { Width = 420, Spacing = 9 };
@@ -1044,7 +1520,7 @@ public sealed partial class AwsCliModule
         {
             Title = title,
             Content = panel,
-            PrimaryButtonText = P("Delete permanently", "永久刪除"),
+            PrimaryButtonText = P(primaryEn, primaryZh),
             CloseButtonText = P("Cancel", "取消"),
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = XamlRoot,

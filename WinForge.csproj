@@ -24,10 +24,9 @@
     <!-- ConPtySession 用 P/Invoke 嘅 STARTUPINFOEX／指標操作需要 unsafe ·
          The embedded ConPTY terminal (Services/ConPtySession.cs) needs unsafe pointer code. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- External, vendored, restored-package, and native C++ source/build trees must NEVER be globbed into
-         the legacy managed WinUI project. ThirdParty/ contains exact, reviewable tracked snapshots (including
-         UniGetUI under its project license plus separately noticed third-party material), while src/ owns the
-         standalone native rewrite and its generated XAML intermediates. -->
+    <!-- External, vendored, restored-package, helper-project, and tooling trees must never be globbed into
+         the canonical managed WinUI project. ThirdParty/ contains exact, reviewable tracked snapshots. Keep
+         src/ excluded so ignored build residue from historical native-port checkouts cannot become XAML input. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);external\**;ThirdParty\**;packages\**;src\**;launcher\**;updater\**;tools\**</DefaultItemExcludes>
   </PropertyGroup>
 
@@ -105,9 +104,10 @@
   -->
   <ItemGroup>
     <!-- AWS SDK for .NET v4 (Apache-2.0): managed account/session, cross-service resource discovery,
-         generic Cloud Control CRUDL, and the first high-fidelity S3 manager. The aws CLI remains an
+         generic Cloud Control CRUDL, and high-fidelity S3 + EC2 managers. The aws CLI remains an
          optional advanced terminal; the primary AWS experience talks to AWS APIs in-process. -->
     <PackageReference Include="AWSSDK.Core" Version="4.0.100.4" />
+    <PackageReference Include="AWSSDK.EC2" Version="4.0.101" />
     <PackageReference Include="AWSSDK.SecurityToken" Version="4.0.100.3" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.100.3" />
     <PackageReference Include="AWSSDK.SSO" Version="4.0.100.3" />

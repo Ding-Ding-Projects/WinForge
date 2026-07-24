@@ -72,8 +72,10 @@ public static class UninstallManager
                 }
                 catch { continue; }
 
+#pragma warning disable CA1416
                 string install = "", logo = "", disp = "", pub = "";
                 try { install = p.InstalledPath ?? ""; } catch { }
+#pragma warning restore CA1416
                 try { logo = p.Logo?.ToString() ?? ""; } catch { }
                 try { disp = p.DisplayName ?? ""; } catch { }
                 try { pub = p.PublisherDisplayName ?? ""; } catch { }

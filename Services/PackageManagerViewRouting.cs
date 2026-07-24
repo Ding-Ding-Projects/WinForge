@@ -9,6 +9,12 @@ public enum PackageManagerViewTarget
     Discover = 0,
     Updates = 1,
     Installed = 2,
+    Bundles = 3,
+    Sources = 4,
+    Ignored = 5,
+    Setup = 6,
+    Settings = 7,
+    Operations = 8,
 }
 
 /// <summary>
@@ -30,6 +36,12 @@ public static class PackageManagerViewRouting
             case "discover": index = (int)PackageManagerViewTarget.Discover; return true;
             case "updates": index = (int)PackageManagerViewTarget.Updates; return true;
             case "installed": index = (int)PackageManagerViewTarget.Installed; return true;
+            case "bundles": index = (int)PackageManagerViewTarget.Bundles; return true;
+            case "sources": index = (int)PackageManagerViewTarget.Sources; return true;
+            case "ignored": index = (int)PackageManagerViewTarget.Ignored; return true;
+            case "setup": index = (int)PackageManagerViewTarget.Setup; return true;
+            case "settings": index = (int)PackageManagerViewTarget.Settings; return true;
+            case "operations": index = (int)PackageManagerViewTarget.Operations; return true;
             default:
                 index = 0;
                 return false;
@@ -41,6 +53,12 @@ public static class PackageManagerViewRouting
         PackageManagerViewTarget.Discover => "discover",
         PackageManagerViewTarget.Updates => "updates",
         PackageManagerViewTarget.Installed => "installed",
+        PackageManagerViewTarget.Bundles => "bundles",
+        PackageManagerViewTarget.Sources => "sources",
+        PackageManagerViewTarget.Ignored => "ignored",
+        PackageManagerViewTarget.Setup => "setup",
+        PackageManagerViewTarget.Settings => "settings",
+        PackageManagerViewTarget.Operations => "operations",
         _ => "discover",
     };
 }

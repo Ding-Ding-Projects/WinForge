@@ -1,14 +1,14 @@
 # WinForge Wiki · 視窗鑄造 Wiki
 
-**EN —** WinForge is a fully bilingual Windows 11 control center with 319 registered in-app entries, 895 tweak-catalog items, and 1,214 total app features including the flagship nuclear-reactor simulator. A genuine C++20/C++/WinRT rewrite is progressing beside the shipping managed app.
-**粵語 —** WinForge 係全程雙語嘅 Windows 11 控制中心，有 319 個已登記 app 內項目、895 項調校目錄項目，同 1,214 項總功能，包括旗艦核反應堆模擬器。真正 C++20／C++/WinRT 重寫正同發佈中受控 app 並行推進。
+**EN —** WinForge is the canonical, fully bilingual .NET 11 / WinUI 3 Windows 11 control center with 319 registered in-app entries, 895 tweak-catalog items, and 1,214 total app features including the flagship nuclear-reactor simulator. The experimental C++ port is maintained separately.
+**粵語 —** WinForge 係正式、全程雙語嘅 .NET 11／WinUI 3 Windows 11 控制中心，有 319 個已登記 app 內項目、895 項調校目錄項目，同 1,214 項總功能，包括旗艦核反應堆模擬器。實驗性 C++ 移植版會喺獨立 repository 維護。
 
 ## Start Here · 由呢度開始
 
 | Page · 頁面 | Use it for · 用途 |
 |---|---|
 | [Module Categories](Module-Categories.md) | Browse every module by area · 按分類瀏覽全部模組 |
-| [Native C++ Rewrite](Native-Cpp-Rewrite.md) | Honest C++ migration scope, evidence, blockers, and cutover gates · 如實 C++ 遷移範圍、證據、阻礙同切換閘門 |
+| [Native Port Relocation](Native-Cpp-Rewrite.md) | Link to the independent WinForge-Native project · 獨立 WinForge-Native project 連結 |
 | [Reactor Hub](#/wiki/Reactor-Hub) | Reactor manual, procedures, safety, fuel, waste, and tests · 反應堆手冊、程序、安全、燃料、廢料同測試 |
 | [Generated References](#/wiki/Generated-References) | One page per feature and one page per button/control · 每功能一頁、每按鈕／控制項一頁 |
 | [Screenshots](#/wiki/Screenshots) | Screenshot gallery and redaction rules · 截圖集同遮蔽規則 |
@@ -22,7 +22,7 @@
 - [Dashboard](Dashboard.md) · 概覽
 - [Git & GitHub](Git-and-GitHub.md) · Git 與 GitHub
 - [Package Manager](Package-Manager.md) · 套件管理
-- [Native C++ Rewrite](Native-Cpp-Rewrite.md) · 原生 C++ 重寫
+- [Native Port Relocation](Native-Cpp-Rewrite.md) · 原生移植版搬遷
 - [AWS Manager](AWS-Manager.md) · AWS 管理中心
 - [AI Agents](AI-Agents.md) · AI 代理
 - [Cake Factory & Farm](Cake-Factory-and-Farm.md) · 蛋糕工廠與農場

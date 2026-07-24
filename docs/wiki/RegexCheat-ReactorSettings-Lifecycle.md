@@ -1,5 +1,7 @@
 # Regex Cheatsheet & Reactor Settings Lifecycle · 正則速查同反應堆設定生命週期
 
+**Repository scope · 儲存庫範圍：** This page records the canonical .NET Regex Cheatsheet and Reactor Settings fixes. C++/WinRT port evidence now lives in [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). · 呢頁記錄正式 .NET Regex Cheatsheet 同 Reactor Settings 修正；C++/WinRT 移植證據而家放喺 [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)。
+
 ## What changed · 改咗乜
 
 **EN —** Regex Cheatsheet now documents `(?>a*)`, the valid .NET atomic equivalent of possessive `a*`, instead of the unsupported `*+` syntax. Reactor Settings now keeps one named live-API timer callback per page instance and balances its named language handler across every load/unload cycle.
@@ -19,7 +21,7 @@ dotnet run --project tests/ReactorSettingsLifecycle.Tests -c Debug
 
 ## Launch and screenshots · 啟動同截圖
 
-**EN —** Fresh 15-second capture attempts for `regexcheat` and `reactorsettings` are `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable. No PNG was created or reused; both routes subsequently passed launch-only checks without a control action. The old Reactor Settings image was removed rather than claimed as current evidence.
+**EN —** The earlier managed 15-second capture attempts for `regexcheat` and `reactorsettings` remain `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable. No PNG was created or reused; both routes subsequently passed launch-only checks without operating controls. The old Reactor Settings image was removed rather than claimed as current evidence.
 
 **粵語 —** `regexcheat` 同 `reactorsettings` 新鮮 15 秒截圖嘗試都係 `capture-blocked`：`CopyFromScreen` 唔可用、`PrintWindow` fallback 係 uniform，而 graphics capture 亦唔可用。冇 PNG 產生或者重用；兩條 route 之後喺冇操作控制項下都通過 launch-only check。舊 Reactor Settings 圖片已移除，唔會當成最新證據。
 

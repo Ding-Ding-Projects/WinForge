@@ -12,21 +12,21 @@ Open in-app: `WinForge.exe --page git`
 
 ## Package Manager · 套件管理
 
-One front-end over winget, scoop, choco, pip, npm and more. · 統一前端操作 winget、scoop、choco、pip、npm 等。
+The canonical .NET workspace covers 11 package engines and nine views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations. Package mutations remain explicit and reviewable, missing engines are treated as setup dependencies, and interactive execution fails closed when WinForge cannot preserve its normal-integrity boundary. · 正式 .NET 工作區涵蓋 11 個套件引擎同九個檢視：Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations。套件修改保持明確同可檢視；欠缺引擎會當成設定 dependency；WinForge 保持唔到正常 integrity 界線時，互動執行會 fail closed。
 
 Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
-> Managed production reference · 受控正式版參考：the screenshot documents the shipping managed page. The native C++ Bundle-workspace capture is currently `capture-blocked`; no managed image is presented as native visual proof. · 呢張截圖記錄發佈中嘅受控頁。原生 C++ Bundle 工作區截圖目前係 `capture-blocked`；唔會將受控圖片當成原生視覺證據。
+See [Package Manager](#/wiki/Package-Manager) for workspace behavior, configuration, safety boundaries, and failure modes. · 工作區行為、設定、安全界線同失敗模式請睇[套件管理](#/wiki/Package-Manager)。
 
-## Native OSS Clones · 開源原生分頁
+## In-app OSS-inspired tools · App 內開源靈感工具
 
-A native-only index of open-source app ideas already remade as WinForge C# tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出已重製成 WinForge C# 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
+An in-app index of open-source ideas reimplemented as managed WinForge tabs rather than installer-only entries or redirects. · App 內索引會將開源靈感重製成正式 WinForge 分頁，而唔係只做 installer 項目或跳轉。
 
 Open in-app: `WinForge.exe --page ossapps`
 
-Included native clone examples: API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Native Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark and Everything Search. · 原生複製例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、原生種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
+Examples include API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark, and Everything Search. · 例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
 
 ## Cake Factory & Farm · 蛋糕工廠與農場
 
@@ -46,11 +46,11 @@ Open in-app: `WinForge.exe --page rss`
 
 ## App Uninstaller · 應用程式解除安裝
 
-Remove apps and Appx packages via winget. · 用 winget 移除應用程式同 Appx 套件。
+Current-user Store/UWP inventory through the Windows package API, with local search, review plus explicit confirmation for removal, and a normal-integrity fail-closed gate. Deep cleanup is intentionally unavailable and no local-data folder is deleted. · 經 Windows package API 整理目前使用者 Store／UWP 清單，提供本機搜尋、檢視加明確移除確認，同正常 integrity fail-closed gate。深層清理刻意未開放，而且唔會刪本機資料夾。
 
 Open in-app: `WinForge.exe --page uninstall`
 
-![App Uninstaller](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-uninstall.png)
+> **Safety boundary · 安全界線：** Removal never deletes LocalAppData or any other local-data folder. Search is local to the current inventory, and removal requires review plus a separate confirmation. · 移除絕對唔會刪 LocalAppData 或其他本機資料夾。搜尋只針對目前 inventory，而移除要先檢視再獨立確認。
 
 ## Android (ADB) · Android（ADB）
 

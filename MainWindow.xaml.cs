@@ -1086,9 +1086,13 @@ public sealed partial class MainWindow : Window
                 break;
             case "aws":
             case "awscli":
-            case "s3":
-            case "ec2":
                 Navigator.GoToModule?.Invoke("module.aws");
+                break;
+            case "s3":
+                Navigator.GoToModule?.Invoke("module.aws#s3");
+                break;
+            case "ec2":
+                Navigator.GoToModule?.Invoke("module.aws#ec2");
                 break;
             case "peek":
             case "preview":
@@ -1459,6 +1463,30 @@ public sealed partial class MainWindow : Window
             case "package-installed":
             case "packages-installed":
                 Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Installed));
+                break;
+            case "package-bundles":
+            case "packages-bundles":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Bundles));
+                break;
+            case "package-sources":
+            case "packages-sources":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Sources));
+                break;
+            case "package-ignored":
+            case "packages-ignored":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Ignored));
+                break;
+            case "package-setup":
+            case "packages-setup":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Setup));
+                break;
+            case "package-settings":
+            case "packages-settings":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Settings));
+                break;
+            case "package-operations":
+            case "packages-operations":
+                Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(PackageManagerViewTarget.Operations));
                 break;
             case "adb":
             case "android":

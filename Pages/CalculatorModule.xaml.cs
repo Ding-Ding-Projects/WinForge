@@ -17,7 +17,7 @@ namespace WinForge.Pages;
 public sealed partial class CalculatorModule : Page
 {
     private readonly ObservableCollection<string> _history = new();
-    private bool _suppress;
+    private bool _suppress = false;
 
     public CalculatorModule()
     {
@@ -223,7 +223,7 @@ public sealed partial class CalculatorModule : Page
         {
             string t = ExprBox.Text ?? string.Empty;
             if (t.Length > 0) ExprBox.Text = t.Substring(0, t.Length - 1);
-            ExprBox.SelectionStart = ExprBox.Text.Length;
+            ExprBox.SelectionStart = ExprBox.Text?.Length ?? 0;
             ExprBox.Focus(FocusState.Programmatic);
             return;
         }

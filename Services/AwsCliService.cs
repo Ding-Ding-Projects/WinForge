@@ -152,9 +152,19 @@ public static class AwsCliService
 
     // ── Active context (profile / region / output) · 目前情境 ──────────────────────────
 
-    public static string ActiveProfile { get; set; } = SettingsStore.Get("aws.profile", "");
+    public static string ActiveProfile { get; set; } = InitialActiveProfile();
     public static string ActiveRegion { get; set; } = SettingsStore.Get("aws.region", "");
     public static string ActiveOutput { get; set; } = SettingsStore.Get("aws.output", "json");
+
+    private static string InitialActiveProfile()
+    {
+#if DEBUG
+        // Canonical UI evidence must never expose a developer's persisted AWS profile or account data.
+        if (string.Equals(Environment.GetEnvironmentVariable("WINFORGE_AWS_SAFE_CAPTURE"), "1", StringComparison.Ordinal))
+            return string.Empty;
+#endif
+        return SettingsStore.Get("aws.profile", "");
+    }
 
     public static void PersistContext()
     {
@@ -199,14 +209,14 @@ public static class AwsCliService
 
     /// <summary>
     /// 解析 ~/.aws/config 同 ~/.aws/credentials 列出所有 profile · Parse both files and list profiles.
-    /// 唔會讀／回傳 secret access key · Never reads or returns the secret access key value.
+    /// 唔會保留／回傳 secret access key · Never retains or returns the secret access key value.
     /// </summary>
     public static List<AwsProfile> ListProfiles()
     {
         var profiles = new Dictionary<string, (string? region, string? output, bool creds, bool sso)>(StringComparer.OrdinalIgnoreCase);
 
         // config: sections look like [profile foo] or [default]
-        foreach (var (section, kv) in ParseIni(ConfigPath))
+        foreach (var (section, kv) in ParseIni(ConfigPath, readValues: true))
         {
             var name = section.StartsWith("profile ", StringComparison.OrdinalIgnoreCase)
                 ? section.Substring("profile ".Length).Trim()
@@ -220,7 +230,7 @@ public static class AwsCliService
         }
 
         // credentials: plain [foo] sections; presence of aws_access_key_id => has creds
-        foreach (var (section, kv) in ParseIni(CredentialsPath))
+        foreach (var (section, kv) in ParseIni(CredentialsPath, readValues: false))
         {
             var name = section.Trim();
             if (string.IsNullOrEmpty(name)) continue;
@@ -237,7 +247,7 @@ public static class AwsCliService
             .ToList();
     }
 
-    private static IEnumerable<(string Section, Dictionary<string, string> Kv)> ParseIni(string path)
+    private static IEnumerable<(string Section, Dictionary<string, string> Kv)> ParseIni(string path, bool readValues)
     {
         if (!File.Exists(path)) yield break;
         string[] lines;
@@ -261,8 +271,7 @@ public static class AwsCliService
                 if (eq > 0)
                 {
                     var k = line[..eq].Trim();
-                    var v = line[(eq + 1)..].Trim();
-                    kv[k] = v;
+                    kv[k] = readValues ? line[(eq + 1)..].Trim() : string.Empty;
                 }
             }
         }

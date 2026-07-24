@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.CloudControlApi;
+using Amazon.EC2;
 using Amazon.ResourceExplorer2;
 using Amazon.ResourceGroupsTaggingAPI;
 using Amazon.Runtime;
@@ -21,6 +22,7 @@ using Amazon.S3;
 using Amazon.SecurityToken;
 using WinForge.Models;
 using CloudModel = Amazon.CloudControlApi.Model;
+using Ec2Model = Amazon.EC2.Model;
 using ExplorerModel = Amazon.ResourceExplorer2.Model;
 using S3Model = Amazon.S3.Model;
 using StsModel = Amazon.SecurityToken.Model;
@@ -35,6 +37,7 @@ namespace WinForge.Services;
 public sealed class AwsManagerService : IDisposable
 {
     private const int MaxExplorerPageSize = 1_000;
+    private const int MaxEc2PageSize = 1_000;
     private const int MaxTaggingPageSize = 100;
     private const int MaxS3ObjectPageSize = 1_000;
     private const int MaxS3DeleteBatchSize = 1_000;
@@ -53,6 +56,7 @@ public sealed class AwsManagerService : IDisposable
     private readonly AmazonResourceExplorer2Client? _resourceExplorer;
     private readonly AmazonResourceGroupsTaggingAPIClient? _tagging;
     private readonly AmazonCloudControlApiClient? _cloudControl;
+    private readonly AmazonEC2Client? _ec2;
     private readonly AmazonS3Client? _s3;
     private readonly AwsManagerError? _initializationError;
     private bool _disposed;
@@ -98,6 +102,12 @@ public sealed class AwsManagerService : IDisposable
                 UseDualstackEndpoint = _options.UseDualstackEndpoint,
             });
             _cloudControl = new AmazonCloudControlApiClient(credentials, new AmazonCloudControlApiConfig
+            {
+                RegionEndpoint = region,
+                UseFIPSEndpoint = _options.UseFipsEndpoint,
+                UseDualstackEndpoint = _options.UseDualstackEndpoint,
+            });
+            _ec2 = new AmazonEC2Client(credentials, new AmazonEC2Config
             {
                 RegionEndpoint = region,
                 UseFIPSEndpoint = _options.UseFipsEndpoint,
@@ -582,6 +592,160 @@ public sealed class AwsManagerService : IDisposable
         return AwsManagerResult<AwsCloudOperation>.Fail(timeoutError);
     }
 
+    public async Task<AwsManagerResult<AwsEc2InstancePage>> ListEc2InstancesAsync(
+        AwsEc2ListInstancesRequest? request = null,
+        CancellationToken cancellationToken = default)
+    {
+        request ??= new AwsEc2ListInstancesRequest();
+        if (TryGetUnavailable<AwsEc2InstancePage>(out var unavailable))
+            return unavailable;
+
+        var states = (request.States ?? Array.Empty<string>())
+            .Select(AwsEc2InstancePolicy.NormalizeState)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var knownStates = new HashSet<string>(
+            new[] { "pending", "running", "shutting-down", "terminated", "stopping", "stopped" },
+            StringComparer.Ordinal);
+        if (states.Any(state => !knownStates.Contains(state)))
+            return Invalid<AwsEc2InstancePage>(
+                "One or more EC2 instance-state filters are invalid.",
+                "一個或以上 EC2 執行個體狀態篩選無效。");
+
+        try
+        {
+            var filters = new List<Ec2Model.Filter>();
+            if (states.Length > 0)
+            {
+                filters.Add(new Ec2Model.Filter
+                {
+                    Name = "instance-state-name",
+                    Values = states.ToList(),
+                });
+            }
+
+            var response = await _ec2!.DescribeInstancesAsync(new Ec2Model.DescribeInstancesRequest
+            {
+                MaxResults = Math.Clamp(request.MaxResults, 5, MaxEc2PageSize),
+                NextToken = Normalize(request.NextToken),
+                Filters = filters,
+            }, cancellationToken).ConfigureAwait(false);
+            var instances = (response.Reservations ?? new List<Ec2Model.Reservation>())
+                .SelectMany(reservation => reservation.Instances ?? new List<Ec2Model.Instance>())
+                .Select(AwsEc2ModelMapper.MapInstance)
+                .OrderBy(instance => instance.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(instance => instance.InstanceId, StringComparer.Ordinal)
+                .ToArray();
+            var nextToken = Normalize(response.NextToken);
+            return AwsManagerResult<AwsEc2InstancePage>.Ok(
+                new AwsEc2InstancePage(instances, nextToken, nextToken is not null),
+                $"Loaded {instances.Length} EC2 instance(s) from {RegionName}.",
+                $"已由 {RegionName} 載入 {instances.Length} 個 EC2 執行個體。");
+        }
+        catch (Exception ex)
+        {
+            return AwsManagerResult<AwsEc2InstancePage>.Fail(ToSafeError(ex));
+        }
+    }
+
+    public async Task<AwsManagerResult<AwsEc2InstanceStateChange>> ChangeEc2InstanceStateAsync(
+        string instanceId,
+        AwsEc2InstanceAction action,
+        string currentState,
+        CancellationToken cancellationToken = default)
+    {
+        if (TryGetUnavailable<AwsEc2InstanceStateChange>(out var unavailable))
+            return unavailable;
+        if (!AwsEc2InstancePolicy.IsValidInstanceId(instanceId))
+            return Invalid<AwsEc2InstanceStateChange>(
+                "A valid EC2 instance ID is required.",
+                "需要有效嘅 EC2 執行個體 ID。");
+        if (!AwsEc2InstancePolicy.IsAllowed(action, currentState))
+        {
+            var label = AwsEc2InstancePolicy.ActionLabel(action);
+            return Invalid<AwsEc2InstanceStateChange>(
+                $"EC2 cannot {label.En} an instance from the '{AwsEc2InstancePolicy.NormalizeState(currentState)}' state.",
+                $"EC2 執行個體處於「{AwsEc2InstancePolicy.NormalizeState(currentState)}」狀態時，唔可以{label.Zh}。");
+        }
+
+        var id = instanceId.Trim();
+        try
+        {
+            AwsEc2InstanceStateChange change;
+            switch (action)
+            {
+                case AwsEc2InstanceAction.Start:
+                {
+                    var response = await _ec2!.StartInstancesAsync(new Ec2Model.StartInstancesRequest
+                    {
+                        InstanceIds = new List<string> { id },
+                    }, cancellationToken).ConfigureAwait(false);
+                    change = MapSingleStateChange(response.StartingInstances, id, action, currentState, "pending");
+                    break;
+                }
+                case AwsEc2InstanceAction.Stop:
+                {
+                    var response = await _ec2!.StopInstancesAsync(new Ec2Model.StopInstancesRequest
+                    {
+                        InstanceIds = new List<string> { id },
+                    }, cancellationToken).ConfigureAwait(false);
+                    change = MapSingleStateChange(response.StoppingInstances, id, action, currentState, "stopping");
+                    break;
+                }
+                case AwsEc2InstanceAction.Reboot:
+                    await _ec2!.RebootInstancesAsync(new Ec2Model.RebootInstancesRequest
+                    {
+                        InstanceIds = new List<string> { id },
+                    }, cancellationToken).ConfigureAwait(false);
+                    change = new AwsEc2InstanceStateChange(
+                        id,
+                        AwsEc2InstancePolicy.NormalizeState(currentState),
+                        "running",
+                        action);
+                    break;
+                case AwsEc2InstanceAction.Terminate:
+                {
+                    var response = await _ec2!.TerminateInstancesAsync(new Ec2Model.TerminateInstancesRequest
+                    {
+                        InstanceIds = new List<string> { id },
+                    }, cancellationToken).ConfigureAwait(false);
+                    change = MapSingleStateChange(response.TerminatingInstances, id, action, currentState, "shutting-down");
+                    break;
+                }
+                default:
+                    return Invalid<AwsEc2InstanceStateChange>("Unsupported EC2 instance action.", "唔支援呢個 EC2 執行個體操作。");
+            }
+
+            var actionLabel = AwsEc2InstancePolicy.ActionLabel(action);
+            return AwsManagerResult<AwsEc2InstanceStateChange>.Ok(
+                change,
+                $"EC2 accepted the {actionLabel.En} request for '{id}'.",
+                $"EC2 已接受對「{id}」嘅{actionLabel.Zh}要求。");
+        }
+        catch (Exception ex)
+        {
+            return AwsManagerResult<AwsEc2InstanceStateChange>.Fail(ToSafeError(ex));
+        }
+    }
+
+    private static AwsEc2InstanceStateChange MapSingleStateChange(
+        IReadOnlyList<Ec2Model.InstanceStateChange>? changes,
+        string instanceId,
+        AwsEc2InstanceAction action,
+        string previousState,
+        string fallbackState)
+    {
+        var change = changes?.FirstOrDefault(item =>
+            string.Equals(item.InstanceId, instanceId, StringComparison.Ordinal));
+        return change is null
+            ? new AwsEc2InstanceStateChange(
+                instanceId,
+                AwsEc2InstancePolicy.NormalizeState(previousState),
+                fallbackState,
+                action)
+            : AwsEc2ModelMapper.MapStateChange(change, action);
+    }
+
     public async Task<AwsManagerResult<AwsS3BucketPage>> ListBucketsAsync(
         AwsS3ListBucketsRequest? request = null,
         CancellationToken cancellationToken = default)
@@ -764,6 +928,7 @@ public sealed class AwsManagerService : IDisposable
                 ServerSideEncryptionMethod = Normalize(request.ServerSideEncryption)
                     ?? (Normalize(request.KmsKeyId) is null ? null : "aws:kms"),
                 ServerSideEncryptionKeyManagementServiceKeyId = Normalize(request.KmsKeyId),
+                IfNoneMatch = AwsS3UploadPolicy.IfNoneMatch(request.Overwrite),
                 TagSet = request.Tags.Select(pair => new S3Model.Tag
                 {
                     Key = pair.Key,
@@ -1623,6 +1788,7 @@ public sealed class AwsManagerService : IDisposable
                 (int)HttpStatusCode.Forbidden => AwsManagerErrorKind.AccessDenied,
                 (int)HttpStatusCode.NotFound => AwsManagerErrorKind.NotFound,
                 (int)HttpStatusCode.Conflict => AwsManagerErrorKind.Conflict,
+                (int)HttpStatusCode.PreconditionFailed => AwsManagerErrorKind.Conflict,
                 429 => AwsManagerErrorKind.Throttled,
                 >= 500 => AwsManagerErrorKind.ServiceUnavailable,
                 _ when lowerCode.Contains("accessdenied", StringComparison.Ordinal)
@@ -1631,11 +1797,14 @@ public sealed class AwsManagerService : IDisposable
                     || lowerCode.Contains("invalidclienttoken", StringComparison.Ordinal)
                     || lowerCode.Contains("unrecognizedclient", StringComparison.Ordinal) => AwsManagerErrorKind.AuthenticationRequired,
                 _ when lowerCode.Contains("throttl", StringComparison.Ordinal)
-                    || lowerCode.Contains("toomanyrequest", StringComparison.Ordinal) => AwsManagerErrorKind.Throttled,
+                    || lowerCode.Contains("toomanyrequest", StringComparison.Ordinal)
+                    || lowerCode.Contains("requestlimitexceeded", StringComparison.Ordinal) => AwsManagerErrorKind.Throttled,
                 _ when lowerCode.Contains("notfound", StringComparison.Ordinal)
-                    || lowerCode.StartsWith("nosuch", StringComparison.Ordinal) => AwsManagerErrorKind.NotFound,
+                    || lowerCode.StartsWith("nosuch", StringComparison.Ordinal)
+                    || lowerCode.Contains("invalidinstanceid.notfound", StringComparison.Ordinal) => AwsManagerErrorKind.NotFound,
                 _ when lowerCode.Contains("conflict", StringComparison.Ordinal)
-                    || lowerCode.Contains("alreadyexists", StringComparison.Ordinal) => AwsManagerErrorKind.Conflict,
+                    || lowerCode.Contains("alreadyexists", StringComparison.Ordinal)
+                    || lowerCode.Contains("incorrectinstancestate", StringComparison.Ordinal) => AwsManagerErrorKind.Conflict,
                 _ => AwsManagerErrorKind.AwsService,
             };
             var message = kind switch
@@ -2284,6 +2453,7 @@ public sealed class AwsManagerService : IDisposable
         _resourceExplorer?.Dispose();
         _tagging?.Dispose();
         _cloudControl?.Dispose();
+        _ec2?.Dispose();
         _s3?.Dispose();
     }
 }

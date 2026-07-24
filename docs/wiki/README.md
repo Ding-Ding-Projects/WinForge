@@ -37,7 +37,7 @@ git push
 
 - `Home.md` — compact landing page · 精簡首頁
 - `Module-Categories.md` — categorized index of all 319 registered in-app entries · 全部 319 個已登記 app 內項目嘅分類索引
-- `Native-Cpp-Rewrite.md` — native migration scope, evidence, blockers, and cutover gates · 原生遷移範圍、證據、阻礙同切換閘門
+- `Native-Cpp-Rewrite.md` — relocation link for the independent WinForge-Native port · 獨立 WinForge-Native 移植版搬遷連結
 - `Reactor-Hub.md` — reactor documentation hub · 反應堆文件中心
 - `Generated-References.md` — generated feature/button reference guide · 生成功能／按鈕參考指南
 - `Screenshots.md` — image inventory + capture status · 圖檔清單同擷取狀態

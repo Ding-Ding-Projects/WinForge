@@ -456,7 +456,7 @@ public static class FileIndexService
 
         chain.Clear();
         ulong cur = frn;
-        string basePath = null;
+        string basePath = string.Empty;
 
         // Walk up until we hit the cache, the volume root, or a missing link.
         while (true)

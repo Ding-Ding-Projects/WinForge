@@ -147,7 +147,7 @@ public sealed partial class WslVmModule : Page
 
     private void DistroActions_Click(object sender, RoutedEventArgs e) { /* opens flyout */ }
 
-    private static string Tag(object sender) => (sender as FrameworkElement)?.Tag as string ?? "";
+    private static new string Tag(object sender) => (sender as FrameworkElement)?.Tag as string ?? "";
 
     private async void DistroLaunch_Click(object sender, RoutedEventArgs e)
     {

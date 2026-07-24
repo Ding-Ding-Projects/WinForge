@@ -1,4 +1,0 @@
-Name                          Id                         Version      Available    Source
----------------------------------------------------------------------------------------
-7-Zip                         7zip.7zip                  24.09        25.00        winget
-Café Tool                     Contoso.Cafe               1.0.0                      msstore

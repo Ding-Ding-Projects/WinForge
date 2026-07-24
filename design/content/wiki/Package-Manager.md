@@ -1,71 +1,49 @@
 # Package Manager · 套件管理
 
-![Managed production Package Manager reference · 受控正式版套件管理參考](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
+![Package Manager · 套件管理](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
-> **Screenshot provenance · 截圖來源：** This existing image is a managed .NET production reference, **not current native C++ visual evidence**. On 2026-07-15, the changed native `package-discover`, `package-installed`, and `package-bundles` Bundle-workspace pages were retried through the repository driver at `-WaitMs 16000` and through `WinForgeBundleWorkspaceAudit` on the LowLevel headless desktop; `CopyFromScreen` was unavailable and every `PrintWindow`/HWND path returned a blank or near-uniform WinUI client frame, so the results remain `capture-blocked`. No stale, blank, synthetic, or managed image is substituted as a native screenshot. · 呢張現有圖片只係受控 .NET 正式版參考，**唔係目前原生 C++ 視覺證據**。2026-07-15 已經用 repository driver（`-WaitMs 16000`）同 LowLevel 無頭 desktop 嘅 `WinForgeBundleWorkspaceAudit` 重試改過嘅原生 `package-discover`、`package-installed` 同 `package-bundles` Bundle 工作區頁；`CopyFromScreen` 用唔到，而每條 `PrintWindow`／HWND 路徑都回傳空白／接近單色 WinUI client frame，所以結果仍然係 `capture-blocked`。唔會用舊圖、空白圖、合成圖或者受控版圖片頂替原生截圖。
+WinForge's canonical .NET Package Manager is an in-app workspace for discovering, installing, updating, reviewing, and removing packages across Windows package engines. Open it with `WinForge.exe --page packages`.
 
-## Production and native migration · 正式版同原生遷移
+WinForge 正式 .NET 套件管理器係 app 內工作區，可以經多個 Windows 套件引擎搜尋、安裝、更新、檢視同移除套件。用 `WinForge.exe --page packages` 開啟。
 
-The shipping managed Package Manager remains the production implementation. It has substantial functionality across 11 Windows package engines and nine workflows: discovery/install, updates, installed-package operations, bundles, sources, ignored rules, setup, settings, and a shared operation queue.
+## Workspaces · 工作區
 
-發佈中受控套件管理器仍然係正式版本。佢喺 11 個 Windows 套件引擎同九個流程都有大量實際功能：搜尋／安裝、更新、已安裝套件操作、清單、來源、忽略規則、引擎設定、設定同共用操作佇列。
-
-The C++20/C++/WinRT migration is honestly **in progress**, not a full UniGetUI clone, parity claim, or production cutover. The native shell exposes all nine views and the same 11 manager choices—WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows PowerShell Gallery, PowerShell 7 PSResourceGet, Cargo, Bun, and vcpkg—but only three non-mutating result queries, bounded read-only Details queries with safe parsed common fields, local ignored/pinned/snoozed update filtering with configurable 1/7/14/30-day snoozes, one source-command probe, and preview-only install/update/uninstall operation plans are active. Those operation plans now persist as structured queue entries with run-next/run-last ordering and retry-preview markers, but still never execute package-manager mutation processes:
-
-C++20／C++/WinRT 遷移會如實標示為**進行中**，唔係完整 UniGetUI 複製品、對等聲稱或者正式版切換。原生 shell 顯示全部九個檢視，同一組 11 個管理器——WinGet、Scoop、Chocolatey、pip、npm、.NET 工具、Windows PowerShell Gallery、PowerShell 7 PSResourceGet、Cargo、Bun 同 vcpkg——但目前只開放三條非修改結果查詢、有界只讀詳細資料查詢同安全已解析常用欄位、本機忽略／釘選／可設定 1／7／14／30 日暫停更新篩選、一個來源指令探測，同只供預覽嘅安裝／更新／解除安裝操作計劃。呢啲操作計劃而家會保存成結構化佇列項目，支援下一個／最後執行排序同重試預覽標記，但仍然永遠唔會執行套件管理修改 process：
-
-### Native Discover filtering · 原生 Discover 篩選
-
-After a native Discover query, the retained raw rows can be re-filtered locally by **Both name and ID**, **Package name**, **Package ID**, **Exact match**, or **Show similar packages**, with optional case-sensitive and ignore-special-character normalization. This preserves source order and the raw cache; changing a filter never runs a process, network request, or another package query. Searches still require at least two non-whitespace characters, and remembered Package Manager filters persist the mode and toggles. · 原生 Discover 查詢後，保留嘅原始資料列可以喺本機用**名稱及 ID**、**套件名稱**、**套件 ID**、**完全相同**或**顯示相似套件**重新篩選，亦可選大小寫敏感同忽略特殊字元正規化。佢會保留來源次序同原始快取；改篩選絕對唔會開 process、網絡要求或者另一個套件查詢。搜尋仍然要最少兩個非空白字元，而記住嘅套件管理篩選會保存模式同 toggle。
-
-### Native cached action previews · 原生快取動作預覽
-
-Cached Discover, Updates, and Installed rows can be source-aware, action-scoped multi-selected. A delimiter-safe normalized manager/action/ID/source key de-duplicates selections without copying an invalid source, and **Preview selected install**, **update**, or **uninstall** adds at most 25 exact validated argv plans to Operations. Selection is transient, clears before a query or view changes, and never runs a package-manager command. · 已快取嘅 Discover、Updates 同 Installed 資料列可以識別來源、識別動作多選。有長度前綴、正規化嘅管理器／動作／ID／來源 key 會去重，又唔會複製無效來源；**預覽所選安裝**、**更新**或者**解除安裝**最多只會喺 Operations 加入 25 條準確、已驗證嘅 argv 計劃。選擇係暫時性，查詢或者檢視改變之前會清除，絕對唔會執行套件管理指令。
-
-### Native Bundle workspace · 原生 Bundle 工作區
-
-Export uses an exclusively created, cryptographically random temporary file in the destination directory, flushes it, and atomically replaces the destination. The workspace is capped at 2,048 records and 512-character fields; import and export are both capped at 2 MiB, with the import limit enforced from the opened file handle rather than pre-open metadata. · 匯出會喺目的地目錄用加密級隨機、獨佔建立嘅暫存檔，寫入並 flush 後原子式取代目的地。工作區上限係 2,048 筆記錄同每欄 512 個字元；匯入同匯出都上限 2 MiB，而匯入上限會由已開啟檔案 handle 強制執行，而唔係開啟前 metadata。
-
-Checked cached rows from **Discover** and **Installed** can instead be appended to a bounded, metadata-only Bundle workspace. Export stays disabled until it contains a record; it then imports bounded metadata and atomically exports UniGetUI v3-style JSON/`.ubundle` (`export_version: 3`), de-duplicates compatible records with a delimiter-safe manager/source/ID/version identity and managerless audit records by source/ID/version, keeps compatible `packages` separate from `incompatible_packages` audit records, strips installation-option/update metadata on import, and confirms before replacing a dirty workspace. Compatible records carry `ManagerName`; native v3 incompatible audit records omit it and remain inert. It never builds an argv plan or starts a package command. Updates stays action-preview-only. · **Discover** 同 **Installed** 已勾選快取資料列亦可以加入有界、只存 metadata 嘅 Bundle 工作區。冇記錄之前匯出會保持停用；有記錄後，佢會匯入有上限 metadata 同原子式匯出 UniGetUI v3 風格 JSON／`.ubundle`（`export_version: 3`），相容記錄用有長度前綴嘅管理器／來源／ID／版本 identity、冇管理器稽核記錄按來源／ID／版本去重，將可相容 `packages` 同 `incompatible_packages` 稽核記錄分開，匯入時移除安裝選項／更新 metadata，並會喺取代未儲存工作區前確認。相容記錄有 `ManagerName`；原生 v3 不相容稽核記錄會省略佢並保持惰性。佢絕對唔會建立 argv 計劃或者開套件指令。Updates 保持只供動作預覽。
-
-| View · 檢視 | Current native C++ truth · 目前原生 C++ 實況 |
+| View · 檢視 | Managed behavior · 正式功能 |
 |---|---|
-| **Discover · 搜尋安裝** | Non-mutating search; cached rows can be source-aware, action-scoped multi-selected for at most 25 exact validated Install argv previews, or appended as inert manager/source/ID/version metadata to the Bundle workspace. Per-row Details remains a bounded read-only query; no selected install command runs. · 非修改搜尋；已快取資料列可以識別來源、識別動作多選，最多喺 Operations 加入 25 條準確、已驗證嘅 Install argv 預覽，或者以惰性管理器／來源／ID／版本 metadata 加入 Bundle 工作區。逐列詳細資料仍然係有界只讀查詢；唔會執行任何所選安裝指令。 |
-| **Updates · 可更新** | Non-mutating enumeration; cached rows can be source-aware, action-scoped multi-selected for at most 25 exact Update argv previews; per-row Details runs read-only; Ignore, Pin version, and Snooze persist local rules, with Snooze using the configured 1/7/14/30-day duration; per-row Update and Update All remain preview-only. · 非修改列出更新；已快取資料列可以識別來源、識別動作多選，最多只會建立 25 條準確 Update argv 預覽；逐列詳細資料只讀執行；忽略、釘選版本同暫停會保存本機規則，暫停會使用已設定嘅 1／7／14／30 日時長；逐列更新同全部更新仍然只會預覽。 |
-| **Installed · 已安裝** | Non-mutating enumeration; cached rows can be source-aware, action-scoped multi-selected for at most 25 exact Uninstall argv previews, or appended as inert manager/source/ID/version metadata to the Bundle workspace; Details runs read-only with safe parsed common fields. · 非修改列出已安裝套件；已快取資料列可以識別來源、識別動作多選，最多只會建立 25 條準確 Uninstall argv 預覽，或者以惰性管理器／來源／ID／版本 metadata 加入 Bundle 工作區；詳細資料只讀執行並顯示安全已解析常用欄位。 |
-| **Sources · 來源** | Command probe only: read-only source commands run, but all raw configuration/diagnostics are withheld until manager-specific secret redaction is proven; no source rows are shown and add/remove remains disabled. · 只限指令探測：會執行只讀來源指令，但逐管理器機密遮罩未證實之前會隱藏全部原始設定／診斷；唔會顯示來源資料列，新增／移除保持停用。 |
-| **Bundles · 套件清單** | A bounded v3 metadata workspace: append selected Discover/Installed rows, inspect separate compatible/incompatible audit lists, import bounded metadata with option stripping and dirty-replacement confirmation, and atomically export non-empty JSON/`.ubundle`. It has no command, download, or mutation path; editing, removal, full interoperability, and execution remain gated. · 有界 v3 metadata 工作區：加入已選 Discover／Installed 資料列、檢查分開嘅可相容／不相容稽核清單、匯入有上限 metadata 時移除選項並確認取代未儲存資料、原子式匯出非空白 JSON／`.ubundle`。佢冇指令、下載或修改路徑；編輯、移除、完整互通同執行仍然鎖住。 |
-| **Ignored · 已忽略** | Local all-version ignores, update-version pins and configurable 1/7/14/30-day snoozes persist in native JSON, list in this tab, can be removed one-by-one, and hide matching Updates rows; scheduler integration remains gated. · 本機全部版本忽略、更新版本釘選同可設定 1／7／14／30 日暫停會保存喺原生 JSON、喺呢個分頁列出、可逐項移除，並隱藏相符 Updates 資料列；排程整合仍然鎖住。 |
-| **Setup · 設定引擎** | Non-destructive availability probes only; bootstrap remains gated. · 只限非破壞性可用性探測；bootstrap 仍然鎖住。 |
-| **Settings · 設定** | Native JSON persistence now remembers package view, search text, sort mode, ignored/pinned/snoozed update rules, manager-filter choices, and the default snooze duration; broader per-manager defaults, backup, and restore remain gated. · 原生 JSON 持久化而家會記住套件檢視、搜尋文字、排序模式、忽略／釘選／暫停更新規則、管理器篩選同預設暫停時長；更完整逐管理器預設、備份同還原仍然鎖住。 |
-| **Operations · 操作佇列** | Local probe/query history, Details query events, and preview-only install/update/uninstall plans persist as structured queue entries, import old string history, and expose run-next/run-last ordering plus retry-preview markers; real mutation execution, output capture, cancellation, and the consent coordinator remain gated. · 本機探測／查詢歷史、詳細資料查詢事件同只供預覽嘅安裝／更新／解除安裝計劃會保存成結構化佇列項目、匯入舊字串歷史，並提供下一個／最後執行排序同重試預覽標記；真正修改執行、輸出擷取、取消同同意協調器仍然鎖住。 |
+| **Discover · 搜尋安裝** | Search selected engines, filter results, inspect details, and explicitly install selected packages. · 搜尋已揀引擎、篩選結果、睇詳細資料，再明確安裝所選套件。 |
+| **Updates · 可更新** | Enumerate updates, inspect package details, update selected items, and apply ignore/pin/snooze rules. · 列出更新、睇詳細資料、更新所選項目，同套用忽略／釘選／暫停規則。 |
+| **Installed · 已安裝** | Review installed packages and explicitly choose supported package operations. · 檢視已安裝套件，再明確揀支援嘅套件操作。 |
+| **Bundles · 套件清單** | Build, edit, import, export, and review portable package sets. · 建立、編輯、匯入、匯出同檢視可攜套件清單。 |
+| **Sources · 來源** | Review and manage supported feeds, buckets, and repositories. · 檢視同管理支援嘅 feed、bucket 同 repository。 |
+| **Ignored · 已忽略** | Review and remove version pins, all-version ignores, and timed snoozes. · 檢視同移除版本釘選、全部版本忽略同限時暫停。 |
+| **Setup · 設定引擎** | Check package-engine availability and review bootstrap/dependency setup. · 檢查套件引擎可用性，同檢視 bootstrap／dependency 設定。 |
+| **Settings · 設定** | Persist schedules, notifications, manager paths, proxy, backup, and install defaults. · 保存排程、通知、管理器路徑、proxy、backup 同安裝預設。 |
+| **Operations · 操作記錄** | Track queued, active, completed, failed, and cancelled package work. · 追蹤排隊、執行中、完成、失敗同已取消套件工作。 |
 
-All install, update, uninstall, source, and bulk execution remains separately gated. Bundles is deliberately a metadata-only v3 workspace, while editing/removal, full interoperability, downloads, and the advanced lifecycle remain gated. Native result queries, Details queries with safe parsed common fields, ignored/pinned/snoozed update filtering, and mutation previews use reviewed argument-vector builders, bounded parsers, allowlisted HTTPS endpoints, and a contained Win32 process runner. External manager commands fail closed while WinForge is elevated; no upstream UniGetUI executable or UI is launched.
+## Package engines · 套件引擎
 
-所有安裝、更新、解除安裝、來源同批次執行仍然另外鎖住。原生結果查詢、帶安全已解析常用欄位嘅詳細資料查詢、忽略／釘選／暫停更新篩選同修改預覽使用經審核嘅 argument-vector builder、有界解析器、准許清單 HTTPS endpoint 同受控 Win32 process runner。WinForge 提升權限時，外部管理器指令會 fail closed；完全唔會啟動上游 UniGetUI executable 或 UI。
+The workspace supports WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows PowerShell Gallery, PowerShell 7 PSResourceGet, Cargo, Bun, and vcpkg where the corresponding engine is available.
 
-Discover filter mode/toggles are intentionally cache-only: they announce visible/cached counts, preserve the raw result cache for reversal, and do not invalidate or start a package query. Source-aware, action-scoped multi-selection is also local and transient: it is retained while a cached filter changes, but clears before query or view invalidation so stale rows are never previewed. · Discover 篩選模式／toggle 係刻意只用快取：會宣告可見／快取數量、保留原始結果快取以便還原，唔會令結果失效或者開套件查詢。識別來源、識別動作多選亦係本機暫時狀態：快取篩選改變時會保留，但查詢或者檢視失效之前一定會清除，唔會預覽舊資料列。
+當相應引擎可用時，工作區支援 WinGet、Scoop、Chocolatey、pip、npm、.NET tools、Windows PowerShell Gallery、PowerShell 7 PSResourceGet、Cargo、Bun 同 vcpkg。
 
-## Evidence and blockers · 證據同阻礙
+## Safety and failure behavior · 安全同失敗行為
 
-**Current 2026-07-16 evidence · 2026-07-16 目前證據：** Debug and Release native tests each pass **326/326** (280 core plus 46 parser checks), including v3 Bundle merge/partition, explicit-audit preservation, and normalization stability. The elevated process-owned UI Automation smoke passes **146/146**, including the explicit empty workspace, disabled-empty-export, and horizontal-bounds assertions. This is targeted core/UI behavior evidence; the file-dialog import/export and atomic-save lifecycle are not yet driven end-to-end by this smoke. It is not normal-integrity external-query or package-mutation evidence. · Debug 同 Release 原生測試各自通過 **326/326**（280 個 core 加 46 個 parser 檢查），包括 v3 Bundle 合併／分隔、明確稽核保留同正規化穩定性。提權、只控制自己 process 嘅 UI Automation smoke 通過 **146/146**，包括明確空白工作區、空白匯出保持停用同水平邊界 assertion。呢個係針對 core／UI 嘅行為證據；呢個 smoke 仲未端對端操作檔案對話框匯入／匯出同原子儲存生命週期。唔代表正常 integrity 外部查詢或者套件修改證據。
+- Package mutations are explicit; review surfaces must not silently execute a package command. · 套件修改一定要明確；檢視介面唔可以靜默執行套件指令。
+- WinForge refuses interactive package execution while elevated when its normal-integrity boundary cannot be maintained. · WinForge 提權時，如果保持唔到正常 integrity 界線，就會拒絕互動套件執行。
+- Manager availability is probed before dependent actions are enabled. A missing engine is shown as a setup dependency, not treated as success. · 啟用相依動作前會先探測管理器；欠缺引擎會顯示成設定 dependency，唔會當成功。
+- User-facing errors remain redacted and must not expose credentials, tokens, or unsafe command construction. · 對使用者顯示嘅錯誤要遮蔽，唔可以洩露認證資料、token 或唔安全 command 組合。
+- Cancellation and retry apply to owned package operations; WinForge must not terminate unrelated external processes. · 取消同重試只適用於 WinForge 自己嘅套件操作，唔可以終止不相關外部 process。
 
-- Normal-integrity live smoke is blocked before package execution: even an interactive `RunLevel=Limited` task received a token that failed the standard-user proof. The harness stopped safely; no live-query pass is claimed. · 正常權限 live smoke 喺套件執行之前受阻：即使互動式工作設為 `RunLevel=Limited`，收到嘅 token 仍然未通過標準使用者證明。harness 已安全停止；唔會聲稱 live query 通過。
-- LowLevel MCP exists at `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp`, but this Codex session exposes no callable LowLevel MCP tools. The repo-local `lowlevel-computer-use-cheap.exe` fallback is available and was used for the changed Bundle pages; its blank/near-uniform HWND result is launch/headless evidence only and does not change `capture-blocked`. · LowLevel MCP 存在於 `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp`，但呢個 Codex session 冇曝露可以直接呼叫嘅 LowLevel MCP 工具。repo 本機 `lowlevel-computer-use-cheap.exe` fallback 可用，亦已用喺改過嘅 Bundle 頁面；佢嘅空白／接近單色 HWND 結果只係 launch／headless 證據，唔會改變 `capture-blocked`。
-- **2026-07-15 Bundle-workspace evidence:** the repo-local `lowlevel-computer-use-cheap.exe` created `WinForgeBundleWorkspaceAudit`, launched `WinForge.exe` for `package-discover`, `package-installed`, and `package-bundles`, listed each native window, and captured each HWND. The inspected clients were all blank/near-uniform, so this remains launch/headless evidence only and does not change `capture-blocked`. · **2026-07-15 Bundle 工作區證據：** repo 本機 `lowlevel-computer-use-cheap.exe` 已建立 `WinForgeBundleWorkspaceAudit`、為 `package-discover`、`package-installed` 同 `package-bundles` 開啟 `WinForge.exe`、列出每個原生視窗並擷取每個 HWND。檢查過嘅 client 全部係空白／接近單色，所以仍然只係 launch／headless 證據，唔會改變 `capture-blocked`。
-- Native visual evidence remains `capture-blocked` for the exact reason recorded above. · 原生視覺證據仍然因上面記錄嘅確實原因標示為 `capture-blocked`。
+## Configuration · 設定
 
-Remaining UniGetUI-informed work includes the capability/maintenance/log model; manager-specific rich Details layouts/actions, scheduler/notification integration, media/share, and open-location actions; real mutation execution, cancellation, output capture, unified source/download tracking, and the consent-backed coordinator; Bundle edit/remove/full interoperability and download/installed-detection lifecycle; secure opt-in/elevation/batch consent; backup and per-manager settings; actionable notifications/tray commands; and authenticated API/CLI/headless/deep-link/widget surfaces. Linux- and macOS-only managers are outside this Windows product's scope.
+Package Manager preferences are stored through the application's normal settings/persistence services. Secrets or credentials must use the existing DPAPI-backed stores and must never be written to logs, screenshots, command lines, URLs, or repository files.
 
-尚欠嘅 UniGetUI 參考工作包括 capability／維護／日誌模型；逐管理器豐富 Details 版面／動作、排程／通知整合、媒體／分享同開啟位置動作；真正修改執行、取消、輸出擷取、統一來源／下載追蹤同有同意流程支撐嘅協調器；完整清單／下載／已安裝偵測互通；安全 opt-in／提升權限／批次同意；備份同逐管理器設定；可操作通知／系統匣指令；以及已驗證身份嘅 API／CLI／headless／deep-link／widget 介面。只供 Linux 同 macOS 嘅管理器唔屬於呢個 Windows 產品範圍。
+套件管理器偏好會經 app 正常 settings／persistence service 保存。秘密或認證資料一定要用既有 DPAPI store，絕對唔可以寫入 log、截圖、command line、URL 或 repository file。
 
-## Deep links and provenance · 深層連結同來源依據
+## Independent C++ port · 獨立 C++ 移植版
 
-`package-*` and `packages-*` aliases for discover, updates, installed, bundles, sources, ignored, setup, settings, and operations, plus `--page module.packages#bundles`, resolve to the matching `module.packages` deep links. Routing is verified, but route availability alone is not parity evidence. · `package-*` 同 `packages-*` 呢組別名可用嚟叫 discover、updates、installed、bundles、sources、ignored、setup、settings 同 operations，加埋 `--page module.packages#bundles` 都會解析去對應嘅 `module.packages` deep link；導覽已驗證，但淨係有 route 唔代表功能對等。
+The experimental C++ Package Manager work and its historical parity evidence now belong to [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). They are not the shipping behavior documented on this page.
 
-The complete 1,002-file tracked [Devolutions/UniGetUI](https://github.com/Devolutions/UniGetUI) tree is vendored at `ThirdParty/UniGetUI`, pinned to upstream `main` commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` (2026-07-10) under the MIT license. `ThirdParty/**` is excluded from WinForge build and publish inputs. The snapshot is exact provenance and a behavior inventory only—not an embedded runtime, copied identity, or parity claim.
+實驗性 C++ 套件管理工作同歷史 parity 證據而家屬於 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，唔係呢頁記錄嘅正式 app 行為。
 
-完整 1,002 檔 [Devolutions/UniGetUI](https://github.com/Devolutions/UniGetUI) tracked tree 存放喺 `ThirdParty/UniGetUI`，按 MIT 授權固定到上游 `main` commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`（2026-07-10）。`ThirdParty/**` 已排除喺 WinForge 建置同發佈輸入之外。snapshot 只係精確來源依據同行為清單，唔係內嵌 runtime、複製身份或者對等聲稱。
-
----
-[← Module index · 模組索引](Home) · [README](https://github.com/codingmachineedge/WinForge/blob/main/README.md) · [Native rewrite · 原生重寫](Native-Cpp-Rewrite) · [Screenshots](Screenshots)
+[← Wiki Home](#/wiki/Home)

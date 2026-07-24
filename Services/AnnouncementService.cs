@@ -65,7 +65,7 @@ public sealed class AnnouncementService
     private readonly LinkedList<AnnouncementItem> _queue = new();
     private readonly AutoResetEvent _signal = new(false);
     private readonly Thread _pump;
-    private volatile bool _disposed;
+    private volatile bool _disposed = false;
 
     // The synthesizer that is *currently* speaking, so an Urgent item can cancel it.
     private SpeechSynthesizer? _active;

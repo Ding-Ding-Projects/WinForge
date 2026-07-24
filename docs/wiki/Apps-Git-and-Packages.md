@@ -12,7 +12,7 @@ Open in-app: `WinForge.exe --page git`
 
 ## Package Manager · 套件管理
 
-Native WinForge workspace for 11 managers — WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows PowerShell Gallery, PowerShell 7 PSResourceGet, Cargo, Bun and vcpkg — with nine views for discovery, updates, installed packages, bundles, sources, ignored rules, setup, settings and operations. A shared queue provides history, output, cancel and retry; global/per-package options flow through row, batch, bundle and scheduled operations. · WinForge 原生工作區支援 11 個管理器 — WinGet、Scoop、Chocolatey、pip、npm、.NET 工具、Windows PowerShell Gallery、PowerShell 7 PSResourceGet、Cargo、Bun 同 vcpkg — 並有九個檢視處理搜尋、更新、已安裝套件、清單、來源、忽略規則、引擎設定、背景設定同操作。共用佇列提供歷史、輸出、取消同重試；全域／逐套件選項會套用到單列、批次、清單同排程操作。
+The canonical .NET workspace covers 11 package engines and nine views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations. Package mutations remain explicit and reviewable, missing engines are treated as setup dependencies, and interactive execution fails closed when WinForge cannot preserve its normal-integrity boundary. · 正式 .NET 工作區涵蓋 11 個套件引擎同九個檢視：Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations。套件修改保持明確同可檢視；欠缺引擎會當成設定 dependency；WinForge 保持唔到正常 integrity 界線時，互動執行會 fail closed。
 
 The pinned source snapshot at `ThirdParty/UniGetUI` is provenance for audit and parity work only. UniGetUI's upstream UI/framework, IPC and telemetry are not compiled or launched; the running feature is WinForge's own bilingual WinUI 3 implementation. · `ThirdParty/UniGetUI` 入面嘅固定原始碼快照只作審核同功能對等參考；UniGetUI 上游 UI／framework、IPC 同 telemetry 唔會被編譯或啟動，實際執行嘅係 WinForge 自己嘅雙語 WinUI 3 實作。
 
@@ -20,13 +20,15 @@ Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
-## Native OSS Clones · 開源原生分頁
+See [Package Manager](Package-Manager.md) for workspace behavior, configuration, safety boundaries, and failure modes. · 工作區行為、設定、安全界線同失敗模式請睇[套件管理](Package-Manager.md)。
 
-A native-only index of open-source app ideas already remade as WinForge C# tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出已重製成 WinForge C# 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
+## In-app OSS-inspired tools · App 內開源靈感工具
+
+An in-app index of open-source ideas reimplemented as managed WinForge tabs rather than installer-only entries or redirects. · App 內索引會將開源靈感重製成正式 WinForge 分頁，而唔係只做 installer 項目或跳轉。
 
 Open in-app: `WinForge.exe --page ossapps`
 
-Included native clone examples: API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Native Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark and Everything Search. · 原生複製例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、原生種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
+Examples include API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark, and Everything Search. · 例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
 
 ## Cake Factory & Farm · 蛋糕工廠與農場
 
@@ -46,11 +48,11 @@ Open in-app: `WinForge.exe --page rss`
 
 ## App Uninstaller · 應用程式解除安裝
 
-Remove apps and Appx packages via winget. · 用 winget 移除應用程式同 Appx 套件。
+Current-user Store/UWP inventory through the Windows package API, with local search, review plus explicit confirmation for removal, and a normal-integrity fail-closed gate. Deep cleanup is intentionally unavailable and no local-data folder is deleted. · 經 Windows package API 整理目前使用者 Store／UWP 清單，提供本機搜尋、檢視加明確移除確認，同正常 integrity fail-closed gate。深層清理刻意未開放，而且唔會刪本機資料夾。
 
 Open in-app: `WinForge.exe --page uninstall`
 
-![App Uninstaller](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-uninstall.png)
+> **Safety boundary · 安全界線：** Removal never deletes LocalAppData or any other local-data folder. Search is local to the current inventory, and removal requires review plus a separate confirmation. · 移除絕對唔會刪 LocalAppData 或其他本機資料夾。搜尋只針對目前 inventory，而移除要先檢視再獨立確認。
 
 ## Android (ADB) · Android（ADB）
 
