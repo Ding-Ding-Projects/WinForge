@@ -4,6 +4,13 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current independent funny-level settings verification · 目前英粵分開搞笑等級驗證
+
+- English and Cantonese now have independent persisted 1–5 tone levels with defaults 2 / 3, exact-step accessible Settings sliders, import reload, a polite live safe-copy preview, and live Dashboard hero updates in English, Cantonese, and bilingual modes. · 英文／粵語各自有持久化 1–5 級（預設 2／3）、準確步進無障礙設定 slider、匯入重載、polite 安全文案即時預覽，同三種語言模式 Dashboard 即時更新。
+- The boundary is explicit: only authored `PlayfulText` can change. Error, security/financial, destructive, accessibility, and operational wording remains exact. Invalid values fail independently to defaults and out-of-range writes are rejected. · 邊界係明確嘅：只有寫好嘅 `PlayfulText` 可以變；錯誤、安全／金融、破壞性、無障礙同操作文字保持準確。無效值各自回退，越界寫入拒絕。
+- Focused tests pass **6/6**; the combined solution build has **0 warnings / 0 errors**; self-contained publish/site generation, XAML safety, and the detailed 337-XAML source audit pass with zero lifecycle/actionable findings. · 專項 **6/6**、combined solution build 零 warning／零 error、self-contained publish／site generation、XAML safety 同 337-XAML 詳細 audit 全過，零 lifecycle／actionable finding。
+- Fresh inspected LowLevel evidence covers 1049×646 default, 1049×820 English 5 / Cantonese 1 live control, and 720×646 narrow layout. Original 2 / 3 persisted values were restored, owned processes exited, and both dedicated desktops closed at zero windows. The exact hashes and branch boundary are in `handoff-summary.md`. · 最新 LowLevel 證據有 default、英 5／粵 1 即時控制同 720 像素窄畫面；原本 2／3 已還原，自家 process 全部退出，兩個 desktop 都零視窗後關閉。準確 hash 同 branch 界線見 `handoff-summary.md`。
+
 ## Current Screen Recorder lifecycle verification · 目前螢幕錄影 lifecycle 驗證
 
 - The concrete ffmpeg adapter bulk-copies redirected stderr bytes to `Stream.Null`; it no longer decodes and dispatches one empty callback per progress line. · 正式 ffmpeg adapter 會整批複製 redirected stderr byte 去 `Stream.Null`，唔再逐行解碼同派空 callback。

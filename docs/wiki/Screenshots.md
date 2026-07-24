@@ -20,6 +20,15 @@ This gallery documents the canonical .NET / WinUI 3 application. C++/WinRT port 
 
 ## System & Tweaks · 系統與調校
 
+### Language & Tone Settings · 語言與語氣設定
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-funny-level-settings.png)
+
+The live-control proof below uses English level 5 and Cantonese level 1 to demonstrate independent updates; the original profile values were restored to English 2 / Cantonese 3 before the owned process closed. The narrow 720×646 capture verifies that navigation collapses and both exact-step sliders remain readable without overlap. · 下面即時控制證據用英文第 5 級、粵語第 1 級示範兩邊獨立更新；關閉自家 process 前已將原本設定還原做英文 2／粵語 3。720×646 窄畫面圖亦驗證導覽會收窄，兩個準確步進 slider 保持清楚、冇重疊。
+
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-funny-level-settings-live.png)
+
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-funny-level-settings-narrow.png)
+
 ### Dashboard · 概覽
 > Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The Dashboard route remains launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。Dashboard 路由仍已驗證可以啟動。
 
