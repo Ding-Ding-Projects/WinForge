@@ -56,7 +56,7 @@ function Find-RelativeLine {
 $specs = @(
     [pscustomobject]@{ Name = 'Windows 11'; RoadmapPrefix = '### Windows 11  ('; AuditPrefix = '## Windows 11 '; Total = 13; Shipped = 10 },
     [pscustomobject]@{ Name = 'ViveTool'; RoadmapPrefix = '### ViveTool '; AuditPrefix = '## ViveTool '; Total = 15; Shipped = 15 },
-    [pscustomobject]@{ Name = 'Media'; RoadmapPrefix = '### Media '; AuditPrefix = '## Media '; Total = 15; Shipped = 4 },
+    [pscustomobject]@{ Name = 'Media'; RoadmapPrefix = '### Media '; AuditPrefix = '## Media '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Maintenance'; RoadmapPrefix = '### Maintenance '; AuditPrefix = '## Maintenance '; Total = 15; Shipped = 10 },
     [pscustomobject]@{ Name = 'Dev & Terminal'; RoadmapPrefix = '### Dev & Terminal '; AuditPrefix = '## Dev & Terminal '; Total = 15; Shipped = 9 },
     [pscustomobject]@{ Name = 'Home Assistant'; RoadmapPrefix = '### Home Assistant '; AuditPrefix = '## Home Assistant '; Total = 14; Shipped = 13 },
@@ -76,9 +76,15 @@ $browserPanelPath = Join-Path $RepoRoot 'Controls\BrowserControlPanel.xaml'
 $browserPanelCodePath = Join-Path $RepoRoot 'Controls\BrowserControlPanel.xaml.cs'
 $browserTestPath = Join-Path $RepoRoot 'tests\BrowserControl.Tests\Program.cs'
 $browserDocsPath = Join-Path $RepoRoot 'docs\features\browser-control\browser-workbench.md'
+$mediaCorePath = Join-Path $RepoRoot 'Services\MediaWorkflowCore.cs'
+$mediaPagePath = Join-Path $RepoRoot 'Pages\MediaModule.xaml'
+$mediaPageCodePath = Join-Path $RepoRoot 'Pages\MediaModule.xaml.cs'
+$mediaTestPath = Join-Path $RepoRoot 'tests\MediaWorkflowCore.Tests\Program.cs'
+$mediaGuidePath = Join-Path $RepoRoot 'docs\features\media-capture\media-studio-workflows.md'
 
 foreach ($path in @($roadmapPath, $auditPath, $indexPath, $wikiPath, $pagesPath, $mediaCatalogPath,
-        $browserCorePath, $browserServicePath, $browserPanelPath, $browserPanelCodePath, $browserTestPath, $browserDocsPath)) {
+        $browserCorePath, $browserServicePath, $browserPanelPath, $browserPanelCodePath, $browserTestPath, $browserDocsPath,
+        $mediaCorePath, $mediaPagePath, $mediaPageCodePath, $mediaTestPath, $mediaGuidePath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Required audit artifact is missing: $path"
     }
@@ -160,8 +166,8 @@ foreach ($spec in $specs) {
     })
 }
 
-if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 85) {
-    throw "Aggregate mismatch: expected 85/115 shipped, found $aggregateShipped/$aggregateTotal."
+if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 96) {
+    throw "Aggregate mismatch: expected 96/115 shipped, found $aggregateShipped/$aggregateTotal."
 }
 
 $artifactText = @(
@@ -169,8 +175,8 @@ $artifactText = @(
     Get-Content -LiteralPath $wikiPath -Raw -Encoding UTF8
     Get-Content -LiteralPath $pagesPath -Raw -Encoding UTF8
 ) -join "`n"
-if ($artifactText -notmatch '85/115' -or $artifactText -notmatch '30') {
-    throw 'Audit index/wiki mirrors do not report the 85/115 shipped and 30-gap result.'
+if ($artifactText -notmatch '96/115' -or $artifactText -notmatch '19') {
+    throw 'Audit index/wiki mirrors do not report the 96/115 shipped and 19-gap result.'
 }
 
 $mediaCatalogText = Get-Content -LiteralPath $mediaCatalogPath -Raw -Encoding UTF8
@@ -224,6 +230,37 @@ foreach ($handler in @(
 }
 if ($browserTestText -notmatch 'Browser Control contract passed' -or $browserTestText -notmatch 'CacheRequiresClosedBrowser') {
     throw 'Browser Control focused harness no longer covers its completion contract.'
+}
+
+$mediaCoreText = Get-Content -LiteralPath $mediaCorePath -Raw -Encoding UTF8
+$mediaPageText = Get-Content -LiteralPath $mediaPagePath -Raw -Encoding UTF8
+$mediaPageCodeText = Get-Content -LiteralPath $mediaPageCodePath -Raw -Encoding UTF8
+$mediaTestText = Get-Content -LiteralPath $mediaTestPath -Raw -Encoding UTF8
+$requiredCoreTokens = @(
+    'NormalizeLoudnessAsync', 'measured_I=', 'silenceremove=start_periods=1',
+    'vidstabdetect=', 'vidstabtransform=', 'cropdetect=round=2', 'BuildConcatListContent',
+    'h264_nvenc', 'hevc_nvenc', 'av1_nvenc', 'ComputeTargetVideoBitrateKbps',
+    'MediaSubtitleMode', '-show_chapters', 'ConvertPhotoBatchAsync', '-map_metadata:s'
+)
+foreach ($token in $requiredCoreTokens) {
+    if (-not $mediaCoreText.Contains($token)) {
+        throw "Media workflow implementation evidence is missing token: $token"
+    }
+}
+$requiredPageControls = @(
+    'NormalizeR128Btn', 'TrimSilenceBtn', 'StabilizeBtn', 'AutoCropBtn', 'ChooseConcatBtn',
+    'DetectNvencBtn', 'TargetSizeBtn', 'SubtitleRunBtn', 'ReadChaptersBtn',
+    'ConvertPhotosBtn', 'StripMetadataBtn'
+)
+foreach ($control in $requiredPageControls) {
+    if (-not $mediaPageText.Contains("x:Name=`"$control`"") -or -not $mediaPageCodeText.Contains("$($control.Replace('Btn', ''))_Click")) {
+        throw "Media workflow reachable-control evidence is missing or unwired: $control"
+    }
+}
+if ($mediaTestText -notmatch '17/17 tests passed|tests\.Length' -or
+    -not $mediaTestText.Contains('cancellation removes owned workspace and staged files') -or
+    -not $mediaTestText.Contains('failure preserves a pre-existing destination')) {
+    throw 'Media focused harness no longer preserves its sequencing, cancellation, and staged-output contracts.'
 }
 
 $rows | Format-Table -AutoSize

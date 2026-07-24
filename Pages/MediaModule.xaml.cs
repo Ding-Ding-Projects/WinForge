@@ -27,13 +27,33 @@ public sealed partial class MediaModule : Page
     private List<TweakDefinition>? _ops;
     private bool _busy;
     private bool _rowBusy;
+    private bool _workflowBusy;
+    private CancellationTokenSource? _workflowCts;
+    private IReadOnlyList<string> _concatClips = Array.Empty<string>();
+    private string _subtitlePath = string.Empty;
+    private string _chapterOutputFolder = string.Empty;
+    private string _photoInputFolder = string.Empty;
+    private string _photoOutputFolder = string.Empty;
 
     private static readonly string[] MediaExts =
-        { ".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v", ".wmv", ".flv", ".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg", ".opus" };
+        { ".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v", ".wmv", ".flv", ".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg", ".opus", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".jxl", ".tif", ".tiff" };
+
+    private static readonly string[] VideoExts =
+        { ".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v", ".wmv", ".flv" };
+
+    private static readonly HashSet<string> AudioExts = new(StringComparer.OrdinalIgnoreCase)
+        { ".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg", ".opus" };
 
     public MediaModule()
     {
         InitializeComponent();
+        // Typed NumberBox defaults are assigned after InitializeComponent because this runtime has
+        // reproduced XamlParseException for some typed XAML literals.
+        NvencQualityBox.Value = 26;
+        TargetSizeBox.Value = 25;
+        TargetAudioBox.Value = 128;
+        SubtitleModeBox.SelectedIndex = 0;
+        PhotoFormatBox.SelectedIndex = 0;
         Loc.I.LanguageChanged += OnLang;
         Unloaded += OnUnloaded;
         Loaded += OnLoaded;
@@ -49,6 +69,9 @@ public sealed partial class MediaModule : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _workflowCts?.Cancel();
+        _workflowCts?.Dispose();
+        _workflowCts = null;
         Loc.I.LanguageChanged -= OnLang;
         Loaded -= OnLoaded;
         Unloaded -= OnUnloaded;
@@ -66,8 +89,62 @@ public sealed partial class MediaModule : Page
     private void Render()
     {
         Header.Title = "Media · 媒體";
-        HeaderBlurb.Text = P("Convert, trim, make GIFs, grab frames and inspect video/audio with ffmpeg — all in-app.",
-            "用 ffmpeg 轉檔、剪裁、整 GIF、擷取畫格、檢視影片／音訊 — 全部喺 app 內。");
+        HeaderBlurb.Text = P("Convert, repair, deliver, and inspect video, audio, and photos with bounded ffmpeg/ffprobe workflows — all in-app.",
+            "用有界限嘅 ffmpeg／ffprobe 工作流程轉檔、修復、交付同檢視影片、音訊、相片 — 全部喺 app 內。");
+
+        StudioHeader.Text = P("Guided studio workflows", "引導式媒體工作流程");
+        StudioDescription.Text = P(
+            "Choose an input here, then run measured two-pass, repair, delivery, chapter, or privacy workflows. Outputs are staged safely and promoted only after ffmpeg succeeds; Cancel terminates the active child process.",
+            "先喺呢度揀輸入，再用量度式兩步、修復、交付、章節或者私隱工作流程。輸出會先安全暫存，ffmpeg 成功先正式取代；取消會終止進行中子程序。");
+        StudioPickInputBtn.Content = P("Choose workflow input…", "揀工作流程輸入…");
+        CancelWorkflowBtn.Content = P("Cancel active workflow", "取消進行中工作流程");
+
+        AudioWorkflowTitle.Text = P("Broadcast loudness & silence", "廣播響度同靜音整理");
+        AudioWorkflowDescription.Text = P("Measured EBU R128 normalization plus audio-only start/end/internal-gap silence removal.",
+            "量度式 EBU R128 正規化，加埋只限音訊嘅頭尾／中間靜音剪走功能。");
+        NormalizeR128Btn.Content = P("Normalize to EBU R128 (measure + apply)", "正規化做 EBU R128（量度＋套用）");
+        TrimSilenceBtn.Content = P("Auto-trim audio silence (start, end & gaps)", "自動剪走音訊頭尾同中間靜音");
+
+        VideoWorkflowTitle.Text = P("Video repair & lossless joining", "影片修復同無損合併");
+        VideoWorkflowDescription.Text = P("Two-pass vidstab, cropdetect-to-crop, and concat-demuxer stream copy.",
+            "兩步 vidstab、防黑邊偵測後裁剪，同 concat demuxer 無重編碼合併。");
+        StabilizeBtn.Content = P("Stabilize video (vidstab two-pass)", "影片防震（vidstab 兩步）");
+        AutoCropBtn.Content = P("Detect and crop black bars", "偵測同裁走黑邊");
+        ConcatLabel.Text = P("Clips are joined in the order shown; codecs and stream parameters must match.",
+            "片段會按顯示次序合併；codec 同 stream 參數要一致。");
+        ChooseConcatBtn.Content = P("Choose clips…", "揀片段…");
+        JoinConcatBtn.Content = P("Join without re-encoding…", "無重編碼合併…");
+
+        DeliveryWorkflowTitle.Text = P("Hardware & delivery encoding", "硬件同交付編碼");
+        DeliveryWorkflowDescription.Text = P("Probe real NVENC hardware, hit a target file-size cap, or burn/mux SRT and ASS subtitles.",
+            "實測 NVENC 硬件、命中目標檔案容量，或者燒入／軟掛 SRT 同 ASS 字幕。");
+        NvencLabel.Text = P("NVIDIA NVENC (encoder + live hardware probe; CQ 0–51)", "NVIDIA NVENC（編碼器＋即時硬件測試；CQ 0–51）");
+        DetectNvencBtn.Content = P("Detect working NVENC encoders", "偵測可用 NVENC 編碼器");
+        EncodeNvencBtn.Content = P("Encode with selected NVENC codec", "用已揀 NVENC codec 編碼");
+        TargetSizeLabel.Text = P("Two-pass target size (MiB · audio kbps)", "兩步目標容量（MiB · 音訊 kbps）");
+        TargetSizeBtn.Content = P("Encode to target size", "按目標容量編碼");
+        SubtitleLabel.Text = P("SRT / ASS subtitles", "SRT／ASS 字幕");
+        PickSubtitleBtn.Content = P("Choose subtitle file…", "揀字幕檔…");
+        BurnInSubtitleItem.Content = P("Burn into picture (libass)", "燒入畫面（libass）");
+        SoftMuxSubtitleItem.Content = P("Add toggleable track (soft mux)", "加入可開關字幕軌（軟掛）");
+        SubtitleRunBtn.Content = P("Apply subtitle workflow", "執行字幕工作流程");
+
+        PhotoChapterWorkflowTitle.Text = P("Chapters, photo conversion & privacy", "章節、相片轉換同私隱");
+        PhotoChapterWorkflowDescription.Text = P("Read/split ffprobe chapters, batch-convert HEIC/JXL, and remove EXIF/GPS without re-encoding.",
+            "讀取／分割 ffprobe 章節、批次轉 HEIC／JXL，同無重編碼移除 EXIF／GPS。");
+        ChapterLabel.Text = P("Extract chapter metadata and split each chapter by timestamp", "抽取章節 metadata，再按時間逐章分割");
+        PickChapterFolderBtn.Content = P("Choose chapter output folder…", "揀章節輸出資料夾…");
+        ReadChaptersBtn.Content = P("Read chapters", "讀取章節");
+        SplitChaptersBtn.Content = P("Split all chapters", "分割全部章節");
+        PhotoBatchLabel.Text = P($"Batch HEIC / HEIF / JPEG-XL conversion (maximum {MediaWorkflowExecutor.MaxBatchFiles})",
+            $"批次轉 HEIC／HEIF／JPEG-XL（最多 {MediaWorkflowExecutor.MaxBatchFiles} 張）");
+        PickPhotoInputBtn.Content = P("Choose source folder…", "揀來源資料夾…");
+        PickPhotoOutputBtn.Content = P("Choose separate output folder…", "揀另一個輸出資料夾…");
+        PhotoJpegItem.Content = "JPG";
+        PhotoPngItem.Content = "PNG";
+        ConvertPhotosBtn.Content = P("Convert photo batch", "批次轉相");
+        StripMetadataBtn.Content = P("Strip EXIF, GPS & image metadata", "移除 EXIF、GPS 同相片 metadata");
+
         SelLabel.Text = P("Files", "檔案");
         InCap.Text = P("Input", "輸入");
         OutCap.Text = P("Output", "輸出");
@@ -130,7 +207,7 @@ public sealed partial class MediaModule : Page
 
     private async Task RunAndShow(Button btn, Func<Task<TweakResult>> run)
     {
-        if (_busy) return;
+        if (_busy || _workflowBusy) return;
         _busy = true;
         var label = btn.Content;
         btn.IsEnabled = false;
@@ -150,11 +227,258 @@ public sealed partial class MediaModule : Page
         finally { btn.Content = label; btn.IsEnabled = true; _busy = false; RefreshSelection(); }
     }
 
+    private async Task RunWorkflowAsync(Button button, Func<CancellationToken, Task<TweakResult>> run)
+    {
+        if (_busy || _workflowBusy) return;
+        _workflowBusy = true;
+        var originalContent = button.Content;
+        button.IsEnabled = false;
+        button.Content = new ProgressRing { IsActive = true, Width = 18, Height = 18 };
+        ResultBar.IsOpen = false;
+        OutBorder.Visibility = Visibility.Visible;
+        OutText.Text = P("Running a bounded ffmpeg workflow…", "執行緊有界限嘅 ffmpeg 工作流程…");
+
+        var cts = new CancellationTokenSource();
+        _workflowCts = cts;
+        CancelWorkflowBtn.Visibility = Visibility.Visible;
+        CancelWorkflowBtn.IsEnabled = true;
+        try
+        {
+            var result = await run(cts.Token);
+            ShowWorkflowResult(result);
+        }
+        catch (OperationCanceledException)
+        {
+            ShowWorkflowResult(TweakResult.Fail("Cancelled.", "已取消。"));
+        }
+        catch (Exception ex)
+        {
+            ShowWorkflowResult(TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"));
+        }
+        finally
+        {
+            if (ReferenceEquals(_workflowCts, cts)) _workflowCts = null;
+            cts.Dispose();
+            CancelWorkflowBtn.Visibility = Visibility.Collapsed;
+            CancelWorkflowBtn.IsEnabled = false;
+            button.Content = originalContent;
+            button.IsEnabled = true;
+            _workflowBusy = false;
+            RefreshSelection();
+        }
+    }
+
+    private void ShowWorkflowResult(TweakResult result)
+    {
+        ResultBar.Severity = result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
+        ResultBar.Title = result.Success ? P("Workflow complete", "工作流程完成") : P("Workflow stopped", "工作流程未完成");
+        ResultBar.Message = result.Message?.Get(Loc.I.Language) ?? string.Empty;
+        ResultBar.IsOpen = true;
+
+        var detail = result.Output?.Trim();
+        var summary = result.Message?.Get(Loc.I.Language) ?? string.Empty;
+        OutBorder.Visibility = Visibility.Visible;
+        OutText.Text = string.IsNullOrWhiteSpace(detail)
+            ? summary
+            : summary + Environment.NewLine + Environment.NewLine + (detail.Length > 8000 ? detail[^8000..] : detail);
+    }
+
+    private void CancelWorkflow_Click(object sender, RoutedEventArgs e)
+    {
+        CancelWorkflowBtn.IsEnabled = false;
+        OutText.Text = P("Cancelling and cleaning owned temporary files…", "取消緊，同時清理自家暫存檔…");
+        _workflowCts?.Cancel();
+    }
+
+    private void StudioPickInput_Click(object sender, RoutedEventArgs e) => PickInput_Click(sender, e);
+
+    private async void NormalizeR128_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        var output = DeriveTagged(".r128-normalized");
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.NormalizeLoudnessAsync(MediaService.Input, output, ct));
+    }
+
+    private async void TrimSilence_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        if (!AudioExts.Contains(Path.GetExtension(MediaService.Input)))
+        {
+            ShowWorkflowResult(TweakResult.Fail(
+                "Choose an audio file for silence-gap removal; collapsing audio gaps in a video would desynchronize it.",
+                "請揀音訊檔先做靜音清理；直接剪走影片聲軌中間空位會令畫面同聲音甩 sync。"));
+            return;
+        }
+        var output = DeriveTagged(".silence-trimmed");
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.TrimSilenceAsync(MediaService.Input, output, ct));
+    }
+
+    private async void Stabilize_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        var output = DeriveTagged(".stabilized", ".mp4");
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.StabilizeVideoAsync(MediaService.Input, output, ct));
+    }
+
+    private async void AutoCrop_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        var output = DeriveTagged(".cropped", ".mp4");
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.AutoCropAsync(MediaService.Input, output, ct));
+    }
+
+    private async void ChooseConcat_Click(object sender, RoutedEventArgs e)
+    {
+        var clips = await FileDialogs.OpenFilesAsync(FileDialogs.BuildFilters(VideoExts),
+            P("Choose clips in join order", "按合併次序揀片段"));
+        if (clips.Count == 0) return;
+        _concatClips = clips;
+        ConcatClipsList.ItemsSource = clips.Select((path, index) => $"{index + 1}. {Path.GetFileName(path)}").ToList();
+    }
+
+    private async void JoinConcat_Click(object sender, RoutedEventArgs e)
+    {
+        if (_concatClips.Count < 2)
+        {
+            ShowWorkflowResult(TweakResult.Fail("Choose at least two clips first.", "請先揀最少兩段片。"));
+            return;
+        }
+        var extension = Path.GetExtension(_concatClips[0]);
+        if (string.IsNullOrWhiteSpace(extension)) extension = ".mkv";
+        var output = await FileDialogs.SaveFileAsync("joined" + extension, extension);
+        if (output is null) return;
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.ConcatCopyAsync(_concatClips, output, ct));
+    }
+
+    private async void DetectNvenc_Click(object sender, RoutedEventArgs e)
+    {
+        await RunWorkflowAsync((Button)sender, async ct =>
+        {
+            var scan = await MediaWorkflowService.DetectNvencAsync(ct);
+            NvencCodecBox.Items.Clear();
+            foreach (var codec in scan.Codecs)
+                NvencCodecBox.Items.Add(new ComboBoxItem { Content = codec, Tag = codec });
+            if (NvencCodecBox.Items.Count > 0) NvencCodecBox.SelectedIndex = 0;
+            return scan.Result;
+        });
+    }
+
+    private async void EncodeNvenc_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        if (NvencCodecBox.SelectedItem is not ComboBoxItem { Tag: string codec })
+        {
+            ShowWorkflowResult(TweakResult.Fail("Detect and choose a working NVENC encoder first.", "請先偵測同揀一個可用 NVENC 編碼器。"));
+            return;
+        }
+        int quality = (int)(double.IsNaN(NvencQualityBox.Value) ? 26 : NvencQualityBox.Value);
+        var output = DeriveTagged($".{codec}", ".mp4");
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.EncodeNvencAsync(MediaService.Input, output, codec, quality, ct));
+    }
+
+    private async void TargetSize_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        double target = double.IsNaN(TargetSizeBox.Value) ? 25 : TargetSizeBox.Value;
+        int audio = (int)(double.IsNaN(TargetAudioBox.Value) ? 128 : TargetAudioBox.Value);
+        var output = DeriveTagged($".{Math.Max(1, (int)Math.Round(target))}MiB", ".mp4");
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.EncodeTargetSizeAsync(MediaService.Input, output, target, audio, ct));
+    }
+
+    private async void PickSubtitle_Click(object sender, RoutedEventArgs e)
+    {
+        var path = await FileDialogs.OpenFileAsync(FileDialogs.BuildFilters(new[] { ".srt", ".ass" }),
+            P("Choose an SRT or ASS subtitle", "揀 SRT 或 ASS 字幕"));
+        if (path is null) return;
+        _subtitlePath = path;
+        SubtitlePathBox.Text = path;
+    }
+
+    private async void SubtitleRun_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        if (string.IsNullOrWhiteSpace(_subtitlePath) || !File.Exists(_subtitlePath))
+        {
+            ShowWorkflowResult(TweakResult.Fail("Choose an SRT or ASS subtitle first.", "請先揀 SRT 或 ASS 字幕。"));
+            return;
+        }
+        var mode = SubtitleModeBox.SelectedIndex == 1 ? MediaSubtitleMode.SoftMux : MediaSubtitleMode.BurnIn;
+        var output = DeriveTagged(mode == MediaSubtitleMode.BurnIn ? ".sub-burned" : ".sub-muxed", ".mp4");
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.AddSubtitlesAsync(MediaService.Input, _subtitlePath, output, mode, ct));
+    }
+
+    private async void PickChapterFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = await FileDialogs.OpenFolderAsync(P("Choose chapter output folder", "揀章節輸出資料夾"));
+        if (folder is null) return;
+        _chapterOutputFolder = folder;
+        ChapterFolderBox.Text = folder;
+    }
+
+    private async void ReadChapters_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        await RunWorkflowAsync((Button)sender, async ct =>
+        {
+            var scan = await MediaWorkflowService.ReadChaptersAsync(MediaService.Input, ct);
+            ChapterSummary.Text = scan.Chapters.Count == 0
+                ? P("No chapters loaded.", "未有讀到章節。")
+                : string.Join(Environment.NewLine, scan.Chapters.Select(ch =>
+                    $"{ch.Index:00}  {TimeSpan.FromSeconds(ch.StartSeconds):hh\\:mm\\:ss}–{TimeSpan.FromSeconds(ch.EndSeconds):hh\\:mm\\:ss}  {ch.Title}"));
+            return scan.Result;
+        });
+    }
+
+    private async void SplitChapters_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        if (string.IsNullOrWhiteSpace(_chapterOutputFolder) || !Directory.Exists(_chapterOutputFolder))
+        {
+            ShowWorkflowResult(TweakResult.Fail("Choose a chapter output folder first.", "請先揀章節輸出資料夾。"));
+            return;
+        }
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.SplitChaptersAsync(MediaService.Input, _chapterOutputFolder, ct));
+    }
+
+    private async void PickPhotoInput_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = await FileDialogs.OpenFolderAsync(P("Choose HEIC / HEIF / JPEG-XL source folder", "揀 HEIC／HEIF／JPEG-XL 來源資料夾"));
+        if (folder is null) return;
+        _photoInputFolder = folder;
+        PhotoInputFolderBox.Text = folder;
+    }
+
+    private async void PickPhotoOutput_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = await FileDialogs.OpenFolderAsync(P("Choose a separate photo output folder", "揀另一個相片輸出資料夾"));
+        if (folder is null) return;
+        _photoOutputFolder = folder;
+        PhotoOutputFolderBox.Text = folder;
+    }
+
+    private async void ConvertPhotos_Click(object sender, RoutedEventArgs e)
+    {
+        var format = PhotoFormatBox.SelectedIndex == 1 ? MediaPhotoFormat.Png : MediaPhotoFormat.Jpeg;
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.ConvertPhotoBatchAsync(_photoInputFolder, _photoOutputFolder, format, ct));
+    }
+
+    private async void StripMetadata_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard()) return;
+        var output = DeriveTagged(".metadata-clean");
+        await RunWorkflowAsync((Button)sender, ct => MediaWorkflowService.StripImageMetadataAsync(MediaService.Input, output, ct));
+    }
+
     private async void PickInput_Click(object sender, RoutedEventArgs e)
     {
         var path = await FileDialogs.OpenFileAsync(MediaExts);
         if (path is null) return;
         AppState.CurrentMediaInput = path;
+        if (string.IsNullOrWhiteSpace(_chapterOutputFolder))
+        {
+            _chapterOutputFolder = Path.GetDirectoryName(path) ?? string.Empty;
+            ChapterFolderBox.Text = _chapterOutputFolder;
+        }
         RefreshSelection();
         await ShowProbe();
     }
@@ -188,6 +512,16 @@ public sealed partial class MediaModule : Page
         var dir = Path.GetDirectoryName(input) ?? "";
         var name = Path.GetFileNameWithoutExtension(input);
         return Path.Combine(dir, name + suffixWithExt);
+    }
+
+    private string DeriveTagged(string tag, string? outputExtension = null)
+    {
+        var input = MediaService.Input;
+        var directory = Path.GetDirectoryName(input) ?? string.Empty;
+        var name = Path.GetFileNameWithoutExtension(input);
+        var extension = outputExtension ?? Path.GetExtension(input);
+        if (string.IsNullOrWhiteSpace(extension)) extension = ".mp4";
+        return Path.Combine(directory, name + tag + extension);
     }
 
     private async void TrimCopy_Click(object sender, RoutedEventArgs e)

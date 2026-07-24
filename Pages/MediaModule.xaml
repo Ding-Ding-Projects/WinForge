@@ -19,6 +19,268 @@
             <!-- One persistent result / status area for action results & errors -->
             <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
 
+            <!-- Guided studio workflows: bounded, cancellable ffmpeg/ffprobe pipelines. Each card stays
+                 vertically stacked so bilingual labels remain readable at narrow window widths. -->
+            <TextBlock x:Name="StudioHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <TextBlock x:Name="StudioDescription"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       TextWrapping="Wrap" />
+            <Button x:Name="StudioPickInputBtn"
+                    Click="StudioPickInput_Click"
+                    HorizontalAlignment="Left"
+                    MinHeight="40"
+                    AutomationProperties.Name="Choose the media workflow input file · 揀媒體工作流程輸入檔" />
+            <Button x:Name="CancelWorkflowBtn"
+                    Click="CancelWorkflow_Click"
+                    HorizontalAlignment="Left"
+                    MinHeight="40"
+                    Visibility="Collapsed"
+                    AutomationProperties.Name="Cancel active media workflow · 取消進行中媒體工作流程" />
+
+            <Border Padding="14" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="12">
+                <Expander x:Name="AudioWorkflowExpander" IsExpanded="True">
+                    <Expander.Header>
+                        <StackPanel Spacing="2">
+                            <TextBlock x:Name="AudioWorkflowTitle" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock x:Name="AudioWorkflowDescription"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Spacing="10" Margin="0,10,0,2">
+                        <Button x:Name="NormalizeR128Btn"
+                                Click="NormalizeR128_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Measured EBU R128 two-pass normalization · EBU R128 量度式兩步正規化" />
+                        <Button x:Name="TrimSilenceBtn"
+                                Click="TrimSilence_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Trim leading trailing and internal silence from audio · 剪走音訊頭尾同中間靜音" />
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <Border Padding="14" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="12">
+                <Expander x:Name="VideoWorkflowExpander">
+                    <Expander.Header>
+                        <StackPanel Spacing="2">
+                            <TextBlock x:Name="VideoWorkflowTitle" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock x:Name="VideoWorkflowDescription"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Spacing="10" Margin="0,10,0,2">
+                        <Button x:Name="StabilizeBtn"
+                                Click="Stabilize_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Two-pass vidstab video stabilization · 兩步 vidstab 影片防震" />
+                        <Button x:Name="AutoCropBtn"
+                                Click="AutoCrop_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Detect and crop black bars · 偵測同裁走影片黑邊" />
+                        <TextBlock x:Name="ConcatLabel" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <ListView x:Name="ConcatClipsList"
+                                  MinHeight="72"
+                                  MaxHeight="150"
+                                  SelectionMode="None"
+                                  AutomationProperties.Name="Selected clips in join order · 已揀片段合併次序" />
+                        <Button x:Name="ChooseConcatBtn"
+                                Click="ChooseConcat_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Choose video clips in join order · 按合併次序揀影片片段" />
+                        <Button x:Name="JoinConcatBtn"
+                                Click="JoinConcat_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Join selected clips without re-encoding · 無重編碼合併已揀片段" />
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <Border Padding="14" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="12">
+                <Expander x:Name="DeliveryWorkflowExpander">
+                    <Expander.Header>
+                        <StackPanel Spacing="2">
+                            <TextBlock x:Name="DeliveryWorkflowTitle" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock x:Name="DeliveryWorkflowDescription"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Spacing="10" Margin="0,10,0,2">
+                        <TextBlock x:Name="NvencLabel" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <ComboBox x:Name="NvencCodecBox"
+                                  HorizontalAlignment="Stretch"
+                                  AutomationProperties.Name="Detected NVENC encoder · 偵測到嘅 NVENC 編碼器" />
+                        <NumberBox x:Name="NvencQualityBox"
+                                   Minimum="0"
+                                   Maximum="51"
+                                   SpinButtonPlacementMode="Inline"
+                                   HorizontalAlignment="Stretch"
+                                   AutomationProperties.Name="NVENC constant quality from zero to fifty-one · NVENC 品質零至五十一" />
+                        <Button x:Name="DetectNvencBtn"
+                                Click="DetectNvenc_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Detect working NVIDIA NVENC encoders · 偵測可用 NVIDIA NVENC 編碼器" />
+                        <Button x:Name="EncodeNvencBtn"
+                                Click="EncodeNvenc_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Encode with selected NVENC codec · 用已揀 NVENC codec 編碼" />
+
+                        <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Opacity="0.6" Margin="0,4" />
+                        <TextBlock x:Name="TargetSizeLabel" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <NumberBox x:Name="TargetSizeBox"
+                                   Minimum="1"
+                                   Maximum="100000"
+                                   SpinButtonPlacementMode="Inline"
+                                   HorizontalAlignment="Stretch"
+                                   AutomationProperties.Name="Target file size in mebibytes · 目標檔案容量 MiB" />
+                        <NumberBox x:Name="TargetAudioBox"
+                                   Minimum="32"
+                                   Maximum="1536"
+                                   SpinButtonPlacementMode="Inline"
+                                   HorizontalAlignment="Stretch"
+                                   AutomationProperties.Name="Target audio bitrate in kilobits per second · 目標音訊位元率 kbps" />
+                        <Button x:Name="TargetSizeBtn"
+                                Click="TargetSize_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Run two-pass target-size encoding · 執行兩步目標容量編碼" />
+
+                        <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Opacity="0.6" Margin="0,4" />
+                        <TextBlock x:Name="SubtitleLabel" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBox x:Name="SubtitlePathBox"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 AutomationProperties.Name="Selected SRT or ASS subtitle file · 已揀 SRT 或 ASS 字幕檔" />
+                        <Button x:Name="PickSubtitleBtn"
+                                Click="PickSubtitle_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Choose an SRT or ASS subtitle file · 揀 SRT 或 ASS 字幕檔" />
+                        <ComboBox x:Name="SubtitleModeBox"
+                                  HorizontalAlignment="Stretch"
+                                  AutomationProperties.Name="Subtitle mode · 字幕模式">
+                            <ComboBoxItem x:Name="BurnInSubtitleItem" Tag="burn" />
+                            <ComboBoxItem x:Name="SoftMuxSubtitleItem" Tag="soft" />
+                        </ComboBox>
+                        <Button x:Name="SubtitleRunBtn"
+                                Click="SubtitleRun_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Burn or soft-mux the selected subtitle · 燒入或軟掛已揀字幕" />
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <Border Padding="14" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="12">
+                <Expander x:Name="PhotoChapterWorkflowExpander">
+                    <Expander.Header>
+                        <StackPanel Spacing="2">
+                            <TextBlock x:Name="PhotoChapterWorkflowTitle" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock x:Name="PhotoChapterWorkflowDescription"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Spacing="10" Margin="0,10,0,2">
+                        <TextBlock x:Name="ChapterLabel" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBox x:Name="ChapterFolderBox"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 AutomationProperties.Name="Chapter output folder · 章節輸出資料夾" />
+                        <Button x:Name="PickChapterFolderBtn"
+                                Click="PickChapterFolder_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Choose chapter output folder · 揀章節輸出資料夾" />
+                        <Button x:Name="ReadChaptersBtn"
+                                Click="ReadChapters_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Read embedded media chapters · 讀取媒體內嵌章節" />
+                        <Button x:Name="SplitChaptersBtn"
+                                Click="SplitChapters_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Split every chapter without re-encoding · 無重編碼分割全部章節" />
+                        <TextBlock x:Name="ChapterSummary"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   IsTextSelectionEnabled="True"
+                                   TextWrapping="Wrap" />
+
+                        <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Opacity="0.6" Margin="0,4" />
+                        <TextBlock x:Name="PhotoBatchLabel" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBox x:Name="PhotoInputFolderBox"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 AutomationProperties.Name="HEIC and JPEG-XL source folder · HEIC 同 JPEG-XL 來源資料夾" />
+                        <Button x:Name="PickPhotoInputBtn"
+                                Click="PickPhotoInput_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Choose HEIC HEIF or JPEG-XL source folder · 揀 HEIC HEIF 或 JPEG-XL 來源資料夾" />
+                        <TextBox x:Name="PhotoOutputFolderBox"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 AutomationProperties.Name="Converted photo output folder · 轉換相片輸出資料夾" />
+                        <Button x:Name="PickPhotoOutputBtn"
+                                Click="PickPhotoOutput_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Choose a separate converted-photo output folder · 揀另一個轉換相片輸出資料夾" />
+                        <ComboBox x:Name="PhotoFormatBox"
+                                  HorizontalAlignment="Stretch"
+                                  AutomationProperties.Name="Converted photo format · 轉換相片格式">
+                            <ComboBoxItem x:Name="PhotoJpegItem" Tag="jpg" />
+                            <ComboBoxItem x:Name="PhotoPngItem" Tag="png" />
+                        </ComboBox>
+                        <Button x:Name="ConvertPhotosBtn"
+                                Click="ConvertPhotos_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Convert the bounded photo batch · 轉換有限量相片批次" />
+
+                        <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Opacity="0.6" Margin="0,4" />
+                        <Button x:Name="StripMetadataBtn"
+                                Click="StripMetadata_Click"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                MinHeight="40"
+                                AutomationProperties.Name="Strip EXIF GPS and image metadata · 移除 EXIF GPS 同相片 metadata" />
+                    </StackPanel>
+                </Expander>
+            </Border>
+
             <!-- Files (chrome-free) -->
             <StackPanel Spacing="10">
                 <TextBlock x:Name="SelLabel" FontWeight="SemiBold" />

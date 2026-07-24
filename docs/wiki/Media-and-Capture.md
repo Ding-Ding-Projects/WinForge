@@ -4,9 +4,11 @@ Tools for converting, recording, editing and capturing audio, video, images and 
 
 ## Media · 媒體
 
-ffmpeg-powered video/audio convert, trim and GIF making. · 用 ffmpeg 轉檔、剪裁影音同整 GIF。
+ffmpeg/ffprobe studio with quick conversion and eleven guided, cancellable workflows for broadcast loudness, silence, stabilization, crop, concat, NVENC, delivery caps, subtitles, chapters, modern photos, and metadata privacy. · ffmpeg／ffprobe 工作台，除快速轉檔外仲有 11 個可取消引導流程，涵蓋廣播響度、靜音、防震、裁剪、合併、NVENC、容量上限、字幕、章節、新式相片同 metadata 私隱。
 
 Open in-app: `WinForge.exe --page media`
+
+[Behavior, safety, failure modes, and focused verification](Media-Studio-Workflows.md) · [行為、安全、失敗模式同專項驗證](Media-Studio-Workflows.md)
 
 ![Media](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-media.png)
 

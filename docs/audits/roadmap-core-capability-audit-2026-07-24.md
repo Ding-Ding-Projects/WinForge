@@ -2,21 +2,21 @@
 
 ## Outcome · 結果
 
-This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The original classification was revalidated after rebasing onto mainline baseline `4af5e60e9d41f258f2d4697b1f0383138c8d1642`; the 2026-07-24 Browser Control completion then closed its eleven evidence-backed gaps. Of 115 roadmap entries, **85 now have complete source-backed delivery evidence** and **30 remain unchecked** because the implementation is absent or only partial.
+This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The original classification was revalidated against source; the 2026-07-24 Browser Control and Media completions then closed eleven evidence-backed gaps each. Of 115 roadmap entries, **96 now have complete source-backed delivery evidence** and **19 remain unchecked** because implementation is absent or partial in other sections.
 
-今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對；2026-07-24 瀏覽器控制完成工作再補齊十一個有證據缺口。115 項之中，**85 項有完整原始碼交付證據**，**30 項因為未有實作或者只做咗一部分而繼續留空**。
+今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對；2026-07-24 瀏覽器控制同 Media 完成工作各自再補齊十一個有證據缺口。115 項之中，**96 項有完整原始碼交付證據**，**19 項因其他章節未有實作或者只做咗一部分而繼續留空**。
 
 | Section · 章節 | Audited · 審核 | Shipped `[x]` · 已交付 | Remaining `[ ]` · 餘下 |
 |---|---:|---:|---:|
 | Windows 11 | 13 | 10 | 3 |
 | ViveTool | 15 | 15 | 0 |
-| Media | 15 | 4 | 11 |
+| Media | 15 | 15 | 0 |
 | Maintenance | 15 | 10 | 5 |
 | Dev & Terminal | 15 | 9 | 6 |
 | Home Assistant | 14 | 13 | 1 |
 | Archives | 14 | 10 | 4 |
 | Browser Control | 14 | 14 | 0 |
-| **Total · 總數** | **115** | **85** | **30** |
+| **Total · 總數** | **115** | **96** | **19** |
 
 ## Evidence standard · 證據標準
 
@@ -28,7 +28,7 @@ An entry is checked only when all of the following are present:
 
 只有同時有可達控制、實際執行機制，同埋文件／驗證證據先會剔選。`Controls/ControlRowList.cs` is the shared binding proof for catalog rows: action buttons invoke `RunAsync`, toggles invoke `SetIsOn`, and choice/slider controls invoke their registered setters. Dedicated modules are registered in `Services/ModuleRegistry.cs`, mapped/deep-linked in `MainWindow.xaml.cs`, and documented by generated module/button pages.
 
-The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, verifies Browser Control's implementation markers, and locks the aggregate **85/115** result.
+The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, verifies Browser Control and Media implementation markers, and locks the aggregate **96/115** result. `tests/MediaWorkflowCore.Tests` separately covers two-pass sequencing, parsers, argument boundaries, cancellation, staged-output preservation, and owned scratch cleanup.
 
 ## Windows 11 · Windows 11
 
@@ -85,30 +85,29 @@ No unchecked ViveTool item remains in this audited section. · 呢個已審核�
 
 ## Media · Media
 
-### Shipped — 4 · 已交付 — 4
+### Shipped — 15 · 已交付 — 15
 
 | Roadmap capability | Concrete implementation evidence | Documentation evidence |
 |---|---|---|
+| **Normalize loudness to broadcast standard (EBU R128)** | `NormalizeR128Btn` calls `MediaWorkflowService.NormalizeLoudnessAsync`; `MediaWorkflowExecutor` measures `input_i/input_tp/input_lra/input_thresh`, maps them to all four `measured_*` fields, and runs the second linear pass into a staged output. | `docs/features/media-capture/media-studio-workflows.md`; focused harness cases 1–2. |
+| **Auto-trim silence from start/end and gaps** | `TrimSilenceBtn` calls the executor's full `silenceremove` filter with `start_periods=1` and `stop_periods=-1`, so leading, trailing, and internal silence are covered; the executor rejects video containers before launch to prevent A/V desynchronization. | Media workflow guide; focused harness case 3. |
 | **Make high-quality GIF (two-pass palette)** | `Pages/GifLabModule.xaml.cs::Export_Click` calls `GifLabService.Export`; its GIF branch runs separate `palettegen` and `paletteuse` ffmpeg passes with a temporary palette file. | `docs/wiki/features/media-capture/giflab.md` and its generated Export button page. |
+| **Stabilize shaky video (vidstab two-pass)** | `StabilizeBtn` runs `vidstabdetect`, verifies the GUID-scoped transform exists, then runs `vidstabtransform`; the owned workspace is deleted in `finally`. | Media workflow guide; focused harness case 4. |
+| **Auto-detect and crop black bars** | `AutoCropBtn` samples 200 frames through `cropdetect=round=2`, parses the final valid crop rectangle, then applies that rectangle in a second staged encode. | Media workflow guide; focused harness case 5. |
 | **Lossless cut on keyframes (no re-encode)** | `Pages/MediaModule.xaml` wires `TrimCopyBtn`; `TrimCopy_Click` accepts user start/duration and calls ffmpeg with `-ss`, `-t`, and `-c copy`. | Generated Media module/button documentation. |
+| **Concat / join clips without re-encoding** | `ChooseConcatBtn` accepts an ordered multi-selection; `ConcatCopyAsync` writes an escaped UTF-8 concat list and executes `-f concat -safe 0 -c copy -avoid_negative_ts make_zero`. | Media workflow guide; focused harness case 6. |
+| **GPU hardware encode with NVENC** | `DetectNvencBtn` parses ffmpeg's encoder list and performs a real one-frame hardware probe for each NVENC codec; `EncodeNvencBtn` re-probes the selected `h264_nvenc`/`hevc_nvenc`/`av1_nvenc` codec before encoding with preset/tune/RC/CQ controls. | Media workflow guide; focused harness cases 7–8. |
+| **Two-pass target-size encode (Discord/email cap)** | `TargetSizeBtn` takes MiB/audio-kbps inputs; ffprobe supplies duration, `ComputeTargetVideoBitrateKbps` applies the documented formula and bounds, and two x264 passes share a GUID-scoped passlog. | Media workflow guide; focused harness cases 9–10. |
+| **Burn-in or soft-mux subtitles (SRT/ASS)** | The subtitle picker accepts SRT/ASS and exposes libass burn-in or soft mux; filter paths are escaped, MP4 uses `mov_text`, other compatible containers copy, and soft tracks receive `language=yue`. | Media workflow guide; focused harness case 11. |
+| **Extract chapters and split video by chapter** | `ReadChaptersBtn` parses `ffprobe -show_chapters` JSON; `SplitChaptersBtn` bounds the set to 200, sanitizes/collision-proofs filenames, and makes one stream-copy output per valid interval. | Media workflow guide; focused harness case 12. |
 | **Contact sheet / storyboard thumbnails** | `Catalog/MediaOperations.cs`, `media.contact-sheet`, runs ffmpeg `select`, `scale`, and `tile` filters. | Generated feature page for `media.contact-sheet`. |
+| **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** | The folder workflow enumerates HEIC/HEIF/JXL locally, limits the batch to 500, requires a separate output folder, collision-proofs stems, and converts one frame per input to JPG or PNG. | Media workflow guide; focused harness case 13. |
+| **Strip EXIF/GPS metadata from photos** | `StripMetadataBtn` calls `-map_metadata -1 -map_metadata:s -1 -c:v copy` through a staged same-format output, removing metadata without re-encoding image pixels. | Media workflow guide; focused harness case 14. |
 | **Make animated WebP from video (smaller than GIF)** | `Catalog/MediaOperations.cs`, `media.to-animated-webp`, invokes `-vf "fps=15,scale=480:-1:flags=lanczos" -c:v libwebp -loop 0`; it does not set an explicit quality value. | Generated feature page for `media.to-animated-webp`. |
 
-### Remaining gaps — 11 · 餘下缺口 — 11
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Normalize loudness to broadcast standard (EBU R128)** | Media and Audio Editor expose one-pass `loudnorm`; no measurement pass parses `measured_I`, `measured_TP`, `measured_LRA`, and `measured_thresh` into a second linear pass. |
-| **Auto-trim silence from start/end and gaps** | Audio Editor has manual trim/delete operations, but no `silenceremove` workflow that handles start, end, and internal gaps. |
-| **Stabilize shaky video (vidstab two-pass)** | The catalog has a one-pass `deshake` example only; no `vidstabdetect` transform file followed by `vidstabtransform`. |
-| **Auto-detect and crop black bars** | No handler runs `cropdetect`, parses the suggested rectangle, and applies a second crop encode. |
-| **Concat / join clips without re-encoding** | No Media control accepts multiple video clips and builds a concat-demuxer list for `-c copy`; audio/GIF-specific concat paths do not satisfy this video workflow. |
-| **GPU hardware encode with NVENC** | No Media control detects NVIDIA capability or offers `h264_nvenc`, `hevc_nvenc`, or `av1_nvenc`. |
-| **Two-pass target-size encode (Discord/email cap)** | No duration/target-size UI computes bitrate and runs the two x264 pass commands. |
-| **Burn-in or soft-mux subtitles (SRT/ASS)** | No Media handler accepts a subtitle file and offers both libass burn-in and soft-mux modes. |
-| **Extract chapters and split video by chapter** | No control parses `ffprobe -show_chapters` JSON or creates one stream-copy output per chapter. |
-| **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** | No folder/batch control enumerates HEIC/JXL inputs and converts them to user-selected JPG/PNG outputs. |
-| **Strip EXIF/GPS metadata from photos** | No Media action exposes `-map_metadata -1` or an equivalent full metadata-strip workflow. |
+No unchecked Media item remains in this audited section. The new workflows preserve argument boundaries through `ProcessStartInfo.ArgumentList`, stage outputs before promotion, bound batches and chapter counts, and clean owned scratch files on failure or cancellation. · 呢個已審核 Media 章節冇剩低未交付項目；新工作流程會保留參數邊界、成功先升格暫存輸出、限制批次／章節數量，失敗或取消都會清理自家 scratch 檔。
 
 ## Maintenance · Maintenance
 
@@ -253,6 +252,8 @@ No Browser Control entries remain open. · 瀏覽器控制冇剩低未完成項�
 - Source/route checks: `.agents/skills/winforge-exhaustive-smoke/scripts/Test-WinForgeSourceSurfaceAudit.ps1`, XAML literal safety, focused roadmap consistency, and docs-only site generation are run as part of this audit handoff.
 - The historical adversarial review remains valid for Media and Archives; Browser Control subsequently advanced from 3/14 to 14/14 through the parameterized workbench and focused harness.
 - `tests/BrowserControl.Tests` covers 23 URL, profile, PWA, internal-page, cache, proxy, ephemeral-lifecycle, feature, debug-port, and winget plan contracts. Fresh Browser route visual evidence is required because `CategoryPage` and its layout changed.
-- The 30 unchecked entries outside Browser Control are intentional product gaps, not audit failures. Future work should check an entry only after its specific reason is resolved and the focused contract is updated deliberately.
+- Media's former 4/11 disposition is now 15/0. The four pre-existing items remain source-accurate, including animated WebP's `libwebp` command without an explicit quality value; all eleven former gaps have dedicated page handlers, executor evidence, and focused tests.
+- The Media WinUI surface changed. A fresh process-owned live-tree capture was inspected and promoted to `docs/screenshot-media.png` and `docs/wiki/images/screenshot-media.png` (SHA-256 `F89886CE200DA522E8C956B67B363A847E8E9DC0AC2926DFF382E9E52B870900`); LowLevel MCP was present only as repository guidance and was not callable in this session.
+- The remaining 19 unchecked entries are intentional product gaps in other sections, not audit failures. Future work should check an entry only after its specific reason is resolved and the focused contract is updated deliberately.
 
-今次瀏覽器控制由 3/14 推進到 14/14，改咗 WinUI 畫面，所以要有最新 route 截圖；其餘 30 項未剔選係刻意保留嘅真實產品缺口，唔係審核漏咗。
+今次瀏覽器控制由 3/14 推進到 14/14，Media 亦由 4/15 推進到 15/15；兩邊 WinUI 都有最新已檢視畫面。其餘 19 項未剔選係其他章節刻意保留嘅真實產品缺口，唔係審核漏咗。

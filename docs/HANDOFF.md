@@ -6,10 +6,10 @@ WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 
 
 ## Current Browser Control roadmap verification · 目前瀏覽器控制路線圖驗證
 
-- The accessible bilingual Browser workbench closes all eleven prior gaps: configurable app/kiosk URLs, real profiles/PWAs, flags/policy, contained cache cleanup, isolated proxy/throwaway/features/debugging, and exact-ID winget actions. Browser Control is **14/14** and the core matrix is **85/115**. · 無障礙雙語工作台補齊十一個缺口；Browser Control **14/14**，核心 matrix **85/115**。
+- The accessible bilingual Browser workbench closes all eleven prior gaps: configurable app/kiosk URLs, real profiles/PWAs, flags/policy, contained cache cleanup, isolated proxy/throwaway/features/debugging, and exact-ID winget actions. Browser Control is **14/14**; with Media at 15/15, the core matrix is **96/115**. · 無障礙雙語工作台補齊十一個缺口；Browser Control **14/14**，連同 Media 15/15，核心 matrix **96/115**。
 - Browser arguments are discrete and bounded; sensitive URL/proxy values are not persisted, embedded credentials and elevated browser launch are rejected, debugging is loopback-only, and destructive cache/package operations require explicit decisions. · 瀏覽器參數獨立而有界；敏感值唔持久化，憑證／提權瀏覽器被拒絕，除錯只綁 loopback，快取／套件變更要明確決定。
 - Focused tests pass **23/23**; the merged x64 solution build has **0 warnings / 0 errors**; roadmap, XAML, source, and site-data gates pass. Inspected 1033×637 and 784×691 LowLevel captures have readable wrapping and zero retained windows, with no real browser/cache/package/debug side effect. · 專項 **23/23**、合併 build 零 warning／零 error、全部 gate 全過；兩張 LowLevel 圖已檢視，零殘留亦冇真實副作用。
-- Exact hashes, source-audit counts, feature commit `24447657f`, and branch-only delivery boundary are recorded in `handoff-summary.md`; the coordinating parent owns final `main` integration. · 準確 hash、audit 數字、功能 commit 同 branch-only 界線見 `handoff-summary.md`；最終 main 整合由統籌 parent 負責。
+- Exact hashes, source-audit counts, and feature commit `24447657f` are recorded in `handoff-summary.md`; source tip `9c06de6b9` is integrated and remotely proved on `main`, and its clean task branch/worktree were removed after proof. · 準確 hash、audit 數字同功能 commit 見 `handoff-summary.md`；source tip `9c06de6b9` 已整合並喺 remote `main` 證明，乾淨 task branch／worktree 只喺 proof 後移除。
 
 ## Current independent funny-level settings verification · 目前英粵分開搞笑等級驗證
 
@@ -34,10 +34,10 @@ WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 
 
 ## Current core roadmap capability reconciliation · 目前核心路線圖功能對帳
 
-- Eight stale core sections now have a strict source-backed disposition: **74/115 shipped** and **41 factual gaps retained**. The exact per-section matrix, catalog IDs, handlers, mechanisms, documentation evidence, and missing behavior are in [the categorized audit](audits/roadmap-core-capability-audit-2026-07-24.md). · 八個過時核心章節已有嚴格原始碼處置：**74/115 已交付**，**41 個真實缺口保留**；每節 matrix、catalog ID、handler、機制、文件證據同欠缺行為都喺分類 audit。
+- Eight stale core sections now have a strict source-backed disposition: **96/115 shipped** and **19 factual gaps retained** after Browser Control and Media each closed eleven gaps. The exact per-section matrix, controls, services, documentation evidence, and remaining behavior are in [the categorized audit](audits/roadmap-core-capability-audit-2026-07-24.md). · 八個過時核心章節已有嚴格原始碼處置；Browser Control 同 Media 各自補完 11 個缺口後係 **96/115 已交付**、**19 個真實缺口保留**。
 - `tools/Test-RoadmapCoreAudit.ps1` checks all 115 exact titles, their shipped/gap placement, section counts, mirrors, and aggregate. Post-rebase source/XAML checks pass, and the canonical site generator publishes the new wiki page without hand-editing app data. · 專項 test 會核對 115 個準確標題、已交付／缺口位置、每節數量、mirror 同總數；rebase 後 source／XAML gate 全過，正式 site generator 亦已發佈新 wiki 頁，冇手改 app data。
-- Follow-up review rechecked all 43 Media, Archives, and Browser Control dispositions without changing their counts. Checked Media notes now match the shipped commands; animated WebP uses `libwebp` with no explicit quality value. · 跟進覆核重新檢查三個分類全部 43 項，數量冇改；已剔選 Media 註解而家同 shipped command 一致，動態 WebP 用 `libwebp`，冇明確 quality 參數。
-- No WinUI surface changed, so screenshot evidence is not applicable. Source/audit commit `632d0e551383c143908cfc65e25fa4d60f937715` is based on `4af5e60e9d41f258f2d4697b1f0383138c8d1642`, pushed and proved byte-identical on `origin/codex/roadmap-reconcile-core`; this final memory record follows on that branch, while main integration remains with the coordinating parent. · 冇 WinUI 畫面改動，所以截圖證據不適用；source／audit commit `632d0e551` 以 `4af5e60e9` 為基線，已 push 並證明同 remote branch 完全一致；呢個最終 memory 記錄跟住喺同一 branch，而 main 整合交畀統籌 parent。
+- Follow-up review rechecked all 43 Media, Archives, and Browser Control dispositions; Media and Browser later closed their evidence-backed gaps. Checked Media notes match the shipped commands, and animated WebP uses `libwebp` with no explicit quality value. · 跟進覆核重新檢查三個分類全部 43 項；Media 同 Browser 之後補齊有證據缺口，動態 WebP 仍用 `libwebp` 而冇明確 quality 參數。
+- Browser and Media both changed WinUI surfaces, so fresh inspected screenshots are tracked in their dedicated handoff sections. · Browser 同 Media 都改咗 WinUI 畫面，最新已檢視截圖記錄喺各自交接章節。
 
 ## Current preserved package-stash verification · 目前已保存套件 stash 驗證
 

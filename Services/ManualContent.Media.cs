@@ -11,11 +11,13 @@ public static partial class ManualContent
         {
             Tag = "module.media", Glyph = "",
             TitleEn = "Media", TitleZh = "媒體",
-            SummaryEn = "Convert, trim and tweak video and audio with FFmpeg — plus one-click presets, GIF making and frame grabs.",
-            SummaryZh = "用 FFmpeg 轉檔、剪裁同調校影片同音訊 — 仲有一鍵預設、整 GIF 同擷取畫面格。",
+            SummaryEn = "Run guided, cancellable FFmpeg/FFprobe studio workflows for video, audio, and modern photos — plus quick conversions, trim, GIF, and frame grabs.",
+            SummaryZh = "用可取消嘅引導式 FFmpeg／FFprobe 工作流程處理影片、音訊同新式相片 — 仲有快速轉檔、剪裁、GIF 同擷取畫面格。",
             StepsEn = new[]
             {
                 "Click the input button to pick a video or audio file; pick an output file if you want to choose where it saves.",
+                "Expand a guided studio card for measured EBU R128, silence cleanup, video repair/join, NVENC/target-size delivery, subtitles, chapters, photo batches, or metadata privacy.",
+                "Use Detect before NVENC encode, keep concat clips codec-compatible, and press Cancel to terminate the active process and clean owned scratch files.",
                 "Tap a quick-conversion chip (e.g. to MP4, MP3, WebM) to convert in one click.",
                 "To trim, type a start time and a duration, then press Trim (copy) for a fast cut or Trim (encode) for a precise one.",
                 "To make a GIF, set FPS and width and press the GIF button; press the frame button to grab a single still.",
@@ -24,14 +26,16 @@ public static partial class ManualContent
             StepsZh = new[]
             {
                 "撳輸入掣揀一個影片或者音訊檔；想自己揀儲存位置就撳輸出掣。",
+                "展開引導式工作卡，就可以做量度式 EBU R128、靜音整理、影片修復／合併、NVENC／目標容量、字幕、章節、相片批次或者 metadata 私隱。",
+                "NVENC 編碼前先偵測、concat 片段要 codec 相容；要停止就撳 Cancel，會終止程序同清理自家 scratch 檔。",
                 "撳一粒快速轉換按鈕（例如轉去 MP4、MP3、WebM）就一鍵轉檔。",
                 "想剪裁就打開始時間同長度，再撳 Trim (copy) 快速切，或者 Trim (encode) 精準切。",
                 "想整 GIF 就設定 FPS 同闊度再撳 GIF 掣；撳畫面格掣就擷取一張靜止圖。",
                 "喺進階操作搜尋框搵更多 FFmpeg 配方。",
             },
-            TipEn = "Trim (copy) is instant but cuts only at keyframes; Trim (encode) is frame-accurate but slower.",
-            TipZh = "Trim (copy) 即時但只可以喺關鍵影格切；Trim (encode) 準到逐格但慢啲。",
-            Keywords = "ffmpeg video audio convert trim gif frame 影片 音訊 轉檔 剪裁 畫面格",
+            TipEn = "Guided workflows stage output before promotion, so a failed or cancelled run does not replace an existing destination.",
+            TipZh = "引導式流程會先暫存輸出；失敗或者取消都唔會取代原有目的地。",
+            Keywords = "ffmpeg ffprobe video audio photo ebu r128 silence vidstab crop concat nvenc target size subtitle chapter heic jxl exif gps convert trim gif frame 影片 音訊 相片 轉檔 剪裁 字幕 章節",
         },
         new ManualEntry
         {

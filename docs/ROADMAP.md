@@ -137,36 +137,36 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _Diff ViVeTool.exe /query output against the bundled name dictionary to surface features present on THIS build but sitting at Default/Disabled ('available to try'); after any /enable|/disable|/reset offer a soft apply via 'taskkill /f /im explorer.exe && start explorer.exe' for shell-only features or 'shutdown /r /t 0' for store-level ones. User confirms - no destructive default._
 
 ### Media · 🆕 new module / 新模組  (15)
-> **Strict source audit (2026-07-24): 4/15 shipped.** The eleven partial or absent pipelines remain unchecked and are explained in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#media--media). · **嚴格原始碼審核：15 項有 4 項已交付；其餘 11 項仍然保留待辦。**
+> **Implemented and re-audited (2026-07-24): 15/15 shipped.** The eleven former gaps now use reachable bilingual Media controls and the bounded `MediaWorkflowExecutor`; focused evidence is in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#media--media). · **已實作再審核：15 項全部交付。原本 11 個缺口而家都有可達雙語控制同有界限嘅 `MediaWorkflowExecutor`。**
 
-- [ ] **Normalize loudness to broadcast standard (EBU R128)** · 校正音量去廣播標準（EBU R128）
-  - _Two-pass ffmpeg loudnorm. Pass 1 measures: ffmpeg -i in.mp4 -af loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json -f null - ; parse measured_I/measured_TP/measured_LRA/measured_thresh from stderr JSON, then pass 2: ffmpeg -i in.mp4 -af loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=...:measured_TP=...:measured_LRA=...:measured_thresh=...:linear=true -c:v copy out.mp4 (all measured_* params + print_format confirmed present in this build)_
-- [ ] **Auto-trim silence from start/end and gaps** · 自動剪走頭尾同中間嘅靜音
-  - _ffmpeg -i in.mp3 -af silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB:stop_periods=-1:stop_silence=0.3:stop_threshold=-50dB:detection=peak out.mp3 (silenceremove filter + all listed options confirmed in this build)_
+- [x] **Normalize loudness to broadcast standard (EBU R128)** · 校正音量去廣播標準（EBU R128）
+  - _`NormalizeR128Btn` runs `MediaWorkflowExecutor.NormalizeLoudnessAsync`: pass one parses ffmpeg's `input_i/input_tp/input_lra/input_thresh` JSON, then pass two supplies all four `measured_*` values with `linear=true`. The final file is promoted from a same-folder staged output only after success._
+- [x] **Auto-trim silence from start/end and gaps** · 自動剪走頭尾同中間嘅靜音
+  - _`TrimSilenceBtn` runs the full `silenceremove` filter with `start_periods=1` and `stop_periods=-1`, covering leading, trailing, and internal silence. It accepts audio files only so collapsing gaps can never desynchronize a copied video track._
 - [x] **Make high-quality GIF (two-pass palette)** · 整靚 GIF（兩步調色板）
   - _The shipped GifLab export writes the ordered frames to an ffmpeg concat list, then runs a separate `palettegen=stats_mode=diff` pass into a temporary palette and a `paletteuse=dither=bayer:bayer_scale=3` pass into the GIF. The page supplies FPS, optional scale and loop count; `GifLabService.Export` checks the palette pass before continuing._
-- [ ] **Stabilize shaky video (vidstab two-pass)** · 整定鏡頭、減震（vidstab 兩步）
-  - _Two-pass libvidstab (vidstabdetect/vidstabtransform confirmed). Pass1 detect: ffmpeg -i in.mp4 -vf vidstabdetect=shakiness=8:accuracy=15:result=transforms.trf -f null - ; Pass2 transform: ffmpeg -i in.mp4 -vf vidstabtransform=input=transforms.trf:smoothing=30:zoom=0,unsharp=5:5:0.8:3:3:0.4 -c:a copy out.mp4_
-- [ ] **Auto-detect and crop black bars** · 自動偵測、剷走黑邊
-  - _ffmpeg -ss 60 -i in.mp4 -vframes 200 -vf cropdetect=round=2 -f null - to read the suggested crop=w:h:x:y from stderr, then ffmpeg -i in.mp4 -vf crop=w:h:x:y -c:a copy out.mp4 (cropdetect + round option confirmed)_
+- [x] **Stabilize shaky video (vidstab two-pass)** · 整定鏡頭、減震（vidstab 兩步）
+  - _`StabilizeBtn` runs `vidstabdetect` into a GUID-scoped owned transform file, verifies that file exists, then runs `vidstabtransform` plus unsharp. Cancellation and all transform/pass scratch files are cleaned in `finally`._
+- [x] **Auto-detect and crop black bars** · 自動偵測、剷走黑邊
+  - _`AutoCropBtn` samples 200 frames with `cropdetect=round=2`, parses the final valid `crop=w:h:x:y`, and applies it in a second staged encode._
 - [x] **Lossless cut on keyframes (no re-encode)** · 唔重新編碼、喺關鍵幀剪片
   - _The shipped Media page accepts a start time and duration, then runs `ffmpeg -ss {start} -i {in} -t {duration} -c copy {out}`. It stream-copies without re-encoding; the current UI does not list keyframes or add `-avoid_negative_ts`._
-- [ ] **Concat / join clips without re-encoding** · 唔重新編碼咁駁埋幾段片
-  - _concat demuxer: write list.txt with lines like file 'C:/clip1.mp4' then ffmpeg -f concat -safe 0 -i list.txt -c copy out.mp4 (requires same codec/params; fall back to concat filter ffmpeg -i a -i b -filter_complex "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1" when they differ)_
-- [ ] **GPU hardware encode with NVENC** · 用顯示卡硬件編碼（NVENC）
-  - _ffmpeg -i in.mp4 -c:v hevc_nvenc -preset p5 -tune hq -rc vbr -cq 26 -b:v 0 -c:a copy out.mp4 (h264_nvenc / hevc_nvenc / av1_nvenc all confirmed present in this build). Gate on detecting an NVIDIA GPU first._
-- [ ] **Two-pass target-size encode (Discord/email cap)** · 兩步壓到指定大細（夾返上限）
-  - _Compute video bitrate V = (targetMB*8388.608/durationSec) - audioKbps, then x264 two-pass on Windows: pass1 ffmpeg -y -i in.mp4 -c:v libx264 -b:v {V}k -pass 1 -an -f mp4 NUL && pass2 ffmpeg -i in.mp4 -c:v libx264 -b:v {V}k -pass 2 -c:a aac -b:a {A}k out.mp4 (duration from ffprobe -show_entries format=duration; note audio is -b:a not -b:v)_
-- [ ] **Burn-in or soft-mux subtitles (SRT/ASS)** · 燒字幕入畫面 或 軟掛字幕（SRT/ASS）
-  - _Burn-in (hardsub): ffmpeg -i in.mp4 -vf "subtitles='subs.srt':force_style='FontName=Microsoft JhengHei,FontSize=22'" out.mp4 (libass via subtitles filter, confirmed). Soft-mux (toggleable): ffmpeg -i in.mp4 -i subs.srt -c copy -c:s mov_text -metadata:s:s:0 language=yue out.mp4 (mov_text encoder confirmed)_
-- [ ] **Extract chapters and split video by chapter** · 抽章節、按章節分割片段
-  - _List: ffprobe -i in.mkv -show_chapters -print_format json (reads chapter start/end times). Split each: ffmpeg -i in.mkv -ss {start} -to {end} -c copy "Chapter NN.mkv" per chapter entry._
+- [x] **Concat / join clips without re-encoding** · 唔重新編碼咁駁埋幾段片
+  - _The Media page accepts an ordered multi-file selection, writes a UTF-8 concat-demuxer list with escaped apostrophes, then runs `-f concat -safe 0 -c copy -avoid_negative_ts make_zero`. The owned list and staged output are always cleaned._
+- [x] **GPU hardware encode with NVENC** · 用顯示卡硬件編碼（NVENC）
+  - _The NVENC controls first parse `ffmpeg -encoders`, then perform a real 64×64 hardware encode probe for each of `h264_nvenc`, `hevc_nvenc`, and `av1_nvenc`. Only working codecs enter the picker; Encode probes the selected codec again before applying preset/tune/RC/CQ options._
+- [x] **Two-pass target-size encode (Discord/email cap)** · 兩步壓到指定大細（夾返上限）
+  - _The Media page accepts target MiB and audio kbps. `ffprobe` supplies duration, the executor applies `targetMiB*8388.608/duration-audio`, validates 100–200,000 video kbps, then runs two x264 passes with an owned passlog and correct `-b:a` audio bitrate._
+- [x] **Burn-in or soft-mux subtitles (SRT/ASS)** · 燒字幕入畫面 或 軟掛字幕（SRT/ASS）
+  - _The SRT/ASS picker exposes libass burn-in with escaped filter paths and toggleable soft mux. MP4 uses `mov_text`; Matroska-compatible outputs copy the subtitle codec, and soft tracks receive `language=yue` metadata._
+- [x] **Extract chapters and split video by chapter** · 抽章節、按章節分割片段
+  - _Read Chapters parses `ffprobe -show_chapters -print_format json`; Split bounds the count to 200, sanitizes/collision-proofs titles, and produces one `-c copy` output per valid start/end interval._
 - [x] **Contact sheet / storyboard thumbnails** · 整縮圖總表（storyboard）
   - _The shipped `media.contact-sheet` action runs `ffmpeg -i {in} -vf "select=not(mod(n\,300)),scale=240:-1,tile=4x4" -frames:v 1 {out}` through the Media catalog._
-- [ ] **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** · 批次轉 HEIC/JXL 相做 JPG/PNG
-  - _This build has libjxl decoder + hevc decoders. Per file: ffmpeg -i photo.heic -frames:v 1 -q:v 2 photo.jpg ; ffmpeg -i photo.jxl out.png . Loop a folder in PowerShell over *.heic/*.jxl. (ImageMagick magick mogrify -format jpg *.heic as alternative if installed.)_
-- [ ] **Strip EXIF/GPS metadata from photos** · 洗走相片 EXIF／GPS 資料
-  - _ffmpeg -i in.jpg -map_metadata -1 -c:v copy clean.jpg (drops EXIF/GPS without re-encoding the JPEG). For full ICC/XMP scrub use ImageMagick magick in.jpg -strip clean.jpg if present._
+- [x] **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** · 批次轉 HEIC/JXL 相做 JPG/PNG
+  - _The folder workflow enumerates HEIC/HEIF/JXL locally, caps batches at 500, requires a separate output folder, collision-proofs equal stems, and converts one frame per file to user-selected JPG (`-q:v 2`) or PNG._
+- [x] **Strip EXIF/GPS metadata from photos** · 洗走相片 EXIF／GPS 資料
+  - _`StripMetadataBtn` applies `-map_metadata -1 -map_metadata:s -1 -c:v copy` to a staged same-format image, removing EXIF/GPS/XMP/container metadata without pixel re-encoding._
 - [x] **Make animated WebP from video (smaller than GIF)** · 由片整動態 WebP（細過 GIF）
   - _The shipped `media.to-animated-webp` action runs `ffmpeg -i {in} -vf "fps=15,scale=480:-1:flags=lanczos" -c:v libwebp -loop 0 {out}`. It uses `libwebp` and does not set an explicit quality value._
 
