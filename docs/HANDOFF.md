@@ -4,6 +4,13 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current Browser Control roadmap verification · 目前瀏覽器控制路線圖驗證
+
+- The accessible bilingual Browser workbench closes all eleven prior gaps: configurable app/kiosk URLs, real profiles/PWAs, flags/policy, contained cache cleanup, isolated proxy/throwaway/features/debugging, and exact-ID winget actions. Browser Control is **14/14** and the core matrix is **85/115**. · 無障礙雙語工作台補齊十一個缺口；Browser Control **14/14**，核心 matrix **85/115**。
+- Browser arguments are discrete and bounded; sensitive URL/proxy values are not persisted, embedded credentials and elevated browser launch are rejected, debugging is loopback-only, and destructive cache/package operations require explicit decisions. · 瀏覽器參數獨立而有界；敏感值唔持久化，憑證／提權瀏覽器被拒絕，除錯只綁 loopback，快取／套件變更要明確決定。
+- Focused tests pass **23/23**; the merged x64 solution build has **0 warnings / 0 errors**; roadmap, XAML, source, and site-data gates pass. Inspected 1033×637 and 784×691 LowLevel captures have readable wrapping and zero retained windows, with no real browser/cache/package/debug side effect. · 專項 **23/23**、合併 build 零 warning／零 error、全部 gate 全過；兩張 LowLevel 圖已檢視，零殘留亦冇真實副作用。
+- Exact hashes, source-audit counts, feature commit `24447657f`, and branch-only delivery boundary are recorded in `handoff-summary.md`; the coordinating parent owns final `main` integration. · 準確 hash、audit 數字、功能 commit 同 branch-only 界線見 `handoff-summary.md`；最終 main 整合由統籌 parent 負責。
+
 ## Current independent funny-level settings verification · 目前英粵分開搞笑等級驗證
 
 - English and Cantonese now have independent persisted 1–5 tone levels with defaults 2 / 3, exact-step accessible Settings sliders, import reload, a polite live safe-copy preview, and live Dashboard hero updates in English, Cantonese, and bilingual modes. · 英文／粵語各自有持久化 1–5 級（預設 2／3）、準確步進無障礙設定 slider、匯入重載、polite 安全文案即時預覽，同三種語言模式 Dashboard 即時更新。
