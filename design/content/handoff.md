@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Screen Recorder lifecycle reliability · 螢幕錄影 lifecycle 可靠性
+
+The unchanged stderr-heavy recorder fixture exposed an intermittent production-adapter failure on base `ec7c4bcb8`: the 29-project aggregate failed only Screen Recorder, and a captured-output stress loop failed **5/12** runs. The adapter had been decoding and dispatching an empty callback for every ffmpeg progress line; under host load that work could consume the bounded graceful-save window. It now bulk-copies raw stderr bytes to `Stream.Null` while preserving the same `q`, graceful-exit, forced-exit, process-ownership, and truthful-failure contracts. · 未改 stderr-heavy fixture 喺 base `ec7c4bcb8` 揭露間歇 production adapter 失敗：29-project aggregate 只係 Screen Recorder 失敗，captured-output stress loop 亦有 **5/12** 失敗。舊 adapter 每行 ffmpeg progress 都會解碼同派空 callback，高負載下會食晒有時限正常儲存時間；依家整批複製 raw stderr byte 去 `Stream.Null`，而 `q`、正常／強制退出、process ownership 同如實失敗合約保持不變。
+
+Focused evidence is **10/10** for the process-free lifecycle/registry seam, **1/1** for the unchanged Windows process fixture, and **12/12** for the post-fix captured-output stress loop. This is service/test/documentation-only work: no UI or screenshot changed. Delivery remains on `codex/fix-screen-recorder-lifecycle` for parent integration; no main merge or hosted release is claimed here. · 專項證據係 process-free seam **10/10**、未改 Windows fixture **1/1**、修復後 captured-output stress **12/12**。今次只改 service／test／文件，冇 UI 或截圖變更；交付保留喺 `codex/fix-screen-recorder-lifecycle` 俾上層整合，唔聲稱已 merge main 或發 hosted release。
+
 ## Command Palette extension hosts · Command Palette extension host
 
 Command Palette extension packs now have an explicit trusted-local-host option alongside declarative module, URL, copy, and structured-page commands. Every invocation rereads current enablement and the manifest, rechecks the declared command, accepts only a fully qualified local-drive `.exe`, rejects relative/UNC/network/device paths and unsafe arguments, verifies the pinned SHA-256 under a read-only launch lease, refuses elevated execution, and bounds JSON-lines responses to 64 KiB and eight seconds. Cancellation and timeout kill the owned process tree. This is a deliberate local trust boundary, not a sandbox.

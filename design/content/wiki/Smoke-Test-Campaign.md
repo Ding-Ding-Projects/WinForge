@@ -906,16 +906,18 @@ uniform frame，呢個 desktop session 嘅 graphics capture 仍然唔可用。�
 
 ## Screen Recorder and Registry Editor reliability · 螢幕錄影同登錄編輯器可靠性
 
-**EN —** The Screen Recorder boundary now starts a discarded managed stderr drain before
-exposing ffmpeg, preventing its redirected diagnostics from filling the pipe and blocking a
-graceful `q`. Stop uses explicit 2-second command, 8-second graceful-exit, and 2-second
+**EN —** The Screen Recorder boundary starts a discarded managed stderr drain before
+exposing ffmpeg. It now bulk-copies raw bytes to `Stream.Null` instead of decoding and
+dispatching one empty callback per progress line, preventing both pipe back-pressure and
+aggregate-load deadline exhaustion. Stop uses explicit 2-second command, 8-second graceful-exit, and 2-second
 forced-exit deadlines; a forced or unconfirmed result is never labelled a saved recording.
 `RegistryEditor` now uses `RegistryHelper.TryDeleteValue`, so it reports success only after
 the registry write succeeds; access, missing-value, and concurrent failures are shown to the
 operator. The older `DeleteValue` API remains best-effort for existing cleanup callers.
-The non-live `RecorderRegistrySafety.Tests` harness passed **9/9**, including a fake process
-whose `WaitForExitAsync` never completes and a fake denied registry backend. The Debug x64
-solution build passed with **0 errors**.
+The non-live `RecorderRegistrySafety.Tests` harness passed **10/10**, including a bulk-copy
+probe, a fake process whose `WaitForExitAsync` never completes, and a fake denied registry
+backend. The unchanged process fixture reproduced the base aggregate failure, then passed
+**12/12** captured-output stress runs after the byte-drain repair.
 
 **Safety disposition · 安全處置：** No ffmpeg process/recording, Registry Editor delete,
 or other live system mutation was invoked. The test seam never opens the live registry.
@@ -926,14 +928,16 @@ unavailable and `PrintWindow` produced a uniform frame. Fresh `-NoCapture` launc
 for both routes. No PNG was created, inspected, replaced, or reused; both routes are
 `capture-blocked`, never visual-pass.
 
-**粵語 —** 螢幕錄影邊界而家會喺公開 ffmpeg 前開始受管理、會丟棄嘅 stderr drain，
-避免 redirected diagnostics 塞滿 pipe 而阻塞正常嘅 `q`。Stop 用明確嘅 2 秒指令、8 秒
+**粵語 —** 螢幕錄影邊界會喺公開 ffmpeg 前開始受管理、會丟棄嘅 stderr drain；而家
+整批複製 raw byte 去 `Stream.Null`，唔再逐行解碼同派空 callback，避免 pipe 塞住同
+aggregate 高負載食晒正常時限。Stop 用明確嘅 2 秒指令、8 秒
 正常退出同 2 秒強制退出時限；強制或者未能確認嘅結果絕對唔會標成已儲存錄影。
 `RegistryEditor` 而家用 `RegistryHelper.TryDeleteValue`，只會喺登錄檔寫入成功之後
 報成功；拒絕存取、值消失同同時修改失敗都會如實畀操作員見到。舊有 `DeleteValue` API
 仍然為既有清理呼叫者保留 best-effort 行為。非 live 嘅 `RecorderRegistrySafety.Tests`
-harness **9/9** 通過，包括一個永遠唔完成 `WaitForExitAsync` 嘅假 process，同埋一個
-被拒絕嘅假 registry backend。Debug x64 solution build 以 **0 errors** 通過。
+harness **10/10** 通過，包括 bulk-copy probe、一個永遠唔完成 `WaitForExitAsync` 嘅假
+process，同埋被拒絕嘅假 registry backend。未改 process fixture 先重現 base aggregate
+失敗，byte-drain 修復後 captured-output stress **12/12** 全過。
 
 **安全處置：** 冇啟動 ffmpeg／建立錄影、冇喺 Registry Editor 撳刪除，亦冇執行其他
 live 系統修改。測試 seam 從來唔會開啟實際登錄檔。

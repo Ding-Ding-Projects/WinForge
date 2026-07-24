@@ -1,19 +1,22 @@
 # Screen Recorder & Registry Editor Reliability · 螢幕錄影與登錄編輯器可靠性
 
-Date · 日期：2026-07-11
+Date · 日期：2026-07-24
 Scope · 範圍：bounded ffmpeg shutdown and truthful Registry Editor value deletion only. · 只限有時限嘅 ffmpeg 停止流程同登錄編輯器如實回報值刪除。
 
 ## Outcome · 結果
 
-**EN —** Screen Recorder now begins a managed, discarded stderr drain before
-the recording session is exposed. Its Stop path gives the `q` command, the
-graceful wait, and the forced-exit wait explicit deadlines. A forced or
-unconfirmed stop is reported as a failure, never as a successfully saved
-recording.
+**EN —** Screen Recorder begins a managed, discarded stderr drain before the
+recording session is exposed. That drain now copies raw bytes to `Stream.Null`
+instead of decoding and dispatching one callback per ffmpeg progress line. Dense
+diagnostics therefore cannot consume the graceful-save budget under host load.
+Its Stop path still gives the `q` command, graceful wait, and forced-exit wait
+explicit deadlines. A forced or unconfirmed stop remains a failure, never a
+successfully saved recording.
 
-**粵語 —** 螢幕錄影而家會喺公開錄影 session 之前，以受管理方式排走並丟棄 stderr
-輸出。Stop 流程會為 `q` 指令、正常等候同強制退出等候設定明確時限。強制或者未能確認
-嘅停止會如實顯示為失敗，絕對唔會當成已成功儲存錄影。
+**粵語 —** 螢幕錄影會喺公開錄影 session 之前，以受管理方式排走並丟棄 stderr。
+而家會將 raw byte 整批複製去 `Stream.Null`，唔再逐行解碼同派發 ffmpeg progress
+callback，所以高負載下密集診斷都唔會食晒正常儲存時間。Stop 流程嘅 `q` 指令、正常
+等候同強制退出等候仍然有明確時限；強制或者未能確認停止會如實顯示失敗。
 
 **EN —** Registry Editor now calls a result-returning delete boundary. It
 shows “Value deleted” only after the registry write succeeds; denied, missing,
@@ -27,14 +30,25 @@ cleanup behavior.
 
 ## Safe Regression Evidence · 安全回歸證據
 
-`dotnet run --project tests/RecorderRegistrySafety.Tests -c Debug` passed **9/9**:
+`dotnet run --project tests/RecorderRegistrySafety.Tests -c Debug` passed **10/10**:
 
-- managed stderr-drain startup;
+- managed stderr-drain startup and a process-free bulk-copy probe over 10,000 diagnostic lines;
 - graceful, forced, and still-running recorder stop outcomes;
 - a never-completing fake process wait, proving the outer deadline returns;
 - registry delete success and denied-delete result mapping, using a fake backend only;
 - preservation of the old best-effort delete call shape.
 - source-level wiring that Screen Recorder enters the managed lifecycle and Registry Editor gates its success notice on the result API.
+
+The unchanged `ScreenRecorderLifecycle.Tests` fixture reproduced the aggregate
+failure on base `ec7c4bcb8`: the complete 29-project runner failed only that
+project with `Stop did not report the fixture as saved`. A captured-output
+stress loop then failed **5/12** base runs. With the byte drain, the same
+unchanged loop passed **12/12**, and the focused fixture passed **1/1**.
+
+未改動嘅 `ScreenRecorderLifecycle.Tests` fixture 喺 base `ec7c4bcb8` 重現問題：
+29 個 project aggregate runner 只係呢個 project 報 `not saved`；captured-output
+stress loop base 亦有 **5/12** 失敗。改用 byte drain 後，同一個未改 fixture
+**12/12** 全過，focused fixture 亦 **1/1** 通過。
 
 **EN —** No ffmpeg process was launched, no recording was created, and no live
 registry key/value was opened for modification by this regression suite.
@@ -44,26 +58,11 @@ registry key/value was opened for modification by this regression suite.
 
 ## Visual Evidence · 視覺證據
 
-**EN —** Fresh self-contained capture attempts ran for `recorder` with
-`-Publish -WaitMs 15000` and for `regedit` with `-WaitMs 15000`. Both reached
-the driver capture stage, where `CopyFromScreen` was unavailable and the
-`PrintWindow` fallback produced a uniform frame; graphics capture is unavailable
-in this desktop session. No PNG was created, inspected, replaced, or reused.
-The follow-up `-NoCapture` launches for both routes passed. No Record, Stop,
-registry deletion, or other live action was invoked.
+**EN —** This repair changes only the process adapter, focused tests, and
+documentation. No XAML, layout, localization, accessibility surface, or other
+visible state changed, so no screenshot was required or replaced. The existing
+canonical image is not claimed as evidence for this lifecycle repair.
 
-**粵語 —** 已為 `recorder` 用 `-Publish -WaitMs 15000` 同為 `regedit` 用
-`-WaitMs 15000` 跑新嘅 self-contained 截圖嘗試。兩個都去到 driver capture
-階段，但 `CopyFromScreen` 未可用，`PrintWindow` fallback 亦產生 uniform frame；
-呢個 desktop session 嘅 graphics capture 未可用。冇 PNG 被產生、檢查、替換或者
-重用。之後兩條 route 嘅 `-NoCapture` launch 都通過。冇撳 Record、Stop、登錄檔刪除，
-亦冇執行其他 live action。
-
-These are `capture-blocked` results, never visual-pass claims. The matching
-campaign and gallery entries are in `docs/wiki/Smoke-Test-Campaign.md` and
-`docs/wiki/Screenshots.md`; old canonical screenshots are not evidence for this
-repair.
-
-呢啲係 `capture-blocked` 結果，絕對唔係 visual-pass 聲稱。對應嘅 campaign 同
-gallery 記錄喺 `docs/wiki/Smoke-Test-Campaign.md` 同 `docs/wiki/Screenshots.md`；
-舊 canonical 截圖絕對唔會當成呢個修正嘅證據。
+**粵語 —** 今次只改 process adapter、專項測試同文件；冇改 XAML、版面、本地化、
+無障礙介面或者其他可見狀態，所以毋須亦冇替換截圖。既有 canonical 圖唔會冒充今次
+lifecycle 修正嘅證據。

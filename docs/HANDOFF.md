@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current Screen Recorder lifecycle verification · 目前螢幕錄影 lifecycle 驗證
+
+- The concrete ffmpeg adapter bulk-copies redirected stderr bytes to `Stream.Null`; it no longer decodes and dispatches one empty callback per progress line. · 正式 ffmpeg adapter 會整批複製 redirected stderr byte 去 `Stream.Null`，唔再逐行解碼同派空 callback。
+- The unchanged process fixture failed in the base aggregate and in **5/12** captured-output stress runs, then passed **12/12** after the production fix. The process-free seam passes **10/10** and the focused process fixture passes **1/1**. · 未改 process fixture 喺 base aggregate 同 **5/12** stress run 失敗；production 修復後 **12/12** 全過，process-free seam **10/10**、focused process fixture **1/1**。
+- Stop deadlines and truthful forced/incomplete failure messages are unchanged. No UI changed, so no screenshot was replaced or claimed. · Stop 時限同如實強制／不完整失敗訊息冇改；冇 UI 變更，所以冇替換或冒充截圖。
+
 ## Current Command Palette extension-host verification · 目前 Command Palette extension-host 驗證
 
 - Trusted executable hosts complement declarative extension commands; they do not replace the safe declarative path and are explicitly documented as a local trust boundary rather than a sandbox. · 受信任 executable host 係 declarative extension command 嘅補充，唔會取代安全 declarative 路徑，文件亦清楚標明係本機信任界線，唔係 sandbox。
