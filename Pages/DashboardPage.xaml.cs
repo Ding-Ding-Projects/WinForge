@@ -19,6 +19,7 @@ public sealed partial class DashboardPage : Page
 {
     // One reused row list for the live search preview (replaces per-result TweakCards).
     private readonly ControlRowList _searchList = new();
+    private bool _subscriptionsActive;
 
     public DashboardPage()
     {
@@ -35,20 +36,24 @@ public sealed partial class DashboardPage : Page
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        Loc.I.LanguageChanged -= OnLanguageChanged;
-        BrandingService.Changed -= OnBrandingChanged;
-        FunnyLevelSettings.I.Changed -= OnToneChanged;
-        Loc.I.LanguageChanged += OnLanguageChanged;
-        BrandingService.Changed += OnBrandingChanged;
-        FunnyLevelSettings.I.Changed += OnToneChanged;
+        if (!_subscriptionsActive)
+        {
+            Loc.I.LanguageChanged += OnLanguageChanged;
+            BrandingService.Changed += OnBrandingChanged;
+            FunnyLevelSettings.I.Changed += OnToneChanged;
+            _subscriptionsActive = true;
+        }
+
         Render();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        if (!_subscriptionsActive) return;
         Loc.I.LanguageChanged -= OnLanguageChanged;
         BrandingService.Changed -= OnBrandingChanged;
         FunnyLevelSettings.I.Changed -= OnToneChanged;
+        _subscriptionsActive = false;
     }
 
     private void Render()
