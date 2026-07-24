@@ -878,3 +878,14 @@ Next parity layer: a reviewed, opt-in out-of-process protocol for rich extension
 已完成：預設停用嘅宣告式擴充套件基礎，有驗證 JSON 資訊檔同三種安全操作（`Module`、HTTP(S) `Url`、`Copy`）。
 
 下一個對齊層：已審視、明確選用嘅跨程序協定，支援豐富擴充套件頁面同表單，同時保留資訊檔信任界線、請求／回應關聯、當機隔離，同埋禁止任意指令執行。
+
+
+## Isolated extension host protocol · 隔離擴充套件主機協定
+
+Implemented: opt-in, hash-pinned, short-lived `.exe` extension hosts for Command Palette. The JSON-lines protocol has an eight-second bound, is disabled by default, re-verifies the executable SHA-256 per launch, refuses elevated WinForge, and accepts only validated module/URL/copy/page responses.
+
+Residual parity work: extension discovery/gallery UX, richer page widgets beyond text/toggle/choice, explicit signed-package trust policy, and any future host must remain non-elevated and fail closed.
+
+已完成：為 Command Palette 提供選用、雜湊釘選、短生命週期 `.exe` 擴充套件主機。JSON-lines 協定有八秒限制、預設停用、每次啟動前重新驗證可執行檔 SHA-256、WinForge 提升權限時拒絕啟動，而且只接受已驗證嘅模組／網址／複製／頁面回應。
+
+餘下對齊工作：擴充套件探索／圖庫體驗、文字／開關／選項以外嘅豐富頁面元件、明確簽署套件信任政策；任何未來主機都必須保持非提升權限同 fail closed。

@@ -277,7 +277,7 @@ public sealed partial class CommandPaletteModule : Page
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.Children.Add(new TextBlock { Text = bookmark.Name, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
-            var url = new TextBlock { Text = bookmark.Url, FontSize = 11, Opacity = 0.75, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+            var url = new TextBlock { Text = bookmark.Url, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
             Grid.SetColumn(url, 1);
             row.Children.Add(url);
             var remove = new Button { Content = P("Remove", "移除"), Tag = bookmark };
@@ -340,7 +340,7 @@ public sealed partial class CommandPaletteModule : Page
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.Children.Add(new TextBlock { Text = profile.Name, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
-            var host = new TextBlock { Text = profile.Host, FontSize = 11, Opacity = 0.75, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+            var host = new TextBlock { Text = profile.Host, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
             Grid.SetColumn(host, 1);
             row.Children.Add(host);
             var remove = new Button { Content = P("Remove", "移除"), Tag = profile };

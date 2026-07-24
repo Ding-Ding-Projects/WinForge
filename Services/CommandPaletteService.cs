@@ -11,6 +11,7 @@ using System.Text.Json;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WinForge.Models;
+using WinForge.Pages;
 
 namespace WinForge.Services;
 
@@ -674,11 +675,11 @@ public static class CommandPaletteService
             Glyph = command.Glyph,
             ProviderTag = Loc.I.Pick("Extension pack", "擴充套件"),
             Score = score,
-            Invoke = () => ExecuteExtensionCommand(command),
+            Invoke = () => ExecuteExtensionCommand(pack, command),
         };
     }
 
-    private static bool ExecuteExtensionCommand(CommandPaletteExtensionCommand command)
+    private static bool ExecuteExtensionCommand(CommandPaletteExtensionPack pack, CommandPaletteExtensionCommand command)
     {
         try
         {
@@ -693,6 +694,47 @@ public static class CommandPaletteService
                     return true;
                 case CommandPaletteExtensionAction.Copy:
                     CopyText(command.Target);
+                    return true;
+                case CommandPaletteExtensionAction.Host:
+                    return ApplyExtensionHostResponse(pack, command,
+                        CommandPaletteExtensionHostService.Execute(pack, command));
+                default:
+                    return false;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Applies the host protocol's already-validated, safe response surface.</summary>
+    public static bool ApplyExtensionHostResponse(
+        CommandPaletteExtensionPack pack,
+        CommandPaletteExtensionCommand command,
+        CommandPaletteExtensionHostResponse response)
+    {
+        if (!response.Success) return false;
+        try
+        {
+            switch (response.Kind)
+            {
+                case CommandPaletteExtensionHostResponseKind.Module:
+                    if (!ModuleRegistry.All.Any(module => string.Equals(module.Tag, response.Target, StringComparison.OrdinalIgnoreCase))) return false;
+                    Navigator.GoToModule?.Invoke(response.Target);
+                    ShowShell();
+                    return true;
+                case CommandPaletteExtensionHostResponseKind.Url:
+                    if (!Uri.TryCreate(response.Target, UriKind.Absolute, out var uri)
+                        || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) return false;
+                    LaunchPath(response.Target);
+                    return true;
+                case CommandPaletteExtensionHostResponseKind.Copy:
+                    if (string.IsNullOrWhiteSpace(response.Target) || response.Target.Length > 4096) return false;
+                    CopyText(response.Target);
+                    return true;
+                case CommandPaletteExtensionHostResponseKind.Page when response.Page is not null:
+                    CommandPaletteExtensionWindow.Open(pack, command, response.Page);
                     return true;
                 default:
                     return false;

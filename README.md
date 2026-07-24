@@ -692,3 +692,10 @@ Made with WinUI 3 · 用 WinUI 3 製作 · `English + 繁體中文／粵語`
 WinForge now supports user-managed, declarative Command Palette extension packs. Import a JSON manifest from `Command Palette`, review it, then explicitly enable it. A pack can only open a registered WinForge module, open an HTTP(S) URL, or copy text. It cannot execute arbitrary code or shell commands, and newly imported packs are disabled by default.
 
 See the bilingual [Command Palette extension guide](docs/wiki/Command-Palette-Extensions.md) for the schema and safe-action contract.
+
+
+## Isolated Command Palette extension hosts
+
+A manifest can now opt into a hash-pinned local `.exe` host for richer Command Palette actions and structured pages. Hosts use a bounded JSON-lines request/response protocol, launch only after a user explicitly enables the pack, re-verify their SHA-256 before every run, and never launch while WinForge is elevated. This is process isolation and a narrow WinForge response surface, not a sandbox for code the user chooses to trust.
+
+The complete protocol and safety contract are documented in [Command Palette Extension Protocol](docs/wiki/Command-Palette-Extension-Protocol.md).

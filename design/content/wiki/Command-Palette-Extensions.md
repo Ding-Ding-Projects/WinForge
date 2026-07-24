@@ -59,3 +59,19 @@ There is no `Run`, `PowerShell`, executable path, DLL, script, COM, or arbitrary
 ## 下一步
 
 目前呢個基礎提供安全同可管理嘅 JSON 指令。之後嘅 parity 工作會以明確選用、隔離嘅跨程序協定加入豐富清單、詳細內容同表單頁面，而唔會放寬呢個安全界線。
+
+### Isolated extension host protocol · 隔離擴充套件主機協定
+
+Extension packs can optionally declare a local, absolute `.exe` host with a required SHA-256 pin. A `Host` command launches that executable as a **short-lived, non-elevated child process** and exchanges one JSON-lines request and one bounded JSON-lines response. The host must exit within eight seconds.
+
+WinForge checks the pinned hash when importing and immediately before every launch. New packs remain disabled by default, and hosts fail closed while WinForge is elevated. Host output can only request a registered WinForge module, an HTTP(S) URL, bounded clipboard text, or a validated structured page with text, fields, choices, and buttons. WinForge never renders host HTML or script.
+
+This is process isolation plus a narrow WinForge integration surface. It is **not** a sandbox: an executable a user explicitly enables can still act with that user's normal Windows permissions. See [Command Palette Extension Protocol](Command-Palette-Extension-Protocol.md) before trusting a host.
+
+### 隔離擴充套件主機協定
+
+擴充套件可以選擇宣告本機絕對 `.exe` 主機，並且一定要提供 SHA-256 pin。`Host` 指令會用**短生命週期、非提升權限嘅子程序**啟動主機，交換一個 JSON-lines 請求同一個有限大小嘅 JSON-lines 回應；主機要喺八秒內結束。
+
+WinForge 匯入時同每次啟動前都會檢查雜湊。新套件預設會停用，而 WinForge 提升權限時主機會 fail closed。主機輸出只可以要求已註冊 WinForge 模組、HTTP(S) 網址、有限長度剪貼簿文字，或者含文字、欄位、選項同按鈕嘅已驗證結構化頁面。WinForge 唔會渲染主機 HTML 或指令稿。
+
+呢個係程序隔離加上狹窄嘅 WinForge 整合介面，**唔係**沙箱：用戶明確啟用嘅可執行檔仍然可以使用該用戶嘅一般 Windows 權限。信任主機之前請先睇協定文件。

@@ -279,6 +279,12 @@ public sealed class CommandPaletteExtensionService
             return false;
         }
 
+        CommandPaletteExtensionHostDefinition? host = null;
+        if (manifest.Host is not null && !TryCreateHost(manifest.Host, out host, out error))
+        {
+            return false;
+        }
+
         var commands = manifest.Commands ?? new List<ManifestCommandModel>();
         if (commands.Count is 0 or > MaxCommandsPerPack)
         {
@@ -317,7 +323,7 @@ public sealed class CommandPaletteExtensionService
             }
 
             var target = command.Target?.Trim() ?? string.Empty;
-            if (!IsSafeTarget(action, target))
+            if (!IsSafeTarget(action, target, host))
             {
                 error = "The extension command target is not safe.";
                 return false;
@@ -336,18 +342,59 @@ public sealed class CommandPaletteExtensionService
                 Fallback(CleanSingleLine(command.Glyph, 8), "\uE8A7")));
         }
 
+        var description = CleanSingleLine(manifest.Description, 280);
+        var zhDescription = CleanSingleLine(manifest.ZhDescription, 280);
+        if (host is not null)
+        {
+            description = AppendDescription(description,
+                "Runs an explicitly enabled, hash-verified extension executable in a separate process; it is not sandboxed.");
+            zhDescription = AppendDescription(zhDescription,
+                "會喺獨立程序運行明確啟用、雜湊驗證嘅擴充套件可執行檔；唔係沙箱。");
+        }
+
         pack = new CommandPaletteExtensionPack(
             id,
             name,
             Fallback(CleanSingleLine(manifest.Zh, 120), name),
-            CleanSingleLine(manifest.Description, 280),
-            CleanSingleLine(manifest.ZhDescription, 280),
+            description,
+            zhDescription,
+            host,
             enabled,
             safeCommands);
         return true;
     }
 
-    private static bool IsSafeTarget(CommandPaletteExtensionAction action, string target)
+    private static bool TryCreateHost(HostModel source, out CommandPaletteExtensionHostDefinition? host, out string error)
+    {
+        host = null;
+        error = string.Empty;
+        var executable = source.Executable?.Trim() ?? string.Empty;
+        var sha256 = source.Sha256?.Trim().ToUpperInvariant() ?? string.Empty;
+        if (executable.Length is 0 or > 1024 || sha256.Length != 64)
+        {
+            error = "The extension host definition is invalid.";
+            return false;
+        }
+
+        var arguments = source.Arguments ?? new List<string>();
+        if (arguments.Count > 24 || arguments.Any(argument => argument is null
+            || argument.Length > 512 || argument.IndexOfAny(new[] { '\0', '\r', '\n' }) >= 0))
+        {
+            error = "The extension host arguments are invalid.";
+            return false;
+        }
+
+        var definition = new CommandPaletteExtensionHostDefinition(executable, sha256, arguments.ToArray());
+        if (!CommandPaletteExtensionHostService.TryValidateDefinition(definition, out error))
+        {
+            return false;
+        }
+
+        host = definition;
+        return true;
+    }
+
+    private static bool IsSafeTarget(CommandPaletteExtensionAction action, string target, CommandPaletteExtensionHostDefinition? host)
     {
         if (string.IsNullOrWhiteSpace(target))
         {
@@ -361,6 +408,7 @@ public sealed class CommandPaletteExtensionService
                 && (string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
                     || string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)),
             CommandPaletteExtensionAction.Copy => target.Length <= 4096,
+            CommandPaletteExtensionAction.Host => host is not null && IsSafeId(NormalizeId(target)),
             _ => false
         };
     }
@@ -387,6 +435,9 @@ public sealed class CommandPaletteExtensionService
     }
 
     private static string Fallback(string value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value;
+
+    private static string AppendDescription(string description, string note) =>
+        string.IsNullOrWhiteSpace(description) ? note : description + " " + note;
 
     private static string NormalizeId(string? id) => CleanSingleLine(id, 80).ToLowerInvariant();
 
@@ -437,7 +488,15 @@ public sealed class CommandPaletteExtensionService
         public string? Zh { get; set; }
         public string? Description { get; set; }
         public string? ZhDescription { get; set; }
+        public HostModel? Host { get; set; }
         public List<ManifestCommandModel>? Commands { get; set; }
+    }
+
+    private sealed class HostModel
+    {
+        public string? Executable { get; set; }
+        public string? Sha256 { get; set; }
+        public List<string>? Arguments { get; set; }
     }
 
     private sealed class ManifestCommandModel
@@ -459,7 +518,8 @@ public enum CommandPaletteExtensionAction
 {
     Module,
     Url,
-    Copy
+    Copy,
+    Host
 }
 
 public sealed record CommandPaletteExtensionPack(
@@ -468,6 +528,7 @@ public sealed record CommandPaletteExtensionPack(
     string Zh,
     string Description,
     string ZhDescription,
+    CommandPaletteExtensionHostDefinition? Host,
     bool Enabled,
     IReadOnlyList<CommandPaletteExtensionCommand> Commands);
 
