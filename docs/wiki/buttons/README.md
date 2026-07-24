@@ -770,11 +770,11 @@
 | [ListCopyBtn](calculators-numbers/randomizer/008-listcopybtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListCopy_Click` |
 | [ListPickBtn](calculators-numbers/randomizer/006-listpickbtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListPick_Click` |
 | [ListShuffleBtn](calculators-numbers/randomizer/007-listshufflebtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListShuffle_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/005-sicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+2212]](calculators-numbers/tally/002-minus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Minus_Click` |
 | [[icon U+2B]](calculators-numbers/tally/003-plus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Plus_Click` |
 | [AddBtn](calculators-numbers/tally/001-addbtn.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Add_Click` |
@@ -852,6 +852,10 @@
 | [RemoveBtn](dev-helpers/pathdoctor/003-removebtn.md) | PATH Doctor · PATH 醫生 | Dev Helpers · 開發小工具 | `Button` | `Remove_Click` |
 | [SortBtn](dev-helpers/pathdoctor/007-sortbtn.md) | PATH Doctor · PATH 醫生 | Dev Helpers · 開發小工具 | `Button` | `Sort_Click` |
 | [UpBtn](dev-helpers/pathdoctor/001-upbtn.md) | PATH Doctor · PATH 醫生 | Dev Helpers · 開發小工具 | `Button` | `Up_Click` |
+| [AddPieceButton](dev-helpers/regextester/001-addpiecebutton.md) | Regex Tester · 正則表達式測試 | Dev Helpers · 開發小工具 | `Button` | `AddPiece_Click` |
+| [ClearPatternButton](dev-helpers/regextester/002-clearpatternbutton.md) | Regex Tester · 正則表達式測試 | Dev Helpers · 開發小工具 | `Button` | `ClearPattern_Click` |
+| [CopyMatchesButton](dev-helpers/regextester/004-copymatchesbutton.md) | Regex Tester · 正則表達式測試 | Dev Helpers · 開發小工具 | `Button` | `CopyMatches_Click` |
+| [CopyPatternButton](dev-helpers/regextester/003-copypatternbutton.md) | Regex Tester · 正則表達式測試 | Dev Helpers · 開發小工具 | `Button` | `CopyPattern_Click` |
 | [CopyBtn](dev-helpers/semverrange/003-copybtn.md) | Semver Range Tester · 語意化版本範圍測試器 | Dev Helpers · 開發小工具 | `Button` | `Copy_Click` |
 | [SortBtn](dev-helpers/semverrange/002-sortbtn.md) | Semver Range Tester · 語意化版本範圍測試器 | Dev Helpers · 開發小工具 | `Button` | `Sort_Click` |
 | [TestBtn](dev-helpers/semverrange/001-testbtn.md) | Semver Range Tester · 語意化版本範圍測試器 | Dev Helpers · 開發小工具 | `Button` | `Test_Click` |
@@ -956,8 +960,8 @@
 | [RecomputeBtn](files-disks/diff/004-recomputebtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `Recompute_Click` |
 | [SaveLeftBtn](files-disks/diff/007-saveleftbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `SaveLeft_Click` |
 | [SaveRightBtn](files-disks/diff/008-saverightbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `SaveRight_Click` |
-| [Swap sides · 互換左右](files-disks/diff/010-swapdirbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `SwapDir_Click` |
 | [Swap sides · 互換左右](files-disks/diff/002-swapbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `Swap_Click` |
+| [Swap sides · 互換左右](files-disks/diff/010-swapdirbtn.md) | Diff & Merge (WinMerge) · 比對與合併 | Files & Disks · 檔案與磁碟 | `Button` | `SwapDir_Click` |
 | [BrowseBtn](files-disks/disk/003-browsebtn.md) | Disk Analyser · 磁碟分析 | Files & Disks · 檔案與磁碟 | `Button` | `Browse_Click` |
 | [Open terminal here · 喺呢度開終端機](files-disks/disk/002-terminalbtn.md) | Disk Analyser · 磁碟分析 | Files & Disks · 檔案與磁碟 | `Button` | `Terminal_Click` |
 | [RecycleBtn](files-disks/disk/005-recyclebtn.md) | Disk Analyser · 磁碟分析 | Files & Disks · 檔案與磁碟 | `Button` | `Recycle_Click` |
@@ -1369,13 +1373,13 @@
 | [WriteBackBtn](network-tools/hostsedit/009-writebackbtn.md) | Hosts File Editor · 主機檔編輯器 | Network Tools · 網絡工具 | `Button` | `WriteBack_Click` |
 | [CopyBtn](network-tools/ipinfo/002-copybtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Copy_Click` |
 | [RefreshBtn](network-tools/ipinfo/001-refreshbtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Refresh_Click` |
-| [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
 | [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
+| [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
 | [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
-| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
 | [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
-| [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
+| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
 | [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
+| [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
 | [RandomBtn](network-tools/mactools/001-randombtn.md) | MAC Address Tools · MAC 位址工具 | Network Tools · 網絡工具 | `Button` | `Random_Click` |
 | [PingStartBtn](network-tools/ping/001-pingstartbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStart_Click` |
 | [PingStopBtn](network-tools/ping/002-pingstopbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStop_Click` |
@@ -1447,14 +1451,14 @@
 | [Delete · 刪除](security-privacy/camoufox/004-deletebtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Delete_Click` |
 | [DetectBtn](security-privacy/camoufox/019-detectbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Detect_Click` |
 | [Diff · 差異](security-privacy/camoufox/016-commitdiff-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `CommitDiff_Click` |
-| [Edit · 編輯](security-privacy/camoufox/010-rowedit-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowEdit_Click` |
 | [Edit · 編輯](security-privacy/camoufox/002-editbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Edit_Click` |
+| [Edit · 編輯](security-privacy/camoufox/010-rowedit-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowEdit_Click` |
 | [EmptyNewBtn](security-privacy/camoufox/011-emptynewbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `New_Click` |
 | [Export all · 全部匯出](security-privacy/camoufox/006-exportallbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `ExportAll_Click` |
 | [Export selected · 匯出已選](security-privacy/camoufox/005-exportselbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `ExportSelected_Click` |
 | [Import · 匯入](security-privacy/camoufox/007-importbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Import_Click` |
-| [Launch · 啟動](security-privacy/camoufox/003-launchbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Launch_Click` |
 | [Launch · 啟動](security-privacy/camoufox/009-rowlaunch-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowLaunch_Click` |
+| [Launch · 啟動](security-privacy/camoufox/003-launchbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Launch_Click` |
 | [NewBtn](security-privacy/camoufox/001-newbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `New_Click` |
 | [PushNowBtn](security-privacy/camoufox/015-pushnowbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `PushNow_Click` |
 | [Refresh · 重新整理](security-privacy/camoufox/008-refreshprofilesbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RefreshProfiles_Click` |
