@@ -391,9 +391,11 @@ public static class PackageOperations
         {
             if (key == "vcpkg")
             {
-                var triplet = PackageManagerSettings.VcpkgTriplet.Trim();
-                if (triplet.Length > 0 && !cmd.Contains("--triplet", StringComparison.OrdinalIgnoreCase))
-                    cmd += $" --triplet {triplet.Replace("\"", "").Replace("`", "")}";
+                var configuredTriplet = PackageManagerSettings.VcpkgTriplet;
+                if (PackageManagerInputPolicy.TryNormalizeVcpkgTriplet(configuredTriplet, out var triplet)
+                    && triplet.Length > 0
+                    && !cmd.Contains("--triplet", StringComparison.OrdinalIgnoreCase))
+                    cmd += $" --triplet {triplet}";
             }
 
             var managerArgs = PackageManagerSettings.GetManagerExecutableArgs(key).Trim();

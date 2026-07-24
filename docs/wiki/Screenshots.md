@@ -1,8 +1,8 @@
 # Screenshots · 截圖集
 
-Canonical screenshots live in `docs/` and are embedded here through raw GitHub URLs. Entries are captured — and cropped, highlighted, annotated, and redacted — with [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot). See the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md) for the full recipe.
+Canonical screenshots live in `docs/` and are embedded here through raw GitHub URLs. Current WinUI pixels are captured with the process-owned `run-winforge` driver; [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot) performs optional cropping, highlighting, annotation, and redaction. See the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md) for the full recipe.
 
-正式截圖放喺 `docs/`，呢度用 raw GitHub URL 嵌入。截圖由 [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot) 擷取，並裁切、加強調、標註同遮蔽。完整做法見 [Wiki 截圖工作流程](Wiki-Screenshot-Workflow.md)。
+正式截圖放喺 `docs/`，呢度用 raw GitHub URL 嵌入。目前 WinUI pixels 由 process-owned `run-winforge` driver 擷取；[`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot) 負責可選裁切、加強調、標註同遮蔽。完整做法見 [Wiki 截圖工作流程](Wiki-Screenshot-Workflow.md)。
 
 ## Current Capture Status · 目前擷取狀態
 
@@ -64,6 +64,8 @@ This gallery documents the canonical .NET / WinUI 3 application. C++/WinRT port 
 
 ### Volume Mixer · 音量混合器
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mixer.png)
+
+Current 2026-07-24 evidence: the self-contained DEBUG app rendered this 1284×811 canonical frame (SHA-256 `A7C1F09F3CB6636DEED27CF30158A14E2C0AAC21648245FA1ED412A946D0FB2E`) from its live WinUI tree on a dedicated LowLevel desktop. The expected headless `No audio endpoint` state is shown honestly. An adversarial follow-up inspected app-owned 1264×791 / 784×691 frames, independent fresh-HWND 1280×800 / 800×700 / 1300×820 frames, and a 1033×637 driver capture after theme-aware opaque compositing and write-through atomic final promotion were hardened; no clipping, overlap, stale evidence, foreign pixels, retained process, or temporary image was found. · 目前 2026-07-24 證據：self-contained DEBUG app 喺專用 LowLevel desktop 由即時 WinUI tree 輸出呢張 1284×811 正式圖（SHA-256 如上）；圖中如實顯示 headless 環境預期嘅 `No audio endpoint` 狀態。對抗覆核再檢視 app-owned 1264×791／784×691、獨立 fresh-HWND 1280×800／800×700／1300×820，同 driver 1033×637 圖，亦驗證加固後按 theme 合成嘅不透明 pixels 同 write-through 原子 final promotion；冇裁切、重疊、舊證據、其他視窗 pixels、殘留 process 或 temp 圖。
 
 ### Context Menu · 右鍵選單
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-contextmenu.png)
@@ -315,6 +317,15 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Package Manager · 套件管理
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
+
+#### Narrow bilingual layout · 窄畫面雙語版面
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages-narrow.png)
+
+#### Credential-free proxy and vcpkg settings · 無 credential proxy 同 vcpkg 設定
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-package-settings-proxy.png)
+
+#### Narrow-safe App Settings actions · 窄畫面安全 App Settings actions
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-package-settings-actions.png)
 
 ### Cake Factory & Farm · 蛋糕工廠與農場
 ![](images/screenshot-cakefactory.png)

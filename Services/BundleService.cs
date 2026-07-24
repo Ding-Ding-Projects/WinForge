@@ -636,21 +636,46 @@ public static class BundleService
 
     // ===== 儲存／載入（按副檔名）· Save / load by extension =====
 
-    /// <summary>儲存清單到檔案，格式按副檔名 · Save a bundle, format chosen by file extension. Never throws.</summary>
-    public static async Task SaveAsync(SerializableBundle bundle, string path)
+    /// <summary>
+    /// 儲存清單到檔案，格式按副檔名 · Save a bundle, format chosen by file extension.
+    /// The write is staged beside the destination and swapped in only after the complete payload is
+    /// present, so a failed write cannot truncate an existing bundle. Never throws; returns false
+    /// when validation, serialization, staging, or replacement fails.
+    /// </summary>
+    public static async Task<bool> SaveAsync(SerializableBundle bundle, string path)
     {
+        string? temporaryPath = null;
         try
         {
-            if (string.IsNullOrWhiteSpace(path)) return;
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            var destinationPath = Path.GetFullPath(path);
+            var directory = Path.GetDirectoryName(destinationPath);
+            if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory)) return false;
+
             string text = FormatFor(path) switch
             {
                 BundleFormat.Yaml => ToYaml(bundle),
                 BundleFormat.Xml => ToXml(bundle),
                 _ => ToJson(bundle),
             };
-            await File.WriteAllTextAsync(path, text, new UTF8Encoding(false));
+
+            temporaryPath = Path.Combine(directory,
+                $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp");
+            await File.WriteAllTextAsync(temporaryPath, text, new UTF8Encoding(false));
+            if (File.Exists(destinationPath))
+                File.Replace(temporaryPath, destinationPath, destinationBackupFileName: null,
+                    ignoreMetadataErrors: true);
+            else
+                File.Move(temporaryPath, destinationPath);
+            temporaryPath = null;
+            return true;
         }
-        catch { /* defensive — never throw */ }
+        catch { return false; }
+        finally
+        {
+            if (!string.IsNullOrEmpty(temporaryPath))
+                try { File.Delete(temporaryPath); } catch { }
+        }
     }
 
     /// <summary>由檔案載入清單，格式按副檔名 · Load a bundle, format chosen by extension. Never throws.</summary>

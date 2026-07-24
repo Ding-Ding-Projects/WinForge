@@ -28,6 +28,7 @@
 
         <!-- Dirty / status line -->
         <TextBlock Grid.Row="1" x:Name="StatusText" FontSize="12"
+                   AutomationProperties.LiveSetting="Polite"
                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
         <!-- Warnings (version mismatch + security) -->

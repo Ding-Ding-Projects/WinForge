@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
@@ -127,7 +128,7 @@ public sealed partial class PackageManagerModule : Page
             "A UniGetUI-style hub over winget, Scoop, Chocolatey, pip, npm, .NET tools, PowerShell Gallery, PowerShell 7, Cargo, Bun and vcpkg — discover, multi-select, batch install/update/uninstall, and export/import bundles, all in-app.",
             "UniGetUI 式總管，統一 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery、PowerShell 7、Cargo、Bun 同 vcpkg — 搜尋、多選、批次安裝／更新／解除安裝，仲可以匯出／匯入清單，全部喺 app 內。");
         ManagersLabel.Text = P("Package managers", "套件管理器");
-        SearchBox.PlaceholderText = P("Search packages (e.g. vscode, vlc, obs)…", "搜尋套件（例如 vscode、vlc、obs）…");
+        SearchBox.PlaceholderText = P("Package / ID", "套件 / ID");
         SearchOptionsText.Text = P("Filters", "篩選");
         SearchOptionsTitle.Text = P("Search filters", "搜尋篩選");
         SearchModeLabel.Text = P("Search mode", "搜尋模式");
@@ -250,9 +251,10 @@ public sealed partial class PackageManagerModule : Page
             string key = m.Key;
             bool avail = _available.TryGetValue(key, out var a) && a;
             bool known = _available.ContainsKey(key);
+            string managerName = P(m.NameEn, m.NameZh);
             var cb = new CheckBox
             {
-                Content = known && !avail ? $"{m.NameEn} · {m.NameZh}  {P("(not found)", "（搵唔到）")}" : $"{m.NameEn} · {m.NameZh}",
+                Content = known && !avail ? $"{managerName}  {P("(not found)", "（搵唔到）")}" : managerName,
                 IsChecked = _selected.Contains(key),
                 IsEnabled = !known || avail,
                 Tag = key,
@@ -476,7 +478,7 @@ public sealed partial class PackageManagerModule : Page
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         if (snapshot.Status is PackageOperationStatus.Queued or PackageOperationStatus.Running)
         {
-            var cancel = new Button { Content = P("Cancel", "取消"), Padding = new Thickness(10, 4, 10, 4) };
+            var cancel = PackageActionButton(P("Cancel", "取消"));
             cancel.Click += (_, _) =>
             {
                 cancel.IsEnabled = false;
@@ -486,7 +488,7 @@ public sealed partial class PackageManagerModule : Page
         }
         else if (snapshot.Status is PackageOperationStatus.Failed or PackageOperationStatus.Cancelled)
         {
-            var retry = new Button { Content = P("Retry", "重試"), Padding = new Thickness(10, 4, 10, 4) };
+            var retry = PackageActionButton(P("Retry", "重試"));
             retry.Click += (_, _) =>
             {
                 retry.IsEnabled = false;
@@ -511,6 +513,7 @@ public sealed partial class PackageManagerModule : Page
                 FontSize = 11,
                 MaxHeight = 220,
             };
+            AutomationProperties.SetName(output, P("Operation output", "操作輸出"));
             root.Children.Add(new Expander
             {
                 Header = P("Output", "輸出"),
@@ -711,7 +714,7 @@ public sealed partial class PackageManagerModule : Page
                 string mk = g.Key;
                 var managerItems = g.ToList();
                 var m = PackageManagerRegistry.ByKey(mk);
-                var b = new Button { Content = $"{m?.NameEn ?? mk} ({g.Count()})", Padding = new Thickness(10, 4, 10, 4) };
+                var b = PackageActionButton($"{m?.NameEn ?? mk} ({g.Count()})");
                 b.Click += async (_, _) =>
                 {
                     b.IsEnabled = false; b.Content = P("Updating…", "更新緊…");
@@ -892,7 +895,7 @@ public sealed partial class PackageManagerModule : Page
             FontFamily = new FontFamily("Consolas"), FontSize = 12,
             TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true,
         };
-        var scroll = new ScrollViewer { MaxHeight = 420, MinWidth = 520, Content = log };
+        var scroll = new ScrollViewer { MaxHeight = 420, MinWidth = 280, MaxWidth = 520, Content = log };
         var dlg = new ContentDialog
         {
             Title = title,
@@ -1007,7 +1010,13 @@ public sealed partial class PackageManagerModule : Page
                 InstallOptions.HasOverride(item.ManagerKey, item.Id)
                     ? InstallOptions.Load(item.ManagerKey, item.Id)
                     : null);
-            await BundleService.SaveAsync(bundle, path);
+            if (!await BundleService.SaveAsync(bundle, path))
+            {
+                ResultsHeader.Text = P(
+                    "The bundle could not be saved. The previous file, if any, was left unchanged.",
+                    "套件清單儲存唔到；原有檔案（如果有）冇被改動。");
+                return;
+            }
             int comp = bundle.packages.Count, inc = bundle.incompatible_packages.Count;
             ResultsHeader.Text = inc > 0
                 ? P($"Exported {comp} package(s) ({inc} incompatible logged).", $"匯出咗 {comp} 個套件（記錄咗 {inc} 個不相容）。")
@@ -1060,7 +1069,7 @@ public sealed partial class PackageManagerModule : Page
         var confirm = new ContentDialog
         {
             Title = report.HasWarnings ? P("Security review", "安全檢查") : P("Import bundle", "匯入清單"),
-            Content = new ScrollViewer { MaxHeight = 340, MinWidth = 480, Content = body },
+            Content = new ScrollViewer { MaxHeight = 340, MinWidth = 280, MaxWidth = 480, Content = body },
             PrimaryButtonText = P("Install", "安裝"),
             CloseButtonText = P("Cancel", "取消"),
             DefaultButton = report.HasWarnings ? ContentDialogButton.Close : ContentDialogButton.Primary,
@@ -1244,13 +1253,13 @@ public sealed partial class PackageManagerModule : Page
                 var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 0, 0, 2) };
                 if (canAdd)
                 {
-                    var addBtn = new Button { Content = P("Add source…", "加來源…"), Padding = new Thickness(12, 4, 12, 4) };
+                    var addBtn = PackageActionButton(P("Add source…", "加來源…"));
                     addBtn.Click += async (_, _) => await AddSourceFor(key);
                     bar.Children.Add(addBtn);
                 }
                 if (canRefresh)
                 {
-                    var refreshBtn = new Button { Content = P("Refresh", "重新整理"), Padding = new Thickness(12, 4, 12, 4) };
+                    var refreshBtn = PackageActionButton(P("Refresh", "重新整理"));
                     refreshBtn.Click += async (_, _) => await RefreshSourcesFor(key, refreshBtn);
                     bar.Children.Add(refreshBtn);
                 }
@@ -1322,7 +1331,8 @@ public sealed partial class PackageManagerModule : Page
 
         if (canRemove)
         {
-            var removeBtn = new Button { Content = P("Remove", "移除"), Padding = new Thickness(12, 4, 12, 4), VerticalAlignment = VerticalAlignment.Center };
+            var removeBtn = PackageActionButton(P("Remove", "移除"));
+            removeBtn.VerticalAlignment = VerticalAlignment.Center;
             removeBtn.Click += async (_, _) =>
             {
                 bool known = SourceManager.KnownSourcesFor(managerKey)
@@ -1421,7 +1431,7 @@ public sealed partial class PackageManagerModule : Page
         naCheck.Unchecked += (_, _) => SettingsStore.Set(IgnoreNotApplicableKey, "false");
         controls.Children.Add(naCheck);
 
-        var resetBtn = new Button { Content = P("Reset all", "全部重設"), Padding = new Thickness(12, 4, 12, 4) };
+        var resetBtn = PackageActionButton(P("Reset all", "全部重設"));
         resetBtn.Click += (_, _) => { IgnoredUpdates.ResetAll(); LoadIgnoredView(); };
         controls.Children.Add(resetBtn);
 
@@ -1760,13 +1770,27 @@ public sealed partial class PackageManagerModule : Page
         btn.IsEnabled = !ok;
     }
 
-    private TextBlock SectionLabel(string text) => new()
+    private static Button PackageActionButton(string text) => new()
     {
-        Text = text,
-        FontWeight = FontWeights.SemiBold,
-        FontSize = 14,
-        Margin = new Thickness(0, 10, 0, 2),
+        Content = text,
+        MinWidth = 44,
+        MinHeight = 44,
+        Padding = new Thickness(12, 4, 12, 4),
     };
+
+    private TextBlock SectionLabel(string text)
+    {
+        var label = new TextBlock
+        {
+            Text = text,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 14,
+            Margin = new Thickness(0, 10, 0, 2),
+        };
+        AutomationProperties.SetHeadingLevel(label,
+            Microsoft.UI.Xaml.Automation.Peers.AutomationHeadingLevel.Level2);
+        return label;
+    }
 
     private Border RowFor(PackageItem item, string actionLabel, Func<Button, Task> action,
         List<(string label, Func<Button, Task> run)>? extras = null,
@@ -1782,11 +1806,13 @@ public sealed partial class PackageManagerModule : Page
         // 多選勾選框 · multi-select checkbox driving batch operations
         var check = new CheckBox
         {
-            MinWidth = 0,
+            MinWidth = 44,
+            MinHeight = 44,
             Margin = new Thickness(0),
             VerticalAlignment = VerticalAlignment.Center,
             IsChecked = _selectedPkgs.ContainsKey(PkgKey(item)),
         };
+        AutomationProperties.SetName(check, P($"Select {item.Name}", $"選取 {item.Name}"));
         check.Checked += (_, _) => { _selectedPkgs[PkgKey(item)] = item; UpdateBatchBar(); };
         check.Unchecked += (_, _) => { _selectedPkgs.Remove(PkgKey(item)); UpdateBatchBar(); };
         Grid.SetColumn(check, 0);
@@ -1798,16 +1824,20 @@ public sealed partial class PackageManagerModule : Page
 
         var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
         var ver = string.IsNullOrEmpty(item.Version) ? "" : $"  ({item.Version})";
-        texts.Children.Add(new TextBlock { Text = $"{item.Name}{ver}", FontWeight = FontWeights.SemiBold, FontSize = 13, TextTrimming = TextTrimming.CharacterEllipsis });
+        var title = new TextBlock { Text = $"{item.Name}{ver}", FontWeight = FontWeights.SemiBold, FontSize = 13, TextTrimming = TextTrimming.CharacterEllipsis };
+        ToolTipService.SetToolTip(title, title.Text);
+        texts.Children.Add(title);
         var sub = string.IsNullOrEmpty(item.Source) ? item.Id : $"{item.Id}  ·  {item.Source}";
-        texts.Children.Add(new TextBlock { Text = sub, FontSize = 11, FontFamily = new FontFamily("Consolas"), Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"], TextTrimming = TextTrimming.CharacterEllipsis });
+        var subtitle = new TextBlock { Text = sub, FontSize = 11, FontFamily = new FontFamily("Consolas"), Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"], TextTrimming = TextTrimming.CharacterEllipsis };
+        ToolTipService.SetToolTip(subtitle, subtitle.Text);
+        texts.Children.Add(subtitle);
         Grid.SetColumn(texts, 2);
         grid.Children.Add(texts);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
 
         // Details (every row)
-        var details = new Button { Content = P("Details", "詳情"), Padding = new Thickness(10, 4, 10, 4) };
+        var details = PackageActionButton(P("Details", "詳情"));
         details.Click += async (_, _) => await ShowDetails(item);
         buttons.Children.Add(details);
 
@@ -1815,12 +1845,12 @@ public sealed partial class PackageManagerModule : Page
             foreach (var ex in extras)
             {
                 var e2 = ex;
-                var b2 = new Button { Content = e2.label, Padding = new Thickness(10, 4, 10, 4) };
+                var b2 = PackageActionButton(e2.label);
                 b2.Click += async (_, _) => await e2.run(b2);
                 buttons.Children.Add(b2);
             }
 
-        var btn = new Button { Content = actionLabel, Padding = new Thickness(12, 4, 12, 4) };
+        var btn = PackageActionButton(actionLabel);
         btn.Click += async (_, _) => await action(btn);
         buttons.Children.Add(btn);
 
@@ -1858,7 +1888,7 @@ public sealed partial class PackageManagerModule : Page
 
         if (action is { } act)
         {
-            var btn = new Button { Content = act.label, Padding = new Thickness(12, 4, 12, 4) };
+            var btn = PackageActionButton(act.label);
             btn.Click += async (_, _) =>
             {
                 btn.IsEnabled = false; btn.Content = P("Working…", "處理緊…");

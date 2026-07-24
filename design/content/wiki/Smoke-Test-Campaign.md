@@ -8,6 +8,10 @@
 
 **粵語 —** 呢一頁記錄點樣可以重複做到成個 WinForge app 驗證。佢係涵蓋證據清單，唔係宣傳用功能數字：每條 route 只有喺適用嘅 routing、build、test、launch、visual、behavior、副作用同文件證據都記錄好先算完成。
 
+## Focused Package Manager recovery — 2026-07-24 · 專項套件管理 recovery
+
+Preserved package commits `5cc3aa712f9e326dd8d9ae0bdd4c16d8771e1cb6` (ten files) and `181fc231c93b2533392344a405cb18750b4eaa48` (six files) were audited read-only without mutating either stash. Current in-app code retains the useful intent with later hardening; the combined recovery adds atomic fail-aware bundle saves, fail-closed proxy/triplet validation, and responsive/accessibility fixes. The source lanes passed **29/29** and **28/28** independently; the merged core passes **30/30**. The exact combined solution build has **0 errors**; self-contained publish and XAML safety pass; the source audit resolves 2,875/2,875 handlers and 1,922/1,922 direct actions with zero lifecycle mismatches/markers. Fresh 1049×646 and 720×650 LowLevel headless page captures plus 720-pixel proxy/vcpkg and App Settings captures were inspected and promoted. The exact owned process was closed, the desktop reported zero windows, and its handle was released. · 兩份保留套件 commit 已逐檔只讀審核，兩個 stash 都冇修改；現行 app code 連後續強化保留有用意圖，合併 recovery 加入原子 fail-aware 清單儲存、fail-closed proxy／triplet 驗證同響應式／無障礙修正。兩條來源線各自 **29/29**／**28/28**，合併 core **30/30**；完整 combined solution build 零 errors，publish／XAML safety／source audit 全過。最新 1049×646／720×650 頁面，同 720 像素 proxy／vcpkg／App Settings LowLevel capture 已檢視同升格；最後已關閉準確自家 process、確認 desktop 零視窗並釋放 handle。
+
 ## Baseline Snapshot · 基線快照
 
 Generated on 2026-07-11 from the live source:

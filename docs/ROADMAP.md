@@ -198,7 +198,7 @@
   - _Read/write registry: HKCU\Environment value 'Path' (user, REG_EXPAND_SZ) and HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment value 'Path' (system). After editing, broadcast WM_SETTINGCHANGE via SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, 'Environment') so new shells pick it up. Dedupe/reorder in the UI._
 - [ ] **Edit user & system environment variables** · 改環境變數
   - _Get/set arbitrary vars via [Environment]::GetEnvironmentVariable(name,'User'/'Machine') and SetEnvironmentVariable(name,value,scope) (writes HKCU\Environment / HKLM Session Manager\Environment); broadcast WM_SETTINGCHANGE 'Environment' after. Open the OS dialog with rundll32 sysdm.cpl,EditEnvironmentVariables. Machine scope needs elevation (route via existing no-UAC scheduled-task launcher)._
-- [x] **Export & restore package sets** · 匯出同還原套件清單 — DONE in Bundles: editable JSON/`.ubundle`, YAML and XML bundles preserve manager, ID, version, source and explicit per-package options; imports run compatibility and security review before queueing installs.
+- [x] **Export & restore package sets** · 匯出同還原套件清單 — DONE in Bundles: editable JSON/`.ubundle`, YAML and XML bundles preserve manager, ID, version, source and explicit per-package options; imports run compatibility and security review before queueing installs; saves stage beside the destination and report success only after an atomic swap.
 - [x] **Upgrade all outdated packages** · 一次過更新晒啲套件 — DONE across the available WinGet, Scoop, Chocolatey, pip, npm, .NET tool, PowerShell Gallery/PSResourceGet, Cargo, Bun and vcpkg engines, subject to each installed CLI's capabilities.
 - [ ] **Docker container & image dashboard** · 睇住 Docker 容器同 image
   - _docker ps -a --format '{{json .}}' and docker images --format '{{json .}}' for the grid; row actions docker start/stop/restart/rm <id>, docker logs -f <id>, docker exec -it <id> sh into the terminal panel; reclaim space with docker system df then docker system prune -f._
@@ -670,7 +670,7 @@ This batch came from three parallel agent workflows: a forum pain-point sweep, a
 - [ ] **SMB shares + sessions auditor** · 共享同工作階段稽核 — `netapi32.dll` NetShareEnum (level 2) + NetSessionEnum (level 10) — what you publish + who's connected.
 - [ ] **Power-plan switcher (+ Ultimate Performance)** · 電源計劃切換 — `powrprof.dll` PowerEnumerate/PowerGetActiveScheme/PowerSetActiveScheme; unlock Ultimate Performance (duplicatescheme GUID e9a42b02…).
 - [ ] **Monitor brightness (DDC/CI)** · 螢幕亮度 — `dxva2.dll` GetPhysicalMonitorsFromHMONITOR + Get/SetMonitorBrightness (external monitors too).
-- [ ] **Per-app volume mixer** · 每個程式音量 — Core Audio COM: IMMDeviceEnumerator + IAudioSessionManager2 / ISimpleAudioVolume (mute/level per app), IAudioEndpointVolume (master).
+- [x] **Per-app volume mixer** · 每個程式音量 — Core Audio COM: IMMDeviceEnumerator + IAudioSessionManager2 / ISimpleAudioVolume (mute/level per app), IAudioEndpointVolume (master). Hardened with checked activation, nullable-safe cleanup/default routing, and adaptive accessible controls.
 - [ ] **In-app Event Viewer** · 事件檢視器 — `wevtapi.dll` EvtQuery/EvtNext/EvtRender with human-readable bilingual filters.
 - [ ] **Log off / disconnect other users** · 登出其他使用者 — `wtsapi32.dll` WTSEnumerateSessions + WTSLogoffSession/WTSDisconnectSession (admin).
 - [ ] **Certificate viewer** · 憑證檢視 — `crypt32.dll` CertEnumCertificatesInStore over My/Root/CA stores.
@@ -735,7 +735,7 @@ _Note: a planned "AI & Ads catalog batch" was dropped after the audit showed Rec
 
 From a generate+adversarial-verify workflow (Core Audio COM interop verified `correct=true`) + a discovery sweep (17 items).
 
-- [x] **Per-app Volume Mixer** · 每個 app 音量混合器 — DONE: master volume/mute + every audio session's volume/mute, live, via raw Core Audio (WASAPI) COM — IMMDeviceEnumerator → IAudioSessionManager2 → IAudioSessionControl2 / ISimpleAudioVolume / IAudioEndpointVolume. Adversarially-verified vtable order; runs without AccessViolation. `module.mixer` / `--page mixer`.
+- [x] **Per-app Volume Mixer** · 每個 app 音量混合器 — DONE: master volume/mute + every audio session's volume/mute, live, via raw Core Audio (WASAPI) COM — IMMDeviceEnumerator → IAudioSessionManager2 → IAudioSessionControl2 / ISimpleAudioVolume / IAudioEndpointVolume. Adversarially verified vtable order, nullable boundaries, single-owner RCW release, invalid-PID rejection, and explicit reset to system default. `module.mixer` / `--page mixer`.
 
 ### New module/feature candidates · 新模組／功能
 - [ ] **Custom right-click verb manager** · 自訂右鍵指令管理 — add/remove context-menu entries under HKCU\Software\Classes\*\shell\<verb>, …\Directory\shell, …\Directory\Background\shell (command + icon + position).
@@ -811,7 +811,7 @@ launching the other app.
 - [x] **Background Clipboard manager + tray** · 背景剪貼簿 + 系統匣 — DONE (text/image/file history, auto-convert, keep-running-when-closed via Shell_NotifyIcon).
 
 ### Package management (covers "clone UniGetUI" + "auto-install common deps")
-- [x] **In-app Package Manager with UniGetUI-informed behavior** · App 內套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management.
+- [x] **In-app Package Manager with UniGetUI-informed behavior** · App 內套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export with atomic fail-aware saves; guarded background scheduling and source management; credential-free proxy commands; fail-closed proxy/triplet validation; language-mode-aware manager labels and narrow-safe action rows. The combined focused core contract passes 30/30. · 兩份 2026-07-24 保留 stash 審核保留咗有用原生功能，拒絕過時外部 launcher 同含認證 proxy path，並驗證原子儲存、結構化設定同窄畫面雙語控制；合併專項 core contract 30/30 通過。
 - [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies with progress; other modules retain the shared `PackageService.AutoInstall` bootstrap path.
 
 ### Dev environment

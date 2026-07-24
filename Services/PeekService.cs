@@ -567,7 +567,16 @@ public static class PeekService
                     try { sel = w.Document.SelectedItems(); } catch { continue; }
                     if (sel is null || sel.Count == 0) continue;
                     string? p = null;
-                    try { object? raw = sel.Item(0).Path; p = raw?.ToString(); } catch { }
+                    try
+                    {
+                        dynamic? item = sel!.Item(0);
+                        if (item is not null)
+                        {
+                            object? raw = item.Path;
+                            p = raw?.ToString();
+                        }
+                    }
+                    catch { }
                     if (string.IsNullOrEmpty(p) || !File.Exists(p)) continue;
 
                     // prefer the selection in the foreground Explorer window

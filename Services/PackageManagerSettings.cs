@@ -248,8 +248,14 @@ public static class PackageManagerSettings
     /// <summary>代理 URL · Proxy URL (e.g. http://host:port). Empty = no proxy.</summary>
     public static string ProxyUrl
     {
-        get => GetRaw("proxyUrl", "");
-        set => SetRaw("proxyUrl", (value ?? "").Trim());
+        get => PackageManagerInputPolicy.TryNormalizeProxyUrl(GetRaw("proxyUrl", ""), out var normalized)
+            ? normalized
+            : "";
+        set
+        {
+            if (PackageManagerInputPolicy.TryNormalizeProxyUrl(value, out var normalized))
+                SetRaw("proxyUrl", normalized);
+        }
     }
 
     /// <summary>代理使用者名稱 · Proxy username.</summary>
@@ -304,7 +310,6 @@ public static class PackageManagerSettings
         var url = ProxyUrl;
         if (string.IsNullOrWhiteSpace(url)) return "";
 
-        // 將帳密塞入 URL（如有）· Fold credentials into the URL when provided, for managers that
         // Security note: credentials are intentionally never folded into CLI arguments. Command previews,
         // diagnostics, and OS process listings must not disclose the DPAPI-protected proxy password.
         return (managerKey ?? "").ToLowerInvariant() switch
@@ -335,8 +340,14 @@ public static class PackageManagerSettings
     /// <summary>vcpkg triplet（例如 x64-windows）· vcpkg triplet (e.g. x64-windows).</summary>
     public static string VcpkgTriplet
     {
-        get => GetRaw("vcpkgTriplet", "");
-        set => SetRaw("vcpkgTriplet", (value ?? "").Trim());
+        get => PackageManagerInputPolicy.TryNormalizeVcpkgTriplet(GetRaw("vcpkgTriplet", ""), out var normalized)
+            ? normalized
+            : "";
+        set
+        {
+            if (PackageManagerInputPolicy.TryNormalizeVcpkgTriplet(value, out var normalized))
+                SetRaw("vcpkgTriplet", normalized);
+        }
     }
 
     // ===== 8) Local backup · 本地備份 =====
