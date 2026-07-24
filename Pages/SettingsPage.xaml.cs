@@ -28,6 +28,7 @@ public sealed partial class SettingsPage : Page
         InitializeComponent();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+        ActualThemeChanged += OnActualThemeChanged;
     }
 
     private void OnLang(object? sender, EventArgs e) => Build();
@@ -39,6 +40,11 @@ public sealed partial class SettingsPage : Page
         if (_cantoneseToneSlider is not null)
             _cantoneseToneSlider.Value = FunnyLevelSettings.I.CantoneseLevel;
         UpdateTonePreview();
+    }
+
+    private void OnActualThemeChanged(FrameworkElement sender, object args)
+    {
+        if (IsLoaded) Build();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -200,7 +206,7 @@ public sealed partial class SettingsPage : Page
         var previewBorder = new Border
         {
             Padding = new Thickness(12),
-            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            Background = SurfaceBrush(light: 0xFFF0F4F0, dark: 0xFF1A211B),
             CornerRadius = new CornerRadius(6),
             Child = previewPanel,
         };
@@ -306,7 +312,7 @@ public sealed partial class SettingsPage : Page
             HorizontalAlignment = HorizontalAlignment.Left,
         };
 
-        var status = new TextBlock { FontSize = 12, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] };
+        var status = new TextBlock { FontSize = 12, Foreground = SecondaryTextBrush() };
 
         var apply = new Button { Content = Loc.I.Pick("Apply name", "套用名稱"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
         apply.Click += (_, _) =>
@@ -374,7 +380,7 @@ public sealed partial class SettingsPage : Page
             panel.Children.Add(new TextBlock
             {
                 Text = Loc.I.Pick("✓ Running as administrator.", "✓ 正以管理員身分運行。"),
-                Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"],
+                Foreground = SurfaceBrush(light: 0xFF0F6B3A, dark: 0xFF54E07E),
             });
         }
         else
@@ -405,7 +411,7 @@ public sealed partial class SettingsPage : Page
     }
 
     // ---- small builders ----
-    private static StackPanel Heading(string title, string? subtitle)
+    private StackPanel Heading(string title, string? subtitle)
     {
         var p = new StackPanel { Spacing = 1 };
         p.Children.Add(new TextBlock { Text = title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 15 });
@@ -414,21 +420,34 @@ public sealed partial class SettingsPage : Page
         return p;
     }
 
-    private static TextBlock Muted(string text) => new()
+    private TextBlock Muted(string text) => new()
     {
         Text = text,
         TextWrapping = TextWrapping.Wrap,
         FontSize = 12,
-        Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        Foreground = SecondaryTextBrush(),
     };
 
-    private static Border Card(UIElement content) => new()
+    private Border Card(UIElement content) => new()
     {
         Padding = new Thickness(16, 14, 16, 14),
-        Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-        BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        Background = SurfaceBrush(light: 0xFFF7F9F7, dark: 0xFF131814),
+        BorderBrush = SurfaceBrush(light: 0x330F6B3A, dark: 0x24FFFFFF),
         BorderThickness = new Thickness(1),
         CornerRadius = new CornerRadius(8),
         Child = content,
     };
+
+    private SolidColorBrush SurfaceBrush(uint light, uint dark)
+    {
+        var argb = ActualTheme == ElementTheme.Light ? light : dark;
+        return new SolidColorBrush(Windows.UI.Color.FromArgb(
+            (byte)(argb >> 24),
+            (byte)(argb >> 16),
+            (byte)(argb >> 8),
+            (byte)argb));
+    }
+
+    private SolidColorBrush SecondaryTextBrush() =>
+        SurfaceBrush(light: 0xFF3D5442, dark: 0xFFBFCBBF);
 }

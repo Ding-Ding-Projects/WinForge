@@ -8,6 +8,7 @@
 | Page · 頁面 | Use it for · 用途 |
 |---|---|
 | [Module Categories](Module-Categories.md) | Browse every module by area · 按分類瀏覽全部模組 |
+| [Language & Tone](Language-and-Tone.md) | Three language modes plus independent English/Cantonese funny levels · 三種語言模式同英粵分開搞笑等級 |
 | [Native Port Relocation](Native-Cpp-Rewrite.md) | Link to the independent WinForge-Native project · 獨立 WinForge-Native project 連結 |
 | [Reactor Hub](Reactor-Hub.md) | Reactor manual, procedures, safety, fuel, waste, and tests · 反應堆手冊、程序、安全、燃料、廢料同測試 |
 | [Reactor Industrial Loads](Reactor-Industrial-Loads.md) | Ammonia production and priority load shedding · 合成氨生產同優先級卸載 |
@@ -23,6 +24,7 @@
 ## Key Pages · 重點頁
 
 - [Dashboard](Dashboard.md) · 概覽
+- [Language & Tone](Language-and-Tone.md) · 語言與語氣
 - [Git & GitHub](Git-and-GitHub.md) · Git 與 GitHub
 - [GitHub Desktop Profiles](GitHub-Desktop-Profiles.md) · GitHub Desktop 多帳戶設定檔
 - [Package Manager](Package-Manager.md) · 套件管理
