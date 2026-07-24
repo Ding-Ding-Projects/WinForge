@@ -89,9 +89,9 @@ Current reactor evidence and operating procedures are in the [test report](docs/
 
 ## Command Palette extensions · 指令面板擴充套件
 
-WinForge supports user-managed declarative Command Palette packs. New packs are disabled by default and may open a registered module, open an HTTP(S) URL, or copy bounded text. A pack can also opt into a local, SHA-256-pinned `.exe` host for richer actions and structured native pages. WinForge re-verifies the executable before every run, refuses hosts while elevated, and accepts only a bounded JSON-lines response surface. The explicitly trusted executable is process-isolated, **not sandboxed**.
+WinForge supports user-managed declarative Command Palette packs. New packs are disabled by default and may open a registered module, open an HTTP(S) URL, or copy bounded text. A pack can also opt into a fully qualified local-drive, SHA-256-pinned `.exe` host for richer actions and structured native pages; UNC, network-share, and device paths are rejected. WinForge reloads current pack enablement, re-verifies and leases the executable through process creation, refuses hosts while elevated, and accepts only a bounded JSON-lines response surface. The explicitly trusted executable is process-isolated, **not sandboxed**.
 
-WinForge 支援由用戶管理嘅宣告式指令面板套件。新套件預設停用，只可以開啟已註冊模組、HTTP(S) 網址，或者複製有限長度文字。套件亦可以明確選用本機、SHA-256 釘選嘅 `.exe` 主機，提供豐富操作同原生結構化頁面。WinForge 每次運行前都會重新驗證可執行檔、提升權限時拒絕主機，而且只接受有限 JSON-lines 回應介面。用戶明確信任嘅可執行檔只有程序隔離，**唔係沙箱**。
+WinForge 支援由用戶管理嘅宣告式指令面板套件。新套件預設停用，只可以開啟已註冊模組、HTTP(S) 網址，或者複製有限長度文字。套件亦可以明確選用本機磁碟完整路徑、SHA-256 釘選嘅 `.exe` 主機；UNC、網絡分享同裝置路徑會拒絕。WinForge 每次操作都會重新讀取啟用狀態、重新驗證並鎖住可執行檔直到建立程序、提升權限時拒絕主機，而且只接受有限 JSON-lines 回應介面。用戶明確信任嘅可執行檔只有程序隔離，**唔係沙箱**。
 
 See the bilingual [extension-pack guide](docs/wiki/Command-Palette-Extensions.md) and [host protocol](docs/wiki/Command-Palette-Extension-Protocol.md). · 詳情請睇雙語[擴充套件指南](docs/wiki/Command-Palette-Extensions.md)同[主機協定](docs/wiki/Command-Palette-Extension-Protocol.md)。
 

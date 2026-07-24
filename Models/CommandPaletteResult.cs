@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace WinForge.Models;
 
@@ -26,4 +28,10 @@ public sealed class CommandPaletteResult
 
     /// <summary>選中後執行嘅動作；回傳 true = 之後關閉面板 · Action to run; returning true closes the palette.</summary>
     public Func<bool> Invoke { get; init; } = () => true;
+
+    /// <summary>
+    /// Optional non-blocking action for bounded I/O providers. When present, the
+    /// launcher awaits it while showing progress instead of blocking the UI thread.
+    /// </summary>
+    public Func<CancellationToken, Task<bool>>? InvokeAsync { get; init; }
 }

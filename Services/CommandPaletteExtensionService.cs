@@ -9,9 +9,8 @@ namespace WinForge.Services;
 
 /// <summary>
 /// Stores user-managed Command Palette extension manifests in a WinForge-owned
-/// location. The manifest format is deliberately declarative: it can open an
-/// installed WinForge module, open an HTTP(S) URL, or copy text, but it cannot
-/// execute arbitrary code or commands.
+/// location. Packs may use declarative module/URL/copy actions or, after explicit
+/// enablement, a hash-pinned local extension host with a bounded response surface.
 /// </summary>
 public sealed class CommandPaletteExtensionService
 {
@@ -178,6 +177,18 @@ public sealed class CommandPaletteExtensionService
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Reloads the pack and its enabled marker directly from WinForge-owned
+    /// storage for an execution-time trust decision. This deliberately bypasses
+    /// the display cache so a just-disabled, removed, or replaced pack fails closed.
+    /// </summary>
+    internal CommandPaletteExtensionPack? GetEnabledPackForExecution(string id)
+    {
+        if (!IsSafeId(id) || !IsEnabled(id)) return null;
+        var pack = ReadPack(GetManifestPath(id));
+        return pack is { Enabled: true } ? pack : null;
     }
 
     public string CreateManifestTemplate()
@@ -430,7 +441,11 @@ public sealed class CommandPaletteExtensionService
 
     private static string CleanSingleLine(string? value, int maximumLength)
     {
-        var cleaned = (value ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ').Trim();
+        var cleaned = (value ?? string.Empty)
+            .Replace('\r', ' ')
+            .Replace('\n', ' ')
+            .Replace("\0", string.Empty, StringComparison.Ordinal)
+            .Trim();
         return cleaned.Length <= maximumLength ? cleaned : cleaned[..maximumLength];
     }
 

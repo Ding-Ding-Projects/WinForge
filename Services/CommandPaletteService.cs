@@ -8,6 +8,8 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WinForge.Models;
@@ -316,12 +318,34 @@ public static class CommandPaletteService
         {
             var result = Query(pin.Query).FirstOrDefault(r => string.Equals(r.Title, pin.Title, StringComparison.Ordinal)
                 && string.Equals(r.ProviderTag, pin.ProviderTag, StringComparison.Ordinal));
+            if (result?.InvokeAsync is not null)
+            {
+                _ = InvokeDockPinAsync(result, pin);
+                return true;
+            }
             if (result is not null) return result.Invoke();
         }
         catch { }
 
         try { CommandPaletteWindow.OpenWithQuery(pin.Query); } catch { }
         return false;
+    }
+
+    private static async Task InvokeDockPinAsync(CommandPaletteResult result, DockPin pin)
+    {
+        try
+        {
+            if (result.InvokeAsync is not null && await result.InvokeAsync(CancellationToken.None)) return;
+        }
+        catch
+        {
+            // Fall through to the recoverable palette query.
+        }
+
+        _ui?.TryEnqueue(() =>
+        {
+            try { CommandPaletteWindow.OpenWithQuery(pin.Query); } catch { }
+        });
     }
 
     private static List<DockPin> ReadDockPins()
@@ -675,8 +699,29 @@ public static class CommandPaletteService
             Glyph = command.Glyph,
             ProviderTag = Loc.I.Pick("Extension pack", "擴充套件"),
             Score = score,
-            Invoke = () => ExecuteExtensionCommand(pack, command),
+            Invoke = command.Action == CommandPaletteExtensionAction.Host
+                ? () => true
+                : () => ExecuteExtensionCommand(pack, command),
+            InvokeAsync = command.Action == CommandPaletteExtensionAction.Host
+                ? cancellationToken => ExecuteExtensionCommandAsync(pack, command, cancellationToken)
+                : null,
         };
+    }
+
+    private static async Task<bool> ExecuteExtensionCommandAsync(
+        CommandPaletteExtensionPack pack,
+        CommandPaletteExtensionCommand command,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await CommandPaletteExtensionHostService.ExecuteCommandAsync(pack, command, cancellationToken);
+            return ApplyExtensionHostResponse(pack, command, response);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool ExecuteExtensionCommand(CommandPaletteExtensionPack pack, CommandPaletteExtensionCommand command)
@@ -696,8 +741,7 @@ public static class CommandPaletteService
                     CopyText(command.Target);
                     return true;
                 case CommandPaletteExtensionAction.Host:
-                    return ApplyExtensionHostResponse(pack, command,
-                        CommandPaletteExtensionHostService.Execute(pack, command));
+                    return false;
                 default:
                     return false;
             }

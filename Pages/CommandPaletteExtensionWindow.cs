@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Services;
 
@@ -20,14 +23,18 @@ public sealed class CommandPaletteExtensionWindow : Window
     private readonly CommandPaletteExtensionCommand _command;
     private readonly Grid _root = new();
     private readonly TextBlock _title = new() { FontSize = 22, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _body = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _body = new() { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
     private readonly InfoBar _notice = new() { IsOpen = false, IsClosable = true };
     private readonly StackPanel _fieldsPanel = new() { Spacing = 10 };
-    private readonly StackPanel _actionsPanel = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
+    private readonly StackPanel _actionsPanel = new() { Spacing = 8 };
     private readonly Dictionary<string, string> _values = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<Button> _actionButtons = new();
+    private readonly CancellationTokenSource _lifetime = new();
     private CommandPaletteExtensionHostPage _page;
+    private string _noticeEn = string.Empty;
+    private string _noticeZh = string.Empty;
     private bool _busy;
+    private bool _closed;
 
     private CommandPaletteExtensionWindow(
         CommandPaletteExtensionPack pack,
@@ -40,6 +47,7 @@ public sealed class CommandPaletteExtensionWindow : Window
         Title = "WinForge Command Palette Extension";
         Loc.I.LanguageChanged += OnLanguageChanged;
         Closed += OnClosed;
+        AutomationProperties.SetLiveSetting(_notice, AutomationLiveSetting.Assertive);
 
         var content = new StackPanel { Spacing = 14 };
         content.Children.Add(_title);
@@ -74,32 +82,47 @@ public sealed class CommandPaletteExtensionWindow : Window
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
-    private void RenderPage(CommandPaletteExtensionHostPage page)
+    private void RenderPage(CommandPaletteExtensionHostPage page, bool preserveValues = false)
     {
         _page = page;
+        if (!preserveValues)
+        {
+            _notice.IsOpen = false;
+            _noticeEn = string.Empty;
+            _noticeZh = string.Empty;
+        }
         Title = P(page.Title, page.Zh);
         _title.Text = P(page.Title, page.Zh);
+        AutomationProperties.SetName(_root, Title);
         _body.Text = P(page.Body, page.ZhBody);
         _body.Visibility = string.IsNullOrWhiteSpace(_body.Text) ? Visibility.Collapsed : Visibility.Visible;
 
+        var previousValues = preserveValues
+            ? new Dictionary<string, string>(_values, StringComparer.OrdinalIgnoreCase)
+            : null;
+        _values.Clear();
         _fieldsPanel.Children.Clear();
         foreach (var field in page.Fields)
         {
-            if (!_values.ContainsKey(field.Id)) _values[field.Id] = field.Value;
-            var label = new TextBlock
-            {
-                Text = P(field.Label, field.Zh),
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                TextWrapping = TextWrapping.Wrap
-            };
-            _fieldsPanel.Children.Add(label);
+            var label = P(field.Label, field.Zh);
+            _values[field.Id] = previousValues is not null && previousValues.TryGetValue(field.Id, out var previousValue)
+                ? previousValue
+                : field.Value;
 
             switch (field.Type)
             {
                 case CommandPaletteExtensionHostFieldType.Text:
                 {
                     var fieldId = field.Id;
-                    var box = new TextBox { Text = _values[fieldId], TextWrapping = TextWrapping.Wrap };
+                    var box = new TextBox
+                    {
+                        Header = label,
+                        Text = _values[fieldId],
+                        MaxLength = 4096,
+                        TextWrapping = TextWrapping.Wrap,
+                        HorizontalAlignment = HorizontalAlignment.Stretch
+                    };
+                    AutomationProperties.SetName(box, label);
                     box.TextChanged += (_, _) => _values[fieldId] = box.Text;
                     _fieldsPanel.Children.Add(box);
                     break;
@@ -109,8 +132,11 @@ public sealed class CommandPaletteExtensionWindow : Window
                     var fieldId = field.Id;
                     var toggle = new ToggleSwitch
                     {
+                        Header = label,
                         IsOn = string.Equals(_values[fieldId], "true", StringComparison.OrdinalIgnoreCase),
+                        HorizontalAlignment = HorizontalAlignment.Stretch
                     };
+                    AutomationProperties.SetName(toggle, label);
                     toggle.Toggled += (_, _) => _values[fieldId] = toggle.IsOn ? "true" : "false";
                     _fieldsPanel.Children.Add(toggle);
                     break;
@@ -118,7 +144,12 @@ public sealed class CommandPaletteExtensionWindow : Window
                 case CommandPaletteExtensionHostFieldType.Choice:
                 {
                     var fieldId = field.Id;
-                    var combo = new ComboBox { MinWidth = 220 };
+                    var combo = new ComboBox
+                    {
+                        Header = label,
+                        HorizontalAlignment = HorizontalAlignment.Stretch
+                    };
+                    AutomationProperties.SetName(combo, label);
                     foreach (var option in field.Options)
                     {
                         combo.Items.Add(new ComboBoxItem { Content = P(option.Title, option.Zh), Tag = option.Value });
@@ -146,7 +177,31 @@ public sealed class CommandPaletteExtensionWindow : Window
         _actionButtons.Clear();
         foreach (var action in page.Actions)
         {
-            var button = new Button { Content = P(action.Title, action.Zh), Tag = action.Id };
+            var label = P(action.Title, action.Zh);
+            var button = new Button
+            {
+                Content = label,
+                Tag = action.Id,
+                MinHeight = 44,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                IsEnabled = !_busy
+            };
+            AutomationProperties.SetName(button, label);
+            if (action.Primary)
+            {
+                try
+                {
+                    if (Application.Current.Resources.TryGetValue("AccentButtonStyle", out var resource)
+                        && resource is Style accentButtonStyle)
+                    {
+                        button.Style = accentButtonStyle;
+                    }
+                }
+                catch
+                {
+                    // The normal button style remains accessible if app resources are unavailable.
+                }
+            }
             button.Click += PageAction_Click;
             _actionButtons.Add(button);
             _actionsPanel.Children.Add(button);
@@ -166,10 +221,15 @@ public sealed class CommandPaletteExtensionWindow : Window
                 _command,
                 _page.Id,
                 actionId,
-                _values);
+                _values,
+                _lifetime.Token);
+            if (_closed) return;
             if (!response.Success)
             {
-                ShowNotice(P("The extension host could not complete that action.", "擴充套件主機未能完成呢個操作。"), InfoBarSeverity.Error);
+                ShowNotice(
+                    "The extension host could not complete that action.",
+                    "擴充套件主機未能完成呢個操作。",
+                    InfoBarSeverity.Error);
                 return;
             }
 
@@ -181,35 +241,63 @@ public sealed class CommandPaletteExtensionWindow : Window
 
             if (!CommandPaletteService.ApplyExtensionHostResponse(_pack, _command, response))
             {
-                ShowNotice(P("The extension host returned an unsupported result.", "擴充套件主機傳回咗未支援嘅結果。"), InfoBarSeverity.Error);
+                ShowNotice(
+                    "The extension host returned an unsupported result.",
+                    "擴充套件主機傳回咗未支援嘅結果。",
+                    InfoBarSeverity.Error);
                 return;
             }
 
-            ShowNotice(P("Extension action completed.", "擴充套件操作已完成。"), InfoBarSeverity.Success);
+            ShowNotice("Extension action completed.", "擴充套件操作已完成。", InfoBarSeverity.Success);
         }
         catch
         {
-            ShowNotice(P("The extension action could not be completed.", "未能完成擴充套件操作。"), InfoBarSeverity.Error);
+            if (!_closed)
+            {
+                ShowNotice(
+                    "The extension action could not be completed.",
+                    "未能完成擴充套件操作。",
+                    InfoBarSeverity.Error);
+            }
         }
         finally
         {
             _busy = false;
-            foreach (var button in _actionButtons) button.IsEnabled = true;
+            if (!_closed)
+            {
+                foreach (var button in _actionButtons) button.IsEnabled = true;
+            }
         }
     }
 
-    private void ShowNotice(string message, InfoBarSeverity severity)
+    private void ShowNotice(string en, string zh, InfoBarSeverity severity)
     {
+        _noticeEn = en;
+        _noticeZh = zh;
         _notice.Title = P("Extension host", "擴充套件主機");
-        _notice.Message = message;
+        _notice.Message = P(en, zh);
         _notice.Severity = severity;
+        AutomationProperties.SetLiveSetting(
+            _notice,
+            severity == InfoBarSeverity.Error ? AutomationLiveSetting.Assertive : AutomationLiveSetting.Polite);
         _notice.IsOpen = true;
     }
 
-    private void OnLanguageChanged(object? sender, EventArgs e) => RenderPage(_page);
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        RenderPage(_page, preserveValues: true);
+        if (_notice.IsOpen)
+        {
+            _notice.Title = P("Extension host", "擴充套件主機");
+            _notice.Message = P(_noticeEn, _noticeZh);
+        }
+    }
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        _closed = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
         Loc.I.LanguageChanged -= OnLanguageChanged;
         lock (WindowGate) OpenWindows.Remove(this);
     }

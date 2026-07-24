@@ -1,6 +1,6 @@
 # Command Palette Extension Packs · 指令面板擴充套件
 
-WinForge supports a safe, declarative extension-pack format for Command Palette. It is designed for predictable personal automation without giving an imported JSON file permission to run code.
+WinForge supports declarative Command Palette packs for predictable personal automation. A manifest cannot execute code by itself. A pack may separately declare a hash-pinned local host, but WinForge launches that executable only after the user explicitly enables the pack and the execution-time trust checks pass.
 
 ## Trust boundary · 信任界線
 
@@ -18,8 +18,9 @@ WinForge supports a safe, declarative extension-pack format for Command Palette.
 | `Module` | Opens a registered WinForge module tag such as `module.awake`. |
 | `Url` | Opens an absolute `http` or `https` URL. |
 | `Copy` | Copies up to 4096 characters to the clipboard. |
+| `Host` | Sends the command to the pack's explicitly trusted extension host and accepts only the bounded responses below. |
 
-There is no `Run`, `PowerShell`, executable path, DLL, script, COM, or arbitrary-code action. This phase is intentionally not an out-of-process third-party extension host.
+The declarative actions do not expose `Run`, PowerShell, scripts, DLL loading, COM activation, or arbitrary command execution through WinForge. `Host` is different: it runs the exact executable the user chose to trust, so that executable is not sandboxed even though its WinForge response surface is narrow.
 
 ## Minimal manifest · 最小資訊檔
 
@@ -56,22 +57,18 @@ There is no `Run`, `PowerShell`, executable path, DLL, script, COM, or arbitrary
 4. Review the pack row and turn on `Enabled · 已啟用` only when you trust the manifest.
 5. Search by command title, Cantonese title, aliases, keywords, or pack name.
 
-## 下一步
+## Isolated extension host protocol · 隔離擴充套件主機協定
 
-目前呢個基礎提供安全同可管理嘅 JSON 指令。之後嘅 parity 工作會以明確選用、隔離嘅跨程序協定加入豐富清單、詳細內容同表單頁面，而唔會放寬呢個安全界線。
+Extension packs can optionally declare a fully qualified local-drive `.exe` host with a required SHA-256 pin; UNC, network-share, and device paths are rejected. A `Host` command launches that executable as a **short-lived, non-elevated child process** and exchanges one JSON-lines request and one bounded JSON-lines response. The host must exit within eight seconds.
 
-### Isolated extension host protocol · 隔離擴充套件主機協定
+WinForge reloads the manifest and enabled marker for every action, re-checks the command and host definition, and holds a no-write/no-delete file lease from SHA-256 verification through process creation. New packs remain disabled by default, hosts fail closed while WinForge is elevated, and closing the launcher cancels the bounded request. Host output can only request a registered WinForge module, an HTTP(S) URL, bounded clipboard text, or a validated structured page with labelled text fields, toggles, choices, and buttons. WinForge never renders host HTML or script.
 
-Extension packs can optionally declare a local, absolute `.exe` host with a required SHA-256 pin. A `Host` command launches that executable as a **short-lived, non-elevated child process** and exchanges one JSON-lines request and one bounded JSON-lines response. The host must exit within eight seconds.
+This is process isolation plus a narrow WinForge integration surface. It is **not** a sandbox: an executable a user explicitly enables can still act with that user's normal Windows permissions. See [Command Palette Extension Protocol](Command-Palette-Extension-Protocol.md) before trusting a host. The focused headless contract is `dotnet run --project tests/CommandPaletteExtensionHost.Tests -c Debug`.
 
-WinForge checks the pinned hash when importing and immediately before every launch. New packs remain disabled by default, and hosts fail closed while WinForge is elevated. Host output can only request a registered WinForge module, an HTTP(S) URL, bounded clipboard text, or a validated structured page with text, fields, choices, and buttons. WinForge never renders host HTML or script.
+### 粵語說明
 
-This is process isolation plus a narrow WinForge integration surface. It is **not** a sandbox: an executable a user explicitly enables can still act with that user's normal Windows permissions. See [Command Palette Extension Protocol](Command-Palette-Extension-Protocol.md) before trusting a host.
+擴充套件可以選擇宣告本機磁碟嘅完整 `.exe` 路徑，並且一定要提供 SHA-256 pin；UNC、網絡分享同裝置路徑一律拒絕。`Host` 指令會用**短生命週期、非提升權限嘅子程序**啟動主機，交換一個 JSON-lines 請求同一個有限大小嘅 JSON-lines 回應；主機要喺八秒內結束。
 
-### 隔離擴充套件主機協定
+WinForge 每次操作都會重新載入資訊檔同啟用標記、再核對指令／主機定義，並由 SHA-256 驗證一路鎖住檔案唔畀寫入或刪除，直到建立程序。新套件預設停用；WinForge 提升權限時會 fail closed，而關閉 launcher 會取消有界請求。主機輸出只可以要求已註冊模組、HTTP(S) 網址、有限剪貼簿文字，或者用有標籤文字欄、開關、選項同按鈕組成嘅已驗證結構化頁面；絕對唔會渲染主機 HTML 或指令稿。
 
-擴充套件可以選擇宣告本機絕對 `.exe` 主機，並且一定要提供 SHA-256 pin。`Host` 指令會用**短生命週期、非提升權限嘅子程序**啟動主機，交換一個 JSON-lines 請求同一個有限大小嘅 JSON-lines 回應；主機要喺八秒內結束。
-
-WinForge 匯入時同每次啟動前都會檢查雜湊。新套件預設會停用，而 WinForge 提升權限時主機會 fail closed。主機輸出只可以要求已註冊 WinForge 模組、HTTP(S) 網址、有限長度剪貼簿文字，或者含文字、欄位、選項同按鈕嘅已驗證結構化頁面。WinForge 唔會渲染主機 HTML 或指令稿。
-
-呢個係程序隔離加上狹窄嘅 WinForge 整合介面，**唔係**沙箱：用戶明確啟用嘅可執行檔仍然可以使用該用戶嘅一般 Windows 權限。信任主機之前請先睇協定文件。
+呢個係程序隔離加狹窄 WinForge 介面，**唔係**沙箱：用戶明確啟用嘅可執行檔仍然有該用戶嘅一般 Windows 權限。信任之前請睇完整協定；專項 headless 測試 command 亦記喺上面。

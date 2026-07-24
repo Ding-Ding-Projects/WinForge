@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -36,9 +38,12 @@ public sealed class CommandPaletteWindow
     private readonly TextBox _search;
     private readonly ListView _list;
     private readonly TextBlock _hint;
+    private readonly ProgressRing _busyIndicator;
     private List<CommandPaletteResult> _results = new();
     private CancellationTokenSource? _refreshCts;
+    private CancellationTokenSource? _invokeCts;
     private int _refreshVersion;
+    private bool _invoking;
 
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
@@ -102,6 +107,7 @@ public sealed class CommandPaletteWindow
         var searchRow = new Grid();
         searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var searchIcon = new FontIcon
         {
             Glyph = ((char)0xE721).ToString(),
@@ -120,8 +126,20 @@ public sealed class CommandPaletteWindow
             VerticalAlignment = VerticalAlignment.Center,
         };
         Grid.SetColumn(_search, 1);
+        _busyIndicator = new ProgressRing
+        {
+            Width = 22,
+            Height = 22,
+            Margin = new Thickness(10, 0, 6, 0),
+            IsActive = false,
+            Visibility = Visibility.Collapsed,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        AutomationProperties.SetName(_busyIndicator, Loc.I.Pick("Running extension action", "擴充套件操作進行中"));
+        Grid.SetColumn(_busyIndicator, 2);
         searchRow.Children.Add(searchIcon);
         searchRow.Children.Add(_search);
+        searchRow.Children.Add(_busyIndicator);
         Grid.SetRow(searchRow, 0);
 
         _list = new ListView
@@ -142,6 +160,7 @@ public sealed class CommandPaletteWindow
             Foreground = ResBrush("TextFillColorSecondaryBrush", Color.FromArgb(0xC0, 0xFF, 0xFF, 0xFF)),
             Text = Loc.I.Pick("Enter launch · ↑↓ navigate · Ctrl+P pin · Esc close", "Enter 啟動 · ↑↓ 選擇 · Ctrl+P 釘選 · Esc 關閉"),
         };
+        AutomationProperties.SetLiveSetting(_hint, AutomationLiveSetting.Polite);
         Grid.SetRow(_hint, 2);
 
         layout.Children.Add(searchRow);
@@ -220,6 +239,7 @@ public sealed class CommandPaletteWindow
     private void Hide()
     {
         _open = false;
+        _invokeCts?.Cancel();
         try { _window.AppWindow.Hide(); } catch { }
     }
 
@@ -354,11 +374,53 @@ public sealed class CommandPaletteWindow
         else if (_results.Count > 0) InvokeResult(_results[0]);
     }
 
-    private void InvokeResult(CommandPaletteResult r)
+    private async void InvokeResult(CommandPaletteResult r)
     {
+        if (_invoking) return;
+
         bool close = true;
-        try { close = r.Invoke(); } catch { }
+        var asyncAction = r.InvokeAsync;
+        try
+        {
+            if (asyncAction is null)
+            {
+                close = r.Invoke();
+            }
+            else
+            {
+                _invoking = true;
+                _invokeCts = new CancellationTokenSource();
+                _list.IsEnabled = false;
+                _busyIndicator.Visibility = Visibility.Visible;
+                _busyIndicator.IsActive = true;
+                AutomationProperties.SetName(_busyIndicator, Loc.I.Pick("Running extension action", "擴充套件操作進行中"));
+                _hint.Text = Loc.I.Pick("Running extension action…", "擴充套件操作進行中…");
+                close = await asyncAction(_invokeCts.Token);
+            }
+        }
+        catch
+        {
+            close = false;
+        }
+        finally
+        {
+            if (asyncAction is not null)
+            {
+                _invokeCts?.Dispose();
+                _invokeCts = null;
+                _busyIndicator.IsActive = false;
+                _busyIndicator.Visibility = Visibility.Collapsed;
+                _list.IsEnabled = true;
+                _invoking = false;
+            }
+        }
+
         if (close) Hide();
+        else if (_open)
+        {
+            _hint.Text = Loc.I.Pick("The action could not be completed.", "未能完成操作。");
+            _search.Focus(FocusState.Programmatic);
+        }
     }
 
     /// <summary>安全攞主題畫刷，攞唔到就用後備顏色 · Resolve a theme brush, falling back to a fixed color.</summary>

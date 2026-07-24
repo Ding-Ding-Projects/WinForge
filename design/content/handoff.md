@@ -4,6 +4,16 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Command Palette extension hosts · Command Palette extension host
+
+Command Palette extension packs now have an explicit trusted-local-host option alongside declarative module, URL, copy, and structured-page commands. Every invocation rereads current enablement and the manifest, rechecks the declared command, accepts only a fully qualified local-drive `.exe`, rejects relative/UNC/network/device paths and unsafe arguments, verifies the pinned SHA-256 under a read-only launch lease, refuses elevated execution, and bounds JSON-lines responses to 64 KiB and eight seconds. Cancellation and timeout kill the owned process tree. This is a deliberate local trust boundary, not a sandbox.
+
+Command Palette extension pack 而家除咗 declarative module／URL／copy／structured-page command，仲可以明確選擇受信任本機 host。每次執行都會重讀最新 enablement／manifest，再核對宣告 command；只接受完整本機 drive `.exe`，拒絕 relative／UNC／network／device path 同危險 argument；喺唯讀 launch lease 下驗證指定 SHA-256；elevated 狀態一律拒絕；JSON-lines response 上限 64 KiB／八秒。取消或 timeout 會終止自家 process tree。呢個係刻意設計嘅本機信任界線，唔係 sandbox。
+
+The palette remains responsive during host work, exposes cancellable progress and bilingual feedback, and renders structured pages with associated accessible names, live-region notices, bounded fields, one clear primary action, 44-pixel targets, narrow-safe stacking, and language changes that preserve only the active page's values. The focused harness passes **17/17**; the managed project builds with **0 errors**; XAML literal safety and the detailed source-surface audit pass. The self-contained `cmdpalette` deep-link launch passes, but desktop capture is honestly blocked because `CopyFromScreen` is unavailable, `PrintWindow` returns a blank WinUI client, and LowLevel MCP is not callable in this session; no screenshot was promoted.
+
+Host 工作期間 palette 仍然暢順，有可取消進度同雙語提示；structured page 有關聯 accessible name、live-region 通知、有限欄位、一個清楚 primary action、44-pixel target、窄畫面直排，轉語言亦只保留當前頁值。專項 harness **17/17**、managed project 零 errors、XAML safety 同詳細 source-surface audit 全過。Self-contained `cmdpalette` deep-link launch 通過，但 `CopyFromScreen` 不可用、`PrintWindow` 只回傳空白 WinUI client，而且今次 session 冇可呼叫 LowLevel MCP，所以 capture 如實受阻，冇升格截圖。
+
 ## AWS Manager EC2 continuation · AWS Manager EC2 延續開發
 
 The managed AWS Manager now has a native, bilingual EC2 workspace alongside S3 and Resource Explorer. It supports direct `ec2` and `s3` routes, paged instance discovery, local filtering, details, and guarded Start, Stop, Reboot, and Terminate reviews through AWSSDK.EC2. Context generations, operation ownership, stale-result rejection, post-dialog revalidation, fail-closed state policy, and atomic S3 `If-None-Match: *` uploads keep account and mutation boundaries explicit; discovered credentials remain metadata-only.

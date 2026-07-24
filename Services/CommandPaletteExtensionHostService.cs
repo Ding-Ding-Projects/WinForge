@@ -40,65 +40,31 @@ public static class CommandPaletteExtensionHostService
     /// </summary>
     public static bool TryValidateDefinition(CommandPaletteExtensionHostDefinition? definition, out string error)
     {
-        error = string.Empty;
-        if (definition is null)
+        if (!TryOpenVerifiedHost(definition, out var verificationLease, out error))
         {
-            error = "The host definition is missing.";
             return false;
         }
 
-        try
-        {
-            if (string.IsNullOrWhiteSpace(definition.Executable)
-                || !Path.IsPathRooted(definition.Executable)
-                || !string.Equals(Path.GetExtension(definition.Executable), ".exe", StringComparison.OrdinalIgnoreCase))
-            {
-                error = "The host executable must be an absolute .exe path.";
-                return false;
-            }
-
-            var fullPath = Path.GetFullPath(definition.Executable);
-            if (!string.Equals(fullPath, definition.Executable, StringComparison.OrdinalIgnoreCase) || !File.Exists(fullPath))
-            {
-                error = "The host executable is unavailable.";
-                return false;
-            }
-
-            if (!IsSha256(definition.Sha256))
-            {
-                error = "The host SHA-256 value is invalid.";
-                return false;
-            }
-
-            if (definition.Arguments.Count > MaxArguments
-                || definition.Arguments.Any(argument => argument is null
-                    || argument.Length > MaxArgumentCharacters
-                    || argument.IndexOfAny(new[] { '\0', '\r', '\n' }) >= 0))
-            {
-                error = "The host arguments are invalid.";
-                return false;
-            }
-
-            var expected = Convert.FromHexString(definition.Sha256);
-            var actual = Convert.FromHexString(HashFile(fullPath));
-            if (!CryptographicOperations.FixedTimeEquals(expected, actual))
-            {
-                error = "The host executable no longer matches its approved SHA-256 value.";
-                return false;
-            }
-
-            return true;
-        }
-        catch
-        {
-            error = "The host executable could not be verified.";
-            return false;
-        }
+        verificationLease!.Dispose();
+        return true;
     }
 
     public static CommandPaletteExtensionHostResponse Execute(CommandPaletteExtensionPack pack,
         CommandPaletteExtensionCommand command) =>
-        ExecuteAsync(pack, command, null, null, null, CancellationToken.None).GetAwaiter().GetResult();
+        ExecuteCommandAsync(pack, command).GetAwaiter().GetResult();
+
+    public static Task<CommandPaletteExtensionHostResponse> ExecuteCommandAsync(
+        CommandPaletteExtensionPack pack,
+        CommandPaletteExtensionCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryResolveEnabledPack(pack, command, out var currentPack, out var currentCommand, out var error))
+        {
+            return Task.FromResult(CommandPaletteExtensionHostResponse.Failed(error));
+        }
+
+        return ExecuteCoreAsync(currentPack, currentCommand, null, null, null, cancellationToken, null);
+    }
 
     public static Task<CommandPaletteExtensionHostResponse> ExecutePageActionAsync(
         CommandPaletteExtensionPack pack,
@@ -106,35 +72,69 @@ public static class CommandPaletteExtensionHostService
         string pageId,
         string actionId,
         IReadOnlyDictionary<string, string> fields,
-        CancellationToken cancellationToken = default) =>
-        ExecuteAsync(pack, command, pageId, actionId, fields, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryResolveEnabledPack(pack, command, out var currentPack, out var currentCommand, out var error))
+        {
+            return Task.FromResult(CommandPaletteExtensionHostResponse.Failed(error));
+        }
 
-    private static async Task<CommandPaletteExtensionHostResponse> ExecuteAsync(
+        return ExecuteCoreAsync(currentPack, currentCommand, pageId, actionId, fields, cancellationToken, null);
+    }
+
+    internal static Task<CommandPaletteExtensionHostResponse> ExecuteForTestingAsync(
         CommandPaletteExtensionPack pack,
         CommandPaletteExtensionCommand command,
         string? pageId,
         string? actionId,
         IReadOnlyDictionary<string, string>? fields,
-        CancellationToken cancellationToken)
+        bool elevated,
+        CancellationToken cancellationToken = default) =>
+        ExecuteCoreAsync(pack, command, pageId, actionId, fields, cancellationToken, () => elevated);
+
+    private static async Task<CommandPaletteExtensionHostResponse> ExecuteCoreAsync(
+        CommandPaletteExtensionPack pack,
+        CommandPaletteExtensionCommand command,
+        string? pageId,
+        string? actionId,
+        IReadOnlyDictionary<string, string>? fields,
+        CancellationToken cancellationToken,
+        Func<bool>? elevationProbe)
     {
+        if (!pack.Enabled)
+        {
+            return CommandPaletteExtensionHostResponse.Failed("This extension pack is disabled.");
+        }
+
         if (pack.Host is null)
         {
             return CommandPaletteExtensionHostResponse.Failed("This command has no host definition.");
         }
 
-        if (IsElevated())
+        if (!IsApprovedHostCommand(pack, command))
         {
-            return CommandPaletteExtensionHostResponse.Failed("Extension hosts are unavailable while WinForge is elevated.");
+            return CommandPaletteExtensionHostResponse.Failed("This host command is not approved by the enabled pack.");
         }
 
-        if (!TryValidateDefinition(pack.Host, out var hostError))
+        var isPageAction = pageId is not null || actionId is not null;
+        if (isPageAction && (!IsSafeId(pageId) || !IsSafeId(actionId)))
         {
-            return CommandPaletteExtensionHostResponse.Failed(hostError);
+            return CommandPaletteExtensionHostResponse.Failed("The extension page action is invalid.");
+        }
+
+        if ((elevationProbe ?? IsElevated)())
+        {
+            return CommandPaletteExtensionHostResponse.Failed("Extension hosts are unavailable while WinForge is elevated.");
         }
 
         if (!TryCreateFields(fields, out var safeFields))
         {
             return CommandPaletteExtensionHostResponse.Failed("The extension page data is invalid.");
+        }
+
+        if (!TryOpenVerifiedHost(pack.Host, out var verificationLease, out var hostError))
+        {
+            return CommandPaletteExtensionHostResponse.Failed(hostError);
         }
 
         var requestId = Guid.NewGuid().ToString("N");
@@ -155,6 +155,7 @@ public static class CommandPaletteExtensionHostService
         CancellationTokenSource? timeout = null;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(RequestTimeout);
 
@@ -176,6 +177,11 @@ public static class CommandPaletteExtensionHostService
                 return CommandPaletteExtensionHostResponse.Failed("The extension host did not start.");
             }
 
+            // Keep a read-only, no-write/no-delete file lease from hashing through
+            // CreateProcess so the pinned image cannot be swapped in that interval.
+            verificationLease!.Dispose();
+            verificationLease = null;
+
             var stderrDrain = DrainAsync(process.StandardError, timeout.Token);
             await process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(request, JsonOptions)).ConfigureAwait(false);
             await process.StandardInput.FlushAsync().ConfigureAwait(false);
@@ -192,6 +198,10 @@ public static class CommandPaletteExtensionHostService
 
             return ParseResponse(responseLine, requestId);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return CommandPaletteExtensionHostResponse.Failed("The extension host request was cancelled.");
+        }
         catch (OperationCanceledException)
         {
             return CommandPaletteExtensionHostResponse.Failed("The extension host timed out.");
@@ -202,6 +212,7 @@ public static class CommandPaletteExtensionHostService
         }
         finally
         {
+            verificationLease?.Dispose();
             timeout?.Dispose();
             if (process is not null)
             {
@@ -214,6 +225,130 @@ public static class CommandPaletteExtensionHostService
             }
         }
     }
+
+    private static bool TryOpenVerifiedHost(
+        CommandPaletteExtensionHostDefinition? definition,
+        out FileStream? verificationLease,
+        out string error)
+    {
+        verificationLease = null;
+        error = string.Empty;
+        if (definition is null)
+        {
+            error = "The host definition is missing.";
+            return false;
+        }
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(definition.Executable)
+                || !Path.IsPathFullyQualified(definition.Executable)
+                || definition.Executable.StartsWith(@"\\", StringComparison.Ordinal)
+                || !string.Equals(Path.GetExtension(definition.Executable), ".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "The host executable must be a fully qualified local .exe path.";
+                return false;
+            }
+
+            var fullPath = Path.GetFullPath(definition.Executable);
+            if (!string.Equals(fullPath, definition.Executable, StringComparison.OrdinalIgnoreCase) || !File.Exists(fullPath))
+            {
+                error = "The host executable is unavailable.";
+                return false;
+            }
+
+            if (!IsSha256(definition.Sha256))
+            {
+                error = "The host SHA-256 value is invalid.";
+                return false;
+            }
+
+            if (definition.Arguments is null
+                || definition.Arguments.Count > MaxArguments
+                || definition.Arguments.Any(argument => argument is null
+                    || argument.Length > MaxArgumentCharacters
+                    || argument.IndexOfAny(new[] { '\0', '\r', '\n' }) >= 0))
+            {
+                error = "The host arguments are invalid.";
+                return false;
+            }
+
+            verificationLease = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var expected = Convert.FromHexString(definition.Sha256);
+            var actual = SHA256.HashData(verificationLease);
+            if (!CryptographicOperations.FixedTimeEquals(expected, actual))
+            {
+                verificationLease.Dispose();
+                verificationLease = null;
+                error = "The host executable no longer matches its approved SHA-256 value.";
+                return false;
+            }
+
+            return true;
+        }
+        catch
+        {
+            verificationLease?.Dispose();
+            verificationLease = null;
+            error = "The host executable could not be verified.";
+            return false;
+        }
+    }
+
+    private static bool IsApprovedHostCommand(
+        CommandPaletteExtensionPack pack,
+        CommandPaletteExtensionCommand command) =>
+        command.Action == CommandPaletteExtensionAction.Host
+        && pack.Commands.Any(candidate =>
+            candidate.Action == CommandPaletteExtensionAction.Host
+            && string.Equals(candidate.Id, command.Id, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(candidate.Target, command.Target, StringComparison.Ordinal));
+
+    private static bool TryResolveEnabledPack(
+        CommandPaletteExtensionPack requestedPack,
+        CommandPaletteExtensionCommand requestedCommand,
+        out CommandPaletteExtensionPack currentPack,
+        out CommandPaletteExtensionCommand currentCommand,
+        out string error)
+    {
+        currentPack = default!;
+        currentCommand = default!;
+        error = string.Empty;
+
+        var installed = CommandPaletteExtensionService.I.GetEnabledPackForExecution(requestedPack.Id);
+        if (installed?.Host is null || requestedPack.Host is null)
+        {
+            error = "The extension pack is no longer enabled or available.";
+            return false;
+        }
+
+        if (!HostDefinitionsMatch(installed.Host, requestedPack.Host))
+        {
+            error = "The extension host definition changed; reopen the command from the current pack.";
+            return false;
+        }
+
+        var command = installed.Commands.FirstOrDefault(candidate =>
+            candidate.Action == CommandPaletteExtensionAction.Host
+            && string.Equals(candidate.Id, requestedCommand.Id, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(candidate.Target, requestedCommand.Target, StringComparison.Ordinal));
+        if (command is null)
+        {
+            error = "The extension host command changed or is no longer approved.";
+            return false;
+        }
+
+        currentPack = installed;
+        currentCommand = command;
+        return true;
+    }
+
+    private static bool HostDefinitionsMatch(
+        CommandPaletteExtensionHostDefinition left,
+        CommandPaletteExtensionHostDefinition right) =>
+        string.Equals(left.Executable, right.Executable, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(left.Sha256, right.Sha256, StringComparison.OrdinalIgnoreCase)
+        && left.Arguments.SequenceEqual(right.Arguments, StringComparer.Ordinal);
 
     private static CommandPaletteExtensionHostResponse ParseResponse(string responseLine, string requestId)
     {
@@ -233,13 +368,14 @@ public static class CommandPaletteExtensionHostService
             }
 
             var kind = response.Kind?.Trim().ToLowerInvariant();
-            var target = response.Target?.Trim() ?? string.Empty;
+            var rawTarget = response.Target ?? string.Empty;
+            var target = rawTarget.Trim();
             return kind switch
             {
                 "module" when IsRegisteredModule(target) => CommandPaletteExtensionHostResponse.Effect(CommandPaletteExtensionHostResponseKind.Module, target),
                 "url" when IsSafeUrl(target) => CommandPaletteExtensionHostResponse.Effect(CommandPaletteExtensionHostResponseKind.Url, target),
-                "copy" when target.Length is > 0 and <= 4096 => CommandPaletteExtensionHostResponse.Effect(CommandPaletteExtensionHostResponseKind.Copy, target),
-                "page" when TryCreatePage(response.Page, out var page) => CommandPaletteExtensionHostResponse.Page(page),
+                "copy" when rawTarget.Length is > 0 and <= 4096 => CommandPaletteExtensionHostResponse.Effect(CommandPaletteExtensionHostResponseKind.Copy, rawTarget),
+                "page" when TryCreatePage(response.Page, out var page) => CommandPaletteExtensionHostResponse.StructuredPage(page),
                 _ => CommandPaletteExtensionHostResponse.Failed("The extension host requested an unsupported response.")
             };
         }
@@ -252,7 +388,7 @@ public static class CommandPaletteExtensionHostService
     private static bool TryCreatePage(HostPageModel? source, out CommandPaletteExtensionHostPage page)
     {
         page = default!;
-        if (source is null || !IsSafeId(source.Id)) return false;
+        if (source is null || source.Id is not { } pageId || !IsSafeId(pageId)) return false;
 
         var title = CleanSingleLine(source.Title, 160);
         if (string.IsNullOrWhiteSpace(title)) return false;
@@ -264,10 +400,11 @@ public static class CommandPaletteExtensionHostService
         var safeFields = new List<CommandPaletteExtensionHostField>(fields.Count);
         foreach (var field in fields)
         {
-            if (field is null || !IsSafeId(field.Id) || !fieldIds.Add(field.Id)) return false;
+            if (field?.Id is not { } fieldId || !IsSafeId(fieldId) || !fieldIds.Add(fieldId)) return false;
             var label = CleanSingleLine(field.Label, 120);
             if (string.IsNullOrWhiteSpace(label)
-                || !Enum.TryParse<CommandPaletteExtensionHostFieldType>(field.Type, true, out var type)) return false;
+                || !Enum.TryParse<CommandPaletteExtensionHostFieldType>(field.Type, true, out var type)
+                || !Enum.IsDefined(type)) return false;
 
             var options = field.Options ?? new List<HostPageChoiceModel>();
             if (type == CommandPaletteExtensionHostFieldType.Choice && (options.Count is 0 or > MaxChoices)) return false;
@@ -277,11 +414,11 @@ public static class CommandPaletteExtensionHostService
             var safeOptions = new List<CommandPaletteExtensionHostChoice>(options.Count);
             foreach (var option in options)
             {
-                if (option is null || !IsSafeId(option.Value) || !optionValues.Add(option.Value)) return false;
+                if (option?.Value is not { } optionValue || !IsSafeId(optionValue) || !optionValues.Add(optionValue)) return false;
                 var optionTitle = CleanSingleLine(option.Title, 120);
                 if (string.IsNullOrWhiteSpace(optionTitle)) return false;
                 safeOptions.Add(new CommandPaletteExtensionHostChoice(
-                    option.Value,
+                    optionValue,
                     optionTitle,
                     Fallback(CleanSingleLine(option.Zh, 120), optionTitle)));
             }
@@ -296,7 +433,7 @@ public static class CommandPaletteExtensionHostService
             }
 
             safeFields.Add(new CommandPaletteExtensionHostField(
-                field.Id,
+                fieldId,
                 label,
                 Fallback(CleanSingleLine(field.Zh, 120), label),
                 type,
@@ -306,20 +443,22 @@ public static class CommandPaletteExtensionHostService
 
         var actionIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var safeActions = new List<CommandPaletteExtensionHostAction>(actions.Count);
+        var primaryActionCount = 0;
         foreach (var action in actions)
         {
-            if (action is null || !IsSafeId(action.Id) || !actionIds.Add(action.Id)) return false;
+            if (action?.Id is not { } actionId || !IsSafeId(actionId) || !actionIds.Add(actionId)) return false;
+            if (action.Primary && ++primaryActionCount > 1) return false;
             var actionTitle = CleanSingleLine(action.Title, 120);
             if (string.IsNullOrWhiteSpace(actionTitle)) return false;
             safeActions.Add(new CommandPaletteExtensionHostAction(
-                action.Id,
+                actionId,
                 actionTitle,
                 Fallback(CleanSingleLine(action.Zh, 120), actionTitle),
                 action.Primary));
         }
 
         page = new CommandPaletteExtensionHostPage(
-            source.Id,
+            pageId,
             title,
             Fallback(CleanSingleLine(source.Zh, 160), title),
             CleanMultiline(source.Body, 16 * 1024),
@@ -402,13 +541,6 @@ public static class CommandPaletteExtensionHostService
     }
 
     private static bool IsSha256(string? value) => value?.Length == 64 && value.All(Uri.IsHexDigit);
-
-    private static string HashFile(string path)
-    {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        using var sha = SHA256.Create();
-        return Convert.ToHexString(sha.ComputeHash(stream));
-    }
 
     private static string CleanSingleLine(string? value, int maximumLength)
     {
@@ -510,7 +642,7 @@ public sealed record CommandPaletteExtensionHostResponse(
     public static CommandPaletteExtensionHostResponse Effect(CommandPaletteExtensionHostResponseKind kind, string target) =>
         new(true, kind, target, null, string.Empty);
 
-    public static CommandPaletteExtensionHostResponse Page(CommandPaletteExtensionHostPage page) =>
+    public static CommandPaletteExtensionHostResponse StructuredPage(CommandPaletteExtensionHostPage page) =>
         new(true, CommandPaletteExtensionHostResponseKind.Page, string.Empty, page, string.Empty);
 }
 
