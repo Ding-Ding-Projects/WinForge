@@ -135,6 +135,14 @@ WinForge 支援由用戶管理嘅宣告式指令面板套件。新套件預設�
 
 See the bilingual [extension-pack guide](docs/wiki/Command-Palette-Extensions.md) and [host protocol](docs/wiki/Command-Palette-Extension-Protocol.md). · 詳情請睇雙語[擴充套件指南](docs/wiki/Command-Palette-Extensions.md)同[主機協定](docs/wiki/Command-Palette-Extension-Protocol.md)。
 
+## Browser Control workbench · 瀏覽器控制工作台
+
+Browser Control now provides configurable app/kiosk URLs, real Chrome/Edge profile selection, installed-PWA launch, flags and policy pages, safe selected-profile cache cleanup, isolated proxy/throwaway/feature/debug sessions, and review-first winget install/update. All user values cross the browser boundary as separate validated arguments; remote debugging binds to loopback and isolated session directories are lifecycle-cleaned.
+
+瀏覽器控制而家有可設定 App／Kiosk 網址、真實 Chrome／Edge 設定檔、已裝 PWA、flags／policy、安全快取清理、隔離 Proxy／用完即棄／功能／除錯 session，同先確認 winget 安裝／更新。全部用戶值都係獨立驗證參數；遠端除錯只綁 loopback，隔離資料夾亦會按生命週期清理。
+
+See the [workbench guide](docs/wiki/Browser-Control-Workbench.md) and [feature/security reference](docs/features/browser-control/browser-workbench.md). · 詳情請睇[工作台指南](docs/wiki/Browser-Control-Workbench.md)同[功能／安全參考](docs/features/browser-control/browser-workbench.md)。
+
 ## Documentation · 文件
 
 - [Wiki home · Wiki 首頁](docs/wiki/Home.md)

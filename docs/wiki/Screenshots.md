@@ -91,6 +91,11 @@ Current 2026-07-24 evidence: the self-contained DEBUG app rendered this 1284×81
 ### Settings & Control Panel · 設定與控制台
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-settingshub.png)
 
+### Browser Control · 瀏覽器控制
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-browser-control.png)
+
+Current 2026-07-24 evidence: the process-owned driver rendered this 1033×637 frame (SHA-256 `400AF4B89FE16B6A22023BE1259442D8D1A0BF88C39C0445C9A7E7DFE161FB3C`) from the live WinUI tree on a dedicated LowLevel desktop. An inspected 784×691 narrow frame (SHA-256 `BDB186204A24F1AFFF927F1347E315A77FBCCD218D8B09D7423C7E4282DF94B3`) confirms bilingual wrapping without clipping or overlap. No browser launch, cache deletion, package mutation, or debugging session was triggered, and the dedicated desktop closed with zero retained windows. · 目前 2026-07-24 證據：process-owned driver 喺專用 LowLevel desktop 由即時 WinUI tree 輸出 1033×637 正式圖，同 784×691 窄版圖（SHA-256 如上）；雙語換行冇裁切／重疊，亦冇啟動瀏覽器、刪快取、改套件或者開除錯，專用 desktop 最後零殘留視窗並已關閉。
+
 ### Native Utilities · 原生工具
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-native.png)
 

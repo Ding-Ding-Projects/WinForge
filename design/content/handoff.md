@@ -4,6 +4,13 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Browser Control roadmap completion · 瀏覽器控制路線圖完成
+
+- The parameterized Browser Control workbench closes all eleven audited gaps, taking Browser Control to **14/14** and the core matrix to **85/115** with 30 honest gaps elsewhere. It covers app/kiosk URLs, real profiles/PWAs, flags/policy, safe cache cleanup, proxy/throwaway/feature/debug isolation, and exact-ID winget actions. · 參數化瀏覽器工作台補齊十一個缺口，Browser Control **14/14**、核心 matrix **85/115**；其餘 30 個缺口繼續如實保留。
+- Input crosses the browser boundary only as validated argument-vector entries. Sensitive URL/proxy values are session-only, embedded credentials and elevation are rejected, remote debugging is loopback-only, isolated roots are GUID-scoped/reparse-safe, and cache deletion is confirmed, contained, browser-closed, and limited to `Cache` / `Code Cache`. · 輸入只用驗證過嘅獨立參數；敏感值唔持久化、內嵌憑證／提權瀏覽器被拒絕，除錯只綁 loopback，隔離 root 同快取刪除亦有完整界線。
+- Verification is **23/23** focused contracts, 0-warning/0-error final post-Regex solution build, roadmap/XAML/source gates, and regenerated 2,304-page site data. Inspected LowLevel evidence covers 1033×637 (`400AF4…FB3C`) and 784×691 (`BDB186…94B3`) with readable bilingual wrapping, 48-pixel targets, zero retained windows, and no real browser/cache/package/debug action. · 專項 **23/23**、最終 post-Regex build 零 warning／零 error、全部 gate 同 site data 全過；兩張 LowLevel 圖已檢視，冇裁切／重疊、冇殘留亦冇真實副作用。
+- `codex/browser-control-roadmap` contains feature commit `24447657f` plus current-main merges through `00880308`, with `origin/main` `1cc761492` as an ancestor; final main integration and cleanup remain with the coordinating parent. · 專用 branch 保留功能 commit 同直至 `00880308` 嘅最新 main merge，而且 `origin/main` `1cc761492` 已係祖先；最終 main 整合／清理由統籌 parent 負責。
+
 ## Independent funny-level settings · 英粵分開搞笑等級
 
 English and Cantonese now have independent persisted funny levels from 1–5 (defaults 2 / 3), exact-step accessible Settings sliders, import reload, a polite live preview, and live Dashboard hero updates across English, Cantonese, and bilingual modes. Only explicitly authored safe `PlayfulText` varies; error, security/financial, destructive, accessibility, and operational wording remains exact. · 英文同粵語各自有持久化 1–5 級（預設 2／3）、準確步進無障礙設定 slider、匯入重載、polite 即時預覽，同三種語言模式 Dashboard 即時更新。只有明確寫好嘅安全 `PlayfulText` 會變；錯誤、安全／金融、破壞性、無障礙同操作文字保持準確。

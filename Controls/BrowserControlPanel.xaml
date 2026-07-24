@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WinForge.Controls.BrowserControlPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Loaded="Panel_Loaded"
+    Unloaded="Panel_Unloaded"
+    mc:Ignorable="d">
+
+    <Border
+        Padding="16"
+        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="8">
+        <StackPanel Spacing="12">
+            <StackPanel Spacing="2">
+                <TextBlock
+                    x:Name="WorkbenchTitle"
+                    AutomationProperties.HeadingLevel="Level2"
+                    FontWeight="SemiBold"
+                    FontSize="16"
+                    TextWrapping="Wrap" />
+                <TextBlock
+                    x:Name="WorkbenchDescription"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Grid ColumnSpacing="12" RowSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <ComboBox
+                    x:Name="BrowserBox"
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    AutomationProperties.AutomationId="BrowserWorkbenchBrowser"
+                    HorizontalAlignment="Stretch"
+                    SelectionChanged="BrowserBox_SelectionChanged" />
+
+                <ComboBox
+                    x:Name="ProfileBox"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="BrowserWorkbenchProfile"
+                    DisplayMemberPath="DisplayLabel"
+                    HorizontalAlignment="Stretch"
+                    SelectionChanged="ProfileBox_SelectionChanged" />
+
+                <TextBox
+                    x:Name="UrlBox"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="2"
+                    AutomationProperties.AutomationId="BrowserWorkbenchUrl"
+                    HorizontalAlignment="Stretch"
+                    MaxLength="2048" />
+            </Grid>
+
+            <Expander x:Name="LaunchExpander" IsExpanded="True">
+                <StackPanel Spacing="8">
+                    <Grid ColumnSpacing="8" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Button x:Name="AppModeBtn" Grid.Row="0" Grid.Column="0" AutomationProperties.AutomationId="BrowserWorkbenchAppMode" HorizontalAlignment="Stretch" Click="AppMode_Click" />
+                        <Button x:Name="KioskBtn" Grid.Row="0" Grid.Column="1" AutomationProperties.AutomationId="BrowserWorkbenchKiosk" HorizontalAlignment="Stretch" Click="Kiosk_Click" />
+                        <Button x:Name="ProfileBtn" Grid.Row="1" Grid.Column="0" AutomationProperties.AutomationId="BrowserWorkbenchLaunchProfile" HorizontalAlignment="Stretch" Click="Profile_Click" />
+                        <Button x:Name="ThrowawayBtn" Grid.Row="1" Grid.Column="1" AutomationProperties.AutomationId="BrowserWorkbenchThrowaway" HorizontalAlignment="Stretch" Click="Throwaway_Click" />
+                        <Button x:Name="FlagsBtn" Grid.Row="2" Grid.Column="0" AutomationProperties.AutomationId="BrowserWorkbenchFlags" HorizontalAlignment="Stretch" Click="Flags_Click" />
+                        <Button x:Name="PolicyBtn" Grid.Row="2" Grid.Column="1" AutomationProperties.AutomationId="BrowserWorkbenchPolicy" HorizontalAlignment="Stretch" Click="Policy_Click" />
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="PwaExpander">
+                <StackPanel Spacing="8">
+                    <ComboBox
+                        x:Name="PwaBox"
+                        AutomationProperties.AutomationId="BrowserWorkbenchPwa"
+                        DisplayMemberPath="DisplayLabel"
+                        HorizontalAlignment="Stretch"
+                        SelectionChanged="PwaBox_SelectionChanged" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="RefreshPwaBtn" Grid.Column="0" AutomationProperties.AutomationId="BrowserWorkbenchRefreshPwa" HorizontalAlignment="Stretch" Click="RefreshPwa_Click" />
+                        <Button x:Name="LaunchPwaBtn" Grid.Column="1" AutomationProperties.AutomationId="BrowserWorkbenchLaunchPwa" HorizontalAlignment="Stretch" Click="LaunchPwa_Click" />
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="NetworkExpander">
+                <StackPanel Spacing="10">
+                    <TextBox
+                        x:Name="ProxyBox"
+                        AutomationProperties.AutomationId="BrowserWorkbenchProxy"
+                        HorizontalAlignment="Stretch"
+                        MaxLength="256" />
+                    <TextBox
+                        x:Name="BypassBox"
+                        AutomationProperties.AutomationId="BrowserWorkbenchProxyBypass"
+                        HorizontalAlignment="Stretch"
+                        MaxLength="512"
+                        LostFocus="PersistedText_LostFocus" />
+                    <Button x:Name="ProxyBtn" AutomationProperties.AutomationId="BrowserWorkbenchLaunchProxy" HorizontalAlignment="Stretch" Click="Proxy_Click" />
+
+                    <Rectangle Height="1" Fill="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            x:Name="FeatureBox"
+                            Grid.Column="0"
+                            AutomationProperties.AutomationId="BrowserWorkbenchFeatureNames"
+                            HorizontalAlignment="Stretch"
+                            MaxLength="2048"
+                            LostFocus="PersistedText_LostFocus" />
+                        <ComboBox
+                            x:Name="FeatureModeBox"
+                            Grid.Column="1"
+                            AutomationProperties.AutomationId="BrowserWorkbenchFeatureMode"
+                            HorizontalAlignment="Stretch" />
+                    </Grid>
+                    <Button x:Name="FeatureBtn" AutomationProperties.AutomationId="BrowserWorkbenchLaunchFeature" HorizontalAlignment="Stretch" Click="Feature_Click" />
+
+                    <Rectangle Height="1" Fill="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                    <NumberBox
+                        x:Name="DebugPortBox"
+                        AutomationProperties.AutomationId="BrowserWorkbenchDebugPort"
+                        HorizontalAlignment="Stretch"
+                        Maximum="65535"
+                        Minimum="1024"
+                        SpinButtonPlacementMode="Inline"
+                        ValueChanged="DebugPortBox_ValueChanged" />
+                    <Button x:Name="DebugBtn" AutomationProperties.AutomationId="BrowserWorkbenchRemoteDebug" HorizontalAlignment="Stretch" Click="Debug_Click" />
+                    <TextBlock x:Name="DebugSafetyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="MaintenanceExpander">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="CacheSafetyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <Button x:Name="ClearCacheBtn" AutomationProperties.AutomationId="BrowserWorkbenchClearCache" HorizontalAlignment="Stretch" Click="ClearCache_Click" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="InstallBtn" Grid.Column="0" AutomationProperties.AutomationId="BrowserWorkbenchWingetInstall" HorizontalAlignment="Stretch" Click="Install_Click" />
+                        <Button x:Name="UpgradeBtn" Grid.Column="1" AutomationProperties.AutomationId="BrowserWorkbenchWingetUpgrade" HorizontalAlignment="Stretch" Click="Upgrade_Click" />
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <ProgressRing
+                x:Name="BusyRing"
+                Width="24"
+                Height="24"
+                AutomationProperties.AutomationId="BrowserWorkbenchBusy"
+                HorizontalAlignment="Left"
+                IsActive="False"
+                Visibility="Collapsed" />
+            <InfoBar
+                x:Name="StatusBar"
+                AutomationProperties.AutomationId="BrowserWorkbenchStatus"
+                AutomationProperties.LiveSetting="Polite"
+                IsClosable="True"
+                IsOpen="False" />
+        </StackPanel>
+    </Border>
+</UserControl>
