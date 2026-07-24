@@ -22,9 +22,9 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 322
 - **Flagship reactor · 旗艦反應堆** — a PWR control-room simulator with point kinetics, thermal hydraulics, turbine and electrical systems, protection logic, fuel and waste services, water treatment, and opt-in external integrations.
 - **Reactor-powered industrial loads · 反應堆工業負載** — a green-ammonia Haber–Bosch plant and strict-priority grid load-shed dispatcher consume the live simulated bus, fail dark, and preserve reactor safety boundaries. · 綠氨哈柏法工廠同嚴格優先級電網卸載調度器會用即時模擬母線；冇電就停，而且唔會越過反應堆安全界線。
 
-The complete bilingual module and button reference starts at [the wiki home](docs/wiki/Home.md). Generated feature pages live under `docs/wiki/features/`, while focused architecture, operating, and verification records live under `docs/` and `docs/wiki/`.
+The complete bilingual module and button reference starts at [the wiki home](docs/wiki/Home.md). Generated feature pages live under `docs/wiki/features/`, while focused architecture, operating, verification, and evidence-backed [roadmap reconciliation](docs/roadmap-audits/README.md) records live under `docs/` and `docs/wiki/`.
 
-完整雙語模組同按鈕參考由 [wiki 首頁](docs/wiki/Home.md)開始。自動產生嘅功能頁喺 `docs/wiki/features/`，架構、操作同驗證記錄就喺 `docs/` 同 `docs/wiki/`。
+完整雙語模組同按鈕參考由 [wiki 首頁](docs/wiki/Home.md)開始。自動產生嘅功能頁喺 `docs/wiki/features/`，架構、操作、驗證同有證據嘅[路線圖對帳](docs/roadmap-audits/README.md)記錄就喺 `docs/` 同 `docs/wiki/`。
 
 ## Build · 建置
 
@@ -131,6 +131,7 @@ See the bilingual [extension-pack guide](docs/wiki/Command-Palette-Extensions.md
 - [Reactor hub · 反應堆中心](docs/wiki/Reactor-Hub.md)
 - [Native-port relocation · 原生移植版搬遷](docs/Native-Cpp-Rewrite.md)
 - [Roadmap · 路線圖](ROADMAP.md)
+- [Core roadmap capability audit · 核心路線圖功能審核](docs/audits/roadmap-core-capability-audit-2026-07-24.md)
 - [Current handoff · 最新交接](handoff-summary.md)
 
 ## License · 授權
