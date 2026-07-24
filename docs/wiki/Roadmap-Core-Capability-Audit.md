@@ -10,13 +10,13 @@ The 2026-07-24 source audit reconciles 115 previously unchecked entries across W
 |---|---:|---:|---:|
 | Windows 11 | 13 | 10 | 3 |
 | ViveTool | 15 | 15 | 0 |
-| Media | 15 | 4 | 11 |
+| Media | 15 | 15 | 0 |
 | Maintenance | 15 | 10 | 5 |
 | Dev & Terminal | 15 | 9 | 6 |
 | Home Assistant | 14 | 13 | 1 |
 | Archives | 14 | 10 | 4 |
 | Browser Control | 14 | 3 | 11 |
-| **Total · 總數** | **115** | **74** | **41** |
+| **Total · 總數** | **115** | **85** | **30** |
 
 ## What the audit protects · 審核守住乜
 
@@ -24,7 +24,7 @@ The 2026-07-24 source audit reconciles 115 previously unchecked entries across W
 - Evidence placement: checked titles must be in the shipped ledger; unchecked titles must be in the factual gap ledger. · 已交付同缺口項目一定要放喺正確證據區。
 - All 115 titles must remain represented; a count-preserving swap cannot silently pass. · 115 個標題全部要有記錄，唔可以偷偷交換狀態但保持總數蒙混過關。
 - The focused guard runs with `tools/Test-RoadmapCoreAudit.ps1`. · 專項 gate 係 `tools/Test-RoadmapCoreAudit.ps1`。
-- A follow-up pass rechecked all 43 Media, Archives, and Browser Control dispositions. Animated WebP evidence follows the exact catalog action: 15 fps, 480px scale, `libwebp`, `-loop 0`, and no explicit quality value. · 跟進覆核重新檢查 Media、Archives 同 Browser Control 全部 43 項；動態 WebP 證據準確跟 catalog：15 fps、480px、`libwebp`、`-loop 0`，冇明確 quality 參數。
+- Media is now 15/15: eleven new guided workflows are reachable through bilingual controls and protected by the 17-case `MediaWorkflowCore.Tests` harness. The animated WebP evidence remains exact: 15 fps, 480px scale, `libwebp`, `-loop 0`, and no explicit quality value. · Media 而家 15/15；11 個新引導式工作流程有雙語控制同 17 項專測保護，動態 WebP 證據仍然準確。
 
 ## Detailed evidence · 詳細證據
 
@@ -34,6 +34,6 @@ Read the [categorized source evidence and gap ledger](../audits/roadmap-core-cap
 
 ## Visual evidence · 視覺證據
 
-This reconciliation changes documentation and a static verifier only. It does not change WinUI controls or layout, so no new application screenshot was required or claimed.
+The Media controls and layout changed. A fresh process-owned live-tree capture was inspected and promoted to both canonical Media screenshot paths; LowLevel MCP headless tools were not callable in this session.
 
-今次只改文件同靜態驗證器，冇改 WinUI 控制或版面，所以唔需要亦冇聲稱有新 app 截圖。
+今次 Media 控制同版面有改，已檢查 repo driver 嘅 process-owned live-tree 截圖並更新兩個正式 Media 圖片位置；今次 session 冇可呼叫嘅 LowLevel MCP headless 工具。

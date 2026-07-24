@@ -11,6 +11,7 @@
 | [Native Port Relocation](Native-Cpp-Rewrite.md) | Link to the independent WinForge-Native project · 獨立 WinForge-Native project 連結 |
 | [Reactor Hub](Reactor-Hub.md) | Reactor manual, procedures, safety, fuel, waste, and tests · 反應堆手冊、程序、安全、燃料、廢料同測試 |
 | [Reactor Industrial Loads](Reactor-Industrial-Loads.md) | Ammonia production and priority load shedding · 合成氨生產同優先級卸載 |
+| [Guided Media Studio](Media-Studio-Workflows.md) | Safe two-pass, subtitle, chapter, photo, and metadata workflows · 安全兩步、字幕、章節、相片同 metadata 工作流程 |
 | [Generated References](Generated-References.md) | One page per feature and one page per button/control · 每功能一頁、每按鈕／控制項一頁 |
 | [Screenshots](Screenshots.md) | Screenshot gallery and redaction rules · 截圖集同遮蔽規則 |
 | [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md) | Capture, crop, highlight, annotate, and redact screenshots · 擷取、裁切、強調、標註同遮蔽截圖 |

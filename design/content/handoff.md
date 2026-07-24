@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Guided Media workflow completion · 引導式 Media 工作流程補完
+
+All eleven audited Media gaps now have reachable bilingual controls and bounded ffmpeg/ffprobe implementations: measured EBU R128, silence cleanup, vidstab, black-bar crop, concat stream copy, hardware-probed NVENC, target-size x264, subtitles, chapters, HEIC/JXL batches, and metadata privacy. Argument vectors preserve paths; staged outputs protect old destinations; batches, chapter counts, cancellation, and GUID-owned scratch cleanup are bounded. · Media 11 個審核缺口全部有可達雙語控制同有界 ffmpeg／ffprobe 實作；argument vector、暫存輸出、批次／章節上限、取消同自家 scratch 清理全部有保護。
+
+The focused executor harness passes **17/17**; the changed WinUI project builds with zero errors; XAML/source guards resolve **2,913/2,913** handlers and **1,957/1,957** direct actions. A fresh inspected process-owned 1033×637 Media capture replaces both canonical images (SHA-256 `F89886CE200DA522E8C956B67B363A847E8E9DC0AC2926DFF382E9E52B870900`). LowLevel MCP was not callable, so only the repository driver's DEBUG live-tree capture is claimed. The core audit is now **85/115 shipped with 30 retained gaps**. · 專測 **17/17**、WinUI build 零 errors、handler／action 全 resolve；最新 1033×637 自家 Media 圖已取代兩個正式圖片。LowLevel 今次不可呼叫，所以只聲稱 repo driver live-tree 證據；核心 audit 而家 **85/115 已交付、30 個缺口保留**。
+
 ## Screen Recorder lifecycle reliability · 螢幕錄影 lifecycle 可靠性
 
 The original stderr-heavy recorder fixture exposed an intermittent failure on base `ec7c4bcb8`: the 29-project aggregate failed only Screen Recorder, and a captured-output stress loop failed **5/12** runs. Production now bulk-copies diagnostics to `Stream.Null` instead of dispatching one empty callback per line. The remaining aggregate instability was fixture-specific: its child executed 10,000 separate `cmd.exe echo` commands before reading `q`, measuring shell scheduling inside the encoder deadline. The deterministic self-hosted child emits the same 10,000 newline-rich records efficiently, then reads `q`; production deadlines and truthful failures are unchanged. · 原本 stderr-heavy fixture 喺 base `ec7c4bcb8` 令 29-project aggregate 只係 Screen Recorder 失敗，stress 亦有 **5/12** 失敗。Production 依家整批複製診斷去 `Stream.Null`，唔再逐行派空 callback；餘下不穩定係 fixture-specific：child 喺讀 `q` 前逐個跑 10,000 次 `cmd.exe echo`，誤測 shell 排程。Deterministic self-hosted child 會高效寫同樣 10,000 行再讀 `q`；production 時限同如實失敗保持不變。
@@ -16,9 +22,9 @@ Six stale rows are now evidence-backed shipped: Hosts block/redirect, Cloudflare
 
 ## Core roadmap capability reconciliation · 核心路線圖功能對帳
 
-Eight stale core backlog sections were reconciled against reachable controls, handler/catalog bindings, real service/registry/command mechanisms, and documentation. The strict result is **74/115 shipped** and **41 intentionally unchecked**: Windows 11 10/13, ViveTool 15/15, Media 4/15, Maintenance 10/15, Dev & Terminal 9/15, Home Assistant 13/14, Archives 10/14, and Browser Control 3/14. The focused contract locks every exact title into the shipped or gap block, so a count-preserving status swap cannot pass.
+Eight stale core backlog sections were reconciled against reachable controls, handler/catalog bindings, real service/registry/command mechanisms, and documentation. After the eleven Media workflows shipped, the strict result is **85/115 shipped** and **30 intentionally unchecked**: Windows 11 10/13, ViveTool 15/15, Media 15/15, Maintenance 10/15, Dev & Terminal 9/15, Home Assistant 13/14, Archives 10/14, and Browser Control 3/14. The focused contract locks every exact title into the shipped or gap block, so a count-preserving status swap cannot pass.
 
-八個過時核心待辦章節已同可達控制、handler／catalog binding、真實 service／registry／command 機制同文件逐項核對；嚴格結果係 **74/115 已交付**、**41 項刻意保留未剔選**。專項 contract 會鎖實每個標題只可以喺已交付或者缺口區，保持總數但偷偷換狀態都唔會通過。
+八個過時核心待辦章節已同可達控制、handler／catalog binding、真實 service／registry／command 機制同文件逐項核對；Media 11 個流程交付後，嚴格結果係 **85/115 已交付**、**30 項刻意保留未剔選**。專項 contract 會鎖實每個標題只可以喺已交付或者缺口區，保持總數但偷偷換狀態都唔會通過。
 
 Browser app-mode/kiosk/proxy remain gaps because fixed example values do not supply their advertised configurable workflows. Cloudflare quick tunnel is counted only for its reachable real `cloudflared tunnel --url http://localhost:8080` action; arbitrary URL selection is not claimed. Home Assistant restart is not counted as “validate before restart” because it does not require a successful check. The full categorized reasons and exact code evidence are published in the Core Roadmap Capability Audit wiki page and repository audit ledger.
 
@@ -26,7 +32,7 @@ Browser app-mode／kiosk／proxy 嘅固定示例冇提供所聲稱嘅可設定�
 
 A follow-up adversarial pass rechecked all 43 Media, Archives, and Browser Control dispositions without changing the matrix. The checked Media notes now mirror the shipped handlers; animated WebP specifically uses `fps=15`, `scale=480`, `-c:v libwebp`, and `-loop 0`, with no explicit quality value. · 跟進對抗式覆核重新檢查三個分類全部 43 項，matrix 冇改；已剔選 Media 註解準確跟 shipped handler，動態 WebP 係 `fps=15`、`scale=480`、`-c:v libwebp`、`-loop 0`，冇明確 quality 參數。
 
-The post-rebase focused audit passes **74/115 + 41 gaps**. Source verification reports **337 XAML files**, **2,893/2,893 resolved handlers**, **1,937/1,937 resolved direct actions**, **322 feature docs**, **1,920 button docs**, and zero lifecycle/actionable markers; XAML literal safety passes. Full self-contained site generation/publish exits 0 with **322 modules, 22 categories, 1,217 features, and 2,296 wiki pages**. This task changes docs and a static verifier only, so new visual evidence is not applicable.
+The focused audit now passes **85/115 + 30 gaps**. Current Media source verification reports **337 XAML files**, **2,913/2,913 resolved handlers**, **1,957/1,957 resolved direct actions**, and zero lifecycle/actionable markers; XAML literal safety passes. The fresh Media visual evidence is documented above.
 
 Rebase 後專項 audit、source audit、XAML safety 同 self-contained site generation／publish 全過；handler／direct action 全部 resolve，生成資料係 322 modules／22 categories／1,217 features／2,296 wiki pages。今次只改文件同靜態驗證器，所以新視覺證據不適用。Source/audit commit `632d0e551383c143908cfc65e25fa4d60f937715` 以 `4af5e60e9d41f258f2d4697b1f0383138c8d1642` 為基線，已 push 並證明同 remote branch 完全一致；最終 memory commit 跟住喺 `codex/roadmap-reconcile-core`，而 `main` 整合交畀統籌 parent。
 
