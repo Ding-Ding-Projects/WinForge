@@ -11,7 +11,7 @@ internal static class Program
     private static int _skipped;
     private static readonly string TestRoot = Path.Combine(Path.GetTempPath(), $"WinForge-Dew-Tests-{Guid.NewGuid():N}");
     private static readonly TimeSpan ExternalProcessTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan WatcherCommitTimeout = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan WatcherCommitTimeout = ExternalProcessTimeout + TimeSpan.FromSeconds(15);
 
     private static async Task<int> Main(string[] args)
     {
