@@ -1,6 +1,6 @@
 # Package Manager · 套件管理
 
-![Package Manager · 套件管理](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
+![Package Manager · 套件管理](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-packages.png)
 
 WinForge's canonical .NET Package Manager is an in-app workspace for discovering, installing, updating, reviewing, and removing packages across Windows package engines. Open it with `WinForge.exe --page packages`.
 
@@ -30,7 +30,7 @@ The workspace supports WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows 
 
 Search and view controls occupy their own row; filters and actions move to a horizontally scrollable toolbar. Manager and batch strips remain scrollable, action targets are at least 44×44 pixels, section headings expose heading semantics, and dynamic selection/output controls have programmatic names. The bilingual page was inspected at both 1049×646 and 720×650 without overlapping or off-screen action controls. · 搜尋同 view control 會用獨立一行；filter 同 action 放入可橫向捲動 toolbar。管理器同批次列可以捲動，action target 最少 44×44 像素，section heading 有 heading semantics，動態選取／輸出控制亦有程式化名稱。雙語頁已喺 1049×646 同 720×650 檢視，冇重疊或者走出畫面嘅 action control。
 
-![Package Manager narrow layout · 套件管理窄版面](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages-narrow.png)
+![Package Manager narrow layout · 套件管理窄版面](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-packages-narrow.png)
 
 ## Safety and failure behavior · 安全同失敗行為
 
@@ -51,11 +51,11 @@ Package Manager preferences are stored through the application's normal settings
 
 Invalid structured settings produce a bilingual inline error and restore the last valid value. WinForge no longer collects proxy usernames/passwords; detected legacy values remain DPAPI-protected until the user chooses **Forget saved credentials** or resets package settings. They are never used in a URL or process argument. Authenticated proxy credentials must be configured in the operating-system or package-manager credential store. · 無效結構化設定會顯示雙語 inline error，並還原上一個有效值。WinForge 已經唔再收集 proxy 使用者名稱／密碼；偵測到嘅舊值會保持 DPAPI 保護，直到用戶揀 **刪除已保存認證** 或重設套件設定，而且絕對唔會用喺 URL／process argument。認證 proxy 要用 Windows 或套件管理器 credential store。
 
-![Credential-free proxy and validated vcpkg settings · 無 credential proxy 同已驗證 vcpkg 設定](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-package-settings-proxy.png)
+![Credential-free proxy and validated vcpkg settings · 無 credential proxy 同已驗證 vcpkg 設定](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-package-settings-proxy.png)
 
 The dialog's App Settings actions stack as full-width 44-pixel targets, so the longest bilingual labels remain visible at a 720-pixel window width. · Dialog 嘅 App Settings action 會用 44 像素全闊直排，所以 720 像素視窗都睇得晒最長雙語 label。
 
-![Narrow-safe App Settings actions · 窄畫面安全 App Settings actions](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-package-settings-actions.png)
+![Narrow-safe App Settings actions · 窄畫面安全 App Settings actions](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-package-settings-actions.png)
 
 ## Verification · 驗證
 

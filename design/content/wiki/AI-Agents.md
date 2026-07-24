@@ -1,6 +1,6 @@
 # AI Agents · AI 代理
 
-![AI Agents](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aiagents.png)
+![AI Agents](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-aiagents.png)
 
 **EN —** Install, configure and launch terminal AI coding agents — one click each. Most install via npm (Node.js); some via an official installer. Pick a launch folder, and if Node.js is missing a one-click winget install sets it up so every npm-based agent becomes available.
 
@@ -30,4 +30,4 @@
 **粵語 —** 已存在嘅設定檔會先用 `.winforge-bak-YYYYMMDDHHMMSS` 後綴備份，再作修改。覆核報告會寫到 `%LOCALAPPDATA%\WinForge\ai-agents\yolo-mode-*.txt`。
 
 ---
-[← Module index · 模組索引](Home) · [README](https://github.com/codingmachineedge/WinForge/blob/main/README.md) · [Screenshots](Screenshots)
+[← Module index · 模組索引](Home) · [README](https://github.com/Ding-Ding-Projects/WinForge/blob/main/README.md) · [Screenshots](Screenshots)

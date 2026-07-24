@@ -1,6 +1,6 @@
 # Media · 媒體
 
-![Media](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-media.png)
+![Media](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-media.png)
 
 **EN —** An ffmpeg/ffprobe media studio with quick conversions plus eleven guided production workflows: measured EBU R128, silence cleanup, two-pass stabilization, automatic black-bar crop, lossless multi-clip join, hardware-probed NVENC, target-size encoding, SRT/ASS subtitles, chapter splitting, HEIC/JXL photo batches, and EXIF/GPS privacy cleanup.
 
@@ -11,4 +11,4 @@ All outputs are staged before promotion; file paths use argument vectors rather 
 所有輸出都會先暫存，成功先升格；檔案路徑用 argument vector 而唔經 command shell；批次同章節數量有上限；Cancel 會終止自家程序並清理自家 scratch 檔。完整行為、限制、失敗模式同 17 項專測請睇[引導式 Media 工作流程指南](https://github.com/Ding-Ding-Projects/WinForge/blob/main/docs/features/media-capture/media-studio-workflows.md)。
 
 ---
-[← Module index · 模組索引](Home) · [README](https://github.com/codingmachineedge/WinForge/blob/main/README.md) · [Screenshots](Screenshots)
+[← Module index · 模組索引](Home) · [README](https://github.com/Ding-Ding-Projects/WinForge/blob/main/README.md) · [Screenshots](Screenshots)

@@ -1,8 +1,8 @@
 # Wiki Screenshot Workflow · Wiki 截圖工作流程
 
 **EN —** Capture current WinUI pixels with the repository
-[`run-winforge` driver](https://github.com/codingmachineedge/WinForge/tree/main/.agents/skills/run-winforge),
-then use [`tools/WinForgeShot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot)
+[`run-winforge` driver](https://github.com/Ding-Ding-Projects/WinForge/tree/main/.agents/skills/run-winforge),
+then use [`tools/WinForgeShot`](https://github.com/Ding-Ding-Projects/WinForge/tree/main/tools/WinForgeShot)
 (`winforge-shot`) to **crop, highlight, annotate, number steps, and redact personal info**.
 The driver accepts only bounded PNG paths on fixed or removable local drives, requests a
 DEBUG-only image of WinForge's live visual tree, composites it against the root's actual
@@ -12,8 +12,8 @@ process. It never samples raw desktop pixels, so neither an old image nor an ove
 application can leak into current evidence. A validated, HWND-targeted `PrintWindow` call
 is the only capture fallback.
 
-**粵語 —** 先用 repo 嘅 [`run-winforge` driver](https://github.com/codingmachineedge/WinForge/tree/main/.agents/skills/run-winforge)
-擷取目前 WinUI pixels，再用 [`tools/WinForgeShot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot)
+**粵語 —** 先用 repo 嘅 [`run-winforge` driver](https://github.com/Ding-Ding-Projects/WinForge/tree/main/.agents/skills/run-winforge)
+擷取目前 WinUI pixels，再用 [`tools/WinForgeShot`](https://github.com/Ding-Ding-Projects/WinForge/tree/main/tools/WinForgeShot)
 （`winforge-shot`）做**裁切、加強調框、加文字、加步驟編號、同遮蔽個人資料**。
 Driver 只接受 fixed／removable 本機 drive 上有限長度嘅 PNG 路徑，要求 DEBUG-only 即時 WinForge
 visual tree 圖，按 root 實際 theme 合成、先 flush 唯一 partial 圖，再驗證同原子升格。新擷取開始會
@@ -158,11 +158,11 @@ winforge-shot --open base.png --highlight "40%|40%|20%|6%|red" --step "38%|40%|2
 **EN —** Save captures to `docs/` (gallery) or annotated/how-to images to
 `docs/wiki/images/`, then embed with a relative path: `![Alt · 替代文字](images/name.png)`.
 Keep alt text bilingual. See the full flag reference in the tool's
-[README](https://github.com/codingmachineedge/WinForge/blob/main/tools/WinForgeShot/README.md).
+[README](https://github.com/Ding-Ding-Projects/WinForge/blob/main/tools/WinForgeShot/README.md).
 
 **粵語 —** 擷取圖放 `docs/`（圖庫），標註／教學圖放 `docs/wiki/images/`，再用相對路徑嵌入：
 `![Alt · 替代文字](images/name.png)`。替代文字保持雙語。完整旗標說明見工具嘅
-[README](https://github.com/codingmachineedge/WinForge/blob/main/tools/WinForgeShot/README.md)。
+[README](https://github.com/Ding-Ding-Projects/WinForge/blob/main/tools/WinForgeShot/README.md)。
 
 ---
-[← Home · 返主頁](Home) · [Screenshots · 截圖集](Screenshots) · [Tool README · 工具說明](https://github.com/codingmachineedge/WinForge/blob/main/tools/WinForgeShot/README.md)
+[← Home · 返主頁](Home) · [Screenshots · 截圖集](Screenshots) · [Tool README · 工具說明](https://github.com/Ding-Ding-Projects/WinForge/blob/main/tools/WinForgeShot/README.md)

@@ -6,7 +6,7 @@
 
 Open in-app · 喺 app 內開啟：`WinForge.exe --page reactor`
 
-![Nuclear Reactor · 核反應堆](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactor.png)
+![Nuclear Reactor · 核反應堆](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactor.png)
 
 > **Verified state · 已驗證狀態 —** **EN:** Foundational realism P1–P5 is resolved. The headless reactor/dependent harness is **65/65 green**, including a stable fully-rodded startup, sustained high-power thermal equilibrium, green-ammonia power gating, and strict-priority load shedding. · **粵語：**基礎寫實度 P1–P5 已解決。反應堆／相依服務無介面測試 **65/65** 全綠，包括全棒插入穩定起動、持續高功率熱平衡、綠氨供電閘門，同嚴格優先級卸載。
 

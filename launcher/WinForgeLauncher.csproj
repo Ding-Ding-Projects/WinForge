@@ -26,5 +26,6 @@
 
   <ItemGroup>
     <Compile Include="..\Services\GitHubDesktopProfilesCore.cs" Link="Services\GitHubDesktopProfilesCore.cs" />
+    <Compile Include="..\Services\ManagedReleaseContract.cs" Link="Services\ManagedReleaseContract.cs" />
   </ItemGroup>
 </Project>

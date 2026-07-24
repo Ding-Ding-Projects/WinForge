@@ -1,6 +1,6 @@
 # Dashboard · 儀表板
 
-![Dashboard](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-dashboard.png)
+![Dashboard](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-dashboard.png)
 
 **EN —** The home surface of WinForge. A master search box spans every module, so you can jump straight to any tool, tweak or operation without hunting through the navigation pane. Everything launches and runs in-app — no redirects to external windows.
 
@@ -11,4 +11,4 @@ The non-operational hero sentence follows the persisted English and Cantonese fu
 非操作性質嘅首頁句子會跟英文同粵語各自持久化搞笑等級即時更新；第 1 級完全正經，第 5 級用最玩得嘅明確文案。錯誤、安全、破壞性操作、無障礙同實際操作文字永遠唔會經呢條語氣路徑。詳見[語言與語氣](#/wiki/Language-and-Tone)。
 
 ---
-[← Module index · 模組索引](Home) · [README](https://github.com/codingmachineedge/WinForge/blob/main/README.md) · [Screenshots](Screenshots)
+[← Module index · 模組索引](Home) · [README](https://github.com/Ding-Ding-Projects/WinForge/blob/main/README.md) · [Screenshots](Screenshots)

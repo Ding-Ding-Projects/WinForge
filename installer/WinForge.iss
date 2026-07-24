@@ -10,12 +10,13 @@
 #endif
 
 #define MyAppName "WinForge"
-#define MyAppPublisher "codingmachineedge"
+#define MyAppPublisher "Ding-Ding-Projects"
 #define MyAppExe "WinForge.exe"
 ; 捷徑經啟動器啟動，令 WinUI 框架偶發開機閃退（0xC000027B）可自動重試，確保次次都開到。
 ; Shortcuts launch via the supervisor so the intermittent WinUI startup fail-fast is auto-retried.
 #define MyAppLauncher "WinForgeLauncher.exe"
-#define MyAppUrl "https://github.com/codingmachineedge/WinForge"
+#define MyAppUrl "https://github.com/Ding-Ding-Projects/WinForge"
+#define MyAppUpdatesUrl "https://github.com/Ding-Ding-Projects/WinForge/releases/latest"
 
 [Setup]
 AppId={{B7A1C0E2-7C2E-4E8A-9C7E-0F1A2B3C4D5E}
@@ -25,6 +26,13 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppUrl}
 AppSupportURL={#MyAppUrl}
+AppUpdatesURL={#MyAppUpdatesUrl}
+AppCopyright=Copyright (c) Ding-Ding-Projects contributors
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription=WinForge Windows 11 control center
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion={#MyAppVersion}
+VersionInfoVersion={#MyAppVersion}.0
 DefaultDirName={localappdata}\Programs\WinForge
 DefaultGroupName=WinForge
 DisableProgramGroupPage=yes
@@ -40,6 +48,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=force
 RestartApplications=no
 UninstallDisplayIcon={app}\{#MyAppExe}
+UninstallDisplayName={#MyAppName} {#MyAppVersion}
 ; A bilingual one-line summary shown in Add/Remove Programs.
 AppComments=Windows 11 convenience suite · Windows 11 便利套件
 

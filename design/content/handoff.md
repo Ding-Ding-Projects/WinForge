@@ -1,5 +1,9 @@
 # WinForge Handoff · WinForge 交接
 
+## Managed delivery alignment WIP · 正式發佈對齊 WIP
+
+An isolated checkpoint centralizes the canonical repository/version/assets/digests/paths across the app, updater, launcher, installer, portable footprint, and workflow. Focused contracts pass **23/23** and the app plus both helpers build with **0 warnings / 0 errors**. Work stopped on request before final README/ROADMAP/index reconciliation, aggregate/installer/archive verification, hosted release proof, or `main` integration; it is not yet a completed roadmap item. · 獨立檢查點已集中 repo／版本／資產／digest／路徑合約；專測 **23/23**，app 同兩個 helper build 零 warning／零 error。按要求停止，最終文件、aggregate／installer／ZIP、hosted release 同 `main` 整合未做，未算完成路線圖項目。
+
 WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/C++/WinRT port has moved to [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native) with its own source, tests, parity evidence, installer, documentation, and releases.
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
@@ -144,7 +148,7 @@ Before retiring the listed legacy C++/WinRT worktrees and refs, their exact prov
 
 退役已列明嘅舊 C++/WinRT worktree／ref 之前，會先喺獨立 native closure history 保留 exact provenance。Date、Duration、Loan snapshot 繼續喺各自已 push 嘅 WIP ref，唔會當成已整合 native main。managed default tree 除咗 AudioForge／ImageForge companion program 外繼續冇 rewrite；唔相關嘅 dirty PowerToys 同 Reactor／Dew 工作唔會喺今次清理郁到。
 
-See the repository [handoff summary](https://github.com/codingmachineedge/WinForge/blob/main/handoff-summary.md) for final commit, remote-integration, workflow, release, and cleanup proof.
+See the repository [handoff summary](https://github.com/Ding-Ding-Projects/WinForge/blob/main/handoff-summary.md) for final commit, remote-integration, workflow, release, and cleanup proof.
 # Current managed Regex Builder foundation — 2026-07-24 · 目前正式受管理正則砌法基礎
 
 - `module.regextester` adds guided literals, character classes, anchors, groups, alternation, and quantifiers to its raw .NET 11 editor, with five flags, bounded local sample, live matches/captures, replacement preview, and explicit copy. · `module.regextester` 喺原始 .NET 11 editor 加入字面文字、字元類、錨點、群組、二選一同量詞引導砌法，亦有五旗標、有界本機 sample、即時配對／擷取、替換預覽同明確複製。

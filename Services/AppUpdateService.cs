@@ -24,8 +24,6 @@ public static class AppUpdateService
     private const string LastAttemptTagKey = "app.autoupdate.lastAttemptTag";
     private const string LastAttemptUtcKey = "app.autoupdate.lastAttemptUtc";
     private const string LastInstalledNoticeTagKey = "app.autoupdate.lastInstalledNoticeTag";
-    private const string LatestReleaseApi = "https://api.github.com/repos/codingmachineedge/WinForge/releases/latest";
-    private const long MaxInstallerBytes = 512L * 1024 * 1024;
     private static readonly TimeSpan FirstCheckDelay = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
     private static readonly TimeSpan SameTagRetryDelay = TimeSpan.FromHours(12);
@@ -106,7 +104,7 @@ public static class AppUpdateService
                     "WinForge 正在背景檢查 GitHub release。",
                     5000);
 
-            using var res = await Http.GetAsync(LatestReleaseApi).ConfigureAwait(false);
+            using var res = await Http.GetAsync(ManagedReleaseContract.LatestReleaseApi).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode)
             {
                 if (notifyQuietResult)
@@ -121,10 +119,26 @@ public static class AppUpdateService
             await using var stream = await res.Content.ReadAsStreamAsync().ConfigureAwait(false);
             var release = await JsonSerializer.DeserializeAsync<GitHubRelease>(stream).ConfigureAwait(false);
             if (release is null || release.Draft || release.Prerelease) return;
+            var metadata = new ManagedReleaseMetadata(
+                release.TagName,
+                release.Draft,
+                release.Prerelease,
+                release.Assets.Select(asset => new ManagedReleaseAsset(
+                    asset.Name, asset.BrowserDownloadUrl, asset.Digest, asset.Size)).ToArray());
+            if (!ManagedReleaseContract.TryResolveRelease(metadata, out ManagedReleaseSelection? selected, out string reason) ||
+                selected is null)
+            {
+                Notify(ui, NoticeSeverity.Warning,
+                    "Update release is incompatible", "更新版本唔相容",
+                    $"The latest stable release does not satisfy WinForge's delivery contract: {reason}",
+                    $"最新穩定版唔符合 WinForge 發佈合約：{reason}",
+                    12000);
+                return;
+            }
 
-            string latestTag = NormalizeTag(release.TagName);
+            string latestTag = selected.Version;
             string currentTag = CurrentVersionTag();
-            if (!IsNewer(latestTag, currentTag))
+            if (!ManagedReleaseContract.IsNewerRelease(latestTag, currentTag))
             {
                 if (notifyQuietResult)
                     Notify(ui, NoticeSeverity.Success,
@@ -146,28 +160,8 @@ public static class AppUpdateService
             }
             if (RecentlyAttempted(latestTag)) return;
 
-            var setup = release.Assets.FirstOrDefault(a =>
-                string.Equals(a.Name, "WinForge-Setup.exe", StringComparison.OrdinalIgnoreCase)
-                && !string.IsNullOrWhiteSpace(a.BrowserDownloadUrl));
-            if (setup is null)
-            {
-                Notify(ui, NoticeSeverity.Warning,
-                    "Update found, installer missing", "找到更新但缺少安裝程式",
-                    $"Release v{latestTag} does not include WinForge-Setup.exe. Auto update will retry later.",
-                    $"Release v{latestTag} 沒有包含 WinForge-Setup.exe。自動更新稍後會重試。",
-                    12000);
-                return;
-            }
-            string expectedSha256 = NormalizeSha256(setup.Digest);
-            if (expectedSha256.Length != 64)
-            {
-                Notify(ui, NoticeSeverity.Warning,
-                    "Update integrity data missing", "更新完整性資料欠缺",
-                    $"Release v{latestTag} has no valid SHA-256 digest. WinForge will not run an unverified installer.",
-                    $"Release v{latestTag} 冇有效 SHA-256 雜湊值。WinForge 唔會執行未驗證嘅安裝程式。",
-                    12000);
-                return;
-            }
+            ManagedReleaseAsset setup = selected.Installer;
+            string expectedSha256 = selected.InstallerSha256;
 
             SettingsStore.Set(LastAttemptTagKey, latestTag);
             SettingsStore.Set(LastAttemptUtcKey, DateTime.UtcNow.ToString("O"));
@@ -318,7 +312,7 @@ public static class AppUpdateService
             using var res = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
             res.EnsureSuccessStatusCode();
             long? total = res.Content.Headers.ContentLength;
-            if (total is null or <= 0 or > MaxInstallerBytes)
+                if (total is null or <= 0 or > ManagedReleaseContract.MaximumInstallerBytes)
                 throw new InvalidDataException("Installer download size is missing, empty, or exceeds 512 MB.");
             long copied = 0;
             await using (var input = await res.Content.ReadAsStreamAsync().ConfigureAwait(false))
@@ -328,12 +322,14 @@ public static class AppUpdateService
                 int read;
                 while ((read = await input.ReadAsync(buffer).ConfigureAwait(false)) > 0)
                 {
-                    if (copied > MaxInstallerBytes - read)
+                    if (copied > ManagedReleaseContract.MaximumInstallerBytes - read)
                         throw new InvalidDataException("Installer download exceeded the 512 MB safety limit.");
                     await output.WriteAsync(buffer.AsMemory(0, read)).ConfigureAwait(false);
                     copied += read;
                 }
             }
+            if (copied != total.Value)
+                throw new InvalidDataException("Installer download length did not match GitHub's content length.");
         }
         catch
         {
@@ -346,7 +342,7 @@ public static class AppUpdateService
         string actual;
         await using (var downloaded = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             actual = Convert.ToHexString(await SHA256.HashDataAsync(downloaded).ConfigureAwait(false));
-        if (!FixedTimeHexEquals(expectedSha256, actual))
+        if (!ManagedReleaseContract.FixedTimeSha256Equals(expectedSha256, actual))
         {
             try { File.Delete(path); } catch { }
             throw new InvalidDataException("Downloaded installer failed SHA-256 verification.");
@@ -442,41 +438,13 @@ public static class AppUpdateService
             : info;
         int plus = value.IndexOf('+');
         if (plus >= 0) value = value[..plus];
-        return NormalizeTag(value);
+        return ManagedReleaseContract.NormalizeTag(value);
     }
 
-    private static bool IsNewer(string latestTag, string currentTag)
-    {
-        if (!TryVersion(latestTag, out var latest) || !TryVersion(currentTag, out var current))
-            return !string.Equals(latestTag, currentTag, StringComparison.OrdinalIgnoreCase);
-        return latest > current;
-    }
-
-    private static bool TryVersion(string tag, out Version version) =>
-        Version.TryParse(NormalizeTag(tag), out version!);
-
-    private static string NormalizeTag(string? tag) =>
-        (tag ?? "").Trim().TrimStart('v', 'V');
+    private static string NormalizeTag(string? tag) => ManagedReleaseContract.NormalizeTag(tag);
 
     private static string SafeTag(string? tag) =>
         string.Concat(NormalizeTag(tag).Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' or '_' ? c : '_'));
-
-    private static string NormalizeSha256(string? value)
-    {
-        string digest = (value ?? "").Trim();
-        if (digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)) digest = digest[7..];
-        return digest.Length == 64 && digest.All(Uri.IsHexDigit) ? digest.ToUpperInvariant() : "";
-    }
-
-    private static bool FixedTimeHexEquals(string expected, string actual)
-    {
-        try
-        {
-            return CryptographicOperations.FixedTimeEquals(
-                Convert.FromHexString(expected), Convert.FromHexString(actual));
-        }
-        catch { return false; }
-    }
 
     private static void CleanupStagedUpdateHelpers()
     {
@@ -571,5 +539,6 @@ public static class AppUpdateService
     private sealed record GitHubAsset(
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("browser_download_url")] string BrowserDownloadUrl,
-        [property: JsonPropertyName("digest")] string? Digest);
+        [property: JsonPropertyName("digest")] string? Digest,
+        [property: JsonPropertyName("size")] long Size);
 }

@@ -44,12 +44,12 @@ Repeated successful self-contained publishes preceded a dedicated LowLevel headl
 
 兩次自包含 publish 成功後，專用 LowLevel headless 檢視咗正常 1049×646 圖（完整 SHA-256 如上）同窄版 760×720 圖，驗證深色對比同雙語換行；再經無障礙樹展開儲存感知控制同 ResetBase 不可逆警告。冇撳任何動作掣／破壞性控制，兩個指定 app PID 同專用 desktop 都已關閉。
 
-![System Doctors](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors.png)
+![System Doctors](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-doctors.png)
 
-![System Doctors narrow layout](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-narrow.png)
+![System Doctors narrow layout](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-doctors-narrow.png)
 
-![Storage Sense controls expanded](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-windows.png)
+![Storage Sense controls expanded](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-doctors-windows.png)
 
-![ResetBase irreversible warning expanded](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-doctors-maintenance.png)
+![ResetBase irreversible warning expanded](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-doctors-maintenance.png)
 
 [← System & Tweaks](#/wiki/System-and-Tweaks) · [Feature records](https://github.com/Ding-Ding-Projects/WinForge/tree/main/docs/features/system-maintenance)

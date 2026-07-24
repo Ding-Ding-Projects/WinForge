@@ -14,7 +14,7 @@ On-the-fly encrypted volume containers (VeraCrypt-derived). · 即時加密嘅�
 
 Open in-app: `WinForge.exe --page vault-volumes`
 
-![WinForge Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-vault.png)
+![WinForge Vault](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-vault.png)
 
 ## Dew Encryption · Dew 加密
 
@@ -38,7 +38,7 @@ Drive the Bitwarden CLI for logins, TOTP and generators. · 驅動 Bitwarden CLI
 
 Open in-app: `WinForge.exe --page bitwarden`
 
-![Bitwarden Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-bitwarden.png)
+![Bitwarden Vault](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-bitwarden.png)
 
 ## KeePass Vault · 密碼保險庫
 
@@ -50,7 +50,7 @@ Delayed secret-clipboard cleanup first reads the current text and clears it only
 
 Open in-app: `WinForge.exe --page keepass`
 
-![KeePass Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-keepass.png)
+![KeePass Vault](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-keepass.png)
 
 ## Local Settings Recovery Artifacts · 本機設定復原檔案
 

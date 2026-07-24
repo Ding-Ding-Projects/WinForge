@@ -1,6 +1,6 @@
 # AWS Manager · AWS 管理中心
 
-![AWS Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aws.png)
+![AWS Manager](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-aws.png)
 
 **EN —** AWS Manager is WinForge's AWS Console-style account workspace. The primary experience is organized around identities, Regions, resources, services, and operations—not around constructing command strings. It combines an in-process AWS SDK for .NET v4 management layer with native S3 and EC2 workspaces, cross-service resource discovery, a searchable service catalog, and an optional advanced AWS CLI workbench.
 

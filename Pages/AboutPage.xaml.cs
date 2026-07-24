@@ -56,10 +56,10 @@ public sealed partial class AboutPage : Page
         Root.Children.Add(Heading(Loc.I.Pick("Source code", "原始碼"), null));
         var link = new Button
         {
-            Content = "github.com/codingmachineedge/WinForge",
+            Content = "github.com/Ding-Ding-Projects/WinForge",
             Padding = new Thickness(0),
         };
-        link.Click += (_, _) => CopyText("https://github.com/codingmachineedge/WinForge");
+        link.Click += (_, _) => CopyText("https://github.com/Ding-Ding-Projects/WinForge");
         Root.Children.Add(link);
 
         var licenses = new Button

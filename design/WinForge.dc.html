@@ -109,7 +109,7 @@
       </div>
       {{ searchDropdown }}
     </div>
-    <a class="wf-desktop-nav wf-btn-h" href="https://github.com/codingmachineedge/WinForge" target="_blank" rel="noopener" style="flex-shrink:0;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,var(--amber),#d24500);color:#1a0e00;font-family:var(--disp);font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:9px">⭳ Install</a>
+    <a class="wf-desktop-nav wf-btn-h" href="https://github.com/Ding-Ding-Projects/WinForge" target="_blank" rel="noopener" style="flex-shrink:0;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,var(--amber),#d24500);color:#1a0e00;font-family:var(--disp);font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:9px">⭳ Install</a>
     <a class="wf-menu-btn wf-nav-h" href="#/menu" onClick="{{ toggleMenu }}" style="font-size:22px;line-height:1;flex-shrink:0">≡</a>
   </header>
 
@@ -390,7 +390,7 @@ class Component extends DCLogic {
     const ln=(href,label,c)=>h('a',{href,onClick:()=>this.setState({menuOpen:false}),style:{padding:'14px 4px',borderBottom:'1px solid var(--line)',fontFamily:'var(--disp)',fontSize:18,fontWeight:500,color:c||'var(--text)'}},label);
     return h('div',{style:{position:'sticky',top:55,zIndex:49,background:'var(--panel)',borderBottom:'1px solid var(--line2)',padding:'8px clamp(14px,3vw,30px) 16px',display:'flex',flexDirection:'column'}},
       ln('#/manual','Manual · 手冊'), ln('#/wiki','Wiki'), ln('#/pricing','Pricing · 收費'), ln('#/app','⊞ Open the app replica','var(--amber)'), ln('#/reactor','Reactor · 核反應堆','var(--cyan)'), ln('#/cake','Cake Farm · 蛋糕農場','var(--amber2)'), ln('#/fuel','Fuel Factory · 核燃料','var(--green)'),
-      h('a',{href:'https://github.com/codingmachineedge/WinForge',target:'_blank',rel:'noopener',onClick:()=>this.setState({menuOpen:false}),style:{padding:'14px 4px',fontFamily:'var(--disp)',fontSize:18,fontWeight:600,color:'var(--amber)'}},'⭳ Install WinForge'));
+      h('a',{href:'https://github.com/Ding-Ding-Projects/WinForge',target:'_blank',rel:'noopener',onClick:()=>this.setState({menuOpen:false}),style:{padding:'14px 4px',fontFamily:'var(--disp)',fontSize:18,fontWeight:600,color:'var(--amber)'}},'⭳ Install WinForge'));
   }
 
   // ---------- shared bits ----------
@@ -407,7 +407,7 @@ class Component extends DCLogic {
   page(children, max){ return React.createElement('div',{className:'wf-rise',style:{maxWidth:max||1180,margin:'0 auto',padding:'clamp(26px,5vw,52px) clamp(16px,4vw,40px)'}}, children); }
 
   // ---------- HOME ----------
-  GH(){ return 'https://github.com/codingmachineedge/WinForge'; }
+  GH(){ return 'https://github.com/Ding-Ding-Projects/WinForge'; }
   PS(){ return 'irm https://get.winforge.app | iex'; }
   copyCmd(text){ try{ navigator.clipboard.writeText(text); this.toast('Copied — paste into PowerShell.'); }catch(e){ this.toast('Select the command and copy it manually.'); } }
   vHome(){
