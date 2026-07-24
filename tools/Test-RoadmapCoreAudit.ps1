@@ -58,9 +58,9 @@ $specs = @(
     [pscustomobject]@{ Name = 'ViveTool'; RoadmapPrefix = '### ViveTool '; AuditPrefix = '## ViveTool '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Media'; RoadmapPrefix = '### Media '; AuditPrefix = '## Media '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Maintenance'; RoadmapPrefix = '### Maintenance '; AuditPrefix = '## Maintenance '; Total = 15; Shipped = 15 },
-    [pscustomobject]@{ Name = 'Dev & Terminal'; RoadmapPrefix = '### Dev & Terminal '; AuditPrefix = '## Dev & Terminal '; Total = 15; Shipped = 9 },
-    [pscustomobject]@{ Name = 'Home Assistant'; RoadmapPrefix = '### Home Assistant '; AuditPrefix = '## Home Assistant '; Total = 14; Shipped = 13 },
-    [pscustomobject]@{ Name = 'Archives'; RoadmapPrefix = '### Archives '; AuditPrefix = '## Archives '; Total = 14; Shipped = 10 },
+    [pscustomobject]@{ Name = 'Dev & Terminal'; RoadmapPrefix = '### Dev & Terminal '; AuditPrefix = '## Dev & Terminal '; Total = 15; Shipped = 15 },
+    [pscustomobject]@{ Name = 'Home Assistant'; RoadmapPrefix = '### Home Assistant '; AuditPrefix = '## Home Assistant '; Total = 14; Shipped = 14 },
+    [pscustomobject]@{ Name = 'Archives'; RoadmapPrefix = '### Archives '; AuditPrefix = '## Archives '; Total = 14; Shipped = 14 },
     [pscustomobject]@{ Name = 'Browser Control'; RoadmapPrefix = '### Browser Control '; AuditPrefix = '## Browser Control '; Total = 14; Shipped = 14 }
 )
 
@@ -86,12 +86,29 @@ $systemMaintenanceServicePath = Join-Path $RepoRoot 'Services\SystemMaintenanceS
 $systemDoctorsPagePath = Join-Path $RepoRoot 'Pages\SystemDoctorsModule.xaml.cs'
 $systemMaintenanceTestPath = Join-Path $RepoRoot 'tests\SystemMaintenanceCore.Tests\Program.cs'
 $systemMaintenanceGuidePath = Join-Path $RepoRoot 'docs\features\system-maintenance\README.md'
+$roadmapWorkflowTestPath = Join-Path $RepoRoot 'tests\RoadmapWorkflowCore.Tests\Program.cs'
+$developerCorePath = Join-Path $RepoRoot 'Services\DeveloperWorkflowCore.cs'
+$developerServicePath = Join-Path $RepoRoot 'Services\DeveloperWorkflowService.cs'
+$developerPanelPath = Join-Path $RepoRoot 'Controls\DeveloperWorkflowPanel.xaml'
+$developerPanelCodePath = Join-Path $RepoRoot 'Controls\DeveloperWorkflowPanel.xaml.cs'
+$developerGuidePath = Join-Path $RepoRoot 'docs\features\developer-terminal\developer-workflow-workbench.md'
+$archiveCorePath = Join-Path $RepoRoot 'Services\ArchiveWorkflowCore.cs'
+$archiveServicePath = Join-Path $RepoRoot 'Services\ArchiveWorkflowService.cs'
+$archivePagePath = Join-Path $RepoRoot 'Pages\ArchivesModule.xaml'
+$archivePageCodePath = Join-Path $RepoRoot 'Pages\ArchivesModule.xaml.cs'
+$archiveGuidePath = Join-Path $RepoRoot 'docs\features\archives\safe-create-and-delete.md'
+$homeAssistantGatePath = Join-Path $RepoRoot 'Services\HomeAssistantRestartGate.cs'
+$homeAssistantPageCodePath = Join-Path $RepoRoot 'Pages\HomeAssistantModule.xaml.cs'
+$homeAssistantGuidePath = Join-Path $RepoRoot 'docs\features\home-assistant\validated-restart.md'
 
 foreach ($path in @($roadmapPath, $auditPath, $indexPath, $wikiPath, $pagesPath, $mediaCatalogPath,
         $browserCorePath, $browserServicePath, $browserPanelPath, $browserPanelCodePath, $browserTestPath, $browserDocsPath,
         $mediaCorePath, $mediaPagePath, $mediaPageCodePath, $mediaTestPath, $mediaGuidePath,
         $systemMaintenanceContractsPath, $systemMaintenanceServicePath, $systemDoctorsPagePath,
-        $systemMaintenanceTestPath, $systemMaintenanceGuidePath)) {
+        $systemMaintenanceTestPath, $systemMaintenanceGuidePath,
+        $roadmapWorkflowTestPath, $developerCorePath, $developerServicePath, $developerPanelPath, $developerPanelCodePath, $developerGuidePath,
+        $archiveCorePath, $archiveServicePath, $archivePagePath, $archivePageCodePath, $archiveGuidePath,
+        $homeAssistantGatePath, $homeAssistantPageCodePath, $homeAssistantGuidePath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Required audit artifact is missing: $path"
     }
@@ -173,8 +190,8 @@ foreach ($spec in $specs) {
     })
 }
 
-if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 104) {
-    throw "Aggregate mismatch: expected 104/115 shipped, found $aggregateShipped/$aggregateTotal."
+if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 115) {
+    throw "Aggregate mismatch: expected 115/115 shipped, found $aggregateShipped/$aggregateTotal."
 }
 
 $artifactText = @(
@@ -182,8 +199,8 @@ $artifactText = @(
     Get-Content -LiteralPath $wikiPath -Raw -Encoding UTF8
     Get-Content -LiteralPath $pagesPath -Raw -Encoding UTF8
 ) -join "`n"
-if ($artifactText -notmatch '104/115' -or $artifactText -notmatch '11') {
-    throw 'Audit index/wiki mirrors do not report the 104/115 shipped and 11-gap result.'
+if ($artifactText -notmatch '115/115' -or $artifactText -notmatch '0 gaps|0-gap|0 remaining|0 項') {
+    throw 'Audit index/wiki mirrors do not report the 115/115 shipped and 0-gap result.'
 }
 
 $mediaCatalogText = Get-Content -LiteralPath $mediaCatalogPath -Raw -Encoding UTF8
@@ -304,5 +321,56 @@ if (-not $systemMaintenanceTestText.Contains('pure contracts; no host mutation')
     throw 'System Maintenance focused harness no longer preserves its no-mutation safety contract.'
 }
 
+$roadmapWorkflowTestText = Get-Content -LiteralPath $roadmapWorkflowTestPath -Raw -Encoding UTF8
+$developerEvidenceText = @(
+    Get-Content -LiteralPath $developerCorePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $developerServicePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $developerPanelPath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $developerPanelCodePath -Raw -Encoding UTF8
+) -join "`n"
+foreach ($marker in @(
+        'InspectPortAsync', 'TerminateReviewedListenersAsync', 'BuildNodeShellPlan',
+        'BuildCorepackPreparePlan', 'BuildDefenderMutationScript', 'BuildTcpTuningScript',
+        'InspectCachesAsync', 'BuildCacheCleanPlan', 'DeveloperWorkflowCachePnpm',
+        'DeveloperWorkflowCachePip', 'DeveloperWorkflowCacheDocker')) {
+    if (-not $developerEvidenceText.Contains($marker)) {
+        throw "Developer workflow evidence is missing marker: $marker"
+    }
+}
+
+$archiveEvidenceText = @(
+    Get-Content -LiteralPath $archiveCorePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $archiveServicePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $archivePagePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $archivePageCodePath -Raw -Encoding UTF8
+) -join "`n"
+foreach ($marker in @(
+        'ArchiveDeleteMasks', 'ArchiveMoveSourceAfterTest', 'BuildDeleteArguments',
+        '-ir!', '-xr!', '-mtc=on', '-mta=on', '-mtm=on', '-ssp',
+        'MoveToRecycleBin', 'IntegrityArguments')) {
+    if (-not $archiveEvidenceText.Contains($marker)) {
+        throw "Archive workflow evidence is missing marker: $marker"
+    }
+}
+if ($archiveEvidenceText.Contains('arguments.Add("-sdel")')) {
+    throw 'Archive move workflow must not bypass the separate integrity gate with -sdel.'
+}
+
+$homeAssistantEvidenceText = @(
+    Get-Content -LiteralPath $homeAssistantGatePath -Raw -Encoding UTF8
+    Get-Content -LiteralPath $homeAssistantPageCodePath -Raw -Encoding UTF8
+) -join "`n"
+foreach ($marker in @('RecordCheck', 'CanRestart', 'FixedTimeEquals', 'CheckConfig', '_restartGate.Consume')) {
+    if (-not $homeAssistantEvidenceText.Contains($marker)) {
+        throw "Home Assistant restart-gate evidence is missing marker: $marker"
+    }
+}
+if ($roadmapWorkflowTestText -notmatch 'Roadmap workflow contract passed' -or
+    -not $roadmapWorkflowTestText.Contains('archive integrity test targets the first split volume') -or
+    -not $roadmapWorkflowTestText.Contains('Home Assistant restart consumes validation')) {
+    throw 'Roadmap workflow focused harness no longer covers the completion safety contracts.'
+}
+}
+
 $rows | Format-Table -AutoSize
-Write-Host "Roadmap core audit passed: $aggregateShipped/$aggregateTotal shipped; $($aggregateTotal - $aggregateShipped) factual gaps retained."
+Write-Host "Roadmap core audit passed: $aggregateShipped/$aggregateTotal shipped; 0 factual gaps retained."

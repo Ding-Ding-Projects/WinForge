@@ -2,9 +2,9 @@
 
 ## Outcome · 結果
 
-This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. The original classification was revalidated against source; the 2026-07-24 Browser Control and Media completions closed eleven evidence-backed gaps each, and the Windows/System plus Maintenance delivery closed the remaining eight gaps in those two sections. Of 115 roadmap entries, **104 now have complete source-backed delivery evidence** and **11 remain unchecked** because implementation is absent or partial in other sections.
+This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET WinUI 3 application. Browser Control and Media first closed eleven evidence-backed gaps each; the Windows/System plus Maintenance delivery closed the remaining eight gaps in those two sections; and the reviewed Developer & Terminal, Home Assistant, and Archives workflows then closed eleven more. Of 115 roadmap entries, **115 now have complete source-backed delivery evidence** and **0 remain unchecked**.
 
-今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對；瀏覽器控制同 Media 各自補齊十一個有證據缺口，Windows／System 加 Maintenance 亦補齊兩節餘下八項。115 項之中，**104 項有完整原始碼交付證據**，**11 項因其他章節未有實作或者只做咗一部分而繼續留空**。
+今次審核將 `docs/ROADMAP.md` 八個過時章節同 .NET WinUI 3 app 原始碼逐項核對；瀏覽器控制同 Media 各自先補齊十一個缺口，Windows／System 加 Maintenance 補齊兩節餘下八項，開發與終端機、Home Assistant 同壓縮檔再補齊十一項。115 項之中，**115 項有完整原始碼交付證據**，**0 項留空**。
 
 | Section · 章節 | Audited · 審核 | Shipped `[x]` · 已交付 | Remaining `[ ]` · 餘下 |
 |---|---:|---:|---:|
@@ -12,11 +12,11 @@ This audit reconciles eight stale sections in `docs/ROADMAP.md` against the .NET
 | ViveTool | 15 | 15 | 0 |
 | Media | 15 | 15 | 0 |
 | Maintenance | 15 | 15 | 0 |
-| Dev & Terminal | 15 | 9 | 6 |
-| Home Assistant | 14 | 13 | 1 |
-| Archives | 14 | 10 | 4 |
+| Dev & Terminal | 15 | 15 | 0 |
+| Home Assistant | 14 | 14 | 0 |
+| Archives | 14 | 14 | 0 |
 | Browser Control | 14 | 14 | 0 |
-| **Total · 總數** | **115** | **104** | **11** |
+| **Total · 總數** | **115** | **115** | **0** |
 
 ## Evidence standard · 證據標準
 
@@ -28,7 +28,7 @@ An entry is checked only when all of the following are present:
 
 只有同時有可達控制、實際執行機制，同埋文件／驗證證據先會剔選。`Controls/ControlRowList.cs` is the shared binding proof for catalog rows: action buttons invoke `RunAsync`, toggles invoke `SetIsOn`, and choice/slider controls invoke their registered setters. Dedicated modules are registered in `Services/ModuleRegistry.cs`, mapped/deep-linked in `MainWindow.xaml.cs`, and documented by generated module/button pages.
 
-The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, verifies Browser Control, Media, and System Maintenance implementation markers, and locks the aggregate **104/115** result. `tests/MediaWorkflowCore.Tests` separately covers two-pass sequencing, parsers, argument boundaries, cancellation, staged-output preservation, and owned scratch cleanup; `tests/SystemMaintenanceCore.Tests` validates bounded plans without mutating the host.
+The focused guard is `tools/Test-RoadmapCoreAudit.ps1`. It asserts section totals and checked counts, confirms that every one of the 115 exact roadmap titles appears in this audit, verifies implementation markers for all completed workbenches, and locks the aggregate **115/115** result. `tests/MediaWorkflowCore.Tests` separately covers two-pass sequencing, parsers, argument boundaries, cancellation, staged-output preservation, and owned scratch cleanup; `tests/SystemMaintenanceCore.Tests` validates bounded plans without mutating the host; `tests/RoadmapWorkflowCore.Tests` covers 44 listener, Node/Corepack, Defender, TCP, cache, archive, and Home Assistant safety contracts.
 
 ## Windows 11 · Windows 11
 
@@ -136,7 +136,7 @@ No unchecked Maintenance item remains in this audited section. · 呢個已審�
 
 ## Dev & Terminal · 開發同終端機
 
-### Shipped — 9 · 已交付 — 9
+### Shipped — 15 · 已交付 — 15
 
 | Roadmap capability | Concrete implementation evidence | Documentation evidence |
 |---|---|---|
@@ -149,21 +149,20 @@ No unchecked Maintenance item remains in this audited section. · 呢個已審�
 | **Generate & copy SSH key for Git** | `Pages/SshModule.xaml.cs` exposes Generate/copy actions; `SshService` locates and invokes `ssh-keygen.exe` and returns public-key text. | `docs/wiki/features/apps-git-git/ssh.md` plus generated button pages. |
 | **Open WSL distro management** | `Pages/WslVmModule.xaml.cs` and `WslVmService` implement list/online install, launch, set default, terminate, unregister, export, import, and shutdown. | `docs/wiki/features/apps-git-git/wsl.md` plus generated button pages. |
 | **Tunnel a local port (share dev server)** | The reachable Cloudflare module exposes `cf.quick-tunnel`; its catalog handler launches the real `cloudflared tunnel --url http://localhost:8080` command, which supplies a usable local-port sharing action. | Generated Cloudflare module/operation documentation. |
+| **Kill process on port** | `DeveloperWorkflowPanel` accepts a bounded port, `InspectPortAsync` resolves real listeners, and termination re-reads the port and refuses any identity change before using discrete `taskkill.exe` arguments. | `docs/features/developer-terminal/developer-workflow-workbench.md` plus focused listener contracts. |
+| **Switch Node version (per-shell)** | The workbench detects fnm, Volta, and nvm-windows; list/install use argument vectors, while fnm/Volta open version-scoped PowerShell and the globally switched nvm path is explicitly refused. | Developer workflow guide and focused fnm/Volta/nvm contracts. |
+| **Enable Corepack for pnpm/yarn** | Status, enable, and bounded `corepack prepare pnpm|yarn@<channel> --activate` actions are reachable from the Corepack expander. | Developer workflow guide and exact command-plan contracts. |
+| **Add Windows Defender dev-folder exclusions** | A folder picker, read-only exclusion inventory, reviewed add, and reviewed remove flow use Defender PowerShell with elevation; drive, Windows, and Program Files roots are rejected. | Developer workflow guide and exclusion-path validation contracts. |
+| **Widen ephemeral ports & tune TIME_WAIT** | Read-only inspection precedes a reviewed, numeric-only elevated plan for `netsh ... dynamicport` and `TcpTimedWaitDelay`, bounded to the Windows 30–300 second range. | Developer workflow guide and boundary contracts. |
+| **Clean dev caches (npm/pnpm/pip/docker)** | Read-only bounded path measurement and `docker system df` run before cleanup is enabled; selected npm, pnpm, pip, and Docker builder operations use fixed command plans. | Developer workflow guide and all-four cleanup-plan contracts. |
 
-### Remaining gaps — 6 · 餘下缺口 — 6
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Kill process on port** | One fixed example finds port 8080 and separate actions kill by PID/name; there is no single user-entered-port flow that resolves and terminates the owning process. |
-| **Switch Node version (per-shell)** | No fnm/nvm/Volta detection, version list/install, or per-terminal selection is implemented. |
-| **Enable Corepack for pnpm/yarn** | No Corepack enable/prepare/status controls or command bindings exist. |
-| **Add Windows Defender dev-folder exclusions** | Only fixed example paths/processes exist in catalog data; there is no folder picker and reviewed add/list/remove flow for the developer-selected project. |
-| **Widen ephemeral ports & tune TIME_WAIT** | No controls invoke `netsh ... dynamicport` or manage `TcpTimedWaitDelay`. |
-| **Clean dev caches (npm/pnpm/pip/docker)** | npm and Docker cleanup examples exist, but the combined inspected cleanup omits pnpm and pip and does not show reclaimable sizes before mutation. |
+No Developer & Terminal entries remain open. · 開發與終端機冇剩低未完成項目。
 
 ## Home Assistant · Home Assistant
 
-### Shipped — 13 · 已交付 — 13
+### Shipped — 14 · 已交付 — 14
 
 Common evidence: `Pages/HomeAssistantModule.xaml(.cs)` exposes the handlers below; `Services/HomeAssistantService.cs` maps them to the documented REST endpoints. Generated evidence is in `docs/wiki/features/apps-git-git/homeassistant.md` and its 42 button pages.
 
@@ -182,16 +181,15 @@ Common evidence: `Pages/HomeAssistantModule.xaml(.cs)` exposes the handlers belo
 | **Set thermostat target temp and HVAC mode** | `SetTemp_Click` / `SetHvac_Click` call the climate service methods for the selected entity. |
 | **Push a notification to phones** | `LoadTargets_Click` discovers notify targets; `Notify_Click` calls `Notify`. |
 | **Trigger a parameterized voice intent by text** | `Intent_Click` validates slot JSON and calls `HandleIntent` (`POST /api/intent/handle`). |
+| **Validate config before restarting HA** | `Restart_Click` must record an exact JSON `{"result":"valid"}` response from `CheckConfig`; `HomeAssistantRestartGate` binds the proof to the current endpoint/token fingerprint, expires it after two minutes, rechecks after confirmation, and consumes it after one restart attempt. |
 
-### Remaining gaps — 1 · 餘下缺口 — 1
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Validate config before restarting HA** | `CheckCfg_Click` and `Restart_Click` are separate. Restart only shows a confirmation and directly calls `_ha.Restart()`; it does not require or retain a successful `CheckConfig()` result, so the safety gate promised by the roadmap is not present. |
+No Home Assistant entries remain open. · Home Assistant 冇剩低未完成項目。
 
 ## Archives · Archives
 
-### Shipped — 10 · 已交付 — 10
+### Shipped — 14 · 已交付 — 14
 
 All catalog entries below are rendered by the Archives surface through `ControlRowList`; `Catalog/ArchiveTweak.cs` binds them to `ArchiveService.Run` / `RunRar`, and generated feature docs live under `docs/features/archives/`. The bespoke Create panel also calls the extended `ArchiveService.Create` overload.
 
@@ -207,15 +205,14 @@ All catalog entries below are rendered by the Archives surface through `ControlR
 | **List archive contents with technical detail** | `arc.inspect.list-technical` / `arc.list-slt` invoke `7z l -slt`. |
 | **Repair corrupted RAR via recovery record** | `arc.rar-repair` routes `unrar r {archive}` through `ArchiveService.RunRar`; `arc.rar-extract-keepbroken` exposes `x -kb`. |
 | **Set LZMA2 dictionary & word size for max ratio** | `arc.create-7z-lzma2` exposes LZMA2 and `arc.create-7z-max-combo` combines 7z ultra/solid mode with `-md=64m -mfb=273`; large-dictionary variants are also present. |
+| **Delete files from inside an archive without re-packing** | The Delete Entries expander accepts up to 32 bounded relative names/masks, shows the exact set in a destructive decision dialog, and invokes `7z d` with optional recursion through discrete arguments. |
+| **Delete source files after successful packing (move-to-archive)** | Move mode deliberately avoids `-sdel`: it packs, runs a separate password/volume-aware `7z t`, and only then sends the still-existing source to the Recycle Bin; unsafe source/output containment is rejected. |
+| **Filter by file mask & exclude junk into archive** | The Create safety expander accepts bounded semicolon/newline include and exclude masks and emits independent `-ir!` / `-xr!` arguments after traversal/root validation. |
+| **Preserve NTFS timestamps & don't bump Last-Access** | The 7z-only option emits the complete `-mtc=on`, `-mta=on`, `-mtm=on`, and `-ssp` switch set. |
 
-### Remaining gaps — 4 · 餘下缺口 — 4
+### Remaining gaps — 0 · 餘下缺口 — 0
 
-| Unchecked roadmap capability | Factual reason it remains unchecked |
-|---|---|
-| **Delete files from inside an archive without re-packing** | `arc.mod-delete` is hard-wired to `*.tmp`; there is no entry picker or user-editable name/mask input for arbitrary in-archive deletion. |
-| **Delete source files after successful packing (move-to-archive)** | Neither the Create panel nor catalog includes `-sdel`; no post-pack integrity gate/source deletion path exists. |
-| **Filter by file mask & exclude junk into archive** | Catalog offers fixed `*.log` exclude and `*.txt` include examples only; no user-configurable include/exclude mask controls exist. |
-| **Preserve NTFS timestamps & don't bump Last-Access** | `arc.create-7z-keep-time` supplies only `-mtc=on`; required `-mta=on`, `-mtm=on`, and `-ssp` controls are absent. |
+No Archives entries remain open. · 壓縮檔冇剩低未完成項目。
 
 ## Browser Control · Browser Control
 
@@ -248,11 +245,12 @@ No Browser Control entries remain open. · 瀏覽器控制冇剩低未完成項�
 
 - Focused contract: `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`.
 - Source/route checks: `.agents/skills/winforge-exhaustive-smoke/scripts/Test-WinForgeSourceSurfaceAudit.ps1`, XAML literal safety, focused roadmap consistency, and docs-only site generation are run as part of this audit handoff.
-- The historical adversarial review remains valid for Media and Archives; Browser Control subsequently advanced from 3/14 to 14/14 through the parameterized workbench and focused harness.
+- The historical adversarial review remains valid for Media and Archives; Browser Control, Developer & Terminal, Home Assistant, and Archives subsequently closed their source-proven gaps through parameterized, review-first workflows and focused harnesses.
 - `tests/BrowserControl.Tests` covers 23 URL, profile, PWA, internal-page, cache, proxy, ephemeral-lifecycle, feature, debug-port, and winget plan contracts. Fresh Browser route visual evidence is required because `CategoryPage` and its layout changed.
 - Media's former 4/11 disposition is now 15/0. The four pre-existing items remain source-accurate, including animated WebP's `libwebp` command without an explicit quality value; all eleven former gaps have dedicated page handlers, executor evidence, and focused tests.
 - The Media WinUI surface changed. A fresh process-owned live-tree capture was inspected and promoted to `docs/screenshot-media.png` and `docs/wiki/images/screenshot-media.png` (SHA-256 `F89886CE200DA522E8C956B67B363A847E8E9DC0AC2926DFF382E9E52B870900`); LowLevel MCP was present only as repository guidance and was not callable in this session.
 - The Windows/System + Maintenance follow-up changes the live System Doctors page. Fresh self-contained LowLevel headless captures cover the normal, narrow, expanded Storage Sense, and expanded ResetBase-warning states; destructive system operations remained unexecuted during visual verification.
-- The remaining 11 unchecked entries are intentional product gaps in other sections, not audit failures. Future work should check an entry only after its specific reason is resolved and the focused contract is updated deliberately.
+- `tests/RoadmapWorkflowCore.Tests` passes 44/44 pure contracts without changing live ports, Defender settings, TCP configuration, caches, archives, or a Home Assistant instance.
+- No unchecked entries remain. All eight sections are fully complete at **115/115 shipped / 0 gaps**. Future work should update the focused contract deliberately before changing any disposition.
 
-今次瀏覽器控制由 3/14 推進到 14/14，Media 由 4/15 推進到 15/15，Windows／System 同 Maintenance 亦全部補齊；相關 WinUI 都有最新已檢視畫面。系統醫生擷取冇執行破壞性系統操作，其餘 11 項未剔選係其他章節刻意保留嘅真實產品缺口，唔係審核漏咗。
+今次瀏覽器控制由 3/14 推進到 14/14，Media 由 4/15 推進到 15/15，Windows／System 同 Maintenance 亦全部補齊，開發與終端機、Home Assistant 同壓縮檔再補齊十一項；相關 WinUI 都有最新已檢視畫面。系統醫生擷取冇執行破壞性系統操作，所有八個章節 115 項全部交付，零缺口，唔係審核漏咗。

@@ -41,6 +41,10 @@
                     x:Name="BrowserWorkbenchHost"
                     AutomationProperties.AutomationId="BrowserWorkbenchHost"
                     Visibility="Collapsed" />
+                <ContentControl
+                    x:Name="DeveloperWorkbenchHost"
+                    AutomationProperties.AutomationId="DeveloperWorkbenchHost"
+                    Visibility="Collapsed" />
                 <StackPanel x:Name="CardsPanel" />
             </StackPanel>
         </ScrollViewer>

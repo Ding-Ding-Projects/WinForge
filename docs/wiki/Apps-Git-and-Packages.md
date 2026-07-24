@@ -2,6 +2,14 @@
 
 Tools for source control, package managers, app removal, Android device workflows, torrents and communications. · 集合咗源碼管理、套件管理員、移除應用程式、Android 裝置流程、種子下載同通訊嘅工具。
 
+## Home Assistant validated restart · Home Assistant 驗證後重啟
+
+The Config tab binds restart to an exact, short-lived successful `check_config` result for the current endpoint/token. See [Home Assistant Validated Restart](Home-Assistant-Validated-Restart.md). · Config 分頁會將重啟綁定目前 endpoint／權杖嘅準確、短效成功檢查；詳情請睇[Home Assistant 驗證後重啟](Home-Assistant-Validated-Restart.md)。
+
+Open in-app: `WinForge.exe --page homeassistant`
+
+![Home Assistant](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-homeassistant.png)
+
 ## Git & GitHub · Git 與 GitHub
 
 Multi-repo workbench for git and gh operations with repository overview, remotes, stashes, tags and a chunked uploader. · 多儲存庫工作台，操作 git 同 gh，附儲存庫概覽、remotes、stashes、tags 同分塊上傳器。

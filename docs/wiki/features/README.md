@@ -123,7 +123,7 @@
 | [Name Generator · 名稱產生器](everyday-life/namegen.md) | `module.namegen` | `namegen` | 2 |
 | [Recycle Bin Manager · 回收筒管理](everyday-life/recyclebin.md) | `module.recyclebin` | `recyclebin` | 2 |
 | [Scratchpad · 便箋](everyday-life/notes.md) | `module.notes` | `notes` | 3 |
-| [Archives · 壓縮檔](files-disks/archives.md) | `module.archives` | `archives` | 5 |
+| [Archives · 壓縮檔](files-disks/archives.md) | `module.archives` | `archives` | 6 |
 | [Batch Rename · 批次改名](files-disks/rename.md) | `module.rename` | `rename` | 2 |
 | [Bulk File Ops · 批次檔案操作](files-disks/bulkops.md) | `module.bulkops` | `bulkops` | 7 |
 | [Diff & Merge (WinMerge) · 比對與合併](files-disks/diff.md) | `module.diffmerge` | `diff` | 12 |
@@ -190,7 +190,7 @@
 | [Document Converter · 文件轉換器](media-capture/libreoffice.md) | `module.libreoffice` | `libreoffice` | 11 |
 | [GIF Studio · 螢幕轉 GIF](media-capture/giflab.md) | `module.giflab` | `giflab` | 10 |
 | [Image Editor · 點陣圖影像編輯器](media-capture/imageeditor.md) | `module.imageeditor` | `imageeditor` | 29 |
-| [Media · 媒體](media-capture/media.md) | `module.media` | `media` | 6 |
+| [Media · 媒體](media-capture/media.md) | `module.media` | `media` | 26 |
 | [Media Downloader · 媒體下載器](media-capture/ytdlp.md) | `module.ytdlp` | `ytdlp` | 9 |
 | [Media Player · 媒體播放器](media-capture/mediaplayer.md) | `module.mediaplayer` | `mediaplayer` | 15 |
 | [PDF Toolkit · PDF 工具箱](media-capture/pdf.md) | `module.pdftoolkit` | `pdf` | 0 |

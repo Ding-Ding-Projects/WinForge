@@ -50,6 +50,7 @@
                             <Button x:Name="RestartBtn" Click="Restart_Click" />
                             <ProgressRing x:Name="CcBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
                         </StackPanel>
+                        <TextBlock x:Name="ConfigGateState" AutomationProperties.LiveSetting="Polite" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                         <TextBlock x:Name="ReloadLbl" FontWeight="SemiBold" FontSize="13" Margin="0,6,0,0" />
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>

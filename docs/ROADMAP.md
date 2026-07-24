@@ -204,9 +204,9 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _PowerShell Appx: re-register a broken package via 'Get-AppxPackage <name> | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}'; list with 'Get-AppxPackage -AllUsers'. Soft reset = the documented Reset button reached by the 'ms-settings:appsfeatures' deep link; hard clear = remove the data folder under %LocalAppData%\Packages\<PackageFamilyName>._
 
 ### Dev & Terminal · 🆕 new module / 新模組  (15)
-> **Strict source audit (2026-07-24): 9/15 shipped.** Six partial/absent developer workflows remain unchecked; evidence and reasons are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#dev--terminal--開發同終端機). · **嚴格原始碼審核：15 項有 9 項已交付，6 項仲未完整。**
+> **Strict source audit (2026-07-24): 15/15 shipped.** The six former gaps now use a parameterized, review-first workbench with bounded argument plans and focused contracts; evidence is in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#dev--terminal--開發同終端機). · **嚴格原始碼審核：15/15 已交付。六個舊缺口已由參數化、先審閱工作台補齊，並有界參數同專項合約。**
 
-- [ ] **Kill process on port** · 殺咗佔住個 port 嗰個程式
+- [x] **Kill process on port** · 殺咗佔住個 port 嗰個程式
   - _Get-NetTCPConnection -LocalPort <n> -State Listen | Select -Expand OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }. Resolve names via Get-Process -Id; build the full listener table by joining Get-NetTCPConnection -State Listen to Get-Process on OwningProcess._
 - [x] **Manage PATH entries (user/system)** · 整理 PATH 入面嘅路徑
   - _Read/write registry: HKCU\Environment value 'Path' (user, REG_EXPAND_SZ) and HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment value 'Path' (system). After editing, broadcast WM_SETTINGCHANGE via SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, 'Environment') so new shells pick it up. Dedupe/reorder in the UI._
@@ -216,11 +216,11 @@ Checklist status is reconciled against executable source, registered routes, gen
 - [x] **Upgrade all outdated packages** · 一次過更新晒啲套件 — DONE across the available WinGet, Scoop, Chocolatey, pip, npm, .NET tool, PowerShell Gallery/PSResourceGet, Cargo, Bun and vcpkg engines, subject to each installed CLI's capabilities.
 - [x] **Docker container & image dashboard** · 睇住 Docker 容器同 image
   - _docker ps -a --format '{{json .}}' and docker images --format '{{json .}}' for the grid; row actions docker start/stop/restart/rm <id>, docker logs -f <id>, docker exec -it <id> sh into the terminal panel; reclaim space with docker system df then docker system prune -f._
-- [ ] **Switch Node version (per-shell)** · 切換 Node 版本
+- [x] **Switch Node version (per-shell)** · 切換 Node 版本
   - _Wrap fnm (winget install Schniz.fnm, ID verified): fnm list, fnm install <ver>, fnm use <ver>; emit fnm env --use-on-cd for the panel's shell init. Fallback to nvm-windows: nvm list / nvm install <ver> / nvm use <ver>._
-- [ ] **Enable Corepack for pnpm/yarn** · 開咗 Corepack 用 pnpm/yarn
+- [x] **Enable Corepack for pnpm/yarn** · 開咗 Corepack 用 pnpm/yarn
   - _corepack enable (ships with Node); pin a manager via corepack prepare pnpm@latest --activate or yarn@stable; verify with corepack --version. No global npm install needed._
-- [ ] **Add Windows Defender dev-folder exclusions** · 幫開發資料夾加 Defender 例外
+- [x] **Add Windows Defender dev-folder exclusions** · 幫開發資料夾加 Defender 例外
   - _Add-MpPreference -ExclusionPath '<repo dir>' and -ExclusionProcess 'node.exe','docker.exe' to stop real-time scans slowing builds; list with Get-MpPreference | Select -Expand ExclusionPath; remove via Remove-MpPreference -ExclusionPath. Needs elevation (route through the no-UAC scheduled-task launcher)._
 - [x] **Run the real Claude / Codex / OpenCode CLI** · 喺度行 Claude / Codex / OpenCode CLI
   - _Spawn the installed agent binaries in the embedded ConPTY terminal: claude (Anthropic Claude Code), codex (OpenAI Codex CLI), opencode; detect with Get-Command claude/codex/opencode and offer install via npm i -g @anthropic-ai/claude-code, @openai/codex, opencode-ai. Pass cwd = selected repo._
@@ -228,19 +228,19 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _ssh-keygen -t ed25519 -C '<email>' -f $env:USERPROFILE\.ssh\id_ed25519 -N ''; enable the agent with Set-Service ssh-agent -StartupType Automatic; Start-Service ssh-agent; ssh-add; copy the public key via Get-Content id_ed25519.pub | Set-Clipboard; optionally register with gh ssh-key add id_ed25519.pub._
 - [x] **Open WSL distro management** · 管理 WSL 發行版
   - _wsl --list --verbose for state/version; wsl --set-default-version 2; wsl --update (kernel); install from wsl --list --online via wsl --install -d <Distro>; per-distro wsl --terminate <name> / wsl --unregister <name>; launch one into the embedded terminal with wsl -d <name>._
-- [ ] **Widen ephemeral ports & tune TIME_WAIT** · 調闊 ephemeral port 同縮短 TIME_WAIT
+- [x] **Widen ephemeral ports & tune TIME_WAIT** · 調闊 ephemeral port 同縮短 TIME_WAIT
   - _netsh int ipv4 set dynamicport tcp start=10000 num=55000 to widen the ephemeral range (show current with netsh int ipv4 show dynamicport tcp). Optionally set HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters DWORD 'TcpTimedWaitDelay' (valid 30-300 s). Registry write + reboot/restart needs elevation._
 - [x] **Tunnel a local port (share dev server)** · 開隧道分享本機 port
   - _Wrap Cloudflare cloudflared (winget install Cloudflare.cloudflared, ID verified): cloudflared tunnel --url http://localhost:<port> prints a public https URL to copy. Alt engine: ngrok http <port> if installed._
-- [ ] **Clean dev caches (npm/pnpm/pip/docker)** · 清咗開發快取
+- [x] **Clean dev caches (npm/pnpm/pip/docker)** · 清咗開發快取
   - _npm cache clean --force; pnpm store prune; yarn cache clean; pip cache purge; docker builder prune -f; nuget locals all -clear. Show reclaimable sizes first by sizing %LocalAppData%\npm-cache, the pnpm store path (pnpm store path), %LocalAppData%\pip\Cache, and docker system df._
 
 ### Home Assistant · 🆕 new module / 新模組  (14)
-> **Strict source audit (2026-07-24): 13/14 shipped.** Config checking and restart are separate controls, so the safety-gated combined workflow remains unchecked; details are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#home-assistant--home-assistant). · **嚴格原始碼審核：14 項有 13 項已交付；重啟前強制驗證嗰條安全流程仍未完整。**
+> **Strict source audit (2026-07-24): 14/14 shipped.** Restart is now bound to an exact successful `check_config` response for the current endpoint/token, expires after two minutes, and is consumed after one attempt; details are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#home-assistant--home-assistant). · **嚴格原始碼審核：14/14 已交付。重啟而家綁定目前 endpoint／權杖嘅有效檢查，兩分鐘後過期，而且一次性使用。**
 
 - [x] **Render a Jinja template against live state** · 攞實時狀態嚟跑 Jinja 範本
   - _POST /api/template with JSON {"template":"..."} (e.g. {{ states('sensor.temperature') }}); returns the rendered string as plain text. Lets a power user test templates against live entity state without opening HA's Developer Tools UI._
-- [ ] **Validate config before restarting HA** · 重啟 HA 之前先驗下個 config
+- [x] **Validate config before restarting HA** · 重啟 HA 之前先驗下個 config
   - _POST /api/config/core/check_config (empty body) returns {"result":"valid"|"invalid","errors":...}. Run it, and only if valid call POST /api/services/homeassistant/restart. Prevents bricking HA on a bad configuration.yaml._
 - [x] **Plot 24h entity history sparkline** · 畫返廿四個鐘嘅實體歷史走勢
   - _GET /api/history/period/<ISO-8601 start timestamp>?filter_entity_id=<entity_id>&end_time=<ISO end>&minimal_response returns an array of state objects with last_changed; render as an inline sparkline for any sensor (temperature, power, etc.)._
@@ -268,7 +268,7 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _POST /api/intent/handle with JSON {"name":"<IntentName>","data":{...slots}} (the intent must be registered in HA, e.g. the built-in HassTurnOn). Lets WinForge invoke an Assist/conversation intent with a structured slot payload instead of free text._
 
 ### Archives · 🆕 new module / 新模組  (14)
-> **Strict source audit (2026-07-24): 10/14 shipped.** Four workflows are only fixed examples or lack required switches and remain unchecked; see the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#archives--archives). · **嚴格原始碼審核：14 項有 10 項已交付；4 項仍然係固定示例或者欠必要參數。**
+> **Strict source audit (2026-07-24): 14/14 shipped.** The Create surface now accepts bounded include/exclude masks and all four timestamp/access switches; arbitrary in-archive deletion and integrity-gated move-to-Recycle-Bin are reviewed workflows. See the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#archives--archives). · **嚴格原始碼審核：14/14 已交付。建立畫面有有界篩選同完整時間開關，亦加入先審閱嘅壓縮檔內刪除同驗證後移到回收筒。**
 
 - [x] **Encrypt archive headers (hide file names)** · 加密壓縮檔個檔頭（連檔名都收埋）
   - _7z.exe a -t7z archive.7z <files> -p{pwd} -mhe=on — AES-256 encrypts the archive header so even the file LIST is hidden, not just contents. Verified on 7-Zip 26.01: -mhe=on is the real header-encryption switch (only valid for .7z)._
@@ -278,13 +278,13 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _7z.exe b [dictSize] [numIterations] — the 'b' benchmark tests LZMA compression/decompression speed and reports MIPS and MB/s; first positional arg sets dictionary size (e.g. 7z.exe b 24 for ~16MB). Add -mm=LZMA2 / -mm=Deflate / etc. to benchmark a specific codec. (No -mm=* extended-sweep switch — that is not real.)_
 - [x] **Update archive (refresh only changed / newer files)** · 更新壓縮檔（淨係加啲改咗或者新嘅檔）
   - _7z.exe u archive.7z <files> — the 'u' (update) command refreshes an existing archive, adding new files and replacing newer versions. Fine-tune with the single-token update-options switch -u{...}, e.g. -uq0 (don't copy missing-from-disk files), per 7-Zip's -u[-][p#][q#][r#][x#][y#][z#] syntax verified in switch help._
-- [ ] **Delete files from inside an archive without re-packing** · 喺壓縮檔入面直接刪檔（唔使拆返出嚟）
+- [x] **Delete files from inside an archive without re-packing** · 喺壓縮檔入面直接刪檔（唔使拆返出嚟）
   - _7z.exe d archive.7z <names_or_masks> — the 'd' (delete) command removes matching entries directly inside the archive. Combine with -r and include/exclude masks (e.g. 7z.exe d archive.7z *.log -r) to prune junk from a large archive in place._
 - [x] **Split into volumes / re-join (multi-part archive)** · 拆做分卷 / 砌返埋（多卷壓縮檔）
   - _Create: 7z.exe a archive.7z <files> -v100m (or -v700m, -v4480m for DVD). Re-join + extract: 7z.exe x archive.7z.001 reads all .00x parts automatically. Verified switch: -v{Size}[b|k|m|g]._
 - [x] **Make self-extracting EXE (SFX)** · 整自解壓 EXE（SFX）
   - _7z.exe a archive.exe <files> -sfx — verified switch -sfx[{name}]; defaults to the 7zCon.sfx console stub, or -sfx7z.sfx for the GUI stub shipped beside 7z.exe. Output must end in .exe; recipient runs it without 7-Zip installed._
-- [ ] **Delete source files after successful packing (move-to-archive)** · 壓縮成功之後自動刪走原檔（等於搬入壓縮檔）
+- [x] **Delete source files after successful packing (move-to-archive)** · 壓縮成功之後自動刪走原檔（等於搬入壓縮檔）
   - _7z.exe a archive.7z <files> -sdel — verified switch -sdel deletes the source files only after the archive is written successfully, turning a copy-into-archive into a true move. Pair with -t after for a safety integrity check._
 - [x] **Test archive integrity** · 驗壓縮檔完唔完整
   - _7z.exe t archive.7z -p{pwd} — the 't' command CRC-tests every entry without extracting and returns a non-zero exit code on corruption. For RAR: bundle unrar.exe and run unrar t archive.rar._
@@ -294,9 +294,9 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _Bundle RARLAB unrar.exe: unrar r archive.rar repairs a RAR using its embedded recovery record / recovery volumes (.rev). Pair with unrar x -kb archive.rar to keep partially-extracted broken files (-kb = keep broken, real WinRAR switch). 7-Zip cannot repair RAR, so this requires the unrar CLI._
 - [x] **Set LZMA2 dictionary & word size for max ratio** · 調字典大細同字長（榨到最盡個壓縮比）
   - _7z.exe a archive.7z <files> -m0=LZMA2 -md=256m -mfb=273 -mx=9 -ms=on — -md sets dictionary size, -mfb sets fast-bytes / word size (max 273), -mx=9 ultra level, -ms=on enables solid mode for best ratio on many small files. All real -m method parameters._
-- [ ] **Filter by file mask & exclude junk into archive** · 用檔名樣式篩選同排除入壓縮檔
+- [x] **Filter by file mask & exclude junk into archive** · 用檔名樣式篩選同排除入壓縮檔
   - _7z.exe a archive.7z -ir!*.jpg -xr!*.tmp -xr!node_modules <root> — verified recursive include/exclude switches -i[r[-|0]]!wildcard and -x[r]!wildcard let you archive only matching files and skip junk folders._
-- [ ] **Preserve NTFS timestamps & don't bump Last-Access** · 保留 NTFS 時間，唔好郁到最後存取時間
+- [x] **Preserve NTFS timestamps & don't bump Last-Access** · 保留 NTFS 時間，唔好郁到最後存取時間
   - _7z.exe a archive.7z <files> -mtc=on -mta=on -mtm=on -ssp — -mtc/-mta/-mtm store Created/Accessed/Modified times in the .7z; verified switch -ssp stops Windows from updating the source files' Last-Access-Time while 7-Zip reads them. Add -sni to also store NT security info._
 
 ### Communications · 🆕 new module / 新模組  (14)

@@ -10,6 +10,8 @@ Open in-app: `WinForge.exe --page archives`
 
 ![Archives](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-archives.png)
 
+See [Archive Safety Workflows](#/wiki/Archive-Safety-Workflows) for bounded filters, complete NTFS timestamp switches, integrity-gated move-to-Recycle-Bin, and reviewed in-archive deletion. · 有界篩選、完整 NTFS 時間開關、驗證後移到回收筒同先審閱檔內刪除請睇[壓縮檔安全工作流程](#/wiki/Archive-Safety-Workflows)。
+
 ## Batch Rename · 批次改名
 
 Bulk rename files with regex and sequence patterns. · 用正規表示式同序號樣式批次改名。
