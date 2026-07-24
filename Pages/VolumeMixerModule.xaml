@@ -19,7 +19,7 @@
 
         <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE767;">
             <controls:ModuleHeader.ActionContent>
-                <Button x:Name="RefreshBtn" Click="Refresh_Click" VerticalAlignment="Center">
+                <Button x:Name="RefreshBtn" Click="Refresh_Click" MinHeight="44" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE72C;" FontSize="14" />
                         <TextBlock x:Name="RefreshText" />
@@ -29,24 +29,22 @@
         </controls:ModuleHeader>
         <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
-        <!-- Device picker row: choose which playback device the mixer shows + make it system default. -->
-        <Grid Grid.Row="2" ColumnSpacing="12" Margin="0,2,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock x:Name="DeviceLabel" Grid.Column="0" VerticalAlignment="Center"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-            <ComboBox x:Name="DevicePicker" Grid.Column="1" HorizontalAlignment="Stretch"
-                      SelectionChanged="DevicePicker_SelectionChanged" />
-            <Button x:Name="SetDefaultBtn" Grid.Column="2" Click="SetDefault_Click" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="8">
+        <!-- Stacked controls keep long bilingual labels usable at narrow widths and high display scales. -->
+        <StackPanel Grid.Row="2" Spacing="8" Margin="0,2,0,0">
+            <TextBlock x:Name="DeviceLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <ComboBox x:Name="DevicePicker" HorizontalAlignment="Stretch"
+                      MinHeight="48" SelectionChanged="DevicePicker_SelectionChanged" />
+            <Button x:Name="SetDefaultBtn" Click="SetDefault_Click" HorizontalAlignment="Stretch" MinHeight="48">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
                     <FontIcon Glyph="&#xE73E;" FontSize="14" />
-                    <TextBlock x:Name="SetDefaultText" />
-                </StackPanel>
+                    <TextBlock x:Name="SetDefaultText" Grid.Column="1" TextWrapping="Wrap" />
+                </Grid>
             </Button>
-        </Grid>
+        </StackPanel>
 
         <InfoBar x:Name="HintBar" Grid.Row="3" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
 

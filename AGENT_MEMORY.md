@@ -15,6 +15,7 @@ This file is the durable execution contract for the canonical WinForge repositor
 
 - Compile with `dotnet build WinForge.sln -c Debug -p:Platform=x64`; success means exit 0 and zero errors, not a fixed warning count. · 用指定 command 編譯；成功係 exit 0 同零 errors，唔係固定 warning 數量。
 - Run through a self-contained publish or `.agents/skills/run-winforge/driver.ps1`; a framework-dependent Debug executable is not the runnable artifact in this workspace. · 要用自包含 publish 或 repo driver 執行；呢個 workspace 嘅 framework-dependent Debug executable 唔係可執行交付物。
+- For visual evidence, use LowLevel headless first and the driver against that owned launch. The DEBUG app can render its live WinUI tree to a unique validated PNG; the driver never uses raw `CopyFromScreen`, because an overlapping app can leak unrelated pixels. Only targeted `PrintWindow` is a bounded fallback. · 視覺證據先用 LowLevel headless，再用 driver 對準自家 launch。DEBUG app 可以將即時 WinUI tree 輸出到唯一、經驗證嘅 PNG；driver 永遠唔用原始 `CopyFromScreen`，因為遮住 app 嘅其他視窗可能漏入圖片。有限後備只係 targeted `PrintWindow`。
 - Managed release assets must stay compatible with `Services/AppUpdateService.cs`, including the expected `WinForge-Setup.exe` installer name and GitHub-provided SHA-256 digest verification. · 正式 release asset 要同 updater 合約相容，包括 `WinForge-Setup.exe` 名稱同 GitHub SHA-256 digest 驗證。
 - Preserve the three persisted language modes exactly: English, playful respectful Hong Kong-style Cantonese, and compact bilingual. Keep localization resources separate from logic. · 保留英文、好玩但尊重嘅香港粵語、同精簡雙語三種持久模式；本地化資源要同邏輯分開。
 

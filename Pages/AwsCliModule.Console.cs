@@ -2,16 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.ApplicationModel.DataTransfer;
-using Windows.Graphics.Imaging;
-using Windows.Storage;
 using WinForge.Catalog;
 using WinForge.Models;
 using WinForge.Services;
@@ -1044,41 +1040,6 @@ public sealed partial class AwsCliModule
             var current = Interlocked.Exchange(ref _owner, null);
             current?.EndAwsMutation();
         }
-    }
-
-    /// <summary>
-    /// Debug-only, opt-in in-process capture for CI/agent desktops where screen DC access is denied.
-    /// RenderTargetBitmap captures WinUI's actual XAML pixels; no sample data or synthetic mockup is used.
-    /// </summary>
-    private async Task TryWriteAutomationCaptureAsync()
-    {
-#if DEBUG
-        var path = Environment.GetEnvironmentVariable("WINFORGE_CAPTURE_PATH");
-        if (string.IsNullOrWhiteSpace(path) || App.Shell?.Content is not FrameworkElement root) return;
-        try
-        {
-            var delayMs = int.TryParse(Environment.GetEnvironmentVariable("WINFORGE_CAPTURE_DELAY_MS"), out var requestedDelay)
-                ? Math.Clamp(requestedDelay, 1_000, 30_000)
-                : 3_000;
-            await Task.Delay(delayMs);
-            root.UpdateLayout();
-            var bitmap = new RenderTargetBitmap();
-            await bitmap.RenderAsync(root);
-            if (bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0) return;
-            var pixels = await bitmap.GetPixelsAsync();
-            var folderPath = Path.GetDirectoryName(path);
-            if (string.IsNullOrWhiteSpace(folderPath)) return;
-            Directory.CreateDirectory(folderPath);
-            var folder = await StorageFolder.GetFolderFromPathAsync(folderPath);
-            var file = await folder.CreateFileAsync(Path.GetFileName(path), CreationCollisionOption.ReplaceExisting);
-            using var stream = await file.OpenAsync(FileAccessMode.ReadWrite);
-            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
-            encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
-                (uint)bitmap.PixelWidth, (uint)bitmap.PixelHeight, 96, 96, pixels.ToArray());
-            await encoder.FlushAsync();
-        }
-        catch { /* capture automation must never affect the manager */ }
-#endif
     }
 
     // Implemented in AwsCliModule.Manager.cs once the managed AWS SDK service is available.

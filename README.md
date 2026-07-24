@@ -12,6 +12,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 319
 
 - **One control center · 一個控制中心** — system tweaks, files and disks, media, networking, package management, developer tools, accessibility utilities, virtualization, security, and gaming surfaces live in one app.
 - **Real integrations · 真正整合** — modules use Windows APIs and tools such as `git`, `gh`, `winget`, `ffmpeg`, 7-Zip, Docker, cloudflared, and WebView2; safety-sensitive actions remain explicit and reviewable.
+- **Native audio routing · 原生音訊路由** — the in-app mixer uses Core Audio for device, master, and per-app volume controls; stream-routing failures degrade safely, and returning an app to the system default is explicit and bilingual. · App 內混音器用 Core Audio 控制裝置、主音量同逐個 app 音量；串流路由失敗會安全降級，將 app 還原到系統預設亦有清楚雙語提示。
 - **Managed AWS console · 受管理 AWS 主控台** — in-process AWS SDK workspaces provide account/Region isolation, cross-service discovery, native S3 controls, and guarded EC2 instance lifecycle management; the CLI remains an optional long-tail workbench. · 程式內 AWS SDK 工作區提供帳戶／Region 隔離、跨服務探索、原生 S3 控制，同受保護 EC2 執行個體生命週期管理；CLI 只係選用長尾工作台。
 - **Three persisted language modes · 三種持久語言模式** — English, playful Hong Kong-style Cantonese, and compact bilingual mode.
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
@@ -49,6 +50,8 @@ dotnet publish WinForge.csproj -c Debug -r win-x64 --self-contained true `
 For build-if-needed, deep-link launch, process-owned cleanup, and an optional screenshot, use the repository driver:
 
 想自動按需要建置、直接開指定頁、只清理自己開嘅 process，同選擇性截圖，可以用 repo driver：
+
+Screenshot runs request a DEBUG-only capture of WinForge's live visual tree and validate the result before promotion. The driver never reads raw desktop pixels, so a window overlapping WinForge cannot leak into the image; an HWND-targeted `PrintWindow` attempt is the bounded fallback. · 截圖 run 會要求 DEBUG-only 嘅 WinForge 即時 visual tree capture，驗證合格先升格。Driver 永遠唔會讀取原始 desktop pixels，所以其他視窗遮住 WinForge 都唔會漏入圖片；有限後備只會針對自家 HWND 呼叫 `PrintWindow`。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 `

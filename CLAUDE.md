@@ -12,7 +12,7 @@ WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + �
 - **Easiest path — use the skill `.agents/skills/run-winforge/`** (SKILL.md + driver.ps1): builds-if-needed, launches any page via `--page <alias>`, screenshots the window. e.g.
   `powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Page reactor -Out shot.png`
 - **Reactor/dependent headless tests:** `dotnet run --project tests/ReactorSim.Tests -c Debug` (**63/63**).
-- The app is NOT a Start-menu app, so desktop/computer-use screenshot tools mask it — capture via the driver (DWM bounds + `CopyFromScreen`).
+- The app is NOT a Start-menu app. Capture with LowLevel on a dedicated headless desktop plus the repository driver: DEBUG builds render the owned live WinUI visual tree, and only validated HWND-targeted `PrintWindow` is a fallback. Never use `CopyFromScreen`; an overlapping window can leak unrelated desktop pixels into evidence.
 
 ## Architecture & conventions (follow these)
 - **Add a module = touch 4 places:** `Pages/<X>Module.xaml(.cs)` (class `<X>Module : Page`, namespace `WinForge.Pages`) + logic in `Services/<X>Service.cs`; then register in **(1)** `Services/ModuleRegistry.cs` (Tag `module.xxx`, En, Zh, Glyph, Keywords), **(2)** `MainWindow.xaml.cs` `MapType()` (tag→type), **(3)** `MainWindow.xaml.cs` `ApplyStartPage()` (deep-link aliases for `--page`), **(4)** `MainWindow.xaml` `NavigationViewItem`.

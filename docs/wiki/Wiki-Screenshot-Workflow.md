@@ -1,30 +1,35 @@
 # Wiki Screenshot Workflow · Wiki 截圖工作流程
 
-**EN —** Every screenshot in this wiki is captured and post-processed by one tool:
-[`tools/WinForgeShot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot)
-(`winforge-shot`). It drives WinForge through UI Automation, captures the window with
-`PrintWindow` (correct pixels even when occluded), and then — in the **same run** — can
-**crop, highlight, annotate, number steps, and redact personal info**. No second image
-editor is needed, so step-by-step guides are reproducible from a single command.
+**EN —** Capture current WinUI pixels with the repository
+[`run-winforge` driver](https://github.com/codingmachineedge/WinForge/tree/main/.agents/skills/run-winforge),
+then use [`tools/WinForgeShot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot)
+(`winforge-shot`) to **crop, highlight, annotate, number steps, and redact personal info**.
+The driver requests a DEBUG-only image of WinForge's live visual tree, validates it as
+non-uniform, and cleans up its unique temporary file and owned process. It never samples
+raw desktop pixels, so an overlapping application cannot leak into evidence. A validated,
+HWND-targeted `PrintWindow` call is the only capture fallback.
 
-**粵語 —** 呢個 wiki 嘅每張截圖都係由同一個工具擷取同後製：
-[`tools/WinForgeShot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot)（`winforge-shot`）。
-佢用 UI Automation 驅動 WinForge、用 `PrintWindow` 擷取視窗（就算被遮住都影到正確像素），
-之後喺**同一次執行**裡面就可以**裁切、加強調框、加文字、加步驟編號、同遮蔽個人資料**。
-唔使用第二個影像編輯器，所以逐步教學可以由一條指令重現。
+**粵語 —** 先用 repo 嘅 [`run-winforge` driver](https://github.com/codingmachineedge/WinForge/tree/main/.agents/skills/run-winforge)
+擷取目前 WinUI pixels，再用 [`tools/WinForgeShot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot)
+（`winforge-shot`）做**裁切、加強調框、加文字、加步驟編號、同遮蔽個人資料**。
+Driver 會要求 DEBUG-only 即時 WinForge visual tree 圖、驗證唔係單色空畫面，並清理唯一 temp file
+同自家 process。佢永遠唔會抽取原始 desktop pixels，所以其他 app 遮住 WinForge 都唔會漏入證據；
+唯一 capture 後備係經驗證、只針對自家 HWND 嘅 `PrintWindow`。
 
 ---
 
 ## 1. Capture · 擷取
 
-**EN —** Launch a page by its deep-link alias and capture it. Build the tool once with
+**EN —** Launch a page by its deep-link alias and capture it with the self-contained driver.
+Build `WinForgeShot` once only when annotation or redaction is needed:
 `dotnet build tools/WinForgeShot/WinForgeShot.csproj -c Release`.
 
-**粵語 —** 用 deep-link 別名啟動某頁再擷取。工具只需建置一次：
-`dotnet build tools/WinForgeShot/WinForgeShot.csproj -c Release`。
+**粵語 —** 用 self-contained driver 經 deep-link 別名啟動某頁再擷取。只係需要標註或遮蔽時，
+先建置一次 `WinForgeShot`：`dotnet build tools/WinForgeShot/WinForgeShot.csproj -c Release`。
 
 ```
-winforge-shot --page dashboard --wait 15000 --out docs/screenshot-dashboard.png
+powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 \
+    -Page dashboard -WaitMs 15000 -Out docs/screenshot-dashboard.png
 ```
 
 **EN —** To edit an **existing** screenshot without relaunching WinForge, use `--open`

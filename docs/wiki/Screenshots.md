@@ -1,8 +1,8 @@
 # Screenshots · 截圖集
 
-Canonical screenshots live in `docs/` and are embedded here through raw GitHub URLs. Entries are captured — and cropped, highlighted, annotated, and redacted — with [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot). See the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md) for the full recipe.
+Canonical screenshots live in `docs/` and are embedded here through raw GitHub URLs. Current WinUI pixels are captured with the process-owned `run-winforge` driver; [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot) performs optional cropping, highlighting, annotation, and redaction. See the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md) for the full recipe.
 
-正式截圖放喺 `docs/`，呢度用 raw GitHub URL 嵌入。截圖由 [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot) 擷取，並裁切、加強調、標註同遮蔽。完整做法見 [Wiki 截圖工作流程](Wiki-Screenshot-Workflow.md)。
+正式截圖放喺 `docs/`，呢度用 raw GitHub URL 嵌入。目前 WinUI pixels 由 process-owned `run-winforge` driver 擷取；[`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot) 負責可選裁切、加強調、標註同遮蔽。完整做法見 [Wiki 截圖工作流程](Wiki-Screenshot-Workflow.md)。
 
 ## Current Capture Status · 目前擷取狀態
 
@@ -64,6 +64,8 @@ This gallery documents the canonical .NET / WinUI 3 application. C++/WinRT port 
 
 ### Volume Mixer · 音量混合器
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mixer.png)
+
+Current 2026-07-24 evidence: the self-contained DEBUG app rendered this 1284×811 frame from its live WinUI tree on a dedicated LowLevel desktop. The expected headless `No audio endpoint` state is shown honestly. A separately inspected 784×691 capture verified the device controls stack without clipping at narrow width. · 目前 2026-07-24 證據：self-contained DEBUG app 喺專用 LowLevel desktop 由即時 WinUI tree 輸出呢張 1284×811 圖；圖中如實顯示 headless 環境預期嘅 `No audio endpoint` 狀態。另有已檢視 784×691 capture 證明窄畫面裝置控制會直排而冇裁切。
 
 ### Context Menu · 右鍵選單
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-contextmenu.png)

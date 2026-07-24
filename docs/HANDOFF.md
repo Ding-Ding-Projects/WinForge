@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## 2026-07-24 audio and safe-capture hardening · 音訊同安全截圖修實
+
+The Volume Mixer COM boundary is nullable-clean and fail-closed, system-default routing now clears the per-app override explicitly, narrow device controls stack, and icon/slider accessibility names and 44–48 px targets are present. A DEBUG-only shell capture service renders the real WinUI tree to a bounded absolute PNG request. The driver validates and promotes that owned image first, never reads raw desktop pixels, and may use only HWND-targeted `PrintWindow` as fallback. · Volume Mixer COM 邊界已清理 nullable 同 fail-closed；系統預設路由會明確清除逐 app override；窄畫面控制會直排，圖示／slider 有無障礙名稱同 44–48 px target。DEBUG-only shell capture service 會按有限絕對 PNG 要求輸出真實 WinUI tree；driver 先驗證同升格自家圖片，永遠唔讀原始 desktop pixels，後備只限針對 HWND 嘅 `PrintWindow`。
+
+The managed publish completes with zero compiler warnings; XAML literal safety and the full source-surface audit pass. LowLevel headless captures at 1284×811 and 784×691 and a separate 1033×637 driver capture were inspected with no mixer clipping or overlap. The expected no-endpoint state is retained honestly in the refreshed canonical image; no audio/session data was invented. · Managed publish 零 compiler warning，XAML literal safety 同完整 source audit 全過。已檢視 LowLevel headless 1284×811、784×691，同獨立 driver 1033×637 圖，mixer 冇裁切或重疊。更新正式圖片如實保留預期 no-endpoint 狀態，冇虛構 audio／session 資料。
+
 ## Repository boundary · Repository 界線
 
 - Managed app source, services, tests, installer/updater behavior, documentation, wiki, Pages, and managed releases stay here. · 正式 app source、service、tests、installer／updater 行為、文件、wiki、Pages 同 managed release 留喺呢度。

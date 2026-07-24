@@ -131,8 +131,13 @@ Open in-app: `WinForge.exe --page battery`
 
 ## Volume Mixer · 音量混合器
 
-Per-app volume and mute control via WASAPI.
-用 WASAPI 逐個應用程式調音量同靜音。
+Per-app volume and mute control via Core Audio/WASAPI, with playback-device selection, master controls, default-device switching, and an explicit reset of each app to the system default. COM activation and returned interfaces are checked before use; unsupported per-app routing fails closed without changing another process. The device controls stack at narrow widths, while icon actions expose localized automation names, keyboard-operable sliders, 44–48 px targets, and full-title tooltips.
+
+用 Core Audio／WASAPI 逐個應用程式調音量同靜音，亦可以揀播放裝置、控制主音量、切換預設裝置，同明確將每個 app 還原到系統預設。使用前會檢查 COM 啟動同回傳介面；Windows 唔支援逐 app 路由時會安全停止，唔會改到其他程序。窄畫面會將裝置控制直向排列；圖示操作有本地化無障礙名稱、slider 可用鍵盤操作、44–48 px 點按範圍，同完整標題 tooltip。
+
+Failure mode · 失敗模式：endpoint changes or build-specific undocumented routing can reject an operation; WinForge keeps the previous route and shows a clear result. No audio content, device identifier, or app route is transmitted or persisted by this page. · 裝置變更或者 Windows 版本特定嘅未公開路由可能拒絕操作；WinForge 會保留原本路由並清楚顯示結果。呢頁唔會傳送或者保存音訊內容、裝置識別碼同 app 路由。
+
+Visual verification · 視覺驗證：fresh app-owned captures were inspected at 1284×811 and 784×691. The header, wrapped bilingual description, stacked device controls, persistent error surface, and 44–48 px actions remain visible without truncation or overlap. The dedicated headless desktop had no playback endpoint, so the canonical image intentionally shows the fail-closed endpoint state rather than invented audio sessions. · 已檢視 1284×811 同 784×691 嘅最新 app-owned capture；header、雙語換行說明、直排裝置控制、持續錯誤提示同 44–48 px 操作都冇截斷或重疊。專用 headless desktop 冇播放 endpoint，所以正式圖片刻意展示 fail-closed 狀態，唔會虛構 audio session。
 
 Open in-app: `WinForge.exe --page mixer`
 

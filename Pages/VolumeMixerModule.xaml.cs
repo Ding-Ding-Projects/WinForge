@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using WinForge.Services;
@@ -81,6 +82,9 @@ public sealed partial class VolumeMixerModule : Page
         RefreshText.Text = P("Rescan", "重新掃描");
         DeviceLabel.Text = P("Output device", "輸出裝置");
         SetDefaultText.Text = P("Set as default", "設為預設");
+        AutomationProperties.SetName(RefreshBtn, RefreshText.Text);
+        AutomationProperties.SetName(DevicePicker, DeviceLabel.Text);
+        AutomationProperties.SetName(SetDefaultBtn, SetDefaultText.Text);
 
         // ---- Enumerate render devices ----
         _loading = true;
@@ -184,15 +188,25 @@ public sealed partial class VolumeMixerModule : Page
         }
     }
 
-    private void MoveSession(int pid, string appName, string targetDeviceId)
+    private void MoveSession(int pid, string appName, string? targetDeviceId)
     {
         try
         {
             bool ok = AudioPolicyConfig.SetAppDefaultDevice(pid, targetDeviceId);
             if (ok)
             {
-                string target = "";
-                foreach (var d in _devices) if (d.Id == targetDeviceId) { target = d.FriendlyName; break; }
+                string target = P("system default", "系統預設");
+                if (!string.IsNullOrWhiteSpace(targetDeviceId))
+                {
+                    foreach (var d in _devices)
+                    {
+                        if (d.Id == targetDeviceId)
+                        {
+                            target = d.FriendlyName;
+                            break;
+                        }
+                    }
+                }
                 ShowInfo(InfoBarSeverity.Success,
                     P("Stream moved", "已移動串流"),
                     string.Format(P("\"{0}\" now plays to \"{1}\". Some apps only pick this up after a restart.",
@@ -222,28 +236,39 @@ public sealed partial class VolumeMixerModule : Page
 
     private Border Card(string title, string sub, float level, bool muted, bool accent,
         IReadOnlyList<AudioDeviceInfo>? moveTargets,
-        Action<float> onLevel, Action<bool> onMute, Action<string>? onMove = null)
+        Action<float> onLevel, Action<bool> onMute, Action<string?>? onMove = null)
     {
-        var grid = new Grid { ColumnSpacing = 12 };
+        var grid = new Grid { ColumnSpacing = 12, MinWidth = 0 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });   // mute
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // title + slider
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) }); // percent
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });   // move (optional)
 
-        var muteBtn = new Button { Padding = new Thickness(9), VerticalAlignment = VerticalAlignment.Center };
+        var muteBtn = new Button
+        {
+            Padding = new Thickness(9),
+            MinWidth = 44,
+            MinHeight = 44,
+            VerticalAlignment = VerticalAlignment.Center
+        };
         var muteIcon = new FontIcon { FontSize = 16, Glyph = muted ? GlyphMute : GlyphVol };
         muteBtn.Content = muteIcon;
         bool curMuted = muted;
-        ToolTipService.SetToolTip(muteBtn, P("Mute / unmute", "靜音／取消"));
+        string muteLabel = string.Format(P("Mute or unmute {0}", "將 {0} 靜音或取消靜音"), title);
+        ToolTipService.SetToolTip(muteBtn, muteLabel);
+        AutomationProperties.SetName(muteBtn, muteLabel);
         Grid.SetColumn(muteBtn, 0);
 
-        var mid = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+        var mid = new StackPanel { Spacing = 2, MinWidth = 0, VerticalAlignment = VerticalAlignment.Center };
         var titleText = new TextBlock { Text = title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 14, TextTrimming = TextTrimming.CharacterEllipsis };
+        ToolTipService.SetToolTip(titleText, title);
         mid.Children.Add(titleText);
         if (!string.IsNullOrEmpty(sub))
             mid.Children.Add(new TextBlock { Text = sub, FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"] });
 
-        var slider = new Slider { Minimum = 0, Maximum = 100, StepFrequency = 1, Margin = new Thickness(0, 2, 0, 0) };
+        var slider = new Slider { Minimum = 0, Maximum = 100, StepFrequency = 1, MinWidth = 80, Margin = new Thickness(0, 2, 0, 0) };
+        AutomationProperties.SetName(slider, string.Format(P("Volume for {0}", "{0} 嘅音量"), title));
+        AutomationProperties.SetHelpText(slider, P("Use the arrow keys to change volume in one-percent steps.", "用方向鍵逐個百分點調校音量。"));
         var pct = new TextBlock { VerticalAlignment = VerticalAlignment.Center, HorizontalTextAlignment = TextAlignment.Right };
 
         _suppress = true;
@@ -283,9 +308,17 @@ public sealed partial class VolumeMixerModule : Page
         // ---- "Move to device" flyout (per-app only) ----
         if (moveTargets != null && moveTargets.Count > 0 && onMove != null)
         {
-            var moveBtn = new Button { Padding = new Thickness(9), VerticalAlignment = VerticalAlignment.Center };
+            var moveBtn = new Button
+            {
+                Padding = new Thickness(9),
+                MinWidth = 44,
+                MinHeight = 44,
+                VerticalAlignment = VerticalAlignment.Center
+            };
             moveBtn.Content = new FontIcon { FontSize = 16, Glyph = ((char)0xE8AB).ToString() }; // Switch/Redo
-            ToolTipService.SetToolTip(moveBtn, P("Move this app to another output device", "將呢個 app 移去另一個輸出裝置"));
+            string moveLabel = string.Format(P("Move {0} to another output device", "將 {0} 移去另一個輸出裝置"), title);
+            ToolTipService.SetToolTip(moveBtn, moveLabel);
+            AutomationProperties.SetName(moveBtn, moveLabel);
 
             var flyout = new MenuFlyout();
             foreach (var d in moveTargets)
@@ -300,7 +333,7 @@ public sealed partial class VolumeMixerModule : Page
             }
             flyout.Items.Add(new MenuFlyoutSeparator());
             var reset = new MenuFlyoutItem { Text = P("Reset to system default", "重設為系統預設") };
-            reset.Click += (_, _) => { if (onMove != null) onMove.Invoke((string?)null); };
+            reset.Click += (_, _) => onMove(null);
             flyout.Items.Add(reset);
 
             moveBtn.Flyout = flyout;

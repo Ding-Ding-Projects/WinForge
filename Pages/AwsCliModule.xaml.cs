@@ -56,7 +56,6 @@ public sealed partial class AwsCliModule : Page
             RefreshHistory();
             await LoadConsoleAsync();
             ApplyPendingConsoleView();
-            await TryWriteAutomationCaptureAsync();
         };
     }
 

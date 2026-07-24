@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Audio and safe visual capture · 音訊同安全視覺擷取
+
+The Volume Mixer COM boundary is nullable-clean and fail-closed; returning to “System default” clears the app override explicitly. Device controls stack at narrow widths, and actions expose localized automation names/help, full tooltips, keyboard-operable sliders, and 44–48 px targets. The DEBUG shell can now render its real WinUI tree to a bounded, explicitly requested PNG. The driver validates that owned image first and never uses raw `CopyFromScreen`, so an overlapping application cannot leak into evidence; targeted `PrintWindow` is the only fallback. · Volume Mixer COM 邊界已 nullable-clean 同 fail-closed；還原「系統預設」會明確清除 app override。窄畫面裝置控制直排，操作有本地化 automation 名稱／說明、完整 tooltip、鍵盤 slider 同 44–48 px target。DEBUG shell 可以按有限明確要求輸出真實 WinUI tree PNG；driver 先驗證自家圖片，永遠唔用原始 `CopyFromScreen`，避免遮住 WinForge 嘅 app 漏入證據；唯一後備係 targeted `PrintWindow`。
+
+Self-contained publish is zero-warning; XAML/source audits pass. Inspected 1284×811 and 784×691 LowLevel frames plus a 1033×637 safe-driver frame show no mixer clipping or overlap. The refreshed canonical screenshot honestly shows the headless no-endpoint state; no session data was invented. · Self-contained publish 零 warning，XAML／source audit 全過。已檢視 1284×811、784×691 LowLevel 圖同 1033×637 safe-driver 圖，mixer 冇裁切或重疊；更新正式截圖如實顯示 headless no-endpoint 狀態，冇虛構 session 資料。
+
 ## AWS Manager EC2 continuation · AWS Manager EC2 延續開發
 
 The managed AWS Manager now has a native, bilingual EC2 workspace alongside S3 and Resource Explorer. It supports direct `ec2` and `s3` routes, paged instance discovery, local filtering, details, and guarded Start, Stop, Reboot, and Terminate reviews through AWSSDK.EC2. Context generations, operation ownership, stale-result rejection, post-dialog revalidation, fail-closed state policy, and atomic S3 `If-None-Match: *` uploads keep account and mutation boundaries explicit; discovered credentials remain metadata-only.

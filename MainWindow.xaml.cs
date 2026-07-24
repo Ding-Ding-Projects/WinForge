@@ -77,6 +77,7 @@ public sealed partial class MainWindow : Window
         // so global hooks/overlays never race the fragile XAML init (the cause of intermittent
         // stowed-exception crashes at launch) and one faulty service can never abort startup.
         RootGrid.Loaded += StartBackgroundServicesOnce;
+        RootGrid.Loaded += CaptureRequestedVisualOnce;
     }
 
     private int _appUpdateNoticeSerial;
@@ -127,6 +128,13 @@ public sealed partial class MainWindow : Window
     }
 
     private bool _bgStarted;
+
+    private async void CaptureRequestedVisualOnce(object sender, RoutedEventArgs e)
+    {
+        RootGrid.Loaded -= CaptureRequestedVisualOnce;
+        await AutomationCaptureService.TryCaptureShellAsync(this, RootGrid);
+    }
+
     private void StartBackgroundServicesOnce(object sender, RoutedEventArgs e)
     {
         if (_bgStarted) return;
