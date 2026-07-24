@@ -303,9 +303,16 @@ public sealed partial class BundleWorkspaceDialog : ContentDialog
         if (path is null) return;
 
         Busy.IsActive = true;
-        try { await BundleService.SaveAsync(_bundle, path); }
-        catch { }
+        var saved = await BundleService.SaveAsync(_bundle, path);
         Busy.IsActive = false;
+
+        if (!saved)
+        {
+            StatusText.Text = P(
+                "The bundle could not be saved. The previous file, if any, was left unchanged.",
+                "套件清單儲存唔到；原有檔案（如果有）冇被改動。");
+            return;
+        }
 
         _currentPath = path;
         SetDirty(false);

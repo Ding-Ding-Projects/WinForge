@@ -33,6 +33,15 @@ The workspace supports WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows 
 - Manager availability is probed before dependent actions are enabled. A missing engine is shown as a setup dependency, not treated as success. · 啟用相依動作前會先探測管理器；欠缺引擎會顯示成設定 dependency，唔會當成功。
 - User-facing errors remain redacted and must not expose credentials, tokens, or unsafe command construction. · 對使用者顯示嘅錯誤要遮蔽，唔可以洩露認證資料、token 或唔安全 command 組合。
 - Cancellation and retry apply to owned package operations; WinForge must not terminate unrelated external processes. · 取消同重試只適用於 WinForge 自己嘅套件操作，唔可以終止不相關外部 process。
+- Bundle saves are written to a unique same-directory staging file and swapped into place only after the complete payload exists. A failed save leaves the previous file unchanged, keeps the editor dirty, and reports a bilingual non-blocking error instead of false success. · 套件清單會先寫到同一資料夾嘅唯一暫存檔，完整寫好先交換入位；失敗會保留舊檔、保持編輯器未儲存，並用雙語非阻塞錯誤如實回報。
+
+## Accessibility · 無障礙
+
+Package-manager sections expose semantic headings, and result/save status text uses polite live regions. Screen readers therefore receive queue and persistence outcomes without an informational dialog stealing focus. The search, primary actions, terminal, and operation queue use narrow-safe rows; manager labels follow the persisted English, Cantonese, or compact bilingual mode instead of forcing duplicate bilingual names. · 套件管理分節提供語意 heading，而結果／儲存狀態使用 polite live region；螢幕閱讀器可以收到排隊同保存結果，毋須資訊 dialog 搶走焦點。搜尋、主要動作、終端機同操作佇列會用窄畫面安全分行；管理器名稱會跟持久英文、粵語或精簡雙語模式，唔會硬塞重複雙語名稱。
+
+## Verification · 驗證
+
+The focused `PackageManagerCore.Tests` harness passes **28/28**, including portable-format compatibility, source and command safety, queue lifecycle, output redaction, and atomic create/replace/failure-preservation saves. A fresh LowLevel headless launch at **1049×646** verified the responsive rows and supplied the inspected screenshot above. The detailed implementation record is [Portable package bundles](../features/package-management/portable-package-bundles.md). · 專項 harness **28/28** 通過，涵蓋可攜格式、來源／指令安全、queue 生命週期、輸出遮蔽，同原子建立／取代／失敗保留儲存；新 LowLevel headless **1049×646** launch 已驗證響應式分行，並提供上面經檢視截圖。詳細實作記錄見[可攜套件清單](../features/package-management/portable-package-bundles.md)。
 
 ## Configuration · 設定
 

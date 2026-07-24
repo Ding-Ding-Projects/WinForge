@@ -14,6 +14,8 @@ Open in-app: `WinForge.exe --page git`
 
 The canonical .NET workspace covers 11 package engines and nine views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations. Package mutations remain explicit and reviewable, missing engines are treated as setup dependencies, and interactive execution fails closed when WinForge cannot preserve its normal-integrity boundary. · 正式 .NET 工作區涵蓋 11 個套件引擎同九個檢視：Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations。套件修改保持明確同可檢視；欠缺引擎會當成設定 dependency；WinForge 保持唔到正常 integrity 界線時，互動執行會 fail closed。
 
+Portable bundle writes are staged and atomically swapped, and both package surfaces announce success only after the destination is safely in place. A failure leaves any previous file unchanged. · 可攜清單會先暫存再原子交換；兩個套件介面只會喺目的檔安全寫好後先報成功，失敗會保留舊檔。
+
 Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)

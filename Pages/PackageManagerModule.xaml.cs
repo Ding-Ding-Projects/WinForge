@@ -127,7 +127,7 @@ public sealed partial class PackageManagerModule : Page
             "A UniGetUI-style hub over winget, Scoop, Chocolatey, pip, npm, .NET tools, PowerShell Gallery, PowerShell 7, Cargo, Bun and vcpkg — discover, multi-select, batch install/update/uninstall, and export/import bundles, all in-app.",
             "UniGetUI 式總管，統一 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery、PowerShell 7、Cargo、Bun 同 vcpkg — 搜尋、多選、批次安裝／更新／解除安裝，仲可以匯出／匯入清單，全部喺 app 內。");
         ManagersLabel.Text = P("Package managers", "套件管理器");
-        SearchBox.PlaceholderText = P("Search packages (e.g. vscode, vlc, obs)…", "搜尋套件（例如 vscode、vlc、obs）…");
+        SearchBox.PlaceholderText = P("Search packages…", "搜尋套件…");
         SearchOptionsText.Text = P("Filters", "篩選");
         SearchOptionsTitle.Text = P("Search filters", "搜尋篩選");
         SearchModeLabel.Text = P("Search mode", "搜尋模式");
@@ -250,9 +250,10 @@ public sealed partial class PackageManagerModule : Page
             string key = m.Key;
             bool avail = _available.TryGetValue(key, out var a) && a;
             bool known = _available.ContainsKey(key);
+            string managerName = P(m.NameEn, m.NameZh);
             var cb = new CheckBox
             {
-                Content = known && !avail ? $"{m.NameEn} · {m.NameZh}  {P("(not found)", "（搵唔到）")}" : $"{m.NameEn} · {m.NameZh}",
+                Content = known && !avail ? $"{managerName}  {P("(not found)", "（搵唔到）")}" : managerName,
                 IsChecked = _selected.Contains(key),
                 IsEnabled = !known || avail,
                 Tag = key,
@@ -1007,7 +1008,13 @@ public sealed partial class PackageManagerModule : Page
                 InstallOptions.HasOverride(item.ManagerKey, item.Id)
                     ? InstallOptions.Load(item.ManagerKey, item.Id)
                     : null);
-            await BundleService.SaveAsync(bundle, path);
+            if (!await BundleService.SaveAsync(bundle, path))
+            {
+                ResultsHeader.Text = P(
+                    "The bundle could not be saved. The previous file, if any, was left unchanged.",
+                    "套件清單儲存唔到；原有檔案（如果有）冇被改動。");
+                return;
+            }
             int comp = bundle.packages.Count, inc = bundle.incompatible_packages.Count;
             ResultsHeader.Text = inc > 0
                 ? P($"Exported {comp} package(s) ({inc} incompatible logged).", $"匯出咗 {comp} 個套件（記錄咗 {inc} 個不相容）。")

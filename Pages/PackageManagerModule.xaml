@@ -34,7 +34,11 @@
             BorderThickness="1"
             CornerRadius="8">
             <StackPanel Spacing="6">
-                <TextBlock x:Name="ManagersLabel" FontWeight="SemiBold" FontSize="13" />
+                <TextBlock
+                    x:Name="ManagersLabel"
+                    AutomationProperties.HeadingLevel="Level2"
+                    FontWeight="SemiBold"
+                    FontSize="13" />
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
                     <StackPanel x:Name="ManagerFilters" Orientation="Horizontal" Spacing="14" />
                 </ScrollViewer>
@@ -42,62 +46,100 @@
         </Border>
 
         <!-- Controls -->
-        <Grid Grid.Row="2" ColumnSpacing="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <ComboBox x:Name="ViewCombo" Grid.Column="0" MinWidth="160" SelectionChanged="View_Changed" />
-            <AutoSuggestBox
-                x:Name="SearchBox"
-                Grid.Column="1"
-                QueryIcon="Find"
-                QuerySubmitted="Search_Submitted" />
-            <Button x:Name="SearchOptionsBtn" Grid.Column="2">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon FontSize="14" Glyph="&#xE71C;" />
-                    <TextBlock x:Name="SearchOptionsText" />
-                </StackPanel>
-                <Button.Flyout>
-                    <Flyout>
-                        <StackPanel Width="300" Spacing="10">
-                            <TextBlock x:Name="SearchOptionsTitle" FontWeight="SemiBold" />
-                            <TextBlock
-                                x:Name="SearchModeLabel"
-                                FontSize="12"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <RadioButton x:Name="SearchModeBoth" Tag="Both" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
-                            <RadioButton x:Name="SearchModeName" Tag="Name" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
-                            <RadioButton x:Name="SearchModeId" Tag="Id" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
-                            <RadioButton x:Name="SearchModeExact" Tag="Exact" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
-                            <RadioButton x:Name="SearchModeSimilar" Tag="Similar" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
-                            <ToggleSwitch x:Name="SearchCaseToggle" Toggled="SearchOption_Toggled" />
-                            <ToggleSwitch x:Name="SearchIgnoreSpecialToggle" Toggled="SearchOption_Toggled" />
-                        </StackPanel>
-                    </Flyout>
-                </Button.Flyout>
-            </Button>
-            <Button x:Name="PrimaryActionBtn" Grid.Column="3" Click="PrimaryAction_Click" />
-            <Button x:Name="SecondaryActionBtn" Grid.Column="4" Click="SecondaryAction_Click" />
-            <Button x:Name="TerminalBtn" Grid.Column="5" Click="Terminal_Click">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon FontSize="14" Glyph="&#xE756;" />
-                    <TextBlock x:Name="TerminalBtnText" />
-                </StackPanel>
-            </Button>
-            <Button x:Name="OperationsBtn" Grid.Column="6" Click="Operations_Click">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon FontSize="14" Glyph="&#xE945;" />
-                    <TextBlock x:Name="OperationsBtnText" />
-                </StackPanel>
-            </Button>
-            <ProgressRing x:Name="Busy" Grid.Column="7" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
+        <Grid Grid.Row="2" RowSpacing="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ComboBox x:Name="ViewCombo" Grid.Column="0" MinWidth="160" SelectionChanged="View_Changed" />
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    Grid.Column="1"
+                    QueryIcon="Find"
+                    QuerySubmitted="Search_Submitted" />
+                <Button x:Name="SearchOptionsBtn" Grid.Column="2">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE71C;" />
+                        <TextBlock x:Name="SearchOptionsText" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <Flyout>
+                            <StackPanel Width="300" Spacing="10">
+                                <TextBlock x:Name="SearchOptionsTitle" FontWeight="SemiBold" />
+                                <TextBlock
+                                    x:Name="SearchModeLabel"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <RadioButton x:Name="SearchModeBoth" Tag="Both" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                                <RadioButton x:Name="SearchModeName" Tag="Name" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                                <RadioButton x:Name="SearchModeId" Tag="Id" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                                <RadioButton x:Name="SearchModeExact" Tag="Exact" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                                <RadioButton x:Name="SearchModeSimilar" Tag="Similar" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                                <ToggleSwitch x:Name="SearchCaseToggle" Toggled="SearchOption_Toggled" />
+                                <ToggleSwitch x:Name="SearchIgnoreSpecialToggle" Toggled="SearchOption_Toggled" />
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+            </Grid>
+
+            <Grid Grid.Row="1" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button
+                    x:Name="PrimaryActionBtn"
+                    Grid.Column="0"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="PrimaryAction_Click" />
+                <Button
+                    x:Name="SecondaryActionBtn"
+                    Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="SecondaryAction_Click" />
+            </Grid>
+
+            <Grid Grid.Row="2" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button
+                    x:Name="TerminalBtn"
+                    Grid.Column="0"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="Terminal_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE756;" />
+                        <TextBlock x:Name="TerminalBtnText" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Button>
+                <Button
+                    x:Name="OperationsBtn"
+                    Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="Operations_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE945;" />
+                        <TextBlock x:Name="OperationsBtnText" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Button>
+                <ProgressRing x:Name="Busy" Grid.Column="2" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
+            </Grid>
         </Grid>
 
         <!-- Results -->
@@ -110,8 +152,11 @@
             <TextBlock
                 x:Name="ResultsHeader"
                 Grid.Row="0"
+                AutomationProperties.HeadingLevel="Level2"
+                AutomationProperties.LiveSetting="Polite"
                 FontWeight="SemiBold"
-                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
 
             <!-- Batch (multi-select) action bar — UniGetUI-style bulk operations -->
             <Border

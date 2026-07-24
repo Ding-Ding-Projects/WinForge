@@ -19,6 +19,7 @@ Run("malicious structured-option rejection", RejectsMaliciousStructuredOptions);
 Run("valid manager-specific references", AcceptsValidReferences);
 Run("security warnings use current fields", SecurityWarnings);
 Run("HasOptions uses current schema", HasOptions);
+await RunAsyncCase("atomic bundle save reports failures", BundleSaveReliability);
 await RunAsyncCase("coordinator rejects unsafe options", CoordinatorRejectsUnsafeOptions);
 await RunAsyncCase("minor-update policy matches UniGetUI", MinorUpdatePolicy);
 await RunAsyncCase("option-sensitive duplicate suppression", OptionSensitiveDeduplication);
@@ -320,6 +321,36 @@ static void HasOptions()
     Assert(Has(new() { AbortOnPreInstallFail = true }), "abort flag missing");
     Assert(Has(new() { CustomArgsUpdate = "--force" }), "custom args missing");
     Assert(Has(new() { ForceKill = true }), "ForceKill missing");
+}
+
+static async Task BundleSaveReliability()
+{
+    var root = Path.Combine(Path.GetTempPath(), "WinForge.PackageManagerCore.Tests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(root);
+    try
+    {
+        var path = Path.Combine(root, "bundle.json");
+        var bundle = FullBundle();
+        Assert(await BundleService.SaveAsync(bundle, path), "initial bundle save reported failure");
+        Assert(File.Exists(path), "initial bundle save did not create the destination");
+
+        bundle.packages[0].Name = "Updated Example";
+        Assert(await BundleService.SaveAsync(bundle, path), "atomic replacement reported failure");
+        var loaded = await BundleService.LoadAsync(path);
+        Equal("Updated Example", loaded.Bundle.packages.Single().Name, "replacement payload");
+        Assert(!Directory.EnumerateFiles(root, ".*.tmp").Any(), "successful save left a staging file");
+
+        var missingDirectoryPath = Path.Combine(root, "missing", "bundle.json");
+        Assert(!await BundleService.SaveAsync(bundle, missingDirectoryPath),
+            "save to a missing directory reported success");
+        Assert(!await BundleService.SaveAsync(bundle, ""), "empty destination reported success");
+        Equal("Updated Example", (await BundleService.LoadAsync(path)).Bundle.packages.Single().Name,
+            "failed save changed the existing destination");
+    }
+    finally
+    {
+        try { Directory.Delete(root, recursive: true); } catch { }
+    }
 }
 
 static async Task CoordinatorRejectsUnsafeOptions()
