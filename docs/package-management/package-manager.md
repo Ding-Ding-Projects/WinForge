@@ -26,9 +26,13 @@ Primary controls and dynamically created package/source/operation actions have a
 
 ## Verification · 驗證
 
-- `dotnet run --project tests/PackageManagerCore.Tests -c Debug`: **29/29 passed**, including structured proxy/triplet normalization and malicious-value rejection. · **29/29 通過**，包括結構化 proxy／triplet 正規化同惡意值拒絕。
+- Source lanes passed **29/29** and **28/28** independently; the merged `dotnet run --project tests/PackageManagerCore.Tests -c Debug` contract passes **30/30**, including atomic create/replace/failure preservation plus structured proxy/triplet normalization and malicious-value rejection. · 兩條來源線各自 **29/29**／**28/28**；合併專項 contract **30/30 通過**，包括原子建立／取代／失敗保留，同結構化 proxy／triplet 正規化／惡意值拒絕。
 - `dotnet build WinForge.sln -c Debug -p:Platform=x64`: exit 0, **0 errors**. · exit 0，**零 errors**。
 - Self-contained publish with Windows App SDK self-containment: exit 0. · Windows App SDK 自包含 publish exit 0。
 - XAML literal safety: pass. Detailed source audit: 336 XAML files; 2,875/2,875 handlers and 1,922/1,922 direct actions resolved; zero lifecycle mismatches and zero actionable markers. · XAML literal safety 通過；詳細 source audit 有 336 個 XAML、2,875/2,875 handler、1,922/1,922 direct action，零 lifecycle mismatch／actionable marker。
-- LowLevel MCP opened the published `packages` page on a dedicated headless desktop. Inspected captures at 1049×646 and 720×650 show the live page, responsive two-row controls, and no overlapping/off-screen action controls; the owned window and desktop were closed afterward. · LowLevel MCP 喺專用 headless desktop 開啟已 publish `packages` 頁；已檢視 1049×646 同 720×650 capture，確認 live page、響應式兩行控制，同冇重疊／走出畫面嘅 action control；之後已關閉自家視窗同 desktop。
+- LowLevel MCP opened the exact combined self-contained `packages` binary on a fresh dedicated headless desktop. Inspected 1049×646 and 720×650 page captures show the live bilingual layout without overlapping/off-screen action controls. The 720-pixel Settings dialog was also inspected at its proxy/vcpkg and final App Settings sections: no credential inputs remain and all three App Settings actions fit as full-width rows. The exact owned process was closed, the desktop listed zero windows, and its handle was released. · LowLevel MCP 喺全新專用 headless desktop 開啟 exact combined 自包含 `packages` binary；已檢視 1049×646／720×650 live 雙語版面，冇重疊或者走出畫面 action control。720 像素 Settings dialog 嘅 proxy／vcpkg 同最底 App Settings 都已檢視：冇 credential input，三個 App Settings action 亦完整直排；最後已關閉準確自家 process、確認 desktop 零視窗並釋放 handle。
 - Repository-driver fallback was kept separate: its first attempt found no dedicated window; a longer retry reported success but inspection showed unrelated desktop content. That image was rejected, overwritten to remove the unrelated content, and never promoted as evidence. · Repo driver fallback 會分開處理：第一次搵唔到專用視窗；加長等候重試雖然報成功，但檢視後發現係不相關桌面內容。該圖已拒絕並覆寫以清除不相關內容，絕對冇升格做證據。
+
+![Credential-free proxy and validated vcpkg settings · 無 credential proxy 同已驗證 vcpkg 設定](../screenshot-package-settings-proxy.png)
+
+![Narrow-safe App Settings actions · 窄畫面安全 App Settings actions](../screenshot-package-settings-actions.png)

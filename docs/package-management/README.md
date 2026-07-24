@@ -4,6 +4,7 @@ This category documents WinForge's managed, in-app package workflows and their r
 
 - [Package Manager](package-manager.md) — behavior, configuration, failure modes, security, accessibility, and verification. · 行為、設定、失敗模式、安全、無障礙同驗證。
 - [Preserved-stash recovery audit (2026-07-24)](stash-recovery-2026-07-24.md) — exact ten-file disposition for preserved commit `5cc3aa712f9e326dd8d9ae0bdd4c16d8771e1cb6`. · 保留 commit 十個檔案嘅逐項處置記錄。
+- [Portable package bundles](../features/package-management/portable-package-bundles.md) — atomic save contract and the six-file `181fc231c93b2533392344a405cb18750b4eaa48` stash disposition. · 原子儲存合約同六個檔案 stash 逐項處置記錄。
 
 ## HTTP/API and Postman applicability · HTTP/API 同 Postman 適用性
 
