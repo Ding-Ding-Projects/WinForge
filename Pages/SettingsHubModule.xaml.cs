@@ -35,7 +35,7 @@ public sealed partial class SettingsHubModule : Page
         InitializeComponent();
         Loc.I.LanguageChanged += OnLanguageChanged;
         Unloaded += OnUnloaded;
-        Loaded += (_, _) => { Render(); BuildModeCombo(); ModeCombo.SelectedIndex = 0; Apply(""); };
+        Loaded += (_, _) => { Render(); BuildModeCombo(); ModeCombo.SelectedIndex = 0; Apply(FilterBox.Spec); };
         // Expanding a section must not yank the page down: WinUI Expanders BringIntoView their freshly
         // expanded content panel, which scrolls the viewport far past where the user clicked. Focus-driven
         // requests (keyboard tabbing) target a Control; expansion requests target the content panel —
@@ -47,7 +47,7 @@ public sealed partial class SettingsHubModule : Page
     {
         Render();
         BuildModeCombo();
-        Apply(FilterBox.Text ?? "");
+        Apply(FilterBox.Spec);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -79,19 +79,17 @@ public sealed partial class SettingsHubModule : Page
     private void Mode_Changed(object sender, SelectionChangedEventArgs e)
     {
         _mode = ModeCombo.SelectedIndex < 0 ? 0 : ModeCombo.SelectedIndex;
-        Apply(FilterBox.Text ?? "");
+        Apply(FilterBox.Spec);
     }
 
-    private void Filter_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
-    {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput) Apply(sender.Text ?? "");
-    }
+    private void FilterBox_PatternChanged(object? sender, EventArgs args) => Apply(FilterBox.Spec);
 
-    private void Apply(string filter)
+    private void Apply(SearchPatternService.Spec spec)
     {
-        if (string.IsNullOrWhiteSpace(filter)) { BuildSections(); return; }
-        if (_mode == 0) BuildTweakSearch(filter.Trim());
-        else BuildLauncherSearch(filter.Trim());
+        bool hasFilter = spec.UseRegex ? spec.Query.Length > 0 : !string.IsNullOrWhiteSpace(spec.Query);
+        if (!hasFilter) { BuildSections(); return; }
+        if (_mode == 0) BuildTweakSearch(spec);
+        else BuildLauncherSearch(spec);
     }
 
     // ===== sectioned (no filter) =====
@@ -176,11 +174,11 @@ public sealed partial class SettingsHubModule : Page
 
     // ===== search (flat) =====
 
-    private void BuildTweakSearch(string filter)
+    private void BuildTweakSearch(SearchPatternService.Spec spec)
     {
         Sections.Children.Clear();
-        var f = filter.ToLowerInvariant();
-        var hits = TweakCatalog.All.Where(t => t.SearchHaystack.Contains(f)).Take(300).ToList();
+        var hits = SearchPatternService.Filter(TweakCatalog.All, tweak => tweak.SearchHaystack, spec)
+            .Take(300).ToList();
         CountText.Text = P($"{hits.Count} settings", $"{hits.Count} 項設定");
         if (hits.Count == 0) { Sections.Children.Add(EmptyNote()); return; }
         // A single control-row list holds the whole flat, filtered result set.
@@ -189,10 +187,10 @@ public sealed partial class SettingsHubModule : Page
         Sections.Children.Add(list);
     }
 
-    private void BuildLauncherSearch(string filter)
+    private void BuildLauncherSearch(SearchPatternService.Spec spec)
     {
         Sections.Children.Clear();
-        var hits = SettingsHubCatalog.Search(filter).ToList();
+        var hits = SearchPatternService.Filter(SettingsHubCatalog.All, entry => entry.Haystack, spec).ToList();
         CountText.Text = P($"{hits.Count} items", $"{hits.Count} 個項目");
         foreach (var entry in hits) Sections.Children.Add(LauncherCard(entry));
         if (hits.Count == 0) Sections.Children.Add(EmptyNote());

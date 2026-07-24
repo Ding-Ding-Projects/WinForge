@@ -68,10 +68,10 @@ public sealed partial class ManualPage : Page
     {
         TocPanel.Children.Clear();
 
-        if (_filter.Length > 0)
+        if (HasFilter())
         {
             // 搜尋模式：列出所有符合嘅條目 · Search mode: flat list of matching entries.
-            var hits = ManualContent.AllEntries.Where(en => en.Haystack.Contains(_filter)).ToList();
+            var hits = ManualHits();
             TocPanel.Children.Add(new TextBlock
             {
                 Text = P($"{hits.Count} result(s)", $"{hits.Count} 個結果"),
@@ -142,7 +142,7 @@ public sealed partial class ManualPage : Page
             // 確保 condition：去返佢所屬章節，再 scroll 去嗰條目。
             var owner = ManualContent.Sections.First(s => s.Entries.Contains(en));
             if (!ReferenceEquals(owner, _section)) { _section = owner; }
-            if (_filter.Length > 0) { _filter = ""; FilterBox.Text = ""; }
+            if (HasFilter()) { _filter = ""; FilterBox.Clear(); }
             BuildToc();
             RenderContent();
             if (_entryViews.TryGetValue(en, out var fe))
@@ -158,9 +158,9 @@ public sealed partial class ManualPage : Page
         ContentPanel.Children.Clear();
         _entryViews.Clear();
 
-        if (_filter.Length > 0)
+        if (HasFilter())
         {
-            var hits = ManualContent.AllEntries.Where(en => en.Haystack.Contains(_filter)).ToList();
+            var hits = ManualHits();
             ContentPanel.Children.Add(new TextBlock
             {
                 Text = P($"Search results — {hits.Count}", $"搜尋結果 — {hits.Count}"),
@@ -340,13 +340,21 @@ public sealed partial class ManualPage : Page
 
     // ===================== Search · 搜尋 =====================
 
-    private void FilterBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    private void FilterBox_PatternChanged(object? sender, EventArgs args)
     {
-        if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
-        _filter = (sender.Text ?? "").Trim().ToLowerInvariant();
+        _filter = FilterBox.Text ?? string.Empty;
         BuildToc();
         RenderContent();
     }
+
+    private bool HasFilter() => FilterBox.IsRegexMode
+        ? _filter.Length > 0
+        : !string.IsNullOrWhiteSpace(_filter);
+
+    private List<ManualEntry> ManualHits() => SearchPatternService.Filter(
+        ManualContent.AllEntries,
+        entry => entry.Haystack,
+        FilterBox.Spec).ToList();
 
     // ===================== Small builders · 小工具 =====================
 

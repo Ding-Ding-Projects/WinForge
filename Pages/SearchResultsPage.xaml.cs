@@ -23,7 +23,7 @@ public sealed partial class SearchResultsPage : Page
         Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
 
-    private void OnLanguageChanged(object? sender, EventArgs e) { RenderLabels(); Run(SearchBox.Text); }
+    private void OnLanguageChanged(object? sender, EventArgs e) { RenderLabels(); Run(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -33,7 +33,7 @@ public sealed partial class SearchResultsPage : Page
         RenderLabels();
         var q = e.Parameter as string ?? "";
         SearchBox.Text = q;
-        Run(q);
+        Run();
     }
 
     private void RenderLabels()
@@ -42,25 +42,30 @@ public sealed partial class SearchResultsPage : Page
         SearchBox.PlaceholderText = P("Search every page and setting…", "搜尋所有頁面同設定…");
     }
 
-    private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
-    {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput) Run(sender.Text);
-    }
+    private void SearchBox_PatternChanged(object? sender, EventArgs args) => Run();
 
-    private void Run(string query)
+    private void Run()
     {
-        query = (query ?? "").Trim();
+        string query = SearchBox.Text ?? string.Empty;
+        bool hasQuery = SearchBox.IsRegexMode ? query.Length > 0 : !string.IsNullOrWhiteSpace(query);
 
         // ---- Pages ----
-        var pages = ModuleRegistry.Search(query).ToList();
+        var pages = SearchPatternService.Filter(
+            ModuleRegistry.All,
+            module => module.Haystack,
+            SearchBox.Spec).ToList();
         PagesGrid.ItemsSource = pages;
         PagesLabel.Text = P($"Pages — {pages.Count}", $"頁面 — {pages.Count}");
 
         // ---- Settings & tweaks (live, working) ----
         int tweakCount = 0;
-        if (query.Length >= 2)
+        bool canSearchTweaks = SearchBox.IsRegexMode ? query.Length > 0 : query.Trim().Length >= 2;
+        if (canSearchTweaks)
         {
-            var tweaks = TweakCatalog.Search(query).Take(MaxTweaks).ToList();
+            var tweaks = SearchPatternService.Filter(
+                TweakCatalog.All,
+                tweak => tweak.SearchHaystack,
+                SearchBox.Spec).Take(MaxTweaks).ToList();
             tweakCount = tweaks.Count;
             TweaksList.SetTweaks(tweaks);
             TweaksLabel.Text = P($"Settings & tweaks — {tweakCount} (toggle right here)", $"設定同調校 — {tweakCount}（喺度直接切換）");
@@ -71,7 +76,7 @@ public sealed partial class SearchResultsPage : Page
             TweaksLabel.Text = P("Settings & tweaks — type 2+ letters to search settings", "設定同調校 — 打 2 個字以上嚟搜尋設定");
         }
 
-        EmptyText.Text = (pages.Count == 0 && tweakCount == 0 && query.Length > 0)
+        EmptyText.Text = (pages.Count == 0 && tweakCount == 0 && hasQuery)
             ? P("No pages or settings match your search.", "冇頁面或者設定符合你嘅搜尋。")
             : "";
     }

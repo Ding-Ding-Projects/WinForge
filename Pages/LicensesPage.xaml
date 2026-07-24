@@ -35,11 +35,10 @@
                 BorderThickness="1"
                 CornerRadius="8">
                 <StackPanel Spacing="8">
-                    <AutoSuggestBox
+                    <controls:SearchPatternBox
                         x:Name="SearchBox"
-                        QueryIcon="Find"
-                        TextChanged="SearchBox_TextChanged"
-                        QuerySubmitted="SearchBox_QuerySubmitted"
+                        AutomationName="Search license notices · 搜尋授權聲明"
+                        PatternChanged="SearchBox_PatternChanged"
                         automation:AutomationProperties.Name="Search license notices · 搜尋授權聲明" />
 
                     <ComboBox

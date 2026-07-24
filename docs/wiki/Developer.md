@@ -154,7 +154,7 @@ Open in-app: `WinForge.exe --page regextester`
 dotnet run --project tests/RegexBuilder.Tests -c Debug
 ```
 
-The focused safety contract is **13/13**. See [Managed Regex Builder](Regex-Builder.md) for limits, failure modes, visual evidence, and the explicitly open project-wide search-bar integration. · 專項安全合約係 **13/13**；上限、故障模式、視覺證據，同明確未完成嘅全 project 搜尋欄整合請睇[正式受管理正則砌法](Regex-Builder.md)。
+The focused safety/session/surface contract is **33/33**. Eight core/common searches use the synchronized builder now; the exhaustive inventory keeps 64 ordinary searches and nine specialized dialect adapters explicitly open. See [Managed Regex Builder](Regex-Builder.md) for limits, failure modes, visual evidence, and the remaining project-wide work. · 專項安全／session／surface 合約係 **33/33**；八個核心／共用搜尋而家已用同步 builder，而完整清單明確保留 64 個一般搜尋同九個專用方言 adapter。上限、故障模式、視覺證據同餘下全 project 工作請睇[正式受管理正則砌法](Regex-Builder.md)。
 
 ## Settings Store Integrity Regression · 設定儲存完整性回歸測試
 

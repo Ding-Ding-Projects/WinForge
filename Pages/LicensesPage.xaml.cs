@@ -15,7 +15,6 @@ namespace WinForge.Pages;
 public sealed partial class LicensesPage : Page
 {
     private readonly List<string> _categoryKeys = LicenseCatalogService.CategoryKeys.ToList();
-    private string _query = "";
     private string _category = "";
     private bool _buildingCategories;
 
@@ -80,7 +79,7 @@ public sealed partial class LicensesPage : Page
     private void RenderNotices()
     {
         NoticesPanel.Children.Clear();
-        var notices = LicenseCatalogService.Search(_query, _category, CopyleftOnlySwitch.IsOn).ToList();
+        var notices = LicenseCatalogService.Search(SearchBox.Spec, _category, CopyleftOnlySwitch.IsOn).ToList();
         var flagged = LicenseCatalogService.Notices.Count(n => n.IsCopyleftOrSourceAvailable);
         SummaryText.Text = P(
             $"{notices.Count} shown · {LicenseCatalogService.Notices.Length} notices · {flagged} GPL/AGPL/LGPL/MPL/source-available entries",
@@ -239,16 +238,8 @@ public sealed partial class LicensesPage : Page
         Child = content,
     };
 
-    private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    private void SearchBox_PatternChanged(object? sender, EventArgs args)
     {
-        if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
-        _query = sender.Text ?? "";
-        RenderNotices();
-    }
-
-    private void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
-    {
-        _query = args.QueryText ?? sender.Text ?? "";
         RenderNotices();
     }
 
@@ -263,9 +254,8 @@ public sealed partial class LicensesPage : Page
 
     private void Clear_Click(object sender, RoutedEventArgs e)
     {
-        _query = "";
         _category = "";
-        SearchBox.Text = "";
+        SearchBox.Clear();
         CopyleftOnlySwitch.IsOn = false;
         CategoryBox.SelectedIndex = 0;
         RenderNotices();

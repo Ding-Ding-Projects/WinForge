@@ -20,7 +20,6 @@ namespace WinForge.Pages;
 public sealed partial class AppLauncherModule : Page
 {
     private readonly List<string> _categoryKeys = ExternalApps.CategoryKeys.ToList();
-    private string _query = "";
     private string _category = "";
     private bool _buildingCategories;
     private bool _locSubscribed;
@@ -116,10 +115,10 @@ public sealed partial class AppLauncherModule : Page
 
     private IEnumerable<ExternalAppSpec> FilteredApps()
     {
-        var q = _query.Trim().ToLowerInvariant();
+        SearchPatternService.Matcher matcher = SearchBox.CompileMatcher();
         return ExternalApps.All
             .Where(a => string.IsNullOrEmpty(_category) || a.CategoryEn.Equals(_category, StringComparison.OrdinalIgnoreCase))
-            .Where(a => q.Length == 0 || a.SearchHaystack.Contains(q))
+            .Where(a => matcher.Match(a.SearchHaystack) is { Ok: true, IsMatch: true })
             .OrderBy(a => a.CategoryEn)
             .ThenBy(a => a.NameEn);
     }
@@ -256,16 +255,8 @@ public sealed partial class AppLauncherModule : Page
         Child = content,
     };
 
-    private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    private void SearchBox_PatternChanged(object? sender, EventArgs args)
     {
-        if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
-        _query = sender.Text ?? "";
-        RenderApps();
-    }
-
-    private void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
-    {
-        _query = args.QueryText ?? sender.Text ?? "";
         RenderApps();
     }
 
@@ -278,9 +269,8 @@ public sealed partial class AppLauncherModule : Page
 
     private void Clear_Click(object sender, RoutedEventArgs e)
     {
-        _query = "";
         _category = "";
-        SearchBox.Text = "";
+        SearchBox.Clear();
         CategoryBox.SelectedIndex = 0;
         RenderApps();
     }

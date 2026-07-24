@@ -17,7 +17,11 @@
 
         <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE721;" />
 
-        <AutoSuggestBox x:Name="SearchBox" Grid.Row="1" QueryIcon="Find" TextChanged="SearchBox_TextChanged" />
+        <controls:SearchPatternBox
+            x:Name="SearchBox"
+            Grid.Row="1"
+            AutomationName="Search every page and setting · 搜尋所有頁面同設定"
+            PatternChanged="SearchBox_PatternChanged" />
 
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="10">

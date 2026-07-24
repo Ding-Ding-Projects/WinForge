@@ -27,7 +27,11 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ComboBox x:Name="ModeCombo" Grid.Column="0" MinWidth="220" SelectionChanged="Mode_Changed" />
-            <AutoSuggestBox x:Name="FilterBox" Grid.Column="1" QueryIcon="Find" TextChanged="Filter_TextChanged" />
+            <controls:SearchPatternBox
+                x:Name="FilterBox"
+                Grid.Column="1"
+                AutomationName="Search settings · 搜尋設定"
+                PatternChanged="FilterBox_PatternChanged" />
             <TextBlock x:Name="CountText" Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
         </Grid>
 

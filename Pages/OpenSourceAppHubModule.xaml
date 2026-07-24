@@ -47,13 +47,12 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <AutoSuggestBox
+                    <controls:SearchPatternBox
                         x:Name="SearchBox"
                         Grid.Row="0"
                         Grid.Column="0"
-                        QueryIcon="Find"
-                        TextChanged="SearchBox_TextChanged"
-                        QuerySubmitted="SearchBox_QuerySubmitted"
+                        AutomationName="Search native open-source clone tabs · 搜尋開源原生分頁"
+                        PatternChanged="SearchBox_PatternChanged"
                         automation:AutomationProperties.Name="Search native open-source clone tabs · 搜尋開源原生分頁" />
 
                     <ComboBox

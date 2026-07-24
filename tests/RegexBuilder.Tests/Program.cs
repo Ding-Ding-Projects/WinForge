@@ -17,6 +17,26 @@ Run("match results are capped", ResultCap);
 Run("pattern and sample limits are enforced", SizeLimits);
 Run("adversarial backtracking times out", AdversarialTimeout);
 Run("plain text remains default and differs from regex", PlainVersusRegex);
+Run("case sensitivity is an explicit synchronized flag", CaseSensitivity);
+Run("ignore-pattern-whitespace flag reaches the matcher", IgnorePatternWhitespace);
+Run("compiled matcher evaluates multiple candidate fields", MultipleCandidates);
+Run("compiled matcher reports invalid syntax before filtering", InvalidCompiledMatcher);
+Run("search candidate limits are enforced", SearchCandidateLimit);
+Run("search timeout fails closed for the rest of a batch", SearchTimeoutFailsClosed);
+Run("search session synchronizes query mode and flags", SessionSynchronization);
+Run("search session applies a complete state atomically", SessionApply);
+Run("search session preview reports live captures", SessionPreviewCaptures);
+Run("shared filter keeps plain and regex semantics distinct", SharedFilter);
+Run("Dashboard uses the synchronized search control", DashboardSurface);
+Run("Category uses the synchronized search control", CategorySurface);
+Run("Search Results uses the synchronized search control", SearchResultsSurface);
+Run("Manual uses the synchronized search control", ManualSurface);
+Run("App Launcher uses the synchronized search control", AppLauncherSurface);
+Run("Licenses uses the synchronized search control", LicensesSurface);
+Run("Native OSS Hub uses the synchronized search control", OpenSourceHubSurface);
+Run("Settings Hub uses the synchronized search control", SettingsHubSurface);
+Run("shared control exposes the full builder contract", FullBuilderSurface);
+Run("all candidate XAML search/query controls are classified", ClassifiedInventory);
 
 if (failures.Count == 0)
 {
@@ -135,6 +155,191 @@ static void PlainVersusRegex()
     var regex = SearchPatternService.Match("abc", new SearchPatternService.Spec("a.c", UseRegex: true));
     Assert(plain.Ok && !plain.IsMatch, "plain text should treat dot literally");
     Assert(regex.Ok && regex.IsMatch, "regex mode should treat dot as a metacharacter");
+}
+
+static void CaseSensitivity()
+{
+    var insensitive = SearchPatternService.Match("WinForge", new SearchPatternService.Spec("winforge"));
+    var sensitive = SearchPatternService.Match("WinForge", new SearchPatternService.Spec("winforge", IgnoreCase: false));
+    Assert(insensitive.Ok && insensitive.IsMatch, "default case-insensitive search failed");
+    Assert(sensitive.Ok && !sensitive.IsMatch, "case-sensitive flag was ignored");
+}
+
+static void IgnorePatternWhitespace()
+{
+    var compact = SearchPatternService.Match("ab", new SearchPatternService.Spec("a b", UseRegex: true));
+    var ignored = SearchPatternService.Match("ab", new SearchPatternService.Spec(
+        "a b", UseRegex: true, IgnorePatternWhitespace: true));
+    Assert(compact.Ok && !compact.IsMatch, "whitespace should be literal without the flag");
+    Assert(ignored.Ok && ignored.IsMatch, "ignore-pattern-whitespace flag was not applied");
+}
+
+static void MultipleCandidates()
+{
+    var matcher = SearchPatternService.Compile(new SearchPatternService.Spec(@"^reactor$", UseRegex: true));
+    var result = matcher.MatchAny(new string?[] { "dashboard", null, "reactor" });
+    Assert(result.Ok && result.IsMatch, "matcher did not search all candidate fields");
+}
+
+static void InvalidCompiledMatcher()
+{
+    var matcher = SearchPatternService.Compile(new SearchPatternService.Spec("(", UseRegex: true));
+    var result = matcher.Match("anything");
+    Assert(!matcher.Ok && !result.Ok && !string.IsNullOrWhiteSpace(matcher.Error),
+        "invalid syntax was not reported during compilation");
+}
+
+static void SearchCandidateLimit()
+{
+    var result = SearchPatternService.Match(
+        new string('x', RegexTesterService.MaxInputLength + 1),
+        new SearchPatternService.Spec("x", UseRegex: true));
+    Assert(!result.Ok && result.Error?.Contains("candidate", StringComparison.OrdinalIgnoreCase) == true,
+        "oversized candidate was accepted");
+}
+
+static void SearchTimeoutFailsClosed()
+{
+    var matcher = SearchPatternService.Compile(new SearchPatternService.Spec("^(a+)+$", UseRegex: true));
+    var first = matcher.Match(new string('a', 50_000) + "!");
+    var started = DateTime.UtcNow;
+    var second = matcher.Match("safe");
+    var elapsed = DateTime.UtcNow - started;
+    Assert(!first.Ok && !second.Ok, "matcher retried after a timeout");
+    Assert(elapsed < TimeSpan.FromMilliseconds(100), "failed matcher did not fail closed immediately");
+}
+
+static void SessionSynchronization()
+{
+    var session = new SearchPatternSession();
+    int changes = 0;
+    session.Changed += (_, _) => changes++;
+    session.Query = @"^WinForge$";
+    session.UseRegex = true;
+    session.IgnoreCase = false;
+    session.Multiline = true;
+    Assert(changes == 4, $"expected four session changes, got {changes}");
+    Assert(session.Spec.Query == @"^WinForge$" && session.Spec.UseRegex && !session.Spec.IgnoreCase
+        && session.Spec.Multiline, "session state did not flow into the search spec");
+}
+
+static void SessionApply()
+{
+    var session = new SearchPatternSession();
+    int changes = 0;
+    session.Changed += (_, _) => changes++;
+    session.Apply(new SearchPatternService.Spec(
+        @"(?<word>\w+)", true, false, true, true, true, true));
+    Assert(changes == 1, "atomic apply should publish one change");
+    Assert(session.Spec is { UseRegex: true, IgnoreCase: false, Multiline: true, Singleline: true,
+        IgnorePatternWhitespace: true, ExplicitCapture: true }, "not every flag synchronized");
+}
+
+static void SessionPreviewCaptures()
+{
+    var session = new SearchPatternSession();
+    session.Apply(new SearchPatternService.Spec(@"(?<word>\p{L}+)", UseRegex: true));
+    var result = session.Preview("你好 WinForge");
+    Assert(result.Ok && result.Matches.Count == 2 && result.Matches.All(m => m.Groups.Count == 1),
+        "session preview did not expose Unicode capture groups");
+}
+
+static void SharedFilter()
+{
+    string[] source = ["a.c", "abc", "zzz"];
+    var plain = SearchPatternService.Filter(source, value => value, new SearchPatternService.Spec("a.c")).ToArray();
+    var regex = SearchPatternService.Filter(source, value => value,
+        new SearchPatternService.Spec("a.c", UseRegex: true)).ToArray();
+    Assert(plain.SequenceEqual(new[] { "a.c" }), "plain filter treated metacharacters as regex");
+    Assert(regex.SequenceEqual(new[] { "a.c", "abc" }), "regex filter did not use regex semantics");
+}
+
+static void DashboardSurface() => SurfaceContract(
+    "Pages/DashboardPage.xaml", "Pages/DashboardPage.xaml.cs", "SearchBox_PatternChanged", "SearchPatternService.Filter");
+
+static void CategorySurface() => SurfaceContract(
+    "Pages/CategoryPage.xaml", "Pages/CategoryPage.xaml.cs", "FilterBox_PatternChanged", "FilterBox.Spec");
+
+static void SearchResultsSurface() => SurfaceContract(
+    "Pages/SearchResultsPage.xaml", "Pages/SearchResultsPage.xaml.cs", "SearchBox_PatternChanged", "SearchBox.Spec");
+
+static void ManualSurface() => SurfaceContract(
+    "Pages/ManualPage.xaml", "Pages/ManualPage.xaml.cs", "FilterBox_PatternChanged", "ManualHits()");
+
+static void AppLauncherSurface() => SurfaceContract(
+    "Pages/AppLauncherModule.xaml", "Pages/AppLauncherModule.xaml.cs", "SearchBox_PatternChanged", "CompileMatcher()");
+
+static void LicensesSurface() => SurfaceContract(
+    "Pages/LicensesPage.xaml", "Pages/LicensesPage.xaml.cs", "SearchBox_PatternChanged", "LicenseCatalogService.Search(SearchBox.Spec");
+
+static void OpenSourceHubSurface() => SurfaceContract(
+    "Pages/OpenSourceAppHubModule.xaml", "Pages/OpenSourceAppHubModule.xaml.cs", "SearchBox_PatternChanged", "CompileMatcher()");
+
+static void SettingsHubSurface() => SurfaceContract(
+    "Pages/SettingsHubModule.xaml", "Pages/SettingsHubModule.xaml.cs", "FilterBox_PatternChanged", "Apply(FilterBox.Spec)");
+
+static void FullBuilderSurface()
+{
+    string xaml = ReadRepo("Controls/SearchPatternBox.xaml");
+    string code = ReadRepo("Controls/SearchPatternBox.xaml.cs");
+    foreach (string marker in new[]
+    {
+        "SearchPatternRawPattern", "IgnoreCaseCheck", "MultilineCheck", "SinglelineCheck",
+        "IgnoreWhitespaceCheck", "ExplicitCaptureCheck", "GuidedExpander", "SearchPatternSample",
+        "PreviewText", "CopyPatternButton",
+    }) Assert(xaml.Contains(marker, StringComparison.Ordinal), $"builder XAML is missing {marker}");
+    foreach (string marker in new[]
+    {
+        "PieceKind.Literal", "PieceKind.CharacterClass", "PieceKind.Anchor", "PieceKind.Group",
+        "PieceKind.Alternation", "PieceKind.Quantifier", "SearchPatternSession", "CompileMatcher",
+    }) Assert(code.Contains(marker, StringComparison.Ordinal), $"builder code is missing {marker}");
+}
+
+static void ClassifiedInventory()
+{
+    string csv = ReadRepo("docs/audits/search-surface-inventory-2026-07-24.csv");
+    string[] rows = csv.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+    Assert(rows.Length == 94, $"expected a header plus 93 classified controls, got {rows.Length}");
+    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 8, "integrated inventory count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"plain-text-later\",", StringComparison.Ordinal)) == 64, "remaining plain-text count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"specialized-dialect\",", StringComparison.Ordinal)) == 9, "specialized dialect count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"dedicated-pattern-tool\",", StringComparison.Ordinal)) == 7, "dedicated pattern count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"read-only-output\",", StringComparison.Ordinal)) == 2, "read-only output count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"shared-control-internal\",", StringComparison.Ordinal)) == 3, "shared control internal count mismatch");
+    Assert(csv.Contains("BPF capture-filter dialect", StringComparison.Ordinal)
+        && csv.Contains("AWS/JMESPath", StringComparison.Ordinal)
+        && csv.Contains("Rename transformation input", StringComparison.Ordinal),
+        "required specialized-dialect boundaries are missing");
+}
+
+static void SurfaceContract(string xamlPath, string codePath, string eventMarker, string matcherMarker)
+{
+    string xaml = ReadRepo(xamlPath);
+    string code = ReadRepo(codePath);
+    Assert(xaml.Contains("<controls:SearchPatternBox", StringComparison.Ordinal),
+        $"{xamlPath} does not expose the shared control");
+    Assert(xaml.Contains("AutomationName=", StringComparison.Ordinal),
+        $"{xamlPath} has no accessible search name");
+    Assert(xaml.Contains(eventMarker, StringComparison.Ordinal),
+        $"{xamlPath} does not bind the synchronized change event");
+    Assert(code.Contains(eventMarker, StringComparison.Ordinal),
+        $"{codePath} does not implement the synchronized change event");
+    Assert(code.Contains(matcherMarker, StringComparison.Ordinal),
+        $"{codePath} does not use the selected pattern and flags");
+}
+
+static string ReadRepo(string relativePath)
+    => File.ReadAllText(Path.Combine(FindRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+static string FindRepoRoot()
+{
+    DirectoryInfo? directory = new(AppContext.BaseDirectory);
+    while (directory is not null)
+    {
+        if (File.Exists(Path.Combine(directory.FullName, "WinForge.csproj"))) return directory.FullName;
+        directory = directory.Parent;
+    }
+    throw new DirectoryNotFoundException("Could not find the WinForge repository root.");
 }
 
 static void Assert(bool condition, string message)
