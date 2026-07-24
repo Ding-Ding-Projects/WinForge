@@ -34,8 +34,15 @@
             BorderThickness="1"
             CornerRadius="8">
             <StackPanel Spacing="6">
-                <TextBlock x:Name="ManagersLabel" FontWeight="SemiBold" FontSize="13" />
-                <ScrollViewer HorizontalScrollBarVisibility="Visible" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+                <TextBlock
+                    x:Name="ManagersLabel"
+                    AutomationProperties.HeadingLevel="Level2"
+                    FontWeight="SemiBold"
+                    FontSize="13" />
+                <ScrollViewer
+                    HorizontalScrollBarVisibility="Visible"
+                    HorizontalScrollMode="Enabled"
+                    VerticalScrollMode="Disabled">
                     <StackPanel x:Name="ManagerFilters" Orientation="Horizontal" Spacing="14" />
                 </ScrollViewer>
             </StackPanel>
@@ -127,6 +134,8 @@
             <TextBlock
                 x:Name="ResultsHeader"
                 Grid.Row="0"
+                AutomationProperties.HeadingLevel="Level2"
+                AutomationProperties.LiveSetting="Polite"
                 FontWeight="SemiBold"
                 TextWrapping="Wrap"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}" />

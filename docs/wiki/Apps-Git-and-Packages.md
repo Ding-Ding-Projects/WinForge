@@ -16,7 +16,7 @@ The canonical .NET workspace covers 11 package engines and nine views: Discover,
 
 The pinned source snapshot at `ThirdParty/UniGetUI` is provenance for audit and parity work only. UniGetUI's upstream UI/framework, IPC and telemetry are not compiled or launched; the running feature is WinForge's own bilingual WinUI 3 implementation. · `ThirdParty/UniGetUI` 入面嘅固定原始碼快照只作審核同功能對等參考；UniGetUI 上游 UI／framework、IPC 同 telemetry 唔會被編譯或啟動，實際執行嘅係 WinForge 自己嘅雙語 WinUI 3 實作。
 
-Structured proxy and vcpkg settings now fail closed before persistence or command construction, credentials never enter URLs/process arguments, and the search/action surface remains usable in an inspected 720-pixel bilingual window. · 結構化 proxy 同 vcpkg 設定會喺保存或者建立指令前 fail closed；認證絕對唔會進入 URL／process argument，而搜尋／action 介面已驗證喺 720 像素雙語視窗仍然可用。
+Portable bundle writes are staged and atomically swapped, and both package surfaces announce success only after the destination is safely in place; a failure leaves any previous file unchanged. Structured proxy and vcpkg settings fail closed before persistence or command construction, credentials never enter URLs/process arguments, and the search/action surface remains usable in an inspected 720-pixel bilingual window. · 可攜清單會先暫存再原子交換，兩個套件介面只會喺目的檔安全寫好後先報成功，失敗會保留舊檔；結構化 proxy 同 vcpkg 設定會喺保存或者建立指令前 fail closed，認證絕對唔會進入 URL／process argument，而搜尋／action 介面已驗證喺 720 像素雙語視窗仍然可用。
 
 Open in-app: `WinForge.exe --page packages`
 

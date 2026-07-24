@@ -41,6 +41,7 @@ Search and view controls occupy their own row; filters and actions move to a hor
 - Cancellation and retry apply to owned package operations; WinForge must not terminate unrelated external processes. · 取消同重試只適用於 WinForge 自己嘅套件操作，唔可以終止不相關外部 process。
 - Proxy settings accept only a credential-free HTTP(S) authority. Paths, queries, fragments, raw percent expansion, control characters, and embedded credentials fail closed. · Proxy 只接受唔含認證嘅 HTTP(S) authority；path、query、fragment、原始百分號展開、控制字元同內嵌認證全部 fail closed。
 - A vcpkg triplet is a bounded token containing only letters, numbers, dots, underscores, and dashes; invalid input is rejected before persistence or command construction. · vcpkg triplet 係有界 token，只可以用字母、數字、點、底線同橫線；無效輸入喺保存或者建立指令前已經拒絕。
+- Bundle saves are written to a unique same-directory staging file and swapped into place only after the complete payload exists. A failed save leaves the previous file unchanged, keeps the editor dirty, and reports a bilingual non-blocking error instead of false success. · 套件清單會先寫到同一資料夾嘅唯一暫存檔，完整寫好先交換入位；失敗會保留舊檔、保持編輯器未儲存，並用雙語非阻塞錯誤如實回報。
 
 ## Configuration · 設定
 
@@ -52,7 +53,7 @@ Invalid structured settings produce a bilingual inline error and restore the las
 
 ## Verification · 驗證
 
-- Package-manager core harness: **29/29 passed**, including malicious proxy/triplet rejection. · 套件管理 core harness **29/29 通過**，包括惡意 proxy／triplet 拒絕。
+- Package-manager core harness: **30/30 passed**, including atomic create/replace/failure-preservation saves and malicious proxy/triplet rejection. · 套件管理 core harness **30/30 通過**，包括原子建立／取代／失敗保留儲存，同惡意 proxy／triplet 拒絕。
 - Exact solution build and self-contained publish: exit 0, build with **0 errors**. · 完整 solution build 同自包含 publish exit 0，build **零 errors**。
 - XAML literal safety passed; 2,875/2,875 handlers and 1,922/1,922 direct actions resolved with zero lifecycle mismatches or actionable markers. · XAML literal safety 通過；2,875/2,875 handler 同 1,922/1,922 direct action 全部 resolve，零 lifecycle mismatch／actionable marker。
 - Fresh LowLevel MCP headless captures were visually inspected at 1049×646 and 720×650; the owned app window and desktop were closed afterward. · 最新 LowLevel MCP headless capture 已喺 1049×646 同 720×650 人手檢視；之後已關閉自家 app 視窗同 desktop。

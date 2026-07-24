@@ -251,9 +251,10 @@ public sealed partial class PackageManagerModule : Page
             string key = m.Key;
             bool avail = _available.TryGetValue(key, out var a) && a;
             bool known = _available.ContainsKey(key);
+            string managerName = P(m.NameEn, m.NameZh);
             var cb = new CheckBox
             {
-                Content = known && !avail ? $"{m.NameEn} · {m.NameZh}  {P("(not found)", "（搵唔到）")}" : $"{m.NameEn} · {m.NameZh}",
+                Content = known && !avail ? $"{managerName}  {P("(not found)", "（搵唔到）")}" : managerName,
                 IsChecked = _selected.Contains(key),
                 IsEnabled = !known || avail,
                 Tag = key,
@@ -1009,7 +1010,13 @@ public sealed partial class PackageManagerModule : Page
                 InstallOptions.HasOverride(item.ManagerKey, item.Id)
                     ? InstallOptions.Load(item.ManagerKey, item.Id)
                     : null);
-            await BundleService.SaveAsync(bundle, path);
+            if (!await BundleService.SaveAsync(bundle, path))
+            {
+                ResultsHeader.Text = P(
+                    "The bundle could not be saved. The previous file, if any, was left unchanged.",
+                    "套件清單儲存唔到；原有檔案（如果有）冇被改動。");
+                return;
+            }
             int comp = bundle.packages.Count, inc = bundle.incompatible_packages.Count;
             ResultsHeader.Text = inc > 0
                 ? P($"Exported {comp} package(s) ({inc} incompatible logged).", $"匯出咗 {comp} 個套件（記錄咗 {inc} 個不相容）。")
