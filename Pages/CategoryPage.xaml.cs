@@ -41,7 +41,8 @@ public sealed partial class CategoryPage : Page
             BrowserWorkbenchHost.Content = null;
         }
         RenderHeader();
-        Populate(string.Empty);
+        FilterBox.Clear();
+        Populate();
     }
 
     private void RenderHeader()
@@ -53,17 +54,15 @@ public sealed partial class CategoryPage : Page
         FilterBox.PlaceholderText = Loc.I.Pick("Filter this section…", "篩選呢個分類…");
     }
 
-    private void Populate(string filter)
+    private void Populate()
     {
         if (_category is null) return;
         CardsPanel.Children.Clear();
 
-        var tweaks = TweakCatalog.ByCategory(_category);
-        if (!string.IsNullOrWhiteSpace(filter))
-        {
-            var f = filter.Trim().ToLowerInvariant();
-            tweaks = tweaks.Where(t => t.SearchHaystack.Contains(f));
-        }
+        var tweaks = SearchPatternService.Filter(
+            TweakCatalog.ByCategory(_category),
+            tweak => tweak.SearchHaystack,
+            FilterBox.Spec);
 
         var list = tweaks.ToList();
         if (list.Count == 0)
@@ -83,9 +82,5 @@ public sealed partial class CategoryPage : Page
         CardsPanel.Children.Add(_rows);
     }
 
-    private void FilterBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
-    {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
-            Populate(sender.Text);
-    }
+    private void FilterBox_PatternChanged(object? sender, EventArgs args) => Populate();
 }

@@ -7,9 +7,12 @@ This folder holds source-backed capability reconciliations. An item is marked sh
 ## Audits · 審核報告
 
 - [Core roadmap capability audit — 2026-07-24](roadmap-core-capability-audit-2026-07-24.md) · 核心路線圖功能審核 — Windows 11, ViveTool, Media, Maintenance, Dev & Terminal, Home Assistant, Archives, and Browser Control; Media and Browser Control are now complete, bringing the matrix to 96/115 shipped with 19 retained gaps.
+- [Search and query surface inventory — 2026-07-24](search-surface-inventory-2026-07-24.md) · 搜尋同查詢介面清單 — 93 candidate controls across 74 XAML files, classified as 8 integrated core/common searches, 64 applicable plain-text searches retained for later batches, 9 specialized dialect adapters, 7 dedicated pattern tools, 2 read-only outputs, and 3 shared-control internals.
 
 ## Verification · 驗證
 
 Run `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1` from the repository root. The check locks the audited section totals, shipped counts, exact item coverage, Browser Control and Media implementation markers, evidence-document links, and the 96/115 aggregate.
 
 由儲存庫根目錄執行 `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`。檢查會鎖實每節項目數、已交付數、每項審核覆蓋、瀏覽器同 Media 實作標記、證據連結同 96/115 總數。
+
+Regenerate the search inventory with `pwsh -NoLogo -NoProfile -File tools/New-SearchSurfaceInventory.ps1 -RepoRoot .`; `RegexBuilder.Tests` locks its 93-row total and every classification count. · 用 `pwsh -NoLogo -NoProfile -File tools/New-SearchSurfaceInventory.ps1 -RepoRoot .` 重新生成搜尋清單；`RegexBuilder.Tests` 會鎖實 93 行總數同每個分類數字。

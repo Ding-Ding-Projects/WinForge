@@ -155,12 +155,18 @@ public static class LicenseCatalogService
         Notices.Select(n => n.CategoryEn).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
 
     public static IEnumerable<LicenseNotice> Search(string query, string category, bool copyleftOnly)
+        => Search(new SearchPatternService.Spec(query), category, copyleftOnly);
+
+    public static IEnumerable<LicenseNotice> Search(
+        SearchPatternService.Spec spec,
+        string category,
+        bool copyleftOnly)
     {
-        var q = (query ?? "").Trim().ToLowerInvariant();
+        SearchPatternService.Matcher matcher = SearchPatternService.Compile(spec);
         return Notices
             .Where(n => string.IsNullOrEmpty(category) || n.CategoryEn.Equals(category, StringComparison.OrdinalIgnoreCase))
             .Where(n => !copyleftOnly || n.IsCopyleftOrSourceAvailable)
-            .Where(n => q.Length == 0 || n.Haystack.Contains(q))
+            .Where(n => matcher.Match(n.Haystack) is { Ok: true, IsMatch: true })
             .OrderBy(n => n.CategoryEn)
             .ThenBy(n => n.Name);
     }

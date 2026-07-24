@@ -23,13 +23,13 @@
                 TextWrapping="Wrap" />
         </StackPanel>
 
-        <AutoSuggestBox
+        <controls:SearchPatternBox
             x:Name="FilterBox"
             Grid.Row="1"
             MaxWidth="420"
             HorizontalAlignment="Left"
-            QueryIcon="Find"
-            TextChanged="FilterBox_TextChanged" />
+            AutomationName="Filter this section · 篩選呢個分類"
+            PatternChanged="FilterBox_PatternChanged" />
 
         <ScrollViewer
             Grid.Row="2"

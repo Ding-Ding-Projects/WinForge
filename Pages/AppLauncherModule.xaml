@@ -35,13 +35,12 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <AutoSuggestBox
+                    <controls:SearchPatternBox
                         x:Name="SearchBox"
                         Grid.Row="0"
                         Grid.Column="0"
-                        QueryIcon="Find"
-                        TextChanged="SearchBox_TextChanged"
-                        QuerySubmitted="SearchBox_QuerySubmitted"
+                        AutomationName="Search launchable native apps · 搜尋可啟動嘅原生 app"
+                        PatternChanged="SearchBox_PatternChanged"
                         automation:AutomationProperties.Name="Search launchable native apps · 搜尋可啟動嘅原生 app" />
 
                     <ComboBox

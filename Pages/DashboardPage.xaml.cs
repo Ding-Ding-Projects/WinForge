@@ -443,12 +443,12 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
         CategoryRepeater.ItemsSource = tiles;
     }
 
-    private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    private void SearchBox_PatternChanged(object? sender, EventArgs args)
     {
-        if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
-        var query = sender.Text?.Trim() ?? string.Empty;
+        string query = SearchBox.Text ?? string.Empty;
+        bool empty = SearchBox.IsRegexMode ? query.Length == 0 : string.IsNullOrWhiteSpace(query);
 
-        if (string.IsNullOrEmpty(query))
+        if (empty)
         {
             SearchResults.Visibility = Visibility.Collapsed;
             BrowseSection.Visibility = Visibility.Visible;
@@ -461,7 +461,10 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
         SearchResults.Visibility = Visibility.Visible;
         SearchResults.Children.Clear();
 
-        var matches = TweakCatalog.Search(query).Take(60).ToList();
+        var matches = SearchPatternService.Filter(
+            TweakCatalog.All,
+            tweak => tweak.SearchHaystack,
+            SearchBox.Spec).Take(60).ToList();
         var header = new TextBlock
         {
             Text = Loc.I.Pick($"{matches.Count} result(s)", $"{matches.Count} 個結果"),

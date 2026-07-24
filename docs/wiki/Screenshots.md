@@ -287,6 +287,13 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 Keyboard focus reaches the guided builder and remains visibly outlined; the page scrolls vertically and its five flags no longer overflow in one horizontal row. · 鍵盤 focus 可以去到引導砌法兼有清楚外框；頁面會垂直滾動，五個旗標亦唔再塞爆一條橫行。
 
+### Synchronized Regex search control · 同步 Regex 搜尋控制
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-regex-search-core.png)
+
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-regex-search-core-narrow.png)
+
+The 852×646 LowLevel and 760×720 app-owned Dashboard captures show the unclipped shared row, explicit regex state, and direct builder action. A live flyout audit found and drove the one-column flag and shorter prompt fixes; the complete flyout remains covered by the focused source/test contract. · 852×646 LowLevel 同 760×720 app-owned Dashboard 圖顯示冇裁切嘅共用列、明確 regex 狀態同直接 builder action。live flyout 審核搵到並推動單欄旗標／短提示修正；完整 flyout 由專項原始碼／測試合約覆蓋。
+
 ### Regex Cheatsheet · 正則速查
 > **Capture status · 截圖狀態：** Fresh `regexcheat` capture is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable in this desktop session. The route passed a launch-only check, but no PNG was created, inspected, or claimed as visual verification. · 新嘅 `regexcheat` 截圖係 `capture-blocked`：呢個 desktop session 嘅 `CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。route launch-only check 通過，但冇 PNG 產生、檢查或者當成視覺驗證。
 

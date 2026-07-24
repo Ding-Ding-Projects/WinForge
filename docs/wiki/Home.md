@@ -20,7 +20,7 @@
 | [Roadmap Status Reconciliation](Roadmap-Status-Reconciliation.md) | Evidence-backed shipped/partial decisions · 有證據嘅已交付／部分完成判定 |
 | [Core Roadmap Capability Audit](Roadmap-Core-Capability-Audit.md) | Strict shipped-versus-gap evidence for 115 roadmap capabilities · 115 項路線圖功能嘅嚴格已交付／缺口證據 |
 | [Browser Control Workbench](Browser-Control-Workbench.md) | Parameterized browser profiles, PWAs, isolation, cache, debugging, and packages · 參數化設定檔、PWA、隔離、快取、除錯同套件 |
-| [Managed Regex Builder](Regex-Builder.md) | Guided .NET construction, bounded live matches/captures, and safety evidence · 引導式 .NET 砌法、有界即時配對／擷取同安全證據 |
+| [Managed Regex Builder](Regex-Builder.md) | Guided .NET construction, eight synchronized searches, exhaustive inventory, bounded live matches/captures, and safety evidence · 引導式 .NET 砌法、八個同步搜尋、完整清單、有界即時配對／擷取同安全證據 |
 | [Smoke Closeout](../Exhaustive-Smoke-Closeout.md) | Final safe smoke coverage, source wiring, test, and capture disposition · 最後安全冒煙覆蓋、來源 wiring、測試同截圖處置 |
 | [Hardware Monitor Driver Lifecycle](Hardware-Monitor-Driver-Lifecycle.md) | Scoped LibreHardwareMonitor driver ownership and regression evidence · 有範圍嘅 LibreHardwareMonitor 驅動所屬同回歸證據 |
 | [Pumped-Hydro State Integrity](Pumped-Hydro-State-Integrity.md) | Deterministic timer boundary and MWh-based reward regression evidence · 確定性 timer 邊界同以 MWh 計獎勵嘅回歸證據 |

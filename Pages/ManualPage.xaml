@@ -43,11 +43,11 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <AutoSuggestBox
+                <controls:SearchPatternBox
                     x:Name="FilterBox"
                     Grid.Row="0"
-                    QueryIcon="Find"
-                    TextChanged="FilterBox_TextChanged" />
+                    AutomationName="Search the manual · 搜尋手冊"
+                    PatternChanged="FilterBox_PatternChanged" />
                 <ScrollViewer
                     Grid.Row="1"
                     Padding="0,0,8,16"
