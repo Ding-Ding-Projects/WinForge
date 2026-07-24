@@ -4,6 +4,13 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current preserved package-stash verification · 目前已保存套件 stash 驗證
+
+- The six-file `codex-temp-powertoys` stash (`181fc231c...`) was audited without applying or dropping it. Useful intent is already superseded by the current coordinator, schema, test registration, and PowerToys hub; malformed/stale bodies were rejected. · 六個檔嘅 stash 已逐一對帳，冇 apply 或 drop；有用意圖已由現行 coordinator／schema／test 註冊／PowerToys hub 取代，壞咗或過時 body 已拒絕。
+- Bundle saves stage beside the target, atomically replace/move only after complete serialization, return truthful failure, preserve the old file and dirty editor state, and show bilingual non-blocking status. · 清單先喺目的地旁暫存，完整序列化後先原子交換；失敗會如實回報、保留舊檔同未儲存狀態，再用雙語非阻塞狀態顯示。
+- Package actions use narrow-safe rows; headings/live status and manager-name language modes improve accessibility and localization. Focused tests pass **28/28**; solution build, final publish, XAML safety, and source audit pass. · 套件動作用窄畫面安全分行，heading／live status／管理器語言模式改善無障礙同本地化；專項 **28/28**、solution build、publish、XAML safety 同 source audit 全過。
+- An inspected **1049×646** LowLevel headless capture verifies the responsive layout and replaced both canonical screenshots with matching SHA-256 `AE5A0CB21847BD907FE3011CE3E68AFB5965C41E35149FD8DBECBBB4B3AC0414`. Feature commit `06d876bd6c4512f5ad9eaeb0e7895728c5e69f17` is pushed and remotely proved on `codex/integrate-stash-powertoys`; final main integration remains with the coordinating agent. · 已檢視 LowLevel 圖驗證響應式版面並替換兩份正式截圖；功能 commit 已 push 同 remote prove，最終 main 整合交畀統籌 agent。
+
 ## Current Command Palette extension-host verification · 目前 Command Palette extension-host 驗證
 
 - Trusted executable hosts complement declarative extension commands; they do not replace the safe declarative path and are explicitly documented as a local trust boundary rather than a sandbox. · 受信任 executable host 係 declarative extension command 嘅補充，唔會取代安全 declarative 路徑，文件亦清楚標明係本機信任界線，唔係 sandbox。

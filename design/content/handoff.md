@@ -4,6 +4,16 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Preserved package-stash reconciliation · 已保存套件 stash 對帳
+
+The six-file `codex-temp-powertoys` stash (`181fc231c...`) was reviewed without applying or dropping it. Its useful coordinator, schema-compatibility, solution-registration, and PowerToys discoverability intent already exists in newer code; malformed and stale hunks were rejected. Portable-bundle saves now stage beside the destination and report success only after an atomic replace/move, preserving the old file and dirty editor state on failure. Both package surfaces use bilingual non-blocking failure status.
+
+六個檔嘅 `codex-temp-powertoys` stash 已逐一對帳，冇 apply 或 drop。有用 coordinator、schema 相容、solution 註冊同 PowerToys discoverability 已喺較新 code；格式壞咗或者過時 hunk 已拒絕。可攜清單而家先同資料夾暫存，再原子交換成功先報成功；失敗會保留舊檔同未儲存狀態，兩個介面用雙語非阻塞狀態回報。
+
+The Package Manager now exposes semantic headings and polite live status, honors all three persisted language modes in manager labels, and uses narrow-safe action rows. Package tests pass **28/28**, the exact solution build has **0 errors**, final publish/XAML/source audits pass, and a fresh inspected **1049×646** LowLevel headless capture replaced both canonical screenshots (SHA-256 `AE5A0CB21847BD907FE3011CE3E68AFB5965C41E35149FD8DBECBBB4B3AC0414`). Feature commit `06d876bd6c4512f5ad9eaeb0e7895728c5e69f17` is pushed and remotely proved on the bounded integration branch; the preserved stash remains unchanged for the coordinating agent.
+
+套件管理器新增語意 heading、polite live status、三種持久語言模式管理器名稱，同窄畫面安全動作分行。專項 **28/28**、solution 零 errors、publish／XAML／source audit 全過；新 LowLevel **1049×646** 圖已檢視並替換兩份正式截圖。功能 commit 已 push 同 remote prove；stash 原封不動保留畀統籌 agent。
+
 ## Command Palette extension hosts · Command Palette extension host
 
 Command Palette extension packs now have an explicit trusted-local-host option alongside declarative module, URL, copy, and structured-page commands. Every invocation rereads current enablement and the manifest, rechecks the declared command, accepts only a fully qualified local-drive `.exe`, rejects relative/UNC/network/device paths and unsafe arguments, verifies the pinned SHA-256 under a read-only launch lease, refuses elevated execution, and bounds JSON-lines responses to 64 KiB and eight seconds. Cancellation and timeout kill the owned process tree. This is a deliberate local trust boundary, not a sandbox.
