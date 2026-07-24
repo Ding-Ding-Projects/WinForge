@@ -1045,8 +1045,13 @@ public sealed class DewHistoryWatcher : IDisposable
         lock (_taskLock)
         {
             if (Volatile.Read(ref _disposed) != 0) throw new ObjectDisposedException(nameof(DewHistoryWatcher));
-            _watcher.EnableRaisingEvents = true;
             Volatile.Write(ref _running, 1);
+            try { _watcher.EnableRaisingEvents = true; }
+            catch
+            {
+                Volatile.Write(ref _running, 0);
+                throw;
+            }
         }
     }
     public void Stop()

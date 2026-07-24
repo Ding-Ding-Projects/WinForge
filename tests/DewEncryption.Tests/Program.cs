@@ -10,6 +10,8 @@ internal static class Program
     private static int _failed;
     private static int _skipped;
     private static readonly string TestRoot = Path.Combine(Path.GetTempPath(), $"WinForge-Dew-Tests-{Guid.NewGuid():N}");
+    private static readonly TimeSpan ExternalProcessTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan WatcherCommitTimeout = ExternalProcessTimeout + TimeSpan.FromSeconds(15);
 
     private static async Task<int> Main(string[] args)
     {
@@ -466,10 +468,28 @@ internal static class Program
             else if (e.Result?.Changed == true) tcs.TrySetResult(e.Result);
         };
         watcher.Start();
-        File.WriteAllText(Path.Combine(source, "data.txt"), "two");
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(12)));
-        True(completed == tcs.Task, "Watcher did not commit within the timeout.");
-        await tcs.Task;
+        var dataPath = Path.Combine(source, "data.txt");
+        File.WriteAllText(dataPath, "two");
+        File.WriteAllText(dataPath, "three");
+        File.WriteAllText(dataPath, "final debounced value");
+
+        DewSnapshotResult result;
+        try { result = await tcs.Task.WaitAsync(WatcherCommitTimeout); }
+        catch (TimeoutException ex)
+        {
+            throw new TimeoutException(
+                $"Watcher did not commit within the {WatcherCommitTimeout.TotalSeconds:0}-second loaded-host budget.", ex);
+        }
+        watcher.Stop();
+
+        True(result.Changed && !string.IsNullOrWhiteSpace(result.Commit),
+            "Watcher completion did not identify a committed change.");
+        var history = await DewEncryptionService.ListHistoryAsync(project);
+        True(history.Count == 2,
+            $"Rapid writes should debounce into one new commit; history contains {history.Count} commits.");
+        var committed = await RunProcess("git", project.RepositoryDirectory,
+            ["show", "HEAD:files/source/data.txt"]);
+        Equal("final debounced value", committed.Trim());
     }
 
     private static async Task TestEncryptedArchive()
@@ -581,13 +601,14 @@ internal static class Program
         using var process = Process.Start(info) ?? throw new InvalidOperationException($"Could not start {file}.");
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var timeout = new CancellationTokenSource(ExternalProcessTimeout);
         try { await process.WaitForExitAsync(timeout.Token); }
         catch (OperationCanceledException)
         {
             try { process.Kill(entireProcessTree: true); } catch { }
             try { await process.WaitForExitAsync(); } catch { }
-            throw new TimeoutException($"{file} did not exit within 30 seconds.");
+            throw new TimeoutException(
+                $"{file} did not exit within {ExternalProcessTimeout.TotalSeconds:0} seconds.");
         }
         var output = (await stdout) + Environment.NewLine + (await stderr);
         if (requireSuccess && process.ExitCode != 0)

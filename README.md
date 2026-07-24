@@ -83,7 +83,7 @@ Run the dedicated Dew Encryption compatibility, path-safety, restore, watcher, a
 dotnet run --project tests\DewEncryption.Tests -c Debug
 ```
 
-The current Dew contract is **23/23** tests, including writable and extracted read-only historical-deletion restores. · 目前 Dew 合約係 **23/23**，包括可寫同 extracted read-only 歷史刪除還原。
+The current Dew contract is **23/23** tests, including writable and extracted read-only historical-deletion restores. Its watcher case uses a named 45-second loaded-host commit budget and proves rapid writes debounce into one commit containing the final value. · 目前 Dew 合約係 **23/23**，包括可寫同 extracted read-only 歷史刪除還原；watcher case 用具名 45 秒 loaded-host commit budget，並證明快速連續寫入只會 debounce 成一個包含最終值嘅 commit。
 
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 
