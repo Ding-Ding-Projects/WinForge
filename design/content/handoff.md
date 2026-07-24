@@ -16,7 +16,7 @@ Browser app-mode／kiosk／proxy 嘅固定示例冇提供所聲稱嘅可設定�
 
 The post-rebase focused audit passes **74/115 + 41 gaps**. Source verification reports **337 XAML files**, **2,893/2,893 resolved handlers**, **1,937/1,937 resolved direct actions**, **322 feature docs**, **1,920 button docs**, and zero lifecycle/actionable markers; XAML literal safety passes. Full self-contained site generation/publish exits 0 with **322 modules, 22 categories, 1,217 features, and 2,296 wiki pages**. This task changes docs and a static verifier only, so new visual evidence is not applicable.
 
-Rebase 後專項 audit、source audit、XAML safety 同 self-contained site generation／publish 全過；handler／direct action 全部 resolve，生成資料係 322 modules／22 categories／1,217 features／2,296 wiki pages。今次只改文件同靜態驗證器，所以新視覺證據不適用。改動喺 `codex/roadmap-reconcile-core`，最終 `main` 整合交畀統籌 parent。
+Rebase 後專項 audit、source audit、XAML safety 同 self-contained site generation／publish 全過；handler／direct action 全部 resolve，生成資料係 322 modules／22 categories／1,217 features／2,296 wiki pages。今次只改文件同靜態驗證器，所以新視覺證據不適用。Source/audit commit `632d0e551383c143908cfc65e25fa4d60f937715` 以 `4af5e60e9d41f258f2d4697b1f0383138c8d1642` 為基線，已 push 並證明同 remote branch 完全一致；最終 memory commit 跟住喺 `codex/roadmap-reconcile-core`，而 `main` 整合交畀統籌 parent。
 
 ## Preserved package-stash reconciliation · 已保存套件 stash 對帳
 

@@ -8,7 +8,7 @@ WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 
 
 - Eight stale core sections now have a strict source-backed disposition: **74/115 shipped** and **41 factual gaps retained**. The exact per-section matrix, catalog IDs, handlers, mechanisms, documentation evidence, and missing behavior are in [the categorized audit](audits/roadmap-core-capability-audit-2026-07-24.md). · 八個過時核心章節已有嚴格原始碼處置：**74/115 已交付**，**41 個真實缺口保留**；每節 matrix、catalog ID、handler、機制、文件證據同欠缺行為都喺分類 audit。
 - `tools/Test-RoadmapCoreAudit.ps1` checks all 115 exact titles, their shipped/gap placement, section counts, mirrors, and aggregate. Post-rebase source/XAML checks pass, and the canonical site generator publishes the new wiki page without hand-editing app data. · 專項 test 會核對 115 個準確標題、已交付／缺口位置、每節數量、mirror 同總數；rebase 後 source／XAML gate 全過，正式 site generator 亦已發佈新 wiki 頁，冇手改 app data。
-- No WinUI surface changed, so screenshot evidence is not applicable. The work is on `codex/roadmap-reconcile-core`; final main integration remains with the coordinating parent. · 冇 WinUI 畫面改動，所以截圖證據不適用；改動喺指定分支，最終 main 整合交畀統籌 parent。
+- No WinUI surface changed, so screenshot evidence is not applicable. Source/audit commit `632d0e551383c143908cfc65e25fa4d60f937715` is based on `4af5e60e9d41f258f2d4697b1f0383138c8d1642`, pushed and proved byte-identical on `origin/codex/roadmap-reconcile-core`; this final memory record follows on that branch, while main integration remains with the coordinating parent. · 冇 WinUI 畫面改動，所以截圖證據不適用；source／audit commit `632d0e551` 以 `4af5e60e9` 為基線，已 push 並證明同 remote branch 完全一致；呢個最終 memory 記錄跟住喺同一 branch，而 main 整合交畀統籌 parent。
 
 ## Current preserved package-stash verification · 目前已保存套件 stash 驗證
 
