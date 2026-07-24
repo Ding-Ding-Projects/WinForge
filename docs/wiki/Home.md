@@ -16,6 +16,7 @@
 | [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md) | Capture, crop, highlight, annotate, and redact screenshots · 擷取、裁切、強調、標註同遮蔽截圖 |
 | [Smoke Test Campaign](Smoke-Test-Campaign.md) | Whole-app route, source, behavior, and evidence ledger · 全 app route、source、行為同證據清單 |
 | [Roadmap Status Reconciliation](Roadmap-Status-Reconciliation.md) | Evidence-backed shipped/partial decisions · 有證據嘅已交付／部分完成判定 |
+| [Core Roadmap Capability Audit](Roadmap-Core-Capability-Audit.md) | Strict shipped-versus-gap evidence for 115 roadmap capabilities · 115 項路線圖功能嘅嚴格已交付／缺口證據 |
 | [Smoke Closeout](../Exhaustive-Smoke-Closeout.md) | Final safe smoke coverage, source wiring, test, and capture disposition · 最後安全冒煙覆蓋、來源 wiring、測試同截圖處置 |
 | [Hardware Monitor Driver Lifecycle](Hardware-Monitor-Driver-Lifecycle.md) | Scoped LibreHardwareMonitor driver ownership and regression evidence · 有範圍嘅 LibreHardwareMonitor 驅動所屬同回歸證據 |
 | [Pumped-Hydro State Integrity](Pumped-Hydro-State-Integrity.md) | Deterministic timer boundary and MWh-based reward regression evidence · 確定性 timer 邊界同以 MWh 計獎勵嘅回歸證據 |

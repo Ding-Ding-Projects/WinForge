@@ -119,6 +119,7 @@ See the bilingual [extension-pack guide](docs/wiki/Command-Palette-Extensions.md
 - [Reactor hub · 反應堆中心](docs/wiki/Reactor-Hub.md)
 - [Native-port relocation · 原生移植版搬遷](docs/Native-Cpp-Rewrite.md)
 - [Roadmap · 路線圖](ROADMAP.md)
+- [Core roadmap capability audit · 核心路線圖功能審核](docs/audits/roadmap-core-capability-audit-2026-07-24.md)
 - [Current handoff · 最新交接](handoff-summary.md)
 
 ## License · 授權
