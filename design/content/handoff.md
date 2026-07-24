@@ -4,6 +4,20 @@ WinForge is the canonical .NET 11 / WinUI 3 application. The experimental C++20/
 
 WinForge 係正式 .NET 11／WinUI 3 app。實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，並獨立保存 source、tests、parity 證據、installer、文件同 release。
 
+## Core roadmap capability reconciliation · 核心路線圖功能對帳
+
+Eight stale core backlog sections were reconciled against reachable controls, handler/catalog bindings, real service/registry/command mechanisms, and documentation. The strict result is **74/115 shipped** and **41 intentionally unchecked**: Windows 11 10/13, ViveTool 15/15, Media 4/15, Maintenance 10/15, Dev & Terminal 9/15, Home Assistant 13/14, Archives 10/14, and Browser Control 3/14. The focused contract locks every exact title into the shipped or gap block, so a count-preserving status swap cannot pass.
+
+八個過時核心待辦章節已同可達控制、handler／catalog binding、真實 service／registry／command 機制同文件逐項核對；嚴格結果係 **74/115 已交付**、**41 項刻意保留未剔選**。專項 contract 會鎖實每個標題只可以喺已交付或者缺口區，保持總數但偷偷換狀態都唔會通過。
+
+Browser app-mode/kiosk/proxy remain gaps because fixed example values do not supply their advertised configurable workflows. Cloudflare quick tunnel is counted only for its reachable real `cloudflared tunnel --url http://localhost:8080` action; arbitrary URL selection is not claimed. Home Assistant restart is not counted as “validate before restart” because it does not require a successful check. The full categorized reasons and exact code evidence are published in the Core Roadmap Capability Audit wiki page and repository audit ledger.
+
+Browser app-mode／kiosk／proxy 嘅固定示例冇提供所聲稱嘅可設定流程，所以繼續當缺口；Cloudflare quick tunnel 只按可達嘅真實 `cloudflared tunnel --url http://localhost:8080` 操作計已交付，唔聲稱可揀任意 URL。Home Assistant restart 亦冇強制先驗證成功。完整分類原因同準確 code 證據已發佈喺 Core Roadmap Capability Audit wiki 頁同 repository audit ledger。
+
+The post-rebase focused audit passes **74/115 + 41 gaps**. Source verification reports **337 XAML files**, **2,893/2,893 resolved handlers**, **1,937/1,937 resolved direct actions**, **322 feature docs**, **1,920 button docs**, and zero lifecycle/actionable markers; XAML literal safety passes. Full self-contained site generation/publish exits 0 with **322 modules, 22 categories, 1,217 features, and 2,296 wiki pages**. This task changes docs and a static verifier only, so new visual evidence is not applicable.
+
+Rebase 後專項 audit、source audit、XAML safety 同 self-contained site generation／publish 全過；handler／direct action 全部 resolve，生成資料係 322 modules／22 categories／1,217 features／2,296 wiki pages。今次只改文件同靜態驗證器，所以新視覺證據不適用。改動喺 `codex/roadmap-reconcile-core`，最終 `main` 整合交畀統籌 parent。
+
 ## Preserved package-stash reconciliation · 已保存套件 stash 對帳
 
 Preserved commits `5cc3aa712f9e326dd8d9ae0bdd4c16d8771e1cb6` (ten files, +987/−217) and `181fc231c93b2533392344a405cb18750b4eaa48` (six files) were first audited read-only. Current native code already carries their useful scheduler/coordinator, schema, engine, bundle/source, PowerToys-discoverability, and provenance intent. Malformed/stale bodies and obsolete external-launch, credential-in-URL, strip-only sanitization, fixed-builder, and automatic source-trust paths remain rejected. After the safe union was remote-proved on `main`, the exact redundant stash refs were revalidated by object ID and dropped; neither stale patch was applied or popped. · 兩份保留 commit 先逐檔只讀審核。現行原生 code 已保留有用排程／coordinator、schema、引擎、清單／來源、PowerToys discoverability 同來源證明；壞咗／過時 body、外部 launcher、URL 認證、只刪字元 sanitization、固定 builder 同自動信任來源繼續拒絕。安全 union 喺 `main` 完成 remote proof 後，再按準確 object ID 核對並刪除已冗餘 stash ref；兩份舊 patch 從未 apply 或 pop。

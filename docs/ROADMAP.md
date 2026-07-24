@@ -37,31 +37,33 @@
 ## 🔭 Discovered backlog · 發掘待辦（175 items / 項）
 
 ### Windows 11  (13)
-- [ ] **Disable Wallpaper JPEG Compression (Import Quality 100)** · 熄咗桌布JPEG壓縮(質素調到最高100)
+> **Strict source audit (2026-07-24): 10/13 shipped.** Implementation evidence and the three remaining gaps are recorded in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#windows-11--windows-11). · **嚴格原始碼審核：13 項有 10 項已交付；證據同三個缺口見審核報告。**
+
+- [x] **Disable Wallpaper JPEG Compression (Import Quality 100)** · 熄咗桌布JPEG壓縮(質素調到最高100)
   - _HKCU\Control Panel\Desktop -> DWORD JPEGImportQuality = 100 (valid 60-100; default behaviour ~85). Disables Windows' automatic recompression of JPG wallpapers. After writing, re-apply the image via SystemParametersInfo SPI_SETDESKWALLPAPER (or re-set the wallpaper) so the new quality takes effect. PNG/BMP wallpapers are unaffected._
-- [ ] **Enable Verbose Startup/Shutdown Status Messages** · 開啟開關機詳細狀態訊息
+- [x] **Enable Verbose Startup/Shutdown Status Messages** · 開啟開關機詳細狀態訊息
   - _HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -> DWORD VerboseStatus = 1. Shows detailed 'Applying settings / Stopping service X' text during boot and shutdown instead of the spinner. Requires admin (HKLM)._
-- [ ] **Toggle Cloud Clipboard Sync Across Devices** · 開定熄雲端剪貼簿跨裝置同步
+- [x] **Toggle Cloud Clipboard Sync Across Devices** · 開定熄雲端剪貼簿跨裝置同步
   - _HKCU\Software\Microsoft\Clipboard -> DWORD EnableClipboardHistory = 1 (Win+V history) and CloudClipboardAutomaticUpload = 1 (roam via Microsoft account). Deep link ms-settings:clipboard._
 - [ ] **Configure Storage Sense Cadence & Recycle Bin Purge** · 設定儲存感知清理週期同回收筒清空
   - _HKCU\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy -> DWORDs: 01 (enable)=1, 2048 (run cadence: 0=low disk space,1=daily,7=weekly,30=monthly), 256 (Recycle Bin retention days: 0/1/14/30/60), 512 (Downloads retention days). Deep link ms-settings:storagesense._
-- [ ] **Disable Mouse Pointer Acceleration (Enhance Pointer Precision)** · 熄咗滑鼠加速(精準指標)
+- [x] **Disable Mouse Pointer Acceleration (Enhance Pointer Precision)** · 熄咗滑鼠加速(精準指標)
   - _HKCU\Control Panel\Mouse -> string MouseSpeed=0, MouseThreshold1=0, MouseThreshold2=0 unchecks 'Enhance pointer precision' (mouse acceleration). Apply live via SystemParametersInfo SPI_SETMOUSE with the 3-element accel array. Deep link ms-settings:mousetouchpad._
-- [ ] **Set Keyboard Repeat Delay & Repeat Rate to Fastest** · 將鍵盤重複延遲同速率調到最快
+- [x] **Set Keyboard Repeat Delay & Repeat Rate to Fastest** · 將鍵盤重複延遲同速率調到最快
   - _HKCU\Control Panel\Keyboard -> string KeyboardDelay=0 (0-3, 0=shortest) and KeyboardSpeed=31 (0-31, 31=fastest). Apply live via SystemParametersInfo SPI_SETKEYBOARDDELAY / SPI_SETKEYBOARDSPEED. Deep link ms-settings:easeofaccess-keyboard._
 - [ ] **Enable Filter Keys / Slow Keys for Accessibility** · 開啟篩選鍵(慢速鍵)輔助功能
   - _HKCU\Control Panel\Accessibility\Keyboard Response -> string Flags (e.g. 27 off / 59 on) plus DWORDs DelayBeforeAcceptance, AutoRepeatDelay, AutoRepeatRate, BounceTime (ms). Apply live via SystemParametersInfo SPI_SETFILTERKEYS. Deep link ms-settings:easeofaccess-keyboard._
 - [ ] **Export / Import Default App Associations (machine-wide)** · 匯出匯入預設程式關聯
   - _Wrap DISM: 'dism /Online /Export-DefaultAppAssociations:C:\assoc.xml' to capture current defaults, and 'dism /Online /Import-DefaultAppAssociations:C:\assoc.xml' (admin) to apply the template for new users/login. Per-user single-extension changes need the protected UserChoice hash, so wrap SetUserFTA.exe or open ms-settings:defaultapps for manual confirmation._
-- [ ] **Toggle Notifications / Configure Focus & Quiet-Hours Rules** · 開熄通知同設定專注模式(勿擾)規則
+- [x] **Toggle Notifications / Configure Focus & Quiet-Hours Rules** · 開熄通知同設定專注模式(勿擾)規則
   - _Global toasts: HKCU\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings -> DWORD NOC_GLOBAL_SETTING_TOASTS_ENABLED = 0/1. Per-app toasts under ...\Settings\<AppUserModelID> -> Enabled. Focus session / automatic quiet-hours rules are configured via ms-settings:quiethours (Focus assist); deep link ms-settings:notifications._
-- [ ] **Tune Snap Assist & Snap Layout Behavior** · 調整貼齊版面(Snap)行為
+- [x] **Tune Snap Assist & Snap Layout Behavior** · 調整貼齊版面(Snap)行為
   - _HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced -> DWORDs SnapAssist, EnableSnapAssistFlyout, SnapFill, JointResize (1/0); HKCU\Control Panel\Desktop -> DWORD WindowArrangementActive ('1'/'0' string) master toggle. Deep link ms-settings:multitasking._
-- [ ] **Change Regional First Day of Week & Short Date Format** · 改地區設定一週起始日同短日期格式
+- [x] **Change Regional First Day of Week & Short Date Format** · 改地區設定一週起始日同短日期格式
   - _HKCU\Control Panel\International -> strings iFirstDayOfWeek (0=Mon..6=Sun), sShortDate (e.g. yyyy-MM-dd), sLongDate, sShortTime. PowerShell Set-Culture / Set-WinHomeLocation for locale. Deep link ms-settings:regionformatting._
-- [ ] **Enable 'End Task' on Taskbar Right-Click** · 開啟工作列右掣直接結束工作
+- [x] **Enable 'End Task' on Taskbar Right-Click** · 開啟工作列右掣直接結束工作
   - _HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings -> DWORD TaskbarEndTask = 1 (Win11 22631.2715+). Adds 'End Task' to taskbar app context menus (kills the process tree). Restart explorer.exe to apply._
-- [ ] **Restore Classic (Win10) Right-Click Context Menu in Explorer** · 還原傳統完整右掣選單
+- [x] **Restore Classic (Win10) Right-Click Context Menu in Explorer** · 還原傳統完整右掣選單
   - _reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve (empty default value), then restart explorer.exe. Masks the Win11 compact-menu COM object so the classic full context menu shows directly. Delete the CLSID key to revert._
 
 ### Encryption · 🆕 new module / 新模組  (15)
@@ -97,49 +99,53 @@
   - _Add-MpPreference -AttackSurfaceReductionRules_Ids <ruleGUID> -AttackSurfaceReductionRules_Actions <Enabled|AuditMode|Disabled|Warn>; read current state via (Get-MpPreference).AttackSurfaceReductionRules_Ids/_Actions. Resolve human-readable rule names (e.g. 'Block credential stealing from LSASS') from Microsoft's ASR reference at runtime rather than hardcoding GUIDs._
 
 ### ViveTool · 🆕 new module / 新模組  (15)
-- [ ] **Feature flag searchbar (query all states)** · 搵功能旗仔嘅搜尋框（查晒狀態）
+> **Strict source audit (2026-07-24): 15/15 shipped.** Runtime-ID resolution, live-store checks, control handlers, service commands, and generated docs are mapped in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#vivetool--vivetool). · **嚴格原始碼審核：15 項全數已交付。**
+
+- [x] **Feature flag searchbar (query all states)** · 搵功能旗仔嘅搜尋框（查晒狀態）
   - _Wrap ViVeTool.exe /query to dump the local Feature Store (every feature ID with State, Priority, Type=Experiment/Override) into a searchable list; pair with a bundled community feature-name dictionary so users search by human-readable name. The live store is the source of truth - no fabricated IDs._
-- [ ] **Enable feature by human-readable name** · 用睇得明嘅名開功能
+- [x] **Enable feature by human-readable name** · 用睇得明嘅名開功能
   - _ViVeTool.exe /enable /id:<id> where <id> is resolved at runtime by matching the user-picked human name (e.g. 'File Explorer tabs', 'New Start menu') against the on-disk dictionary. IDs must be confirmed against the running build at runtime - never hard-coded; show the resolved numeric id before applying. Requires admin + reboot._
-- [ ] **Disable / reset a feature flag** · 熄咗或者重設功能旗仔
+- [x] **Disable / reset a feature flag** · 熄咗或者重設功能旗仔
   - _ViVeTool.exe /disable /id:<id> to force-off, or ViVeTool.exe /reset /id:<id> to clear the override back to the Windows default state. Both take the runtime-resolved id. Reboot to apply._
-- [ ] **Full reset (clear all overrides)** · 全部重設（清晒自己改嘅嘢）
+- [x] **Full reset (clear all overrides)** · 全部重設（清晒自己改嘅嘢）
   - _ViVeTool.exe /fullreset removes every custom feature configuration and returns the Feature Store to defaults. Gate behind an explicit confirm dialog since it wipes all prior toggles; reboot after._
-- [ ] **Export / import flag profiles** · 匯出同匯入旗仔設定檔
+- [x] **Export / import flag profiles** · 匯出同匯入旗仔設定檔
   - _ViVeTool.exe /export <file> writes current custom configurations to a file; ViVeTool.exe /import <file> applies a saved profile (both are real verbs in the thebookisclosed/ViVe command reference). Lets a power user snapshot a known-good toggle set and restore or share it across machines._
-- [ ] **Show Last Known Good rollback status** · 睇 Last Known Good 回滾狀態
+- [x] **Show Last Known Good rollback status** · 睇 Last Known Good 回滾狀態
   - _ViVeTool.exe /lkgstatus prints the current 'Last Known Good' rollback system status, so a power user can tell whether Windows has armed a safe-config rollback before applying experimental flags. Read-only; surface the raw status in the UI._
-- [ ] **Toggle File Explorer tabs / duplicate tab** · 開檔案總管分頁同複製分頁
+- [x] **Toggle File Explorer tabs / duplicate tab** · 開檔案總管分頁同複製分頁
   - _ViVeTool.exe /enable /id:<id> for the 'File Explorer tabs' experiment; the 'tab bar' / 'duplicate tab' sub-features have their own ids. All ids must be queried at runtime against your build - resolve by human name from the dictionary, do not assume historical values._
-- [ ] **Toggle new Start menu (scrollable, categories, Phone panel)** · 開新版開始選單（捲動、分類、手機側欄）
+- [x] **Toggle new Start menu (scrollable, categories, Phone panel)** · 開新版開始選單（捲動、分類、手機側欄）
   - _ViVeTool.exe /enable /id:<id>[,<id>...] for the 'New Start menu redesign' (single scrollable surface, category grid, right-side Phone Link panel). It is a multi-ID feature group whose members vary by build - enumerate via /query and resolve by human name at runtime; never hard-code the set._
-- [ ] **Toggle modern context menus / command bar** · 開新式右鍵選單
+- [x] **Toggle modern context menus / command bar** · 開新式右鍵選單
   - _ViVeTool.exe /enable /id:<id> for the Windows 11 'modern context menu' experiment and related command-bar surfaces. Resolve id by human-readable name at runtime; restart explorer.exe to apply._
-- [ ] **Toggle taskbar 'End Task' on right-click** · 開工作列右鍵嘅「結束工作」
+- [x] **Toggle taskbar 'End Task' on right-click** · 開工作列右鍵嘅「結束工作」
   - _ViVeTool.exe /enable /id:<id> for the taskbar 'End Task' experiment (mirrors the developer setting). Once enabled, the toggle lives at ms-settings:developers. Id confirmed at runtime by name._
-- [ ] **Toggle seconds in the system clock** · 開系統時鐘嘅秒數
+- [x] **Toggle seconds in the system clock** · 開系統時鐘嘅秒數
   - _ViVeTool.exe /enable /id:<id> for the 'show seconds in clock / Notification Center' experiment on builds where the ShowSecondsInSystemClock registry route is not honored. Resolve id by human name at runtime; reboot._
-- [ ] **Toggle new Snap Layouts / suggested groupings** · 開新版貼齊版面同建議排版
+- [x] **Toggle new Snap Layouts / suggested groupings** · 開新版貼齊版面同建議排版
   - _ViVeTool.exe /enable /id:<id> for the updated 'Snap Layouts' / suggested-snap-groups experiment (enhanced flyout, drag-to-top bar). Id resolved at runtime by human-readable name from the dictionary._
-- [ ] **Toggle desktop / always-on Energy Saver** · 開枱機版慳電模式
+- [x] **Toggle desktop / always-on Energy Saver** · 開枱機版慳電模式
   - _ViVeTool.exe /enable /id:<id> for the 'Energy Saver' experiment that surfaces the desktop/always-on toggle and Quick Settings tile. Resolve id by human name at runtime; complements ms-settings:batterysaver._
-- [ ] **Toggle AI actions / Click to Do surfaces** · 開 AI 動作（Click to Do）功能
+- [x] **Toggle AI actions / Click to Do surfaces** · 開 AI 動作（Click to Do）功能
   - _ViVeTool.exe /enable /id:<id>[,<id>...] for the 'AI actions in File Explorer / Click to Do' experiment group. Multi-ID and build-specific - enumerate and resolve by human name at runtime. Note: some surfaces are also server-gated, so a local toggle may not fully light up._
-- [ ] **Scan available-but-disabled experiments + restart-explorer helper** · 掃描未開嘅實驗，順手重啟 explorer
+- [x] **Scan available-but-disabled experiments + restart-explorer helper** · 掃描未開嘅實驗，順手重啟 explorer
   - _Diff ViVeTool.exe /query output against the bundled name dictionary to surface features present on THIS build but sitting at Default/Disabled ('available to try'); after any /enable|/disable|/reset offer a soft apply via 'taskkill /f /im explorer.exe && start explorer.exe' for shell-only features or 'shutdown /r /t 0' for store-level ones. User confirms - no destructive default._
 
 ### Media · 🆕 new module / 新模組  (15)
+> **Strict source audit (2026-07-24): 4/15 shipped.** The eleven partial or absent pipelines remain unchecked and are explained in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#media--media). · **嚴格原始碼審核：15 項有 4 項已交付；其餘 11 項仍然保留待辦。**
+
 - [ ] **Normalize loudness to broadcast standard (EBU R128)** · 校正音量去廣播標準（EBU R128）
   - _Two-pass ffmpeg loudnorm. Pass 1 measures: ffmpeg -i in.mp4 -af loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json -f null - ; parse measured_I/measured_TP/measured_LRA/measured_thresh from stderr JSON, then pass 2: ffmpeg -i in.mp4 -af loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=...:measured_TP=...:measured_LRA=...:measured_thresh=...:linear=true -c:v copy out.mp4 (all measured_* params + print_format confirmed present in this build)_
 - [ ] **Auto-trim silence from start/end and gaps** · 自動剪走頭尾同中間嘅靜音
   - _ffmpeg -i in.mp3 -af silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB:stop_periods=-1:stop_silence=0.3:stop_threshold=-50dB:detection=peak out.mp3 (silenceremove filter + all listed options confirmed in this build)_
-- [ ] **Make high-quality GIF (two-pass palette)** · 整靚 GIF（兩步調色板）
+- [x] **Make high-quality GIF (two-pass palette)** · 整靚 GIF（兩步調色板）
   - _Two-pass palettegen/paletteuse for clean colors. Pass1: ffmpeg -i in.mp4 -vf "fps=15,scale=480:-1:flags=lanczos,palettegen=stats_mode=diff" palette.png ; Pass2: ffmpeg -i in.mp4 -i palette.png -lavfi "fps=15,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3" out.gif_
 - [ ] **Stabilize shaky video (vidstab two-pass)** · 整定鏡頭、減震（vidstab 兩步）
   - _Two-pass libvidstab (vidstabdetect/vidstabtransform confirmed). Pass1 detect: ffmpeg -i in.mp4 -vf vidstabdetect=shakiness=8:accuracy=15:result=transforms.trf -f null - ; Pass2 transform: ffmpeg -i in.mp4 -vf vidstabtransform=input=transforms.trf:smoothing=30:zoom=0,unsharp=5:5:0.8:3:3:0.4 -c:a copy out.mp4_
 - [ ] **Auto-detect and crop black bars** · 自動偵測、剷走黑邊
   - _ffmpeg -ss 60 -i in.mp4 -vframes 200 -vf cropdetect=round=2 -f null - to read the suggested crop=w:h:x:y from stderr, then ffmpeg -i in.mp4 -vf crop=w:h:x:y -c:a copy out.mp4 (cropdetect + round option confirmed)_
-- [ ] **Lossless cut on keyframes (no re-encode)** · 唔重新編碼、喺關鍵幀剪片
+- [x] **Lossless cut on keyframes (no re-encode)** · 唔重新編碼、喺關鍵幀剪片
   - _Stream-copy trim: ffmpeg -ss 00:01:30 -to 00:02:45 -i in.mp4 -c copy -avoid_negative_ts make_zero out.mp4 (instant, no quality loss; snaps to nearest keyframe). Pair with ffprobe -select_streams v -show_frames -show_entries frame=pts_time,key_frame to list keyframes._
 - [ ] **Concat / join clips without re-encoding** · 唔重新編碼咁駁埋幾段片
   - _concat demuxer: write list.txt with lines like file 'C:/clip1.mp4' then ffmpeg -f concat -safe 0 -i list.txt -c copy out.mp4 (requires same codec/params; fall back to concat filter ffmpeg -i a -i b -filter_complex "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1" when they differ)_
@@ -151,56 +157,60 @@
   - _Burn-in (hardsub): ffmpeg -i in.mp4 -vf "subtitles='subs.srt':force_style='FontName=Microsoft JhengHei,FontSize=22'" out.mp4 (libass via subtitles filter, confirmed). Soft-mux (toggleable): ffmpeg -i in.mp4 -i subs.srt -c copy -c:s mov_text -metadata:s:s:0 language=yue out.mp4 (mov_text encoder confirmed)_
 - [ ] **Extract chapters and split video by chapter** · 抽章節、按章節分割片段
   - _List: ffprobe -i in.mkv -show_chapters -print_format json (reads chapter start/end times). Split each: ffmpeg -i in.mkv -ss {start} -to {end} -c copy "Chapter NN.mkv" per chapter entry._
-- [ ] **Contact sheet / storyboard thumbnails** · 整縮圖總表（storyboard）
+- [x] **Contact sheet / storyboard thumbnails** · 整縮圖總表（storyboard）
   - _ffmpeg -i in.mp4 -vf "select='not(mod(n\,300))',scale=320:-1,tile=4x5" -frames:v 1 -qscale:v 3 contact_sheet.jpg (select + tile filters confirmed). Or one representative frame per scene with the thumbnail filter._
 - [ ] **Convert HEIC/JPEG-XL photos to JPG/PNG (batch)** · 批次轉 HEIC/JXL 相做 JPG/PNG
   - _This build has libjxl decoder + hevc decoders. Per file: ffmpeg -i photo.heic -frames:v 1 -q:v 2 photo.jpg ; ffmpeg -i photo.jxl out.png . Loop a folder in PowerShell over *.heic/*.jxl. (ImageMagick magick mogrify -format jpg *.heic as alternative if installed.)_
 - [ ] **Strip EXIF/GPS metadata from photos** · 洗走相片 EXIF／GPS 資料
   - _ffmpeg -i in.jpg -map_metadata -1 -c:v copy clean.jpg (drops EXIF/GPS without re-encoding the JPEG). For full ICC/XMP scrub use ImageMagick magick in.jpg -strip clean.jpg if present._
-- [ ] **Make animated WebP from video (smaller than GIF)** · 由片整動態 WebP（細過 GIF）
+- [x] **Make animated WebP from video (smaller than GIF)** · 由片整動態 WebP（細過 GIF）
   - _ffmpeg -i in.mp4 -vf "fps=20,scale=600:-1:flags=lanczos" -c:v libwebp_anim -lossless 0 -q:v 70 -loop 0 -an out.webp (libwebp_anim encoder confirmed in this build)_
 
 ### Maintenance · 🆕 new module / 新模組  (15)
-- [ ] **Services Manager (start/stop/startup type)** · 服務管理員（開／熄、改自動或手動）
+> **Strict source audit (2026-07-24): 10/15 shipped.** Five partial/absent workflows remain unchecked; exact handlers, commands, and gaps are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#maintenance--maintenance). · **嚴格原始碼審核：15 項有 10 項已交付，5 項仲未完整。**
+
+- [x] **Services Manager (start/stop/startup type)** · 服務管理員（開／熄、改自動或手動）
   - _Wrap sc.exe / PowerShell: list via 'Get-Service' or 'sc.exe query type= service state= all'; control via 'sc.exe start <name>' / 'sc.exe stop <name>'; change startup type via 'sc.exe config <name> start= auto|demand|disabled|delayed-auto'; read current config with 'sc.exe qc <name>'. Elevate via existing no-UAC scheduled-task launcher._
-- [ ] **SMART / disk health & wear counters** · 睇硬碟健康同損耗狀態
+- [x] **SMART / disk health & wear counters** · 睇硬碟健康同損耗狀態
   - _PowerShell Storage cmdlets: 'Get-PhysicalDisk | Get-StorageReliabilityCounter' for Wear, ReadErrorsTotal, Temperature, PowerOnHours; 'Get-PhysicalDisk | Select FriendlyName,HealthStatus,OperationalStatus,MediaType'. Get-StorageReliabilityCounter confirmed present. Requires elevation. Fallback: 'wmic diskdrive get model,status'._
-- [ ] **Retrim SSD / optimize drives (TRIM)** · 幫SSD做TRIM、整理返隻碟
+- [x] **Retrim SSD / optimize drives (TRIM)** · 幫SSD做TRIM、整理返隻碟
   - _Wrap defrag.exe / Optimize-Volume (ReTrim/Analyze/Defrag params confirmed present): 'defrag C: /L' issues retrim/TRIM on SSDs; 'defrag C: /O' picks the right op per media; 'defrag C: /A' analyzes only. PowerShell: 'Optimize-Volume -DriveLetter C -ReTrim -Verbose'. Requires elevation._
-- [ ] **Create / list restore points** · 整還原點同睇返舊嘅
+- [x] **Create / list restore points** · 整還原點同睇返舊嘅
   - _PowerShell (Enable-ComputerRestore/Checkpoint-Computer/Get-ComputerRestorePoint confirmed present): 'Enable-ComputerRestore -Drive "C:\"', then 'Checkpoint-Computer -Description "WinForge" -RestorePointType MODIFY_SETTINGS'; list with 'Get-ComputerRestorePoint'. Resize cache via 'vssadmin Resize ShadowStorage'. The 24h gate is the DWORD 'SystemRestorePointCreationFrequency' under HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore (set 0 to lift). Requires elevation._
 - [ ] **Pause / resume Windows Update** · 暫停咗或繼續Windows更新
   - _Registry HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings: set 'PauseUpdatesExpiryTime' (REG_SZ, ISO8601 UTC) plus 'PauseFeatureUpdatesStartTime'/'PauseFeatureUpdatesEndTime' and 'PauseQualityUpdatesStartTime'/'PauseQualityUpdatesEndTime' to pause; delete those values to resume. These values are absent until first paused. Trigger scan/download/install via 'UsoClient.exe StartScan' / 'StartDownload' / 'StartInstall' (UsoClient.exe confirmed present)._
 - [ ] **Driver list / export / rollback hints** · 睇驅動程式、匯出同提示點回復
   - _Wrap pnputil.exe (subcommands confirmed from /?): 'pnputil /enum-drivers' lists third-party oem*.inf packages with provider/date/version; 'pnputil /export-driver <oem#.inf|*> <dir>' backs them up; 'pnputil /delete-driver <oem#.inf> /uninstall' removes a bad package (rollback = re-add the exported prior package). Device-level: 'pnputil /enum-devices', 'pnputil /restart-device'. Requires elevation._
-- [ ] **Scheduled-task browser (query / run / disable)** · 排程工作清單（執行、停咗佢）
+- [x] **Scheduled-task browser (query / run / disable)** · 排程工作清單（執行、停咗佢）
   - _Wrap schtasks.exe (Query/Run/End/Change confirmed from /?): 'schtasks /Query /FO LIST /V' lists all with Last/Next-Run-Time and Status; 'schtasks /Run /TN <name>' runs on demand; 'schtasks /End /TN <name>' stops; 'schtasks /Change /TN <name> /DISABLE' or '/ENABLE' toggles. PowerShell alt: Get-ScheduledTask / Get-ScheduledTaskInfo._
-- [ ] **Event-log error/warning digest** · 事件記錄錯誤摘要
+- [x] **Event-log error/warning digest** · 事件記錄錯誤摘要
   - _Wrap wevtutil.exe (confirmed at System32) with XPath: 'wevtutil qe System /q:"*[System[(Level=1 or Level=2) and TimeCreated[timediff(@SystemTime)<=86400000]]]" /f:text /c:50 /rd:true'; repeat for Application. Boot/shutdown durations from Microsoft-Windows-Diagnostics-Performance/Operational (EventIDs 100-110). PowerShell alt: 'Get-WinEvent -FilterHashtable @{LogName='System';Level=1,2;StartTime=(Get-Date).AddDays(-1)}'._
 - [ ] **Startup impact / autoruns audit** · 開機啟動項影響分析
   - _Enumerate Run keys under HKLM/HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run(+RunOnce) and the StartupApproved\Run blob (Explorer\StartupApproved\Run confirmed present; first byte 0x02/0x03 = enabled, 0x03 with high bytes = disabled per Task Manager); also list shell:startup and shell:common startup folders. Toggle by writing the StartupApproved binary value. Read-only inventory via 'Get-CimInstance Win32_StartupCommand' (confirmed working)._
-- [ ] **Generate energy / battery / sleep report** · 出電池同耗電報告
+- [x] **Generate energy / battery / sleep report** · 出電池同耗電報告
   - _Wrap powercfg.exe: 'powercfg /energy /output <path>.html /duration 60' (efficiency problems); 'powercfg /batteryreport /output <path>.html' (capacity history & cycle estimate); 'powercfg /sleepstudy /output <path>.html' (modern-standby drain). Open the resulting HTML in-app. Requires elevation._
-- [ ] **Diagnose what blocks sleep / wakes the PC** · 搵乜嘢阻住部機瞓覺、又整醒佢
+- [x] **Diagnose what blocks sleep / wakes the PC** · 搵乜嘢阻住部機瞓覺、又整醒佢
   - _Wrap powercfg.exe (all confirmed real): 'powercfg /requests' shows active power requests blocking sleep per process/driver; 'powercfg /lastwake' shows the last wake source; 'powercfg /waketimers' enumerates scheduled wake timers; 'powercfg /devicequery wake_armed' lists wake-capable devices (confirmed returns list) — disarm with 'powercfg /devicedisablewake "<name>"'. /requests and /waketimers require elevation._
 - [ ] **Component store cleanup (WinSxS / ResetBase)** · 清理元件儲存（WinSxS）
   - _Wrap DISM (Dism.exe confirmed at System32): 'Dism /Online /Cleanup-Image /AnalyzeComponentStore' reports reclaimable size & recommendation; 'Dism /Online /Cleanup-Image /StartComponentCleanup' trims superseded components; add '/ResetBase' to also drop superseded update backups (surface the warning that this blocks uninstalling installed updates). Requires elevation._
-- [ ] **System file & image integrity repair** · 修復系統檔同系統映像
+- [x] **System file & image integrity repair** · 修復系統檔同系統映像
   - _Wrap built-ins (sfc.exe & Dism.exe confirmed present): 'sfc /scannow' verifies/repairs protected system files; 'Dism /Online /Cleanup-Image /CheckHealth' quick-checks, '/ScanHealth' deep-scans, '/RestoreHealth' repairs from Windows Update. Parse %WINDIR%\Logs\CBS\CBS.log for sfc results. Requires elevation._
 - [x] **Bulk update all apps** · 一次過更新晒啲App — DONE in Package Manager: the Updates view collects eligible updates across the selected managers and queues per-manager or all-manager batches through the shared operation coordinator; ignored, pinned and snoozed updates are excluded.
 - [ ] **Reset / re-register a stuck Store app** · 重設或重新註冊死咗嘅Store App
   - _PowerShell Appx: re-register a broken package via 'Get-AppxPackage <name> | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}'; list with 'Get-AppxPackage -AllUsers'. Soft reset = the documented Reset button reached by the 'ms-settings:appsfeatures' deep link; hard clear = remove the data folder under %LocalAppData%\Packages\<PackageFamilyName>._
 
 ### Dev & Terminal · 🆕 new module / 新模組  (15)
+> **Strict source audit (2026-07-24): 9/15 shipped.** Six partial/absent developer workflows remain unchecked; evidence and reasons are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#dev--terminal--開發同終端機). · **嚴格原始碼審核：15 項有 9 項已交付，6 項仲未完整。**
+
 - [ ] **Kill process on port** · 殺咗佔住個 port 嗰個程式
   - _Get-NetTCPConnection -LocalPort <n> -State Listen | Select -Expand OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }. Resolve names via Get-Process -Id; build the full listener table by joining Get-NetTCPConnection -State Listen to Get-Process on OwningProcess._
-- [ ] **Manage PATH entries (user/system)** · 整理 PATH 入面嘅路徑
+- [x] **Manage PATH entries (user/system)** · 整理 PATH 入面嘅路徑
   - _Read/write registry: HKCU\Environment value 'Path' (user, REG_EXPAND_SZ) and HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment value 'Path' (system). After editing, broadcast WM_SETTINGCHANGE via SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, 'Environment') so new shells pick it up. Dedupe/reorder in the UI._
-- [ ] **Edit user & system environment variables** · 改環境變數
+- [x] **Edit user & system environment variables** · 改環境變數
   - _Get/set arbitrary vars via [Environment]::GetEnvironmentVariable(name,'User'/'Machine') and SetEnvironmentVariable(name,value,scope) (writes HKCU\Environment / HKLM Session Manager\Environment); broadcast WM_SETTINGCHANGE 'Environment' after. Open the OS dialog with rundll32 sysdm.cpl,EditEnvironmentVariables. Machine scope needs elevation (route via existing no-UAC scheduled-task launcher)._
 - [x] **Export & restore package sets** · 匯出同還原套件清單 — DONE in Bundles: editable JSON/`.ubundle`, YAML and XML bundles preserve manager, ID, version, source and explicit per-package options; imports run compatibility and security review before queueing installs; saves stage beside the destination and report success only after an atomic swap.
 - [x] **Upgrade all outdated packages** · 一次過更新晒啲套件 — DONE across the available WinGet, Scoop, Chocolatey, pip, npm, .NET tool, PowerShell Gallery/PSResourceGet, Cargo, Bun and vcpkg engines, subject to each installed CLI's capabilities.
-- [ ] **Docker container & image dashboard** · 睇住 Docker 容器同 image
+- [x] **Docker container & image dashboard** · 睇住 Docker 容器同 image
   - _docker ps -a --format '{{json .}}' and docker images --format '{{json .}}' for the grid; row actions docker start/stop/restart/rm <id>, docker logs -f <id>, docker exec -it <id> sh into the terminal panel; reclaim space with docker system df then docker system prune -f._
 - [ ] **Switch Node version (per-shell)** · 切換 Node 版本
   - _Wrap fnm (winget install Schniz.fnm, ID verified): fnm list, fnm install <ver>, fnm use <ver>; emit fnm env --use-on-cd for the panel's shell init. Fallback to nvm-windows: nvm list / nvm install <ver> / nvm use <ver>._
@@ -208,73 +218,77 @@
   - _corepack enable (ships with Node); pin a manager via corepack prepare pnpm@latest --activate or yarn@stable; verify with corepack --version. No global npm install needed._
 - [ ] **Add Windows Defender dev-folder exclusions** · 幫開發資料夾加 Defender 例外
   - _Add-MpPreference -ExclusionPath '<repo dir>' and -ExclusionProcess 'node.exe','docker.exe' to stop real-time scans slowing builds; list with Get-MpPreference | Select -Expand ExclusionPath; remove via Remove-MpPreference -ExclusionPath. Needs elevation (route through the no-UAC scheduled-task launcher)._
-- [ ] **Run the real Claude / Codex / OpenCode CLI** · 喺度行 Claude / Codex / OpenCode CLI
+- [x] **Run the real Claude / Codex / OpenCode CLI** · 喺度行 Claude / Codex / OpenCode CLI
   - _Spawn the installed agent binaries in the embedded ConPTY terminal: claude (Anthropic Claude Code), codex (OpenAI Codex CLI), opencode; detect with Get-Command claude/codex/opencode and offer install via npm i -g @anthropic-ai/claude-code, @openai/codex, opencode-ai. Pass cwd = selected repo._
-- [ ] **Generate & copy SSH key for Git** · 整條 SSH key 俾 Git 用
+- [x] **Generate & copy SSH key for Git** · 整條 SSH key 俾 Git 用
   - _ssh-keygen -t ed25519 -C '<email>' -f $env:USERPROFILE\.ssh\id_ed25519 -N ''; enable the agent with Set-Service ssh-agent -StartupType Automatic; Start-Service ssh-agent; ssh-add; copy the public key via Get-Content id_ed25519.pub | Set-Clipboard; optionally register with gh ssh-key add id_ed25519.pub._
-- [ ] **Open WSL distro management** · 管理 WSL 發行版
+- [x] **Open WSL distro management** · 管理 WSL 發行版
   - _wsl --list --verbose for state/version; wsl --set-default-version 2; wsl --update (kernel); install from wsl --list --online via wsl --install -d <Distro>; per-distro wsl --terminate <name> / wsl --unregister <name>; launch one into the embedded terminal with wsl -d <name>._
 - [ ] **Widen ephemeral ports & tune TIME_WAIT** · 調闊 ephemeral port 同縮短 TIME_WAIT
   - _netsh int ipv4 set dynamicport tcp start=10000 num=55000 to widen the ephemeral range (show current with netsh int ipv4 show dynamicport tcp). Optionally set HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters DWORD 'TcpTimedWaitDelay' (valid 30-300 s). Registry write + reboot/restart needs elevation._
-- [ ] **Tunnel a local port (share dev server)** · 開隧道分享本機 port
+- [x] **Tunnel a local port (share dev server)** · 開隧道分享本機 port
   - _Wrap Cloudflare cloudflared (winget install Cloudflare.cloudflared, ID verified): cloudflared tunnel --url http://localhost:<port> prints a public https URL to copy. Alt engine: ngrok http <port> if installed._
 - [ ] **Clean dev caches (npm/pnpm/pip/docker)** · 清咗開發快取
   - _npm cache clean --force; pnpm store prune; yarn cache clean; pip cache purge; docker builder prune -f; nuget locals all -clear. Show reclaimable sizes first by sizing %LocalAppData%\npm-cache, the pnpm store path (pnpm store path), %LocalAppData%\pip\Cache, and docker system df._
 
 ### Home Assistant · 🆕 new module / 新模組  (14)
-- [ ] **Render a Jinja template against live state** · 攞實時狀態嚟跑 Jinja 範本
+> **Strict source audit (2026-07-24): 13/14 shipped.** Config checking and restart are separate controls, so the safety-gated combined workflow remains unchecked; details are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#home-assistant--home-assistant). · **嚴格原始碼審核：14 項有 13 項已交付；重啟前強制驗證嗰條安全流程仍未完整。**
+
+- [x] **Render a Jinja template against live state** · 攞實時狀態嚟跑 Jinja 範本
   - _POST /api/template with JSON {"template":"..."} (e.g. {{ states('sensor.temperature') }}); returns the rendered string as plain text. Lets a power user test templates against live entity state without opening HA's Developer Tools UI._
 - [ ] **Validate config before restarting HA** · 重啟 HA 之前先驗下個 config
   - _POST /api/config/core/check_config (empty body) returns {"result":"valid"|"invalid","errors":...}. Run it, and only if valid call POST /api/services/homeassistant/restart. Prevents bricking HA on a bad configuration.yaml._
-- [ ] **Plot 24h entity history sparkline** · 畫返廿四個鐘嘅實體歷史走勢
+- [x] **Plot 24h entity history sparkline** · 畫返廿四個鐘嘅實體歷史走勢
   - _GET /api/history/period/<ISO-8601 start timestamp>?filter_entity_id=<entity_id>&end_time=<ISO end>&minimal_response returns an array of state objects with last_changed; render as an inline sparkline for any sensor (temperature, power, etc.)._
-- [ ] **Reload one integration without a full restart** · 唔使重啟成個 HA，淨係 reload 個整合
+- [x] **Reload one integration without a full restart** · 唔使重啟成個 HA，淨係 reload 個整合
   - _POST /api/services/homeassistant/reload_config_entry with JSON {"entry_id":"<config_entry_id>"}; or domain reloads like POST /api/services/automation/reload, /api/services/template/reload, /api/services/scene/reload. Far faster than a full restart._
-- [ ] **Set a custom in-memory state on any entity** · 幫實體寫返個自訂狀態屬性
+- [x] **Set a custom in-memory state on any entity** · 幫實體寫返個自訂狀態屬性
   - _POST /api/states/<entity_id> with JSON {"state":"<value>","attributes":{...}}. Creates or overrides a virtual/dashboard-flag state directly via REST. Non-destructive: only affects in-memory state, not config (DELETE /api/states/<entity_id> removes it again)._
-- [ ] **Snapshot a camera frame to disk** · 影低部 camera 嘅一格畫面存落本機
+- [x] **Snapshot a camera frame to disk** · 影低部 camera 嘅一格畫面存落本機
   - _GET /api/camera_proxy/<camera entity_id> returns the current JPEG bytes; stream them to a local file. Lets the user grab a still without the HA mobile app._
-- [ ] **Run a scene or script on demand** · 即刻跑個場景或者腳本
+- [x] **Run a scene or script on demand** · 即刻跑個場景或者腳本
   - _POST /api/services/scene/turn_on {"entity_id":"scene.<name>"} or POST /api/services/script/<object_id> (script entities expose themselves as a service). List candidates first via GET /api/states filtered to scene.* / script.*._
-- [ ] **Fire a custom event into automations** · 掟個自訂事件出去俾自動化接
+- [x] **Fire a custom event into automations** · 掟個自訂事件出去俾自動化接
   - _POST /api/events/<event_type> with an optional JSON event-data body. Triggers any automation using an 'event' trigger (e.g. fire 'WinForge_pc_locked' from a Windows session hook). Bridges Windows events into HA automations._
-- [ ] **Browse today's calendar events** · 睇返今日 calendar 有咩節目
+- [x] **Browse today's calendar events** · 睇返今日 calendar 有咩節目
   - _GET /api/calendars lists calendar entities, then GET /api/calendars/<calendar entity_id>?start=<ISO>&end=<ISO> returns events in that window. Surfaces HA-linked calendars (Google/CalDAV) inside WinForge._
-- [ ] **Tail the HA error log** · 睇實 HA 嘅錯誤 log
+- [x] **Tail the HA error log** · 睇實 HA 嘅錯誤 log
   - _GET /api/error_log returns the plaintext of the current session's home-assistant.log. Poll and diff to surface new WARNING/ERROR lines; pair with a 'copy to clipboard' for troubleshooting._
-- [ ] **Set light brightness and colour temperature** · 校返盞燈嘅光暗同色溫
+- [x] **Set light brightness and colour temperature** · 校返盞燈嘅光暗同色溫
   - _POST /api/services/light/turn_on with JSON {"entity_id":"light.<x>","brightness_pct":0-100,"color_temp_kelvin":2000-6500} (or "rgb_color":[r,g,b]). Full dimming/tuning, not just an on/off toggle._
-- [ ] **Set thermostat target temp and HVAC mode** · 校冷氣嘅目標溫度同運作模式
+- [x] **Set thermostat target temp and HVAC mode** · 校冷氣嘅目標溫度同運作模式
   - _POST /api/services/climate/set_temperature {"entity_id":"climate.<x>","temperature":n} and POST /api/services/climate/set_hvac_mode {"entity_id":"climate.<x>","hvac_mode":"heat"|"cool"|"off"|...}. Thermostat control from the desktop._
-- [ ] **Push a notification to phones** · 推個通知去手機度
+- [x] **Push a notification to phones** · 推個通知去手機度
   - _POST /api/services/notify/<target> (e.g. notify.mobile_app_<device> or notify.notify) with JSON {"title":"...","message":"..."}. Discover targets via GET /api/services (notify domain). Push a desktop event (build done, backup finished) to the user's phone via HA._
-- [ ] **Trigger a parameterized voice intent by text** · 用文字觸發個語音指令意圖
+- [x] **Trigger a parameterized voice intent by text** · 用文字觸發個語音指令意圖
   - _POST /api/intent/handle with JSON {"name":"<IntentName>","data":{...slots}} (the intent must be registered in HA, e.g. the built-in HassTurnOn). Lets WinForge invoke an Assist/conversation intent with a structured slot payload instead of free text._
 
 ### Archives · 🆕 new module / 新模組  (14)
-- [ ] **Encrypt archive headers (hide file names)** · 加密壓縮檔個檔頭（連檔名都收埋）
+> **Strict source audit (2026-07-24): 10/14 shipped.** Four workflows are only fixed examples or lack required switches and remain unchecked; see the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#archives--archives). · **嚴格原始碼審核：14 項有 10 項已交付；4 項仍然係固定示例或者欠必要參數。**
+
+- [x] **Encrypt archive headers (hide file names)** · 加密壓縮檔個檔頭（連檔名都收埋）
   - _7z.exe a -t7z archive.7z <files> -p{pwd} -mhe=on — AES-256 encrypts the archive header so even the file LIST is hidden, not just contents. Verified on 7-Zip 26.01: -mhe=on is the real header-encryption switch (only valid for .7z)._
-- [ ] **Hash files / folders (CRC32, CRC64, SHA-256, SHA-1, BLAKE2sp, XXH64)** · 計檔案雜湊值（CRC32、SHA-256、BLAKE2sp 等）
+- [x] **Hash files / folders (CRC32, CRC64, SHA-256, SHA-1, BLAKE2sp, XXH64)** · 計檔案雜湊值（CRC32、SHA-256、BLAKE2sp 等）
   - _7z.exe h -scrcSHA256 <path> (also -scrcCRC32 / -scrcCRC64 / -scrcSHA1 / -scrcBLAKE2sp / -scrcXXH64 / -scrc* for all at once). The 'h' command hashes files on disk without archiving — verified BLAKE2sp, SHA256, XXH64 all output correctly on 7-Zip 26.01._
-- [ ] **Benchmark compression / crypto codecs (MIPS rating)** · 跑分測試壓縮同加密速度（MIPS）
+- [x] **Benchmark compression / crypto codecs (MIPS rating)** · 跑分測試壓縮同加密速度（MIPS）
   - _7z.exe b [dictSize] [numIterations] — the 'b' benchmark tests LZMA compression/decompression speed and reports MIPS and MB/s; first positional arg sets dictionary size (e.g. 7z.exe b 24 for ~16MB). Add -mm=LZMA2 / -mm=Deflate / etc. to benchmark a specific codec. (No -mm=* extended-sweep switch — that is not real.)_
-- [ ] **Update archive (refresh only changed / newer files)** · 更新壓縮檔（淨係加啲改咗或者新嘅檔）
+- [x] **Update archive (refresh only changed / newer files)** · 更新壓縮檔（淨係加啲改咗或者新嘅檔）
   - _7z.exe u archive.7z <files> — the 'u' (update) command refreshes an existing archive, adding new files and replacing newer versions. Fine-tune with the single-token update-options switch -u{...}, e.g. -uq0 (don't copy missing-from-disk files), per 7-Zip's -u[-][p#][q#][r#][x#][y#][z#] syntax verified in switch help._
 - [ ] **Delete files from inside an archive without re-packing** · 喺壓縮檔入面直接刪檔（唔使拆返出嚟）
   - _7z.exe d archive.7z <names_or_masks> — the 'd' (delete) command removes matching entries directly inside the archive. Combine with -r and include/exclude masks (e.g. 7z.exe d archive.7z *.log -r) to prune junk from a large archive in place._
-- [ ] **Split into volumes / re-join (multi-part archive)** · 拆做分卷 / 砌返埋（多卷壓縮檔）
+- [x] **Split into volumes / re-join (multi-part archive)** · 拆做分卷 / 砌返埋（多卷壓縮檔）
   - _Create: 7z.exe a archive.7z <files> -v100m (or -v700m, -v4480m for DVD). Re-join + extract: 7z.exe x archive.7z.001 reads all .00x parts automatically. Verified switch: -v{Size}[b|k|m|g]._
-- [ ] **Make self-extracting EXE (SFX)** · 整自解壓 EXE（SFX）
+- [x] **Make self-extracting EXE (SFX)** · 整自解壓 EXE（SFX）
   - _7z.exe a archive.exe <files> -sfx — verified switch -sfx[{name}]; defaults to the 7zCon.sfx console stub, or -sfx7z.sfx for the GUI stub shipped beside 7z.exe. Output must end in .exe; recipient runs it without 7-Zip installed._
 - [ ] **Delete source files after successful packing (move-to-archive)** · 壓縮成功之後自動刪走原檔（等於搬入壓縮檔）
   - _7z.exe a archive.7z <files> -sdel — verified switch -sdel deletes the source files only after the archive is written successfully, turning a copy-into-archive into a true move. Pair with -t after for a safety integrity check._
-- [ ] **Test archive integrity** · 驗壓縮檔完唔完整
+- [x] **Test archive integrity** · 驗壓縮檔完唔完整
   - _7z.exe t archive.7z -p{pwd} — the 't' command CRC-tests every entry without extracting and returns a non-zero exit code on corruption. For RAR: bundle unrar.exe and run unrar t archive.rar._
-- [ ] **List archive contents with technical detail** · 列出壓縮檔內容（連技術細節）
+- [x] **List archive contents with technical detail** · 列出壓縮檔內容（連技術細節）
   - _7z.exe l archive.7z -slt — verified switch -slt (show technical info) dumps per-file size, packed size, modified time, attributes, CRC, method and encryption flag. For RAR bare list: unrar lb archive.rar._
-- [ ] **Repair corrupted RAR via recovery record** · 用復原記錄修整壞咗嘅 RAR
+- [x] **Repair corrupted RAR via recovery record** · 用復原記錄修整壞咗嘅 RAR
   - _Bundle RARLAB unrar.exe: unrar r archive.rar repairs a RAR using its embedded recovery record / recovery volumes (.rev). Pair with unrar x -kb archive.rar to keep partially-extracted broken files (-kb = keep broken, real WinRAR switch). 7-Zip cannot repair RAR, so this requires the unrar CLI._
-- [ ] **Set LZMA2 dictionary & word size for max ratio** · 調字典大細同字長（榨到最盡個壓縮比）
+- [x] **Set LZMA2 dictionary & word size for max ratio** · 調字典大細同字長（榨到最盡個壓縮比）
   - _7z.exe a archive.7z <files> -m0=LZMA2 -md=256m -mfb=273 -mx=9 -ms=on — -md sets dictionary size, -mfb sets fast-bytes / word size (max 273), -mx=9 ultra level, -ms=on enables solid mode for best ratio on many small files. All real -m method parameters._
 - [ ] **Filter by file mask & exclude junk into archive** · 用檔名樣式篩選同排除入壓縮檔
   - _7z.exe a archive.7z -ir!*.jpg -xr!*.tmp -xr!node_modules <root> — verified recursive include/exclude switches -i[r[-|0]]!wildcard and -x[r]!wildcard let you archive only matching files and skip junk folders._
@@ -312,9 +326,11 @@
   - _Start-Process "ms-settings:defaultapps" opens the Default apps Settings page so the user reassigns mailto and the discord/tg/msteams/slack scheme handlers. Windows 10+ blocks programmatic UserChoice writes, so the suite deep-links the page for the user to confirm rather than forcing a handler._
 
 ### Browser Control · 🆕 new module / 新模組  (14)
+> **Strict source audit (2026-07-24): 3/14 shipped.** Eleven partial/absent browser workflows remain unchecked; evidence and precise gaps are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#browser-control--browser-control). · **嚴格原始碼審核：14 項有 3 項已交付；11 項仲未完整。**
+
 - [ ] **Launch site as desktop app window** · 用 App 模式開個網站做獨立視窗
   - _Spawn msedge.exe / chrome.exe with --app=https://<url> for a chromeless standalone window (no tabs/omnibox). Optionally add --window-size=W,H and --window-position=X,Y. Real exe paths confirmed at C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe and C:\Program Files\Google\Chrome\Application\chrome.exe (resolved via HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths)._
-- [ ] **Open in incognito / InPrivate window** · 開個無痕視窗瀏覽
+- [x] **Open in incognito / InPrivate window** · 開個無痕視窗瀏覽
   - _msedge.exe --inprivate <url> for Edge; chrome.exe --incognito <url> for Chrome. Both are documented switches._
 - [ ] **Launch full-screen kiosk URL** · 開全螢幕 Kiosk 鎖死喺個網度
   - _msedge.exe --kiosk https://<url> --edge-kiosk-type=fullscreen --kiosk-idle-timeout-minutes=0 (Edge kiosk switches); chrome.exe --kiosk https://<url>. Assigned-access-free kiosk launch._
@@ -322,7 +338,7 @@
   - _Enumerate profiles by reading 'User Data\Local State' JSON (key profile.info_cache maps folder dir to display name; confirmed present for both Edge and Chrome). Launch chosen one with msedge.exe --profile-directory="Default" (or "Profile 1"). No registry, real on-disk profile dirs._
 - [ ] **List and launch installed PWAs** · 列晒啲裝咗嘅 PWA 出嚟開
   - _PWAs install as .lnk shortcuts under %APPDATA%\Microsoft\Windows\Start Menu\Programs whose targets are msedge.exe/chrome.exe --profile-directory=... --app-id=<AppId>. Enumerate via shell:AppsFolder or parse the .lnk targets; launch with --app-id=<AppId>. App IDs must be read at runtime from existing shortcut targets, never fabricated._
-- [ ] **Open the Windows default-apps picker for a browser** · 開預設 App 設定揀返個瀏覽器
+- [x] **Open the Windows default-apps picker for a browser** · 開預設 App 設定揀返個瀏覽器
   - _Windows 11 blocks silent default changes; deep-link the user to ms-settings:defaultapps (the per-app subpage / registeredAppUser anchor is build-dependent, so land on the page and let the user pick). For unattended provisioning, build an XML and apply with DISM /Online /Import-DefaultAppAssociations:assoc.xml. No fabricated keys._
 - [ ] **Open internal flags & policy pages** · 開 edge://flags 同 policy 內部頁
   - _Launch the browser with an internal page as the URL arg: msedge.exe edge://flags | edge://policy | edge://version | edge://settings/profiles ; chrome.exe chrome://flags | chrome://policy | chrome://components | chrome://net-export . All real internal URLs._
@@ -334,7 +350,7 @@
   - _msedge.exe/chrome.exe --user-data-dir="%TEMP%\WinForge-sandbox\<guid>" creates a brand-new isolated profile tree (own cookies/history/extensions). Delete the dir afterward for a clean throwaway session. Documented switch._
 - [ ] **Force-enable a hidden browser feature flag** · 夾硬開個隱藏功能 flag
   - _msedge.exe --enable-features=<FeatureName> / --disable-features=<FeatureName> on the command line. Feature names are real Chromium/Edge strings; the suite should let the user type/select a name confirmed from edge://flags rather than hard-coding a fabricated id._
-- [ ] **Apply enterprise browser policy** · 落 policy 落去個瀏覽器
+- [x] **Apply enterprise browser policy** · 落 policy 落去個瀏覽器
   - _Write real ADMX-backed policies under HKLM\SOFTWARE\Policies\Microsoft\Edge (e.g. HomepageLocation REG_SZ, RestoreOnStartup REG_DWORD, ExtensionInstallBlocklist) and HKLM\SOFTWARE\Policies\Google\Chrome. Verify applied state at edge://policy / chrome://policy. Documented policy keys, not invented._
 - [ ] **Open URL with remote debugging port** · 開個 remote debugging port 俾自動化用
   - _msedge.exe/chrome.exe --remote-debugging-port=9222 --user-data-dir=<isolated dir> <url>. Exposes the DevTools/CDP JSON endpoint at http://127.0.0.1:9222/json for Playwright/Puppeteer attach. Switch requires a non-default user-data-dir on current Chromium._

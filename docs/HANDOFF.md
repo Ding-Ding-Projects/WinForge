@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current core roadmap capability reconciliation · 目前核心路線圖功能對帳
+
+- Eight stale core sections now have a strict source-backed disposition: **74/115 shipped** and **41 factual gaps retained**. The exact per-section matrix, catalog IDs, handlers, mechanisms, documentation evidence, and missing behavior are in [the categorized audit](audits/roadmap-core-capability-audit-2026-07-24.md). · 八個過時核心章節已有嚴格原始碼處置：**74/115 已交付**，**41 個真實缺口保留**；每節 matrix、catalog ID、handler、機制、文件證據同欠缺行為都喺分類 audit。
+- `tools/Test-RoadmapCoreAudit.ps1` checks all 115 exact titles, their shipped/gap placement, section counts, mirrors, and aggregate. Post-rebase source/XAML checks pass, and the canonical site generator publishes the new wiki page without hand-editing app data. · 專項 test 會核對 115 個準確標題、已交付／缺口位置、每節數量、mirror 同總數；rebase 後 source／XAML gate 全過，正式 site generator 亦已發佈新 wiki 頁，冇手改 app data。
+- No WinUI surface changed, so screenshot evidence is not applicable. The work is on `codex/roadmap-reconcile-core`; final main integration remains with the coordinating parent. · 冇 WinUI 畫面改動，所以截圖證據不適用；改動喺指定分支，最終 main 整合交畀統籌 parent。
+
 ## Current preserved package-stash verification · 目前已保存套件 stash 驗證
 
 - Preserved package commits `5cc3aa712f9e326dd8d9ae0bdd4c16d8771e1cb6` (ten files) and `181fc231c93b2533392344a405cb18750b4eaa48` (six files) were first audited read-only. Useful scheduler/coordinator, schema, engine, bundle, source, PowerToys-discoverability, and provenance intent is retained in current in-app code; malformed/stale bodies plus obsolete external-launch, credential-in-URL, strip-only sanitization, and auto-trust paths remain rejected. Union tip `d8399b1c8` and both source tips were then proven ancestors of remote `main` `6524543c565a6796a74101ef38dcbb6248eec651`; after that proof, the clean integration worktrees and merged branches were removed and the exact redundant stash refs were dropped. Neither stale patch was ever applied or popped. · 兩份保留套件 commit 先逐檔只讀審核。有用排程／coordinator、schema、引擎、清單、來源、PowerToys discoverability 同來源證明已喺現行 app code 保留；壞咗／過時 body、外部 launcher、URL 認證、只刪字元 sanitization 同自動信任路徑繼續拒絕。Union tip 同兩個來源 tip 其後已證明係 remote `main` `6524543c5` 嘅 ancestor；完成證明後先移除乾淨 worktree／已合併 branch，再刪除準確核對嘅冗餘 stash ref。兩份舊 patch 從未 apply 或 pop。
