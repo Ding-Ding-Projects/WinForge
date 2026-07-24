@@ -13,6 +13,17 @@ Command Palette extension pack 而家除咗 declarative module／URL／copy／st
 The palette remains responsive during host work, exposes cancellable progress and bilingual feedback, and renders structured pages with associated accessible names, live-region notices, bounded fields, one clear primary action, 44-pixel targets, narrow-safe stacking, and language changes that preserve only the active page's values. The focused harness passes **17/17**; the managed project builds with **0 errors**; XAML literal safety and the detailed source-surface audit pass. The self-contained `cmdpalette` deep-link launch passes, but desktop capture is honestly blocked because `CopyFromScreen` is unavailable, `PrintWindow` returns a blank WinUI client, and LowLevel MCP is not callable in this session; no screenshot was promoted.
 
 Host 工作期間 palette 仍然暢順，有可取消進度同雙語提示；structured page 有關聯 accessible name、live-region 通知、有限欄位、一個清楚 primary action、44-pixel target、窄畫面直排，轉語言亦只保留當前頁值。專項 harness **17/17**、managed project 零 errors、XAML safety 同詳細 source-surface audit 全過。Self-contained `cmdpalette` deep-link launch 通過，但 `CopyFromScreen` 不可用、`PrintWindow` 只回傳空白 WinUI client，而且今次 session 冇可呼叫 LowLevel MCP，所以 capture 如實受阻，冇升格截圖。
+## Reactor industrial loads · 反應堆工業負載
+
+The managed app now has two more reactor-bus consumers: an ammonia/fertilizer Haber–Bosch plant (`ammonia`, `fertilizer`, `fertiliser`) and an eight-feeder strict-priority load-shed dispatcher (`loadshed`, `mwbudget`). The plant's 280 MW default can reach its approximately 263 MW steady synthesis threshold; the dispatcher reports cold-bus enabled demand as shed without inventing a trip. Both services reject non-finite inputs and keep duplicate ticks from advancing accumulated state.
+
+正式 app 新增兩個反應堆母線負載：合成氨／肥料哈柏法工廠，同八饋線嚴格優先級卸載調度器。合成氨預設 280 MW 可以到約 263 MW 穩定門檻；卸載器會如實顯示冷母線啟用需求已卸載，但唔會虛構跳脫。兩個 service 都會拒絕非有限輸入，重複 tick 亦唔會推進累積狀態。
+
+Windows x64 build completed with zero errors and the production-source reactor harness passed **65/65**. Literal safety and source-surface audits passed. Generated documentation reports 321 module pages, 1,905 actionable-control pages, 1,216 app features, and 2,278 Pages wiki records. Both deep links opened on a dedicated LowLevel headless desktop, but the inspected 1574×887 WinUI captures were solid black; the repository driver also rejected a blank fallback and switching the desktop visible was denied. No invalid image is published, so visual evidence remains `capture-blocked`. Full behavior, failure, accessibility, and safety details are in [Reactor Industrial Loads](wiki/Reactor-Industrial-Loads.md).
+
+Windows x64 build 零 errors、正式 source reactor harness **65/65**、literal safety 同 source audit 全過；生成文件係 321 module／1,905 actionable control／1,216 app feature／2,278 Pages wiki。兩個 deep link 都喺專用 LowLevel desktop 成功開啟，但已檢視 WinUI capture 全黑；repo driver 亦拒絕空白 fallback，而切換 desktop 就被拒絕。冇無效圖片會發佈，所以 visual 如實係 `capture-blocked`。完整行為、故障、無障礙同安全資料喺 [反應堆工業負載](wiki/Reactor-Industrial-Loads.md)。
+
+Delivery commits `cf7b28b8` and `593b89d1` are pushed on `codex/integrate-claude-remaining`; fetch plus `ls-remote` proved exact remote tip `593b89d13bef8d8444faf8f3367269023a6e0e9c`. This integration branch is deliberately left unmerged for the parent owner. · 交付 commit 已 push，fetch 同 `ls-remote` 證明 remote tip 完全一致；branch 按分工保留未 merge，交畀上層負責人整合。
 
 ## AWS Manager EC2 continuation · AWS Manager EC2 延續開發
 
@@ -33,9 +44,9 @@ Local gates are green: the solution builds with zero errors; all **27/27** Relea
 
 ## Validation · 驗證
 
-The managed compile gate is `dotnet build WinForge.sln -c Debug -p:Platform=x64` with zero errors. The reactor/dependent-service gate is `dotnet run --project tests/ReactorSim.Tests -c Debug`, currently 63/63 with nonzero exit on failure. Use the repository's managed-only run driver for a process-owned deep-link launch or screenshot.
+The managed compile gate is `dotnet build WinForge.sln -c Debug -p:Platform=x64` with zero errors. The reactor/dependent-service gate is `dotnet run --project tests/ReactorSim.Tests -c Debug`, currently 65/65 with nonzero exit on failure. Use the repository's managed-only run driver for a process-owned deep-link launch or screenshot.
 
-正式編譯 gate 係指定 `dotnet build` command 同零 errors；反應堆／依賴服務 gate 係指定 `ReactorSim.Tests` command，目前 63/63，失敗時非零退出。直接開頁或者截圖要用 repo 嘅 managed-only driver，只控制自己開嘅 process。
+正式編譯 gate 係指定 `dotnet build` command 同零 errors；反應堆／依賴服務 gate 係指定 `ReactorSim.Tests` command，目前 65/65，失敗時非零退出。直接開頁或者截圖要用 repo 嘅 managed-only driver，只控制自己開嘅 process。
 
 ## Repository split proof · Repository 分拆證明
 

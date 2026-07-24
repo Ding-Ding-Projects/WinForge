@@ -51,6 +51,8 @@
     <Compile Include="..\..\Services\FuelFactoryService.cs"     Link="Engine\FuelFactoryService.cs" />
     <Compile Include="..\..\Services\NuclearWasteService.cs"    Link="Engine\NuclearWasteService.cs" />
     <Compile Include="..\..\Services\WaterTreatmentService.cs"  Link="Engine\WaterTreatmentService.cs" />
+    <Compile Include="..\..\Services\AmmoniaPlantService.cs"    Link="Engine\AmmoniaPlantService.cs" />
+    <Compile Include="..\..\Services\GridLoadShedService.cs"    Link="Engine\GridLoadShedService.cs" />
     <Compile Include="..\..\Services\CakeFactoryService.cs"     Link="Engine\CakeFactoryService.cs" />
     <Compile Include="..\..\Services\CakeFileService.cs"        Link="Engine\CakeFileService.cs" />
     <Compile Include="..\..\Services\CakeCreditService.cs"      Link="Engine\CakeCreditService.cs" />

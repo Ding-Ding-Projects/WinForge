@@ -21,6 +21,7 @@
 | **5. Fuel factory & nuclear waste · 燃料工廠與核廢料** | [Reactor Fuel & Waste · 反應堆燃料與廢料](Reactor-Fuel-and-Waste.md) |
 | **6. Makeup-water treatment plant · 補給水處理廠** | [Reactor Water Treatment · 反應堆水處理](Reactor-Water-Treatment.md) |
 | **7. Safety toggles, integrations & status API · 安全開關、整合與狀態 API** | [Reactor Safety & Integrations · 反應堆安全與整合](Reactor-Safety-and-Integrations.md) |
+| **8. Reactor-powered industrial loads · 反應堆供電工業負載** | [Reactor Industrial Loads · 反應堆工業負載](Reactor-Industrial-Loads.md) |
 
 ---
 
@@ -34,13 +35,13 @@
 
 ## Realism verification · 寫實度驗證
 
-**EN —** The first multi-agent realism review is now an **archival baseline**, not an open-defect list. P1–P5 are implemented: stable backward-Euler kinetics, verified shutdown margin, a closed fuel/steam-generator energy balance, ANS-5.1 decay heat, corrected xenon and saturated-pressurizer behavior, wired 2-of-4 RPS protection, and 1/M startup guidance. The current headless suite is **63/63 green**. Its sustained high-power regression holds **0.836→0.835 RTP**, fuel near **992.5 °C**, Tavg **293.4 °C**, and RCS pressure **15.46 MPa**, with no emergency cooling, SCRAM, runaway, or meltdown. Historical analysis: [Reactor Realism Review #001](../reactor-realism-review-001.md); live evidence: [Test Report](Reactor-Test-Report.md).
+**EN —** The first multi-agent realism review is now an **archival baseline**, not an open-defect list. P1–P5 are implemented: stable backward-Euler kinetics, verified shutdown margin, a closed fuel/steam-generator energy balance, ANS-5.1 decay heat, corrected xenon and saturated-pressurizer behavior, wired 2-of-4 RPS protection, and 1/M startup guidance. The current headless suite is **65/65 green**, including the ammonia and grid load-shed regressions. Its sustained high-power regression holds **0.836→0.835 RTP**, fuel near **992.5 °C**, Tavg **293.4 °C**, and RCS pressure **15.46 MPa**, with no emergency cooling, SCRAM, runaway, or meltdown. Historical analysis: [Reactor Realism Review #001](../reactor-realism-review-001.md); live evidence: [Test Report](Reactor-Test-Report.md).
 
-**粵語 —** 首次多代理寫實度審查而家係**歷史基準**，唔再係未完成缺陷清單。P1–P5 已經實作：穩定後向歐拉動力學、已驗證停堆裕度、閉合嘅燃料／蒸汽產生器能量平衡、ANS-5.1 衰變熱、已修正氙同飽和穩壓器行為、已接駁四取二 RPS 保護，同 1/M 起動指引。現時無介面測試 **63/63** 全綠；持續高功率回歸維持 **0.836→0.835 RTP**、燃料約 **992.5 °C**、Tavg **293.4 °C**、RCS 壓力 **15.46 MPa**，冇應急冷卻、冇 SCRAM、冇失控、冇熔毀。歷史分析見 [Reactor Realism Review #001](../reactor-realism-review-001.md)；現時證據見[測試報告](Reactor-Test-Report.md)。
+**粵語 —** 首次多代理寫實度審查而家係**歷史基準**，唔再係未完成缺陷清單。P1–P5 已經實作：穩定後向歐拉動力學、已驗證停堆裕度、閉合嘅燃料／蒸汽產生器能量平衡、ANS-5.1 衰變熱、已修正氙同飽和穩壓器行為、已接駁四取二 RPS 保護，同 1/M 起動指引。現時無介面測試 **65/65** 全綠，包括合成氨同電網卸載回歸；持續高功率回歸維持 **0.836→0.835 RTP**、燃料約 **992.5 °C**、Tavg **293.4 °C**、RCS 壓力 **15.46 MPa**，冇應急冷卻、冇 SCRAM、冇失控、冇熔毀。歷史分析見 [Reactor Realism Review #001](../reactor-realism-review-001.md)；現時證據見[測試報告](Reactor-Test-Report.md)。
 
 ---
 
 ### Reactor pages · 反應堆頁面導覽
-[🏠 Reactor Hub · 反應堆總覽](Nuclear-Reactor.md) · [Overview · 總覽](Reactor-Overview.md) · [Control Room · 控制室](Reactor-Control-Room.md) · [Operating Procedures · 操作程序](Reactor-Operating-Procedures.md) · [Emergencies & Scenarios · 緊急與情景](Reactor-Emergencies-and-Scenarios.md) · [Fuel & Waste · 燃料與廢料](Reactor-Fuel-and-Waste.md) · [Water Treatment · 水處理](Reactor-Water-Treatment.md) · [Safety & Integrations · 安全與整合](Reactor-Safety-and-Integrations.md) · [Operating Manual · 操作手冊](Nuclear-Reactor-Operating-Manual.md) · [Test Report · 測試報告](Reactor-Test-Report.md)
+[🏠 Reactor Hub · 反應堆總覽](Nuclear-Reactor.md) · [Overview · 總覽](Reactor-Overview.md) · [Control Room · 控制室](Reactor-Control-Room.md) · [Operating Procedures · 操作程序](Reactor-Operating-Procedures.md) · [Emergencies & Scenarios · 緊急與情景](Reactor-Emergencies-and-Scenarios.md) · [Fuel & Waste · 燃料與廢料](Reactor-Fuel-and-Waste.md) · [Water Treatment · 水處理](Reactor-Water-Treatment.md) · [Industrial Loads · 工業負載](Reactor-Industrial-Loads.md) · [Safety & Integrations · 安全與整合](Reactor-Safety-and-Integrations.md) · [Operating Manual · 操作手冊](Nuclear-Reactor-Operating-Manual.md) · [Test Report · 測試報告](Reactor-Test-Report.md)
 
 *Screenshots captured from the running self-contained build · 截圖擷取自實際運行的自包含建置 · `English + 繁體中文／粵語`*

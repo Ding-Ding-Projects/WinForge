@@ -214,6 +214,7 @@
 | [Wake-on-LAN · 網絡喚醒](network-tools/wol.md) | `module.wol` | `wol` | 1 |
 | [AI Training Cluster · AI 訓練叢集](reactor-loads/aicluster.md) | `module.aicluster` | `aicluster` | 3 |
 | [Aluminium Smelter · 鋁冶煉廠](reactor-loads/smelter.md) | `module.smelter` | `smelter` | 2 |
+| [Ammonia / Fertilizer Plant · 核電合成氨（肥料）廠](reactor-loads/ammonia.md) | `module.ammonia` | `ammonia` | 2 |
 | [Arc-Furnace Steel Mill · 電弧爐煉鋼廠](reactor-loads/steelmill.md) | `module.steelmill` | `steelmill` | 3 |
 | [Cake Factory & Farm · 蛋糕工廠與農場](reactor-loads/cake.md) | `module.cakefactory` | `cake` | 17 |
 | [Carbon Capture (DAC) · 碳捕集](reactor-loads/dac.md) | `module.dac` | `dac` | 1 |
@@ -222,6 +223,7 @@
 | [Electric Cement Kiln · 電熱水泥迴轉窯](reactor-loads/cementkiln.md) | `module.cementkiln` | `cementkiln` | 2 |
 | [EV Fast-Charge Depot · 電動車快充站](reactor-loads/evcharge.md) | `module.evcharge` | `evcharge` | 4 |
 | [Grid Dispatch Center · 電網調度中心](reactor-loads/griddispatch.md) | `module.griddispatch` | `griddispatch` | 2 |
+| [Grid Load-Shed Dispatcher · 電網卸載調度台](reactor-loads/loadshed.md) | `module.loadshed` | `loadshed` | 1 |
 | [Hydrogen Electrolysis · 氫電解制氫廠](reactor-loads/h2plant.md) | `module.h2plant` | `h2plant` | 2 |
 | [Nuclear Data Center · 核能資料中心](reactor-loads/datacenter.md) | `module.datacenter` | `datacenter` | 3 |
 | [Particle Collider · 粒子對撞機](reactor-loads/collider.md) | `module.collider` | `collider` | 2 |

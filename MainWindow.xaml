@@ -121,6 +121,8 @@
                         <NavigationViewItem Content="Vertical Farm · 垂直農場" Tag="module.vertfarm"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Arc-Furnace Steel Mill · 電弧爐煉鋼廠" Tag="module.steelmill"><NavigationViewItem.Icon><FontIcon Glyph="&#xE90F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Electric Cement Kiln · 電熱水泥迴轉窯" Tag="module.cementkiln"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Ammonia / Fertilizer Plant · 核電合成氨廠" Tag="module.ammonia"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9CE;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Grid Load-Shed Dispatcher · 電網卸載調度台" Tag="module.loadshed"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">

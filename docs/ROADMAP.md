@@ -7,6 +7,7 @@
 > **Repository scope · 儲存庫範圍：** This roadmap covers the canonical .NET WinUI 3 app. C++/WinRT port work, evidence, and backlog now live in [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). · 呢份路線圖只涵蓋正式嘅 .NET WinUI 3 app；C++/WinRT 移植工作、證據同待辦而家放喺 [WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)。
 
 ## ✅ Done · 已完成
+- [x] **Reactor industrial loads — ammonia plant + grid load shedding (2026-07-24)** · **反應堆工業負載 — 合成氨廠＋電網卸載（2026-07-24）** — live-bus-gated Haber–Bosch production, strict-priority feeder dispatch, cold-bus accounting, anti-flap reclose, accessible bilingual controls, and a 65/65 regression gate.
 - [x] **Windows 11 control module** · Windows 11 控制模組 — 169 tweaks / 13 categories
 - [x] **Git & GitHub module** · Git 與 GitHub 模組 — repo ops, chunked uploader, 111 git/gh operations
 - [x] **Maintenance & Diagnostics module** · 維護與診斷模組 — 102 real ops (services, disk health, SFC/DISM, drivers, updates, event logs, power reports)
