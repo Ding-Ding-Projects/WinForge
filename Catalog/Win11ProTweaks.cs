@@ -42,10 +42,12 @@ public static class Win11ProTweaks
             v => RegistryHelper.SetValue(RegRoot.HKCU, "Control Panel\\Keyboard", "KeyboardSpeed", ((int)Math.Round(v)).ToString(), RegistryValueKind.String),
             keywords: "keyboard,repeat,rate,speed,鍵盤,速度"),
         
-        Tweak.RegToggle("w11p.inputintl.filter-keys", "Filter Keys", "篩選鍵",
-            "Ignore brief or repeated keystrokes and slow the repeat rate.", "忽略短暫或重複嘅按鍵，並減慢重複速度。",
-            RegRoot.HKCU, "Control Panel\\Accessibility\\Keyboard Response", "Flags", "27", "126",
-            RegistryValueKind.String, keywords: "filter,keys,accessibility,篩選鍵,協助工具"),
+        Tweak.CustomToggle("w11p.inputintl.filter-keys", "Filter Keys", "篩選鍵",
+            "Ignore brief or repeated keystrokes using the timings configured in System Doctors; changes apply live.",
+            "用「系統醫生」設定嘅時間忽略短暫或重複按鍵；變更會即時套用。",
+            () => SystemMaintenanceService.ReadFilterKeys().Enabled,
+            SetFilterKeysEnabled,
+            keywords: "filter,keys,slow keys,accessibility,system doctors,篩選鍵,慢速鍵,協助工具,系統醫生"),
         
         Tweak.RegToggle("w11p.inputintl.sticky-keys", "Sticky Keys", "相黏鍵",
             "Let modifier keys (Shift, Ctrl, Alt) stay active without holding them.", "等修飾鍵（Shift、Ctrl、Alt）唔使撳住都保持作用。",
@@ -592,4 +594,12 @@ public static class Win11ProTweaks
             "Open the Taskbar page to tweak alignment, icons and behaviour.", "開啟工作列版面，調整對齊、圖示同行為。",
             "Open", "開啟", "start ms-settings:taskbar", keywords: "taskbar,system tray,工作列,系統匣"),
     };
+
+    private static void SetFilterKeysEnabled(bool enabled)
+    {
+        FilterKeysSettings current = SystemMaintenanceService.ReadFilterKeys();
+        TweakResult result = SystemMaintenanceService.ApplyFilterKeys(current with { Enabled = enabled });
+        if (!result.Success)
+            throw new InvalidOperationException(result.Message?.En ?? "Windows rejected the Filter Keys change.");
+    }
 }

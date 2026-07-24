@@ -41,7 +41,7 @@
 Checklist status is reconciled against executable source, registered routes, generated references, and live deep-link smoke evidence. The latest bounded audit is [Small module reconciliation — 2026-07-24](roadmap-audits/2026-07-24-small-module-reconciliation.md); a checked row means the named user outcome is reachable, not merely that similar text exists. · Checklist 狀態會按可執行 source、已登記 route、生成 reference 同 live deep-link smoke 證據對帳。最新有限審核係[細型模組對帳 — 2026-07-24](roadmap-audits/2026-07-24-small-module-reconciliation.md)；剔號代表指定用戶結果真係可達，唔係淨係搵到相似文字。
 
 ### Windows 11  (13)
-> **Strict source audit (2026-07-24): 10/13 shipped.** Implementation evidence and the three remaining gaps are recorded in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#windows-11--windows-11). · **嚴格原始碼審核：13 項有 10 項已交付；證據同三個缺口見審核報告。**
+> **Strict source audit (2026-07-24): 13/13 shipped.** The three former gaps now have guided System Doctors controls, bounded execution contracts, and focused tests in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#windows-11--windows-11). · **嚴格原始碼審核：13 項全部交付；原本三個缺口而家有系統醫生引導控制、安全合約同專項測試。**
 
 - [x] **Disable Wallpaper JPEG Compression (Import Quality 100)** · 熄咗桌布JPEG壓縮(質素調到最高100)
   - _HKCU\Control Panel\Desktop -> DWORD JPEGImportQuality = 100 (valid 60-100; default behaviour ~85). Disables Windows' automatic recompression of JPG wallpapers. After writing, re-apply the image via SystemParametersInfo SPI_SETDESKWALLPAPER (or re-set the wallpaper) so the new quality takes effect. PNG/BMP wallpapers are unaffected._
@@ -49,15 +49,15 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -> DWORD VerboseStatus = 1. Shows detailed 'Applying settings / Stopping service X' text during boot and shutdown instead of the spinner. Requires admin (HKLM)._
 - [x] **Toggle Cloud Clipboard Sync Across Devices** · 開定熄雲端剪貼簿跨裝置同步
   - _HKCU\Software\Microsoft\Clipboard -> DWORD EnableClipboardHistory = 1 (Win+V history) and CloudClipboardAutomaticUpload = 1 (roam via Microsoft account). Deep link ms-settings:clipboard._
-- [ ] **Configure Storage Sense Cadence & Recycle Bin Purge** · 設定儲存感知清理週期同回收筒清空
+- [x] **Configure Storage Sense Cadence & Recycle Bin Purge** · 設定儲存感知清理週期同回收筒清空
   - _HKCU\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy -> DWORDs: 01 (enable)=1, 2048 (run cadence: 0=low disk space,1=daily,7=weekly,30=monthly), 256 (Recycle Bin retention days: 0/1/14/30/60), 512 (Downloads retention days). Deep link ms-settings:storagesense._
 - [x] **Disable Mouse Pointer Acceleration (Enhance Pointer Precision)** · 熄咗滑鼠加速(精準指標)
   - _HKCU\Control Panel\Mouse -> string MouseSpeed=0, MouseThreshold1=0, MouseThreshold2=0 unchecks 'Enhance pointer precision' (mouse acceleration). Apply live via SystemParametersInfo SPI_SETMOUSE with the 3-element accel array. Deep link ms-settings:mousetouchpad._
 - [x] **Set Keyboard Repeat Delay & Repeat Rate to Fastest** · 將鍵盤重複延遲同速率調到最快
   - _HKCU\Control Panel\Keyboard -> string KeyboardDelay=0 (0-3, 0=shortest) and KeyboardSpeed=31 (0-31, 31=fastest). Apply live via SystemParametersInfo SPI_SETKEYBOARDDELAY / SPI_SETKEYBOARDSPEED. Deep link ms-settings:easeofaccess-keyboard._
-- [ ] **Enable Filter Keys / Slow Keys for Accessibility** · 開啟篩選鍵(慢速鍵)輔助功能
+- [x] **Enable Filter Keys / Slow Keys for Accessibility** · 開啟篩選鍵(慢速鍵)輔助功能
   - _HKCU\Control Panel\Accessibility\Keyboard Response -> string Flags (e.g. 27 off / 59 on) plus DWORDs DelayBeforeAcceptance, AutoRepeatDelay, AutoRepeatRate, BounceTime (ms). Apply live via SystemParametersInfo SPI_SETFILTERKEYS. Deep link ms-settings:easeofaccess-keyboard._
-- [ ] **Export / Import Default App Associations (machine-wide)** · 匯出匯入預設程式關聯
+- [x] **Export / Import Default App Associations (machine-wide)** · 匯出匯入預設程式關聯
   - _Wrap DISM: 'dism /Online /Export-DefaultAppAssociations:C:\assoc.xml' to capture current defaults, and 'dism /Online /Import-DefaultAppAssociations:C:\assoc.xml' (admin) to apply the template for new users/login. Per-user single-extension changes need the protected UserChoice hash, so wrap SetUserFTA.exe or open ms-settings:defaultapps for manual confirmation._
 - [x] **Toggle Notifications / Configure Focus & Quiet-Hours Rules** · 開熄通知同設定專注模式(勿擾)規則
   - _Global toasts: HKCU\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings -> DWORD NOC_GLOBAL_SETTING_TOASTS_ENABLED = 0/1. Per-app toasts under ...\Settings\<AppUserModelID> -> Enabled. Focus session / automatic quiet-hours rules are configured via ms-settings:quiethours (Focus assist); deep link ms-settings:notifications._
@@ -171,7 +171,7 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _The shipped `media.to-animated-webp` action runs `ffmpeg -i {in} -vf "fps=15,scale=480:-1:flags=lanczos" -c:v libwebp -loop 0 {out}`. It uses `libwebp` and does not set an explicit quality value._
 
 ### Maintenance · 🆕 new module / 新模組  (15)
-> **Strict source audit (2026-07-24): 10/15 shipped.** Five partial/absent workflows remain unchecked; exact handlers, commands, and gaps are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#maintenance--maintenance). · **嚴格原始碼審核：15 項有 10 項已交付，5 項仲未完整。**
+> **Strict source audit (2026-07-24): 15/15 shipped.** The five former gaps now have guided, safety-gated System Doctors workflows; exact handlers, commands, and tests are in the [core capability audit](audits/roadmap-core-capability-audit-2026-07-24.md#maintenance--maintenance). · **嚴格原始碼審核：15 項全部交付；原本五個缺口而家有引導式安全閘流程。**
 
 - [x] **Services Manager (start/stop/startup type)** · 服務管理員（開／熄、改自動或手動）
   - _Wrap sc.exe / PowerShell: list via 'Get-Service' or 'sc.exe query type= service state= all'; control via 'sc.exe start <name>' / 'sc.exe stop <name>'; change startup type via 'sc.exe config <name> start= auto|demand|disabled|delayed-auto'; read current config with 'sc.exe qc <name>'. Elevate via existing no-UAC scheduled-task launcher._
@@ -181,26 +181,26 @@ Checklist status is reconciled against executable source, registered routes, gen
   - _Wrap defrag.exe / Optimize-Volume (ReTrim/Analyze/Defrag params confirmed present): 'defrag C: /L' issues retrim/TRIM on SSDs; 'defrag C: /O' picks the right op per media; 'defrag C: /A' analyzes only. PowerShell: 'Optimize-Volume -DriveLetter C -ReTrim -Verbose'. Requires elevation._
 - [x] **Create / list restore points** · 整還原點同睇返舊嘅
   - _PowerShell (Enable-ComputerRestore/Checkpoint-Computer/Get-ComputerRestorePoint confirmed present): 'Enable-ComputerRestore -Drive "C:\"', then 'Checkpoint-Computer -Description "WinForge" -RestorePointType MODIFY_SETTINGS'; list with 'Get-ComputerRestorePoint'. Resize cache via 'vssadmin Resize ShadowStorage'. The 24h gate is the DWORD 'SystemRestorePointCreationFrequency' under HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore (set 0 to lift). Requires elevation._
-- [ ] **Pause / resume Windows Update** · 暫停咗或繼續Windows更新
+- [x] **Pause / resume Windows Update** · 暫停咗或繼續Windows更新
   - _Registry HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings: set 'PauseUpdatesExpiryTime' (REG_SZ, ISO8601 UTC) plus 'PauseFeatureUpdatesStartTime'/'PauseFeatureUpdatesEndTime' and 'PauseQualityUpdatesStartTime'/'PauseQualityUpdatesEndTime' to pause; delete those values to resume. These values are absent until first paused. Trigger scan/download/install via 'UsoClient.exe StartScan' / 'StartDownload' / 'StartInstall' (UsoClient.exe confirmed present)._
-- [ ] **Driver list / export / rollback hints** · 睇驅動程式、匯出同提示點回復
+- [x] **Driver list / export / rollback hints** · 睇驅動程式、匯出同提示點回復
   - _Wrap pnputil.exe (subcommands confirmed from /?): 'pnputil /enum-drivers' lists third-party oem*.inf packages with provider/date/version; 'pnputil /export-driver <oem#.inf|*> <dir>' backs them up; 'pnputil /delete-driver <oem#.inf> /uninstall' removes a bad package (rollback = re-add the exported prior package). Device-level: 'pnputil /enum-devices', 'pnputil /restart-device'. Requires elevation._
 - [x] **Scheduled-task browser (query / run / disable)** · 排程工作清單（執行、停咗佢）
   - _Wrap schtasks.exe (Query/Run/End/Change confirmed from /?): 'schtasks /Query /FO LIST /V' lists all with Last/Next-Run-Time and Status; 'schtasks /Run /TN <name>' runs on demand; 'schtasks /End /TN <name>' stops; 'schtasks /Change /TN <name> /DISABLE' or '/ENABLE' toggles. PowerShell alt: Get-ScheduledTask / Get-ScheduledTaskInfo._
 - [x] **Event-log error/warning digest** · 事件記錄錯誤摘要
   - _Wrap wevtutil.exe (confirmed at System32) with XPath: 'wevtutil qe System /q:"*[System[(Level=1 or Level=2) and TimeCreated[timediff(@SystemTime)<=86400000]]]" /f:text /c:50 /rd:true'; repeat for Application. Boot/shutdown durations from Microsoft-Windows-Diagnostics-Performance/Operational (EventIDs 100-110). PowerShell alt: 'Get-WinEvent -FilterHashtable @{LogName='System';Level=1,2;StartTime=(Get-Date).AddDays(-1)}'._
-- [ ] **Startup impact / autoruns audit** · 開機啟動項影響分析
+- [x] **Startup impact / autoruns audit** · 開機啟動項影響分析
   - _Enumerate Run keys under HKLM/HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run(+RunOnce) and the StartupApproved\Run blob (Explorer\StartupApproved\Run confirmed present; first byte 0x02/0x03 = enabled, 0x03 with high bytes = disabled per Task Manager); also list shell:startup and shell:common startup folders. Toggle by writing the StartupApproved binary value. Read-only inventory via 'Get-CimInstance Win32_StartupCommand' (confirmed working)._
 - [x] **Generate energy / battery / sleep report** · 出電池同耗電報告
   - _Wrap powercfg.exe: 'powercfg /energy /output <path>.html /duration 60' (efficiency problems); 'powercfg /batteryreport /output <path>.html' (capacity history & cycle estimate); 'powercfg /sleepstudy /output <path>.html' (modern-standby drain). Open the resulting HTML in-app. Requires elevation._
 - [x] **Diagnose what blocks sleep / wakes the PC** · 搵乜嘢阻住部機瞓覺、又整醒佢
   - _Wrap powercfg.exe (all confirmed real): 'powercfg /requests' shows active power requests blocking sleep per process/driver; 'powercfg /lastwake' shows the last wake source; 'powercfg /waketimers' enumerates scheduled wake timers; 'powercfg /devicequery wake_armed' lists wake-capable devices (confirmed returns list) — disarm with 'powercfg /devicedisablewake "<name>"'. /requests and /waketimers require elevation._
-- [ ] **Component store cleanup (WinSxS / ResetBase)** · 清理元件儲存（WinSxS）
+- [x] **Component store cleanup (WinSxS / ResetBase)** · 清理元件儲存（WinSxS）
   - _Wrap DISM (Dism.exe confirmed at System32): 'Dism /Online /Cleanup-Image /AnalyzeComponentStore' reports reclaimable size & recommendation; 'Dism /Online /Cleanup-Image /StartComponentCleanup' trims superseded components; add '/ResetBase' to also drop superseded update backups (surface the warning that this blocks uninstalling installed updates). Requires elevation._
 - [x] **System file & image integrity repair** · 修復系統檔同系統映像
   - _Wrap built-ins (sfc.exe & Dism.exe confirmed present): 'sfc /scannow' verifies/repairs protected system files; 'Dism /Online /Cleanup-Image /CheckHealth' quick-checks, '/ScanHealth' deep-scans, '/RestoreHealth' repairs from Windows Update. Parse %WINDIR%\Logs\CBS\CBS.log for sfc results. Requires elevation._
 - [x] **Bulk update all apps** · 一次過更新晒啲App — DONE in Package Manager: the Updates view collects eligible updates across the selected managers and queues per-manager or all-manager batches through the shared operation coordinator; ignored, pinned and snoozed updates are excluded.
-- [ ] **Reset / re-register a stuck Store app** · 重設或重新註冊死咗嘅Store App
+- [x] **Reset / re-register a stuck Store app** · 重設或重新註冊死咗嘅Store App
   - _PowerShell Appx: re-register a broken package via 'Get-AppxPackage <name> | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}'; list with 'Get-AppxPackage -AllUsers'. Soft reset = the documented Reset button reached by the 'ms-settings:appsfeatures' deep link; hard clear = remove the data folder under %LocalAppData%\Packages\<PackageFamilyName>._
 
 ### Dev & Terminal · 🆕 new module / 新模組  (15)

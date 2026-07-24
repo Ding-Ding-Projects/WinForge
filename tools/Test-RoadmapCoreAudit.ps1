@@ -54,10 +54,10 @@ function Find-RelativeLine {
 }
 
 $specs = @(
-    [pscustomobject]@{ Name = 'Windows 11'; RoadmapPrefix = '### Windows 11  ('; AuditPrefix = '## Windows 11 '; Total = 13; Shipped = 10 },
+    [pscustomobject]@{ Name = 'Windows 11'; RoadmapPrefix = '### Windows 11  ('; AuditPrefix = '## Windows 11 '; Total = 13; Shipped = 13 },
     [pscustomobject]@{ Name = 'ViveTool'; RoadmapPrefix = '### ViveTool '; AuditPrefix = '## ViveTool '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Media'; RoadmapPrefix = '### Media '; AuditPrefix = '## Media '; Total = 15; Shipped = 15 },
-    [pscustomobject]@{ Name = 'Maintenance'; RoadmapPrefix = '### Maintenance '; AuditPrefix = '## Maintenance '; Total = 15; Shipped = 10 },
+    [pscustomobject]@{ Name = 'Maintenance'; RoadmapPrefix = '### Maintenance '; AuditPrefix = '## Maintenance '; Total = 15; Shipped = 15 },
     [pscustomobject]@{ Name = 'Dev & Terminal'; RoadmapPrefix = '### Dev & Terminal '; AuditPrefix = '## Dev & Terminal '; Total = 15; Shipped = 9 },
     [pscustomobject]@{ Name = 'Home Assistant'; RoadmapPrefix = '### Home Assistant '; AuditPrefix = '## Home Assistant '; Total = 14; Shipped = 13 },
     [pscustomobject]@{ Name = 'Archives'; RoadmapPrefix = '### Archives '; AuditPrefix = '## Archives '; Total = 14; Shipped = 10 },
@@ -81,10 +81,17 @@ $mediaPagePath = Join-Path $RepoRoot 'Pages\MediaModule.xaml'
 $mediaPageCodePath = Join-Path $RepoRoot 'Pages\MediaModule.xaml.cs'
 $mediaTestPath = Join-Path $RepoRoot 'tests\MediaWorkflowCore.Tests\Program.cs'
 $mediaGuidePath = Join-Path $RepoRoot 'docs\features\media-capture\media-studio-workflows.md'
+$systemMaintenanceContractsPath = Join-Path $RepoRoot 'Services\SystemMaintenanceContracts.cs'
+$systemMaintenanceServicePath = Join-Path $RepoRoot 'Services\SystemMaintenanceService.cs'
+$systemDoctorsPagePath = Join-Path $RepoRoot 'Pages\SystemDoctorsModule.xaml.cs'
+$systemMaintenanceTestPath = Join-Path $RepoRoot 'tests\SystemMaintenanceCore.Tests\Program.cs'
+$systemMaintenanceGuidePath = Join-Path $RepoRoot 'docs\features\system-maintenance\README.md'
 
 foreach ($path in @($roadmapPath, $auditPath, $indexPath, $wikiPath, $pagesPath, $mediaCatalogPath,
         $browserCorePath, $browserServicePath, $browserPanelPath, $browserPanelCodePath, $browserTestPath, $browserDocsPath,
-        $mediaCorePath, $mediaPagePath, $mediaPageCodePath, $mediaTestPath, $mediaGuidePath)) {
+        $mediaCorePath, $mediaPagePath, $mediaPageCodePath, $mediaTestPath, $mediaGuidePath,
+        $systemMaintenanceContractsPath, $systemMaintenanceServicePath, $systemDoctorsPagePath,
+        $systemMaintenanceTestPath, $systemMaintenanceGuidePath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Required audit artifact is missing: $path"
     }
@@ -166,8 +173,8 @@ foreach ($spec in $specs) {
     })
 }
 
-if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 96) {
-    throw "Aggregate mismatch: expected 96/115 shipped, found $aggregateShipped/$aggregateTotal."
+if ($aggregateTotal -ne 115 -or $aggregateShipped -ne 104) {
+    throw "Aggregate mismatch: expected 104/115 shipped, found $aggregateShipped/$aggregateTotal."
 }
 
 $artifactText = @(
@@ -175,8 +182,8 @@ $artifactText = @(
     Get-Content -LiteralPath $wikiPath -Raw -Encoding UTF8
     Get-Content -LiteralPath $pagesPath -Raw -Encoding UTF8
 ) -join "`n"
-if ($artifactText -notmatch '96/115' -or $artifactText -notmatch '19') {
-    throw 'Audit index/wiki mirrors do not report the 96/115 shipped and 19-gap result.'
+if ($artifactText -notmatch '104/115' -or $artifactText -notmatch '11') {
+    throw 'Audit index/wiki mirrors do not report the 104/115 shipped and 11-gap result.'
 }
 
 $mediaCatalogText = Get-Content -LiteralPath $mediaCatalogPath -Raw -Encoding UTF8
@@ -261,6 +268,40 @@ if ($mediaTestText -notmatch '17/17 tests passed|tests\.Length' -or
     -not $mediaTestText.Contains('cancellation removes owned workspace and staged files') -or
     -not $mediaTestText.Contains('failure preserves a pre-existing destination')) {
     throw 'Media focused harness no longer preserves its sequencing, cancellation, and staged-output contracts.'
+}
+
+$systemMaintenanceContractsText = Get-Content -LiteralPath $systemMaintenanceContractsPath -Raw -Encoding UTF8
+$systemMaintenanceServiceText = Get-Content -LiteralPath $systemMaintenanceServicePath -Raw -Encoding UTF8
+$systemDoctorsPageText = Get-Content -LiteralPath $systemDoctorsPagePath -Raw -Encoding UTF8
+$systemMaintenanceTestText = Get-Content -LiteralPath $systemMaintenanceTestPath -Raw -Encoding UTF8
+foreach ($marker in @(
+        'StorageCadenceDays', 'ValidateFilterKeys', 'DismExportDefaultAssociationsArguments',
+        'DriverRollbackArguments', 'ResetBaseArguments', 'BuildStoreResetScript',
+        'BuildStoreReregisterScript', 'BuildUpdatePauseWindow', 'EstimateStartupImpact')) {
+    if (-not $systemMaintenanceContractsText.Contains($marker)) {
+        throw "System Maintenance contracts are missing capability marker: $marker"
+    }
+}
+foreach ($marker in @(
+        'ApplyStorageSense', 'SPI_SETFILTERKEYS', 'PauseWindowsUpdate', 'ResumeWindowsUpdate',
+        'ExportDriver', 'RollBackDriver', 'AuditStartupAsync', 'ResetComponentBase',
+        'ResetStoreApp', 'ReregisterStoreApp')) {
+    if (-not $systemMaintenanceServiceText.Contains($marker)) {
+        throw "System Maintenance executor is missing capability marker: $marker"
+    }
+}
+foreach ($builder in @(
+        'BuildStorageSenseDoctor', 'BuildFilterKeysDoctor', 'BuildDefaultAssociationsDoctor',
+        'BuildWindowsUpdateDoctor', 'BuildDriverRollbackDoctor', 'BuildStartupAuditDoctor',
+        'BuildComponentStoreDoctor', 'BuildStoreAppDoctor')) {
+    if (-not $systemDoctorsPageText.Contains($builder)) {
+        throw "System Doctors is missing reachable workflow builder: $builder"
+    }
+}
+if (-not $systemMaintenanceTestText.Contains('pure contracts; no host mutation') -or
+    -not $systemMaintenanceTestText.Contains('driver rollback never adds force or reboot') -or
+    -not $systemMaintenanceTestText.Contains('startup impact classifies every audited source')) {
+    throw 'System Maintenance focused harness no longer preserves its no-mutation safety contract.'
 }
 
 $rows | Format-Table -AutoSize
