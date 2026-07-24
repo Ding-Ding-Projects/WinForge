@@ -21,6 +21,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 322
 - **Bounded guided regex builder · 有界引導式正則砌法** — the managed .NET 11 tester constructs literals, character classes, anchors, groups, alternation, and quantifiers; the same full builder is synchronized with eight core/common search surfaces, while plain text remains the default. Raw editing, five flags, session-only samples, live matches/captures, replacement preview, and explicit copy remain local, size-bounded, and timeout-protected. · 正式 .NET 11 測試器可引導砌字面文字、字元類、錨點、群組、二選一同量詞；同一個完整版砌法已同八個核心／共用搜尋介面同步，而純文字繼續做預設。原始編輯、五旗標、只限今次工作階段 sample、即時配對／擷取、替換預覽同明確複製全部只喺本機、有大小上限兼有超時保護。
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
 - **Reliable whole-desktop recording · 可靠全桌面錄影** — Screen Recorder bulk-drains ffmpeg diagnostics, so heavy progress output cannot consume the bounded graceful-save window; forced or unconfirmed stops remain truthful failures. · 螢幕錄影會整批排走 ffmpeg 診斷輸出，繁忙進度唔會食晒有時限嘅正常儲存時間；強制或未確認停止仍然會如實報失敗。
+- **Guided Windows maintenance · 引導式 Windows 維護** — System Doctors now completes the audited Windows/System and Maintenance roadmap: full Storage Sense retention, live Filter Keys timings, DISM association templates, bounded Update pause/resume, backup-gated driver rollback, broad Autoruns impact audit, irreversible ResetBase guidance, and selected Store-app repair. · 「系統醫生」而家補齊 Windows／System 同 Maintenance 審核：完整儲存感知保留、即時篩選鍵時間、DISM 關聯範本、有限更新暫停／恢復、先備份後驅動回復、廣泛 Autoruns 影響審核、不可逆 ResetBase 指引，同所選商店 app 修復。
 - **Complete guided Media studio · 完整引導式 Media 工作台** — eleven production ffmpeg/ffprobe workflows add measured EBU R128, silence cleanup, two-pass stabilization, black-bar crop, lossless concat, hardware-probed NVENC, target-size encoding, subtitles, chapter splitting, HEIC/JXL batches, and metadata privacy. Every path uses argument vectors, staged outputs, bounded batches, cancellation, and owned scratch cleanup. · 新增 11 個正式 ffmpeg／ffprobe 工作流程，涵蓋 EBU R128、靜音、防震、黑邊、無損合併、NVENC、目標容量、字幕、章節、HEIC／JXL 同 metadata 私隱；全部用參數清單、暫存輸出、有界批次、取消同自家 scratch 清理。
 - **Flagship reactor · 旗艦反應堆** — a PWR control-room simulator with point kinetics, thermal hydraulics, turbine and electrical systems, protection logic, fuel and waste services, water treatment, and opt-in external integrations.
 - **Reactor-powered industrial loads · 反應堆工業負載** — a green-ammonia Haber–Bosch plant and strict-priority grid load-shed dispatcher consume the live simulated bus, fail dark, and preserve reactor safety boundaries. · 綠氨哈柏法工廠同嚴格優先級電網卸載調度器會用即時模擬母線；冇電就停，而且唔會越過反應堆安全界線。
@@ -104,6 +105,16 @@ dotnet run --project tests\ScreenRecorderLifecycle.Tests -c Debug
 ```
 
 The process-free seam currently passes **10/10**; the deterministic self-hosted stderr fixture passes **1/1** and protects the real bulk-drain/quit/exit path without measuring `cmd.exe` loop scheduling. · Process-free seam 目前 **10/10**；deterministic self-hosted stderr fixture **1/1**，會保護真實 bulk-drain／quit／exit 流程，唔會誤測 `cmd.exe` loop 排程。
+
+Run the process-free Windows maintenance contract after changing the guided System Doctors workflows:
+
+改過「系統醫生」引導式 Windows 維護流程後，要跑無副作用合約：
+
+```powershell
+dotnet run --project tests\SystemMaintenanceCore.Tests -c Debug
+```
+
+The harness covers **22/22** validation, argument-vector, bounded timing, update-pause, conservative driver rollback, Store-app identity, and startup-impact cases without touching the registry, drivers, DISM, or app data. · Harness 有 **22/22** 個驗證、參數向量、有限時間、更新暫停、保守驅動回復、商店 app 身份同開機影響 case；唔會郁 registry、驅動、DISM 或 app 資料。
 
 Run the Regex Builder safety harness after changing the builder, .NET regex evaluation, search-pattern contract, limits, flags, or replacement preview:
 

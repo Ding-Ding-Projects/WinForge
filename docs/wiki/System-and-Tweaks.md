@@ -23,8 +23,10 @@ Open in-app: `WinForge.exe --page regedit`
 
 ## System Doctors · 系統醫生
 
-One-click repairs for spooler, DNS, taskbar, search, icons and more.
-一鍵修復列印、DNS、工作列、搜尋、圖示等問題。
+Guided Windows controls and repairs: Storage Sense, Filter Keys, association templates, Update pause/resume, driver backup/rollback, Autoruns impact, ResetBase, Store-app repair, spooler, DNS, taskbar, search, icons and more.
+引導式 Windows 控制同修復：儲存空間感知、篩選鍵、關聯範本、更新暫停／恢復、驅動備份／回復、Autoruns 影響、ResetBase、商店 app 修復、列印、DNS、工作列、搜尋、圖示等。
+
+[Full guided-maintenance guide · 完整引導式維護指南](Windows-Maintenance-Workflows.md)
 
 Open in-app: `WinForge.exe --page doctors`
 

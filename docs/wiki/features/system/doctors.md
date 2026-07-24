@@ -14,9 +14,9 @@
 
 ## What It Covers · 功能範圍
 
-**EN —** System Doctors is registered in WinForge search and navigation with these keywords: <code>doctor repair fix rescue printer spooler dns network sleep wake taskbar start search index explorer icon thumbnail cache ownership permissions 修復 醫生 救援 列印 網絡 睡眠 喚醒 工作列 搜尋 圖示 縮圖 擁有權 權限</code>.
+**EN —** System Doctors is registered in WinForge search and navigation with these keywords: <code>doctor repair fix rescue storage sense filter keys default associations windows update pause resume driver export rollback autoruns startup impact resetbase component store app reset reregister printer spooler dns network sleep wake taskbar start search index explorer icon thumbnail cache ownership permissions 修復 醫生 救援 儲存空間感知 篩選鍵 預設程式 關聯 更新 暫停 恢復 驅動 匯出 回復 開機 影響 元件 商店 app 重設 重新註冊 列印 網絡 睡眠 喚醒 工作列 搜尋 圖示 縮圖 擁有權 權限</code>.
 
-**粵語 —** 系統醫生 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>doctor repair fix rescue printer spooler dns network sleep wake taskbar start search index explorer icon thumbnail cache ownership permissions 修復 醫生 救援 列印 網絡 睡眠 喚醒 工作列 搜尋 圖示 縮圖 擁有權 權限</code>。
+**粵語 —** 系統醫生 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>doctor repair fix rescue storage sense filter keys default associations windows update pause resume driver export rollback autoruns startup impact resetbase component store app reset reregister printer spooler dns network sleep wake taskbar start search index explorer icon thumbnail cache ownership permissions 修復 醫生 救援 儲存空間感知 篩選鍵 預設程式 關聯 更新 暫停 恢復 驅動 匯出 回復 開機 影響 元件 商店 app 重設 重新註冊 列印 網絡 睡眠 喚醒 工作列 搜尋 圖示 縮圖 擁有權 權限</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

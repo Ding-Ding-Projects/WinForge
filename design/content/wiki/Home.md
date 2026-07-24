@@ -18,6 +18,7 @@
 | [Smoke Test Campaign](Smoke-Test-Campaign.md) | Whole-app route, source, behavior, and evidence ledger · 全 app route、source、行為同證據清單 |
 | [Roadmap Status Reconciliation](#/wiki/Roadmap-Status-Reconciliation) | Evidence-backed shipped/partial decisions · 有證據嘅已交付／部分完成判定 |
 | [Core Roadmap Capability Audit](#/wiki/Roadmap-Core-Capability-Audit) | Strict shipped-versus-gap evidence for 115 roadmap capabilities · 115 項路線圖功能嘅嚴格已交付／缺口證據 |
+| [Guided Windows Maintenance](#/wiki/Windows-Maintenance-Workflows) | Storage Sense, Filter Keys, Update, drivers, Autoruns, ResetBase, and Store-app repair · 儲存感知、篩選鍵、更新、驅動、Autoruns、ResetBase 同商店 app 修復 |
 | [Browser Control Workbench](#/wiki/Browser-Control-Workbench) | Parameterized browser profiles, PWAs, isolation, cache, debugging, and packages · 參數化設定檔、PWA、隔離、快取、除錯同套件 |
 | [Managed Regex Builder](#/wiki/Regex-Builder) | Guided .NET construction, eight synchronized searches, exhaustive inventory, bounded live matches/captures, and safety evidence · 引導式 .NET 砌法、八個同步搜尋、完整清單、有界即時配對／擷取同安全證據 |
 | [Smoke Closeout](../Exhaustive-Smoke-Closeout.md) | Final safe smoke coverage, source wiring, test, and capture disposition · 最後安全冒煙覆蓋、來源 wiring、測試同截圖處置 |

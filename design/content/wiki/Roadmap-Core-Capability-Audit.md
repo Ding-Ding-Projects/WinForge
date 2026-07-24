@@ -8,15 +8,15 @@ The 2026-07-24 source audit reconciles 115 previously unchecked entries across W
 
 | Section · 章節 | Audited · 審核 | Shipped · 已交付 | Remaining · 餘下 |
 |---|---:|---:|---:|
-| Windows 11 | 13 | 10 | 3 |
+| Windows 11 | 13 | 13 | 0 |
 | ViveTool | 15 | 15 | 0 |
 | Media | 15 | 15 | 0 |
-| Maintenance | 15 | 10 | 5 |
+| Maintenance | 15 | 15 | 0 |
 | Dev & Terminal | 15 | 9 | 6 |
 | Home Assistant | 14 | 13 | 1 |
 | Archives | 14 | 10 | 4 |
 | Browser Control | 14 | 14 | 0 |
-| **Total · 總數** | **115** | **96** | **19** |
+| **Total · 總數** | **115** | **104** | **11** |
 
 ## What the audit protects · 審核守住乜
 
@@ -35,6 +35,10 @@ Read the repository's categorized `docs/audits/roadmap-core-capability-audit-202
 請睇 repository 入面分類證據清單；入面逐項列出 catalog ID、page handler、service method、command／registry 機制、文件證據，同每個未剔選項目仲欠乜。
 
 ## Visual evidence · 視覺證據
+
+The Windows/System + Maintenance follow-up changes the live System Doctors surface. Fresh headless evidence and its exact capture disposition are recorded in the System Doctors guide and task handoff; destructive operating-system actions were not executed for screenshot evidence.
+
+Windows／System 加 Maintenance 跟進改咗即時「系統醫生」畫面；最新 headless 證據同準確擷取處置會記錄喺系統醫生指南同交接。截圖驗證冇執行破壞性作業系統操作。
 
 Browser Control changes the live `CategoryPage` layout. Fresh inspected route evidence is recorded in [Browser Control Workbench](#/wiki/Browser-Control-Workbench); the capture performs no cache, package, or remote-debug side effect.
 
