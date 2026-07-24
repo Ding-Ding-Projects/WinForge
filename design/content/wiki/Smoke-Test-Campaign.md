@@ -8,6 +8,10 @@
 
 **粵語 —** 呢一頁記錄點樣可以重複做到成個 WinForge app 驗證。佢係涵蓋證據清單，唔係宣傳用功能數字：每條 route 只有喺適用嘅 routing、build、test、launch、visual、behavior、副作用同文件證據都記錄好先算完成。
 
+## Focused Package Manager recovery — 2026-07-24 · 專項套件管理 recovery
+
+The preserved ten-file package patch at `5cc3aa712f9e326dd8d9ae0bdd4c16d8771e1cb6` was audited without mutating its stash. Current main already retained the useful behavior with later hardening; a bounded follow-up added fail-closed proxy/triplet validation and responsive/accessibility fixes. Evidence: Package Manager core **29/29**; exact solution build **0 errors**; self-contained publish, XAML literal safety, and source-surface audit pass; 2,875/2,875 handlers and 1,922/1,922 direct actions resolve; fresh 1049×646 and 720×650 LowLevel headless captures were inspected and promoted. The owned window and desktop were closed. · 保留十檔案套件 patch 已喺唔修改 stash 情況下審核；current main 已連後續強化保留有用行為，有限 follow-up 加入 fail-closed proxy／triplet 驗證同響應式／無障礙修正。證據包括 core **29/29**、完整 solution build 零 errors、自包含 publish／XAML safety／source audit 全過、handler 同 direct action 全部 resolve、最新 1049×646／720×650 LowLevel headless capture 已檢視同升格；自家視窗同 desktop 已關閉。
+
 ## Baseline Snapshot · 基線快照
 
 Generated on 2026-07-11 from the live source:

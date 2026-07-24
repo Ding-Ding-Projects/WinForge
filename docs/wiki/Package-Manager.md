@@ -26,6 +26,12 @@ The workspace supports WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows 
 
 當相應引擎可用時，工作區支援 WinGet、Scoop、Chocolatey、pip、npm、.NET tools、Windows PowerShell Gallery、PowerShell 7 PSResourceGet、Cargo、Bun 同 vcpkg。
 
+## Responsive and accessible controls · 響應式同無障礙控制
+
+Search and view controls occupy their own row; filters and actions move to a horizontally scrollable toolbar. Manager and batch strips remain scrollable, action targets are at least 44×44 pixels, section headings expose heading semantics, and dynamic selection/output controls have programmatic names. The bilingual page was inspected at both 1049×646 and 720×650 without overlapping or off-screen action controls. · 搜尋同 view control 會用獨立一行；filter 同 action 放入可橫向捲動 toolbar。管理器同批次列可以捲動，action target 最少 44×44 像素，section heading 有 heading semantics，動態選取／輸出控制亦有程式化名稱。雙語頁已喺 1049×646 同 720×650 檢視，冇重疊或者走出畫面嘅 action control。
+
+![Package Manager narrow layout · 套件管理窄版面](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages-narrow.png)
+
 ## Safety and failure behavior · 安全同失敗行為
 
 - Package mutations are explicit; review surfaces must not silently execute a package command. · 套件修改一定要明確；檢視介面唔可以靜默執行套件指令。
@@ -33,12 +39,23 @@ The workspace supports WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows 
 - Manager availability is probed before dependent actions are enabled. A missing engine is shown as a setup dependency, not treated as success. · 啟用相依動作前會先探測管理器；欠缺引擎會顯示成設定 dependency，唔會當成功。
 - User-facing errors remain redacted and must not expose credentials, tokens, or unsafe command construction. · 對使用者顯示嘅錯誤要遮蔽，唔可以洩露認證資料、token 或唔安全 command 組合。
 - Cancellation and retry apply to owned package operations; WinForge must not terminate unrelated external processes. · 取消同重試只適用於 WinForge 自己嘅套件操作，唔可以終止不相關外部 process。
+- Proxy settings accept only a credential-free HTTP(S) authority. Paths, queries, fragments, raw percent expansion, control characters, and embedded credentials fail closed. · Proxy 只接受唔含認證嘅 HTTP(S) authority；path、query、fragment、原始百分號展開、控制字元同內嵌認證全部 fail closed。
+- A vcpkg triplet is a bounded token containing only letters, numbers, dots, underscores, and dashes; invalid input is rejected before persistence or command construction. · vcpkg triplet 係有界 token，只可以用字母、數字、點、底線同橫線；無效輸入喺保存或者建立指令前已經拒絕。
 
 ## Configuration · 設定
 
 Package Manager preferences are stored through the application's normal settings/persistence services. Secrets or credentials must use the existing DPAPI-backed stores and must never be written to logs, screenshots, command lines, URLs, or repository files.
 
 套件管理器偏好會經 app 正常 settings／persistence service 保存。秘密或認證資料一定要用既有 DPAPI store，絕對唔可以寫入 log、截圖、command line、URL 或 repository file。
+
+Invalid structured settings produce a bilingual inline error and restore the last valid value. WinForge no longer collects proxy usernames/passwords; detected legacy values remain DPAPI-protected until the user chooses **Forget saved credentials** or resets package settings. They are never used in a URL or process argument. Authenticated proxy credentials must be configured in the operating-system or package-manager credential store. · 無效結構化設定會顯示雙語 inline error，並還原上一個有效值。WinForge 已經唔再收集 proxy 使用者名稱／密碼；偵測到嘅舊值會保持 DPAPI 保護，直到用戶揀 **刪除已保存認證** 或重設套件設定，而且絕對唔會用喺 URL／process argument。認證 proxy 要用 Windows 或套件管理器 credential store。
+
+## Verification · 驗證
+
+- Package-manager core harness: **29/29 passed**, including malicious proxy/triplet rejection. · 套件管理 core harness **29/29 通過**，包括惡意 proxy／triplet 拒絕。
+- Exact solution build and self-contained publish: exit 0, build with **0 errors**. · 完整 solution build 同自包含 publish exit 0，build **零 errors**。
+- XAML literal safety passed; 2,875/2,875 handlers and 1,922/1,922 direct actions resolved with zero lifecycle mismatches or actionable markers. · XAML literal safety 通過；2,875/2,875 handler 同 1,922/1,922 direct action 全部 resolve，零 lifecycle mismatch／actionable marker。
+- Fresh LowLevel MCP headless captures were visually inspected at 1049×646 and 720×650; the owned app window and desktop were closed afterward. · 最新 LowLevel MCP headless capture 已喺 1049×646 同 720×650 人手檢視；之後已關閉自家 app 視窗同 desktop。
 
 ## Independent C++ port · 獨立 C++ 移植版
 

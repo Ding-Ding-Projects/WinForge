@@ -14,9 +14,13 @@ Open in-app: `WinForge.exe --page git`
 
 The canonical .NET workspace covers 11 package engines and nine views: Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations. Package mutations remain explicit and reviewable, missing engines are treated as setup dependencies, and interactive execution fails closed when WinForge cannot preserve its normal-integrity boundary. · 正式 .NET 工作區涵蓋 11 個套件引擎同九個檢視：Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations。套件修改保持明確同可檢視；欠缺引擎會當成設定 dependency；WinForge 保持唔到正常 integrity 界線時，互動執行會 fail closed。
 
+The pinned source snapshot at `ThirdParty/UniGetUI` is provenance for audit and parity work only. UniGetUI's upstream UI/framework, IPC and telemetry are not compiled or launched; the running feature is WinForge's own bilingual WinUI 3 implementation. Structured proxy and vcpkg settings fail closed, credentials never enter URLs/process arguments, and the search/action surface remains usable in an inspected 720-pixel bilingual window. · `ThirdParty/UniGetUI` 入面嘅固定原始碼快照只作審核同功能對等參考；UniGetUI 上游 UI／framework、IPC 同 telemetry 唔會被編譯或啟動，實際執行嘅係 WinForge 自己嘅雙語 WinUI 3 實作。結構化 proxy 同 vcpkg 設定會 fail closed，認證絕對唔會進入 URL／process argument，而搜尋／action 介面已驗證喺 720 像素雙語視窗仍然可用。
+
 Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
+
+![Package Manager narrow layout](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages-narrow.png)
 
 See [Package Manager](#/wiki/Package-Manager) for workspace behavior, configuration, safety boundaries, and failure modes. · 工作區行為、設定、安全界線同失敗模式請睇[套件管理](#/wiki/Package-Manager)。
 

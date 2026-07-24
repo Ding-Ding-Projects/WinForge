@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using WinForge.Services;
@@ -89,13 +90,16 @@ public sealed partial class PackageSettingsDialog : ContentDialog
 
     private void AddGroup(string title, params UIElement[] children)
     {
-        Root.Children.Add(new TextBlock
+        var heading = new TextBlock
         {
             Text = title,
             FontWeight = FontWeights.SemiBold,
             FontSize = 15,
             Margin = new Thickness(0, 6, 0, 0),
-        });
+        };
+        AutomationProperties.SetHeadingLevel(heading,
+            Microsoft.UI.Xaml.Automation.Peers.AutomationHeadingLevel.Level2);
+        Root.Children.Add(heading);
         var panel = new StackPanel { Spacing = 8 };
         foreach (var c in children) panel.Children.Add(c);
         Root.Children.Add(new Border
@@ -119,19 +123,37 @@ public sealed partial class PackageSettingsDialog : ContentDialog
 
     private static ToggleSwitch Toggle(string header, bool value, Action<bool> set)
     {
-        var t = new ToggleSwitch { Header = header, IsOn = value, HorizontalAlignment = HorizontalAlignment.Left };
+        var t = new ToggleSwitch
+        {
+            Header = header,
+            IsOn = value,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            MinHeight = 44,
+        };
         t.Toggled += (_, _) => { try { set(t.IsOn); } catch { } };
         return t;
     }
 
     private static ComboBox Combo(string header, IReadOnlyList<string> labels, int selectedIndex, Action<int> onChange)
     {
-        var c = new ComboBox { Header = header, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var c = new ComboBox
+        {
+            Header = header,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            MinHeight = 44,
+        };
         foreach (var l in labels) c.Items.Add(l);
         c.SelectedIndex = selectedIndex < 0 || selectedIndex >= labels.Count ? 0 : selectedIndex;
         c.SelectionChanged += (_, _) => { if (c.SelectedIndex >= 0) { try { onChange(c.SelectedIndex); } catch { } } };
         return c;
     }
+
+    private static Button ActionButton(string text) => new()
+    {
+        Content = text,
+        MinHeight = 44,
+        MinWidth = 44,
+    };
 
     // ===== 1) Scheduled updates =====
 
@@ -272,6 +294,7 @@ public sealed partial class PackageSettingsDialog : ContentDialog
             {
                 Content = $"{m.NameEn} · {m.NameZh}",
                 IsChecked = PackageManagerSettings.IsManagerMuted(key),
+                MinHeight = 44,
             };
             cb.Checked += (_, _) => { try { PackageManagerSettings.SetManagerMuted(key, true); } catch { } };
             cb.Unchecked += (_, _) => { try { PackageManagerSettings.SetManagerMuted(key, false); } catch { } };
@@ -300,7 +323,7 @@ public sealed partial class PackageSettingsDialog : ContentDialog
             };
             pathBox.LostFocus += (_, _) => { try { PackageManagerSettings.SetManagerExecutablePath(key, pathBox.Text); } catch { } };
 
-            var browse = new Button { Content = P("Browse…", "瀏覽…") };
+            var browse = ActionButton(P("Browse…", "瀏覽…"));
             browse.Click += async (_, _) =>
             {
                 try
@@ -359,28 +382,62 @@ public sealed partial class PackageSettingsDialog : ContentDialog
             PlaceholderText = "http://host:port",
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        url.LostFocus += (_, _) => { try { PackageManagerSettings.ProxyUrl = url.Text; } catch { } };
-
-        var user = new TextBox
+        url.LostFocus += (_, _) =>
         {
-            Header = P("Proxy username (optional)", "代理使用者名稱（可選）"),
-            Text = PackageManagerSettings.ProxyUser,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
+            try
+            {
+                if (!PackageManagerInputPolicy.TryNormalizeProxyUrl(url.Text, out var normalized))
+                {
+                    url.Text = PackageManagerSettings.ProxyUrl;
+                    Notify(InfoBarSeverity.Error, P(
+                        "Use a credential-free HTTP(S) proxy in the form http://host:port. Paths, queries, fragments and command syntax are not accepted.",
+                        "請用唔含帳密嘅 HTTP(S) 代理，格式係 http://主機:連接埠；唔接受路徑、查詢、片段或者指令符號。"));
+                    return;
+                }
+                PackageManagerSettings.ProxyUrl = normalized;
+                url.Text = normalized;
+            }
+            catch { }
         };
-        user.LostFocus += (_, _) => { try { PackageManagerSettings.ProxyUser = user.Text; } catch { } };
 
-        var pass = new PasswordBox
+        var controls = new List<UIElement> { url };
+        bool hasLegacyCredentials = !string.IsNullOrEmpty(PackageManagerSettings.ProxyUser)
+            || !string.IsNullOrEmpty(PackageManagerSettings.ProxyPassword);
+        if (hasLegacyCredentials)
         {
-            Header = P("Proxy password (optional)", "代理密碼（可選）"),
-            Password = PackageManagerSettings.ProxyPassword,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-        };
-        pass.LostFocus += (_, _) => { try { PackageManagerSettings.ProxyPassword = pass.Password; } catch { } };
+            var legacyNotice = new InfoBar
+            {
+                IsOpen = true,
+                IsClosable = false,
+                Severity = InfoBarSeverity.Warning,
+                Title = P("Unused legacy proxy credentials", "未使用嘅舊 proxy 認證"),
+                Message = P(
+                    "WinForge no longer collects or sends these values. Forget them here, or keep them DPAPI-protected until you reset package settings.",
+                    "WinForge 已經唔再收集或者傳送呢啲資料。你可以喺度刪除，或者保留 DPAPI 保護，直到重設套件設定。"),
+            };
+            var forget = ActionButton(P("Forget saved credentials", "刪除已保存認證"));
+            forget.Click += (_, _) =>
+            {
+                try
+                {
+                    PackageManagerSettings.ProxyUser = "";
+                    PackageManagerSettings.ProxyPassword = "";
+                    legacyNotice.IsOpen = false;
+                    forget.Visibility = Visibility.Collapsed;
+                    Notify(InfoBarSeverity.Success, P(
+                        "Unused proxy credentials were removed.",
+                        "未使用嘅 proxy 認證已刪除。"));
+                }
+                catch { }
+            };
+            controls.Add(legacyNotice);
+            controls.Add(forget);
+        }
 
-        AddGroup(P("Proxy", "代理"),
-            url, user, pass,
-            Hint(P("winget uses --proxy; npm/pip/bun fold credentials into the URL. Other managers may need env vars.",
-                   "winget 用 --proxy；npm／pip／bun 會將帳密塞入 URL。其他管理器可能要用環境變數。")));
+        controls.Add(Hint(P(
+            "Only a credential-free HTTP(S) endpoint is accepted. WinForge never puts credentials in URLs, command previews or process arguments; configure authenticated-proxy credentials in the OS or manager credential store.",
+            "只接受唔含認證嘅 HTTP(S) 端點。WinForge 絕對唔會將認證放入 URL、指令預覽或者程序參數；需要認證就用 Windows 或管理器嘅 credential store。")));
+        AddGroup(P("Proxy", "代理"), controls.ToArray());
     }
 
     // ===== 7) vcpkg =====
@@ -395,7 +452,7 @@ public sealed partial class PackageSettingsDialog : ContentDialog
         };
         root.LostFocus += (_, _) => { try { PackageManagerSettings.VcpkgRoot = root.Text; } catch { } };
 
-        var browse = new Button { Content = P("Choose folder…", "揀資料夾…") };
+        var browse = ActionButton(P("Choose folder…", "揀資料夾…"));
         browse.Click += async (_, _) =>
         {
             try
@@ -413,7 +470,23 @@ public sealed partial class PackageSettingsDialog : ContentDialog
             PlaceholderText = "x64-windows",
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        triplet.LostFocus += (_, _) => { try { PackageManagerSettings.VcpkgTriplet = triplet.Text; } catch { } };
+        triplet.LostFocus += (_, _) =>
+        {
+            try
+            {
+                if (!PackageManagerInputPolicy.TryNormalizeVcpkgTriplet(triplet.Text, out var normalized))
+                {
+                    triplet.Text = PackageManagerSettings.VcpkgTriplet;
+                    Notify(InfoBarSeverity.Error, P(
+                        "A triplet must start with a letter or number and contain only letters, numbers, dots, underscores or dashes.",
+                        "triplet 要用字母或數字開頭，而且只可以有字母、數字、點、底線或者橫線。"));
+                    return;
+                }
+                PackageManagerSettings.VcpkgTriplet = normalized;
+                triplet.Text = normalized;
+            }
+            catch { }
+        };
 
         var rootRow = new Grid { ColumnSpacing = 8 };
         rootRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -442,7 +515,7 @@ public sealed partial class PackageSettingsDialog : ContentDialog
         };
         dir.LostFocus += (_, _) => { try { PackageManagerSettings.LocalBackupDir = dir.Text; } catch { } };
 
-        var browse = new Button { Content = P("Choose folder…", "揀資料夾…") };
+        var browse = ActionButton(P("Choose folder…", "揀資料夾…"));
         browse.Click += async (_, _) =>
         {
             try
@@ -474,7 +547,7 @@ public sealed partial class PackageSettingsDialog : ContentDialog
         dirRow.Children.Add(dir);
         dirRow.Children.Add(browse);
 
-        var backupNow = new Button { Content = P("Back up now", "立即備份") };
+        var backupNow = ActionButton(P("Back up now", "立即備份"));
         var status = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] };
         backupNow.Click += async (_, _) =>
         {
@@ -540,9 +613,9 @@ public sealed partial class PackageSettingsDialog : ContentDialog
 
     private void BuildAppSettings()
     {
-        var export = new Button { Content = P("Export settings…", "匯出設定…") };
-        var import = new Button { Content = P("Import settings…", "匯入設定…") };
-        var reset = new Button { Content = P("Reset package settings", "重設套件設定") };
+        var export = ActionButton(P("Export settings…", "匯出設定…"));
+        var import = ActionButton(P("Import settings…", "匯入設定…"));
+        var reset = ActionButton(P("Reset package settings", "重設套件設定"));
 
         export.Click += async (_, _) =>
         {
@@ -591,7 +664,13 @@ public sealed partial class PackageSettingsDialog : ContentDialog
             catch (Exception ex) { Notify(InfoBarSeverity.Error, ex.Message); }
         };
 
-        var btns = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        export.HorizontalAlignment = HorizontalAlignment.Stretch;
+        export.HorizontalContentAlignment = HorizontalAlignment.Center;
+        import.HorizontalAlignment = HorizontalAlignment.Stretch;
+        import.HorizontalContentAlignment = HorizontalAlignment.Center;
+        reset.HorizontalAlignment = HorizontalAlignment.Stretch;
+        reset.HorizontalContentAlignment = HorizontalAlignment.Center;
+        var btns = new StackPanel { Spacing = 8 };
         btns.Children.Add(export);
         btns.Children.Add(import);
         btns.Children.Add(reset);

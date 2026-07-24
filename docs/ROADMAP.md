@@ -810,7 +810,7 @@ launching the other app.
 - [x] **Background Clipboard manager + tray** · 背景剪貼簿 + 系統匣 — DONE (text/image/file history, auto-convert, keep-running-when-closed via Shell_NotifyIcon).
 
 ### Package management (covers "clone UniGetUI" + "auto-install common deps")
-- [x] **In-app Package Manager with UniGetUI-informed behavior** · App 內套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management.
+- [x] **In-app Package Manager with UniGetUI-informed behavior** · App 內套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management. The 2026-07-24 preserved-stash audit retained the useful native behavior, rejected the obsolete external launcher and credential-bearing proxy path, added fail-closed proxy/triplet validation, and verified responsive 720-pixel bilingual controls. · 2026-07-24 保留 stash 審核保留咗有用原生功能，拒絕過時外部 launcher 同含認證 proxy path，加入 fail-closed proxy／triplet 驗證，並驗證 720 像素雙語響應式控制。
 - [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies with progress; other modules retain the shared `PackageService.AutoInstall` bootstrap path.
 
 ### Dev environment

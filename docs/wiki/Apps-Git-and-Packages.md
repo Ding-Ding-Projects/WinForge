@@ -16,9 +16,13 @@ The canonical .NET workspace covers 11 package engines and nine views: Discover,
 
 The pinned source snapshot at `ThirdParty/UniGetUI` is provenance for audit and parity work only. UniGetUI's upstream UI/framework, IPC and telemetry are not compiled or launched; the running feature is WinForge's own bilingual WinUI 3 implementation. · `ThirdParty/UniGetUI` 入面嘅固定原始碼快照只作審核同功能對等參考；UniGetUI 上游 UI／framework、IPC 同 telemetry 唔會被編譯或啟動，實際執行嘅係 WinForge 自己嘅雙語 WinUI 3 實作。
 
+Structured proxy and vcpkg settings now fail closed before persistence or command construction, credentials never enter URLs/process arguments, and the search/action surface remains usable in an inspected 720-pixel bilingual window. · 結構化 proxy 同 vcpkg 設定會喺保存或者建立指令前 fail closed；認證絕對唔會進入 URL／process argument，而搜尋／action 介面已驗證喺 720 像素雙語視窗仍然可用。
+
 Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
+
+![Package Manager narrow layout](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages-narrow.png)
 
 See [Package Manager](Package-Manager.md) for workspace behavior, configuration, safety boundaries, and failure modes. · 工作區行為、設定、安全界線同失敗模式請睇[套件管理](Package-Manager.md)。
 

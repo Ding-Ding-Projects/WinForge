@@ -4,6 +4,12 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## Current Package Manager recovery verification · 目前套件管理 recovery 驗證
+
+- Preserved package commit `5cc3aa712f9e326dd8d9ae0bdd4c16d8771e1cb6` was audited read-only across its exact ten files; useful behavior was already retained with later hardening, obsolete external-launch/credential-in-URL/auto-trust paths remain rejected, and the stash was not mutated. · 保留套件 commit 已就十個檔案做只讀審核；有用行為已連更新強化保留，過時外部啟動／URL 認證／自動信任路徑繼續拒絕，stash 冇被修改。
+- Proxy authority and vcpkg triplet now fail closed at persistence and command construction, with focused tests **29/29**. The exact solution build has **0 errors**; self-contained publish, XAML literal safety, and the source-surface audit pass. · Proxy authority 同 vcpkg triplet 而家喺保存同建立指令兩邊 fail closed；專項測試 **29/29**，完整 solution build 零 errors，自包含 publish、XAML safety 同 source audit 全過。
+- Fresh inspected LowLevel MCP captures at 1049×646 and 720×650 are tracked as the normal and narrow Package Manager evidence; the owned app and dedicated desktop were closed. The driver fallback's unrelated-window capture was rejected, overwritten, and not promoted. · 最新已檢視 LowLevel MCP 1049×646／720×650 capture 已保存成 normal／narrow 套件管理證據；自家 app 同專用 desktop 已關閉。Driver fallback 影到不相關視窗，已拒絕／覆寫，冇升格。
+
 ## Current Command Palette extension-host verification · 目前 Command Palette extension-host 驗證
 
 - Trusted executable hosts complement declarative extension commands; they do not replace the safe declarative path and are explicitly documented as a local trust boundary rather than a sandbox. · 受信任 executable host 係 declarative extension command 嘅補充，唔會取代安全 declarative 路徑，文件亦清楚標明係本機信任界線，唔係 sandbox。

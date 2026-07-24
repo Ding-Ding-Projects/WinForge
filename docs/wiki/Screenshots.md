@@ -316,6 +316,9 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Package Manager · 套件管理
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
+#### Narrow bilingual layout · 窄畫面雙語版面
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages-narrow.png)
+
 ### Cake Factory & Farm · 蛋糕工廠與農場
 ![](images/screenshot-cakefactory.png)
 
