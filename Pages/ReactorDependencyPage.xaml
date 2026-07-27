@@ -8,8 +8,14 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <ScrollViewer Padding="24,18,24,24" VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="860" Spacing="14">
+    <ScrollViewer
+        Padding="24,18,24,24"
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <StackPanel
+            MaxWidth="860"
+            HorizontalAlignment="Left"
+            Spacing="14">
             <controls:ModuleHeader x:Name="Header" Glyph="&#xEBC0;" />
 
             <InfoBar x:Name="StatusBar" IsClosable="False" IsOpen="True" />
@@ -21,18 +27,92 @@
                 BorderThickness="1"
                 CornerRadius="8">
                 <StackPanel Spacing="10">
-                    <TextBlock x:Name="RequirementTitle" FontWeight="SemiBold" FontSize="16" />
+                    <TextBlock x:Name="RequirementTitle"
+                               AutomationProperties.HeadingLevel="Level2"
+                               FontWeight="SemiBold"
+                               FontSize="16" />
                     <TextBlock x:Name="RequirementText" TextWrapping="Wrap" />
                     <TextBlock x:Name="ReasonText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                     <TextBlock x:Name="SnapshotText" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button x:Name="OpenReactorButton" Click="OpenReactor_Click" />
-                <Button x:Name="RetryButton" Click="Retry_Click" />
-                <Button x:Name="EnableApiButton" Click="EnableApi_Click" />
-                <Button x:Name="SettingsButton" Click="Settings_Click" />
+            <Border
+                x:Name="DieselPanel"
+                Padding="18"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Visibility="Collapsed">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="DieselTitle"
+                               AutomationProperties.HeadingLevel="Level2"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+                    <TextBlock
+                        x:Name="DieselDescription"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextWrapping="Wrap" />
+                    <ProgressBar
+                        x:Name="DieselFuelProgress"
+                        Height="8"
+                        AutomationProperties.Name="Emergency diesel fuel level · 應急柴油發電機油量"
+                        Maximum="60"
+                        Minimum="0" />
+                    <TextBlock x:Name="DieselFuelText" TextWrapping="Wrap" />
+                    <ProgressBar
+                        x:Name="DieselProgress"
+                        Height="8"
+                        AutomationProperties.Name="Emergency diesel start progress · 應急柴油發電機啟動進度"
+                        Maximum="10"
+                        Minimum="0" />
+                    <TextBlock x:Name="DieselStateText" TextWrapping="Wrap" />
+                    <Button
+                        x:Name="FillDieselButton"
+                        MinHeight="44"
+                        HorizontalAlignment="Stretch"
+                        Click="FillDiesel_Click" />
+                    <Button
+                        x:Name="StartDieselButton"
+                        MinHeight="44"
+                        HorizontalAlignment="Stretch"
+                        Click="StartDiesel_Click" />
+                    <Button
+                        x:Name="StopDieselButton"
+                        MinHeight="44"
+                        HorizontalAlignment="Stretch"
+                        Click="StopDiesel_Click" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="8">
+                <Button
+                    x:Name="EnableFallbackButton"
+                    MinHeight="44"
+                    HorizontalAlignment="Stretch"
+                    Click="EnableFallback_Click" />
+                <Button
+                    x:Name="OpenReactorButton"
+                    MinHeight="44"
+                    HorizontalAlignment="Stretch"
+                    Click="OpenReactor_Click" />
+                <Button
+                    x:Name="RetryButton"
+                    MinHeight="44"
+                    HorizontalAlignment="Stretch"
+                    Click="Retry_Click" />
+                <Button
+                    x:Name="EnableApiButton"
+                    MinHeight="44"
+                    HorizontalAlignment="Stretch"
+                    Click="EnableApi_Click" />
+                <Button
+                    x:Name="SettingsButton"
+                    MinHeight="44"
+                    HorizontalAlignment="Stretch"
+                    Click="Settings_Click" />
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

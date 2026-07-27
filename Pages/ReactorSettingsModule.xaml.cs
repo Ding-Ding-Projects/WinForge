@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -13,6 +12,7 @@ namespace WinForge.Pages;
 /// <summary>
 /// 反應堆設定 · Reactor Settings — a dedicated, scrollable, bilingual page that groups every reactor
 /// control that touches the REAL computer or EXTERNAL systems, relocated off the main reactor page:
+///   • Optional, simulated feature-bus emergency-diesel fallback (default OFF; running state session-only);
 ///   • Keep PC awake while generating (AwakeService, default ON);
 ///   • Link reactor to Windows settings — power plan / accent / brightness (ReactorSystemLinkService, default OFF);
 ///   • ARM real shutdown on meltdown (ReactorRealShutdownArm, default OFF, abortable countdown unchanged);
@@ -82,6 +82,13 @@ public sealed partial class ReactorSettingsModule : Page
 
     private void OnLiveTimerTick(object? sender, object e)
     {
+        if (ArmToggle.IsOn != ReactorRealShutdownArm.Armed)
+        {
+            _suppress = true;
+            try { ArmToggle.IsOn = ReactorRealShutdownArm.Armed; }
+            finally { _suppress = false; }
+        }
+        UpdateFeaturePowerState();
         UpdateApiState();
     }
 
@@ -91,6 +98,7 @@ public sealed partial class ReactorSettingsModule : Page
         _suppress = true;
         try
         {
+            DieselFallbackToggle.IsOn = ReactorFeaturePowerService.I.AllowEmergencyDieselFallback; // default OFF
             KeepAwakeToggle.IsOn = ReactorKeepAwakeSetting.Enabled;                 // default ON
             SysLinkToggle.IsOn = ReactorSystemLinkService.EnabledSetting;           // default OFF
             ArmToggle.IsOn = ReactorRealShutdownArm.Armed;                          // default OFF (in-memory)
@@ -106,10 +114,39 @@ public sealed partial class ReactorSettingsModule : Page
     {
         Header.Title = "⚙ Reactor Settings · 反應堆設定";
         Header.Subtitle = P(
-            "Controls that affect the REAL computer or EXTERNAL systems live here, separate from the pure simulation. All are reversible; the dangerous one (real shutdown) defaults OFF.",
-            "會影響真實電腦或外部系統嘅控制集中喺呢度，同純模擬分開。全部可還原；最危險嗰個（真實關機）預設關閉。");
+            "Configure the reactor's playful feature-power gate and its opt-in real-computer or external integrations. The simulated emergency diesel never controls real hardware; dangerous real shutdown stays off by default.",
+            "設定反應堆嘅玩味功能電源閘門，以及明確選擇先會開啟嘅真實電腦／外部整合。模擬應急柴油機永遠唔會控制真實硬件；危險嘅真實關機預設保持關閉。");
 
         BackToReactorButton.Content = P("← Back to reactor · 返回反應堆", "← 返回反應堆 · Back to reactor");
+
+        // Optional feature-bus EDG
+        FeaturePowerTitle.Text = P(
+            "Playful feature-power fallback",
+            "玩味功能電源後備");
+        DieselFallbackToggle.Header = P(
+            "Allow emergency-diesel fallback when nuclear power is unavailable",
+            "核電不可用時容許應急柴油後備");
+        DieselFallbackToggle.OnContent = P("Allowed", "已容許");
+        DieselFallbackToggle.OffContent = P("Nuclear required", "需要核電");
+        FeaturePowerNote.Text = P(
+            $"Default off. The nine deliberately power-gated modules still prefer their live nuclear threshold. " +
+            $"Fill its session-only {ReactorFeaturePowerService.EmergencyDieselFuelCapacityLitres:0} L tank, manually start it, and wait " +
+            $"{ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds:0} seconds. It burns {ReactorFeaturePowerService.EmergencyDieselFuelBurnLitresPerMinute:0.0} L/min " +
+            $"and powers at most {ReactorFeaturePowerService.EmergencyDieselMaxModules} modules at once; it never starts real hardware or changes Windows power.",
+            $"預設關閉。九個刻意加上電力閘門嘅模組仍然首選即時核電門檻。請先為只限今次 session 嘅 " +
+            $"{ReactorFeaturePowerService.EmergencyDieselFuelCapacityLitres:0} L 模擬油缸入滿油，手動啟動，再等 " +
+            $"{ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds:0} 秒。每分鐘耗油 {ReactorFeaturePowerService.EmergencyDieselFuelBurnLitresPerMinute:0.0} L，" +
+            $"同一時間最多為 {ReactorFeaturePowerService.EmergencyDieselMaxModules} 個模組供電；佢唔會啟動真實硬件或者改 Windows 電源。");
+        AutomationProperties.SetName(
+            FeatureDieselProgress,
+            P("Emergency diesel start progress", "應急柴油發電機啟動進度"));
+        AutomationProperties.SetName(
+            FeatureDieselFuelProgress,
+            P("Emergency diesel fuel level", "應急柴油發電機油量"));
+        FillFeatureDieselButton.Content = P("Fill diesel tank", "為柴油缸入滿油");
+        StartFeatureDieselButton.Content = P("Start emergency diesel", "啟動應急柴油發電機");
+        StopFeatureDieselButton.Content = P("Stop emergency diesel", "停止應急柴油發電機");
+        UpdateFeaturePowerState();
 
         // Keep awake
         KeepAwakeToggle.Header = P("Keep PC awake while generating · 發電時保持電腦喚醒",
@@ -136,8 +173,8 @@ public sealed partial class ReactorSettingsModule : Page
         ArmToggle.OnContent = P("Armed", "已啟用");
         ArmToggle.OffContent = P("Safe (off)", "安全（關）");
         ArmWarn.Text = P(
-            "⚠ WARNING: When ON, a meltdown starts a 10-second abortable countdown and then REALLY shuts down this PC (normal shutdown via Win32 API — unsaved work in other apps could be lost). Default is OFF: meltdown only shows a simulated screen and never powers off your PC. This setting resets to OFF every time the app starts.",
-            "⚠ 警告：開啟後，熔毀會開始 10 秒可中止倒數，然後真實關閉呢部電腦（用 Win32 API 嘅正常關機 — 其他程式未儲存嘅工作可能會遺失）。預設為關閉：熔毀只會顯示模擬畫面，唔會關機。每次啟動 app 此設定都會重設為關閉。");
+            "⚠ WARNING: When ON, a meltdown starts one visible, transferable 10-second abortable countdown and then REALLY shuts down this PC (normal shutdown via Win32 API — unsaved work in other apps could be lost). If no control room is visible, WinForge returns there before arming. Closing the last control room automatically disarms it; app startup also resets it OFF.",
+            "⚠ 警告：開啟後，熔毀會開始一個可見、可轉移嘅 10 秒可中止倒數，然後真實關閉呢部電腦（用 Win32 API 嘅正常關機 — 其他程式未儲存嘅工作可能會遺失）。如果控制室未顯示，WinForge 會先返回控制室再啟用。關閉最後一個控制室會自動解除武裝；啟動 app 亦會重設為關閉。");
 
         // Status API
         ApiTitle.Text = P("Public status API · 對外狀態 API", "對外狀態 API · Public status API");
@@ -198,21 +235,81 @@ public sealed partial class ReactorSettingsModule : Page
         if (!enabled)
         {
             ApiStateText.Text = P("● Disabled · 已停用", "● 已停用 · Disabled");
-            ApiStateText.Foreground = new SolidColorBrush(Color.FromArgb(255, 0x75, 0x75, 0x75));
+            ApiStateText.Foreground = ThemeBrush("TextFillColorTertiaryBrush");
         }
         else if (running)
         {
             ApiStateText.Text = P(
                 $"● Live — seq {ReactorStatusApiService.I.LastSnapshot.Sequence} · 運行中",
                 $"● 運行中 — 序號 {ReactorStatusApiService.I.LastSnapshot.Sequence} · Live");
-            ApiStateText.Foreground = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50));
+            ApiStateText.Foreground = ThemeBrush("SystemFillColorSuccessBrush");
         }
         else
         {
             ApiStateText.Text = P("● Enabled (starting…) · 啟用中", "● 啟用中（啟動中…） · Enabled");
-            ApiStateText.Foreground = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0xB3, 0x00));
+            ApiStateText.Foreground = ThemeBrush("SystemFillColorCautionBrush");
         }
     }
+
+    private void UpdateFeaturePowerState()
+    {
+        var power = ReactorFeaturePowerService.I;
+        var diesel = power.EmergencyDiesel;
+
+        if (DieselFallbackToggle.IsOn != power.AllowEmergencyDieselFallback)
+        {
+            _suppress = true;
+            try { DieselFallbackToggle.IsOn = power.AllowEmergencyDieselFallback; }
+            finally { _suppress = false; }
+        }
+
+        FeatureDieselControls.Visibility = power.AllowEmergencyDieselFallback
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        FeatureDieselFuelProgress.Maximum = diesel.FuelCapacityLitres;
+        FeatureDieselFuelProgress.Value = diesel.FuelLitres;
+        FeatureDieselFuelText.Text = P(
+            $"Fuel {diesel.FuelLitres:0.0}/{diesel.FuelCapacityLitres:0.0} L · " +
+            $"module outlets {diesel.ActiveModuleCount}/{diesel.MaxModuleCount} · " +
+            $"{diesel.FuelBurnLitresPerMinute:0.0} L/min while starting or running",
+            $"油量 {diesel.FuelLitres:0.0}/{diesel.FuelCapacityLitres:0.0} L · " +
+            $"模組插槽 {diesel.ActiveModuleCount}/{diesel.MaxModuleCount} · " +
+            $"啟動中或運行時每分鐘耗油 {diesel.FuelBurnLitresPerMinute:0.0} L");
+        FeatureDieselProgress.Maximum = diesel.StartTimeSeconds;
+        FeatureDieselProgress.Value = diesel.StartProgressSeconds;
+        FeatureDieselStateText.Text = diesel.State switch
+        {
+            FeatureEmergencyDieselState.Starting => P(
+                $"Starting — {diesel.RemainingStartSeconds:0.0} seconds to rated output.",
+                $"啟動中 — 仲有 {diesel.RemainingStartSeconds:0.0} 秒達到額定輸出。"),
+            FeatureEmergencyDieselState.Running => P(
+                $"Running — {diesel.CapacityMW:0} MWe notional feature bus energized; " +
+                $"{diesel.AvailableModuleSlots} of {diesel.MaxModuleCount} module outlets free.",
+                $"運行中 — {diesel.CapacityMW:0} MWe 概念功能匯流排已供電；" +
+                $"{diesel.MaxModuleCount} 個模組插槽尚餘 {diesel.AvailableModuleSlots} 個。"),
+            _ => P(
+                diesel.HasFuel
+                    ? "Stopped and fueled — start it manually when you need fallback power."
+                    : "Stopped and empty — fill the diesel tank before starting.",
+                diesel.HasFuel
+                    ? "已停而且有油 — 需要後備電力時請手動啟動。"
+                    : "已停而且無油 — 啟動前請先為柴油缸入滿油。"),
+        };
+        FillFeatureDieselButton.Visibility =
+            diesel.State == FeatureEmergencyDieselState.Stopped
+            && diesel.FuelLitres < diesel.FuelCapacityLitres
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        StartFeatureDieselButton.Visibility = diesel.State == FeatureEmergencyDieselState.Stopped
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        StartFeatureDieselButton.IsEnabled = diesel.HasFuel;
+        StopFeatureDieselButton.Visibility = diesel.State == FeatureEmergencyDieselState.Stopped
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+    }
+
+    private static Brush ThemeBrush(string key) => (Brush)Application.Current.Resources[key];
 
     // ============================================================ handlers ====
     private void BackToReactor_Click(object sender, RoutedEventArgs e)
@@ -227,6 +324,31 @@ public sealed partial class ReactorSettingsModule : Page
         // The live reactor page reads this each tick and releases the OS hold if turned off mid-generation.
     }
 
+    private void DieselFallback_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppress) return;
+        ReactorFeaturePowerService.I.AllowEmergencyDieselFallback = DieselFallbackToggle.IsOn;
+        UpdateFeaturePowerState();
+    }
+
+    private void StartFeatureDiesel_Click(object sender, RoutedEventArgs e)
+    {
+        ReactorFeaturePowerService.I.StartEmergencyDiesel();
+        UpdateFeaturePowerState();
+    }
+
+    private void FillFeatureDiesel_Click(object sender, RoutedEventArgs e)
+    {
+        ReactorFeaturePowerService.I.FillEmergencyDiesel();
+        UpdateFeaturePowerState();
+    }
+
+    private void StopFeatureDiesel_Click(object sender, RoutedEventArgs e)
+    {
+        ReactorFeaturePowerService.I.StopEmergencyDiesel();
+        UpdateFeaturePowerState();
+    }
+
     private void SysLink_Toggled(object sender, RoutedEventArgs e)
     {
         if (_suppress) return;
@@ -239,7 +361,26 @@ public sealed partial class ReactorSettingsModule : Page
     private void Arm_Toggled(object sender, RoutedEventArgs e)
     {
         if (_suppress) return;
-        ReactorRealShutdownArm.Armed = ArmToggle.IsOn; // in-memory only; meltdown logic itself unchanged
+        if (ArmToggle.IsOn && !ReactorSessionRuntime.I.HasForegroundDriver)
+        {
+            ReactorRealShutdownArm.RequestArmWhenControlRoomVisible();
+            _suppress = true;
+            try { ArmToggle.IsOn = false; }
+            finally { _suppress = false; }
+            ReactorRealShutdownArm.Armed = false;
+            AppNotificationService.Publish(new AppNoticeDraft(
+                "Returning to the reactor before arming",
+                "啟用前先返回反應堆",
+                "The abort countdown must remain visible, so WinForge will arm real shutdown only after the control room loads.",
+                "可中止倒數必須保持可見，所以 WinForge 只會喺控制室載入後先啟用真實關機。",
+                AppNoticeSeverity.Informational,
+                Key: "reactor.real-shutdown.returning",
+                AutoDismissMs: 7000));
+            Navigator.GoToModule?.Invoke("module.reactor");
+            return;
+        }
+        if (!ArmToggle.IsOn) ReactorRealShutdownArm.CancelPendingVisibleArm();
+        ReactorRealShutdownArm.Armed = ArmToggle.IsOn; // in-memory only
     }
 
     private void Api_Toggled(object sender, RoutedEventArgs e)

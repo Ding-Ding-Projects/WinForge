@@ -14,8 +14,8 @@
 4. **Declare criticality** when a small, *stable* positive period (> 30 s) holds at low power. Reactivity should hover near **0 pcm**. · 喺低功率、穩定正週期 (>30 s) 時宣布臨界；反應性應喺 **0 pcm** 附近。
 5. Never let reactivity approach prompt-critical (+β ≈ +650 pcm). The period gauge going very short is your warning. · 切勿接近瞬發臨界（+β ≈ +650 pcm）；週期錶變得好短就係警告。
 
-> ⚠️ **EN —** The reactor is held safe in cold shutdown but the at-power reactivity calibration is unfinished — see the [Test Report](Reactor-Test-Report.md) and [reactor-realism-review-001.md](../reactor-realism-review-001.md). Starting up the current build will currently run the core away to meltdown.
-> ⚠️ **粵語 —** 反應堆喺冷停堆下保持安全，但滿載反應性校準未完成——詳見[測試報告](Reactor-Test-Report.md)同審查報告。目前建置一起動就會令爐心失控走向熔毀。
+> ✅ **EN —** Foundational realism P1–P5 is resolved. The current **67/67** engine/dependency run verifies a fresh fully-rodded core at **−1018 pcm** and a sustained high-power equilibrium without emergency cooling, SCRAM, runaway, or meltdown. See the [Test Report](Reactor-Test-Report.md); the original [realism review](../reactor-realism-review-001.md) is retained as historical context.
+> ✅ **粵語 —** 基礎寫實度 P1–P5 已解決。現時 **67/67** 引擎／相依服務測試驗證新鮮爐心全棒插入時係 **−1018 pcm**，並可持續維持高功率平衡，冇應急冷卻、SCRAM、失控或者熔毀。詳見[測試報告](Reactor-Test-Report.md)；原本嘅[寫實度審查](../reactor-realism-review-001.md)只保留做歷史背景。
 
 ---
 

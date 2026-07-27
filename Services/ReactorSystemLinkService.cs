@@ -66,6 +66,10 @@ public sealed class ReactorSystemLinkService
     private int _generation;
     private int _enableBusy;
     private int _applyBusy;
+    private readonly object _lifecycleGate = new();
+    private bool _snapshotCaptured;
+    private bool _enableRequested;
+    private bool _restoreBusy;
 
     private ReactorSystemLinkService() { }
 
@@ -79,10 +83,39 @@ public sealed class ReactorSystemLinkService
     /// </summary>
     public bool Enable()
     {
-        if (Active) return true;
         EnabledSetting = true;
-        if (Interlocked.CompareExchange(ref _enableBusy, 1, 0) != 0) return true;
-        int generation = Interlocked.Increment(ref _generation);
+        int generation;
+        lock (_lifecycleGate)
+        {
+            generation = Interlocked.Increment(ref _generation);
+            if (Active) return true;
+
+            // A restore that has already claimed the original snapshot cannot be cancelled halfway
+            // through its OS calls. Queue a fresh snapshot/enable pass instead of blocking the UI
+            // thread on that work or capturing partially restored values as the new originals.
+            if (_restoreBusy)
+            {
+                _enableRequested = true;
+                return true;
+            }
+
+            // A quick last-window unload/reload cancels the pending restore and resumes from the
+            // original snapshot instead of snapshotting the reactor-modified values as "original".
+            if (_snapshotCaptured)
+            {
+                _active = true;
+                return true;
+            }
+
+            if (_enableBusy == 1)
+            {
+                _enableRequested = true;
+                return true;
+            }
+
+            _enableBusy = 1;
+            _enableRequested = false;
+        }
         _ = Task.Run(() => EnableCore(generation));
         return true;
     }
@@ -96,30 +129,44 @@ public sealed class ReactorSystemLinkService
             var origAccent = TryGetAccentBgr();
             var origBrightness = TryGetBrightness();
             var origVolume = TryGetVolume();
-            if (Volatile.Read(ref _generation) != generation || !EnabledSetting) return;
-
-            _origScheme = origScheme;
-            _origAccentBgr = origAccent;
-            _origBrightness = origBrightness;
-            _origVolume = origVolume;
-
-            // Reset idempotency caches so the first Apply() definitely writes.
-            _appliedScheme = Guid.Empty;
-            _appliedAccent = 0xFFFFFFFF;
-            _appliedBrightness = -1;
-            _appliedVolume = -1f;
-            _pulsePhase = 0;
-
-            _active = true;
-
-            // Restore on process exit no matter how we leave (covers app close while linked).
-            if (!_processExitHooked)
+            lock (_lifecycleGate)
             {
-                try { AppDomain.CurrentDomain.ProcessExit += (_, _) => RestoreAll(); _processExitHooked = true; }
-                catch { /* best effort */ }
+                if (Volatile.Read(ref _generation) != generation || !EnabledSetting) return;
+
+                _origScheme = origScheme;
+                _origAccentBgr = origAccent;
+                _origBrightness = origBrightness;
+                _origVolume = origVolume;
+                _snapshotCaptured = true;
+
+                // Reset idempotency caches so the first Apply() definitely writes.
+                _appliedScheme = Guid.Empty;
+                _appliedAccent = 0xFFFFFFFF;
+                _appliedBrightness = -1;
+                _appliedVolume = -1f;
+                _pulsePhase = 0;
+
+                _active = true;
+
+                // Restore on process exit no matter how we leave (covers app close while linked).
+                if (!_processExitHooked)
+                {
+                    try { AppDomain.CurrentDomain.ProcessExit += (_, _) => RestoreAll(); _processExitHooked = true; }
+                    catch { /* best effort */ }
+                }
             }
         }
-        finally { Volatile.Write(ref _enableBusy, 0); }
+        finally
+        {
+            bool retry;
+            lock (_lifecycleGate)
+            {
+                _enableBusy = 0;
+                retry = _enableRequested && EnabledSetting && !Active;
+                _enableRequested = false;
+            }
+            if (retry) Enable();
+        }
     }
 
     /// <summary>停用連動並還原所有原狀 · Turn the linkage off and restore every original setting.</summary>
@@ -136,44 +183,109 @@ public sealed class ReactorSystemLinkService
     /// </summary>
     public void RestoreAll()
     {
-        Interlocked.Increment(ref _generation);
-        _active = false;
-        RestoreAllCore();
+        // Process-exit restoration must serialize behind any in-flight OS apply. Letting an older
+        // Apply() call land after the originals would strand the user's system in reactor state.
+        while (Volatile.Read(ref _applyBusy) == 1)
+            Thread.Sleep(25);
+
+        RestoreSnapshot? snapshot;
+        lock (_lifecycleGate)
+        {
+            Interlocked.Increment(ref _generation);
+            _active = false;
+            if (_restoreBusy) return;
+            snapshot = TakeRestoreSnapshotLocked();
+            if (snapshot is not null) _restoreBusy = true;
+        }
+        if (snapshot is null) return;
+
+        try { ApplyRestoreSnapshot(snapshot); }
+        finally { CompleteRestore(); }
     }
 
     /// <summary>非同步還原原狀 · Restore originals without blocking the UI thread.</summary>
     public Task RestoreAllAsync()
     {
-        Interlocked.Increment(ref _generation);
-        _active = false;
+        int restoreGeneration;
+        lock (_lifecycleGate)
+        {
+            restoreGeneration = Interlocked.Increment(ref _generation);
+            _active = false;
+        }
         return Task.Run(async () =>
         {
-            for (int i = 0; i < 60 && Volatile.Read(ref _applyBusy) == 1; i++)
+            // Do not time out into an overlap: an OS/WMI/audio call can legitimately exceed a few
+            // seconds, and it must complete before restoration claims and writes the originals.
+            while (Volatile.Read(ref _applyBusy) == 1)
                 await Task.Delay(50).ConfigureAwait(false);
-            RestoreAllCore();
+
+            RestoreSnapshot? snapshot;
+            lock (_lifecycleGate)
+            {
+                // A new visible reactor called Enable while this restore was queued. Its newer
+                // generation owns the existing original snapshot, so this stale restore is inert.
+                if (Volatile.Read(ref _generation) != restoreGeneration) return;
+                if (_restoreBusy) return;
+                snapshot = TakeRestoreSnapshotLocked();
+                if (snapshot is not null) _restoreBusy = true;
+            }
+            if (snapshot is null) return;
+
+            try { ApplyRestoreSnapshot(snapshot); }
+            finally { CompleteRestore(); }
         });
     }
 
-    private void RestoreAllCore()
+    private sealed record RestoreSnapshot(
+        Guid? Scheme,
+        byte[]? AccentBgr,
+        int? Brightness,
+        float? Volume);
+
+    /// <summary>
+    /// Claims and clears the saved originals while holding <see cref="_lifecycleGate"/>.
+    /// Slow registry/WMI/audio restoration happens later, outside the lock.
+    /// </summary>
+    private RestoreSnapshot? TakeRestoreSnapshotLocked()
     {
-        var origScheme = _origScheme;
-        var origAccent = _origAccentBgr;
-        var origBrightness = _origBrightness;
-        var origVolume = _origVolume;
+        if (!_snapshotCaptured) return null;
+
+        var snapshot = new RestoreSnapshot(
+            _origScheme,
+            _origAccentBgr,
+            _origBrightness,
+            _origVolume);
         _origScheme = null;
         _origAccentBgr = null;
         _origBrightness = null;
         _origVolume = null;
+        _snapshotCaptured = false;
         _appliedScheme = Guid.Empty;
         _appliedAccent = 0xFFFFFFFF;
         _appliedBrightness = -1;
         _appliedVolume = -1f;
         _active = false;
+        return snapshot;
+    }
 
-        if (origScheme is Guid g) { TrySetActiveScheme(g); }
-        if (origAccent is byte[] a) { TryApplyAccentBgr(a); }
-        if (origBrightness is int b) { TrySetBrightness(b); }
-        if (origVolume is float v) { TrySetVolume(v); }
+    private static void ApplyRestoreSnapshot(RestoreSnapshot snapshot)
+    {
+        if (snapshot.Scheme is Guid g) { TrySetActiveScheme(g); }
+        if (snapshot.AccentBgr is byte[] a) { TryApplyAccentBgr(a); }
+        if (snapshot.Brightness is int b) { TrySetBrightness(b); }
+        if (snapshot.Volume is float v) { TrySetVolume(v); }
+    }
+
+    private void CompleteRestore()
+    {
+        bool retry;
+        lock (_lifecycleGate)
+        {
+            _restoreBusy = false;
+            retry = _enableRequested && EnabledSetting;
+            _enableRequested = false;
+        }
+        if (retry) Enable();
     }
 
     // =====================================================================================

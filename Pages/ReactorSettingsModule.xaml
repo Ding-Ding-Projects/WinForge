@@ -14,7 +14,52 @@
             <!-- header -->
             <controls:ModuleHeader x:Name="Header" Glyph="&#xE713;" />
 
-            <Button x:Name="BackToReactorButton" Click="BackToReactor_Click" />
+            <Button x:Name="BackToReactorButton" MinHeight="44" Click="BackToReactor_Click" />
+
+            <!-- Optional simulated emergency-diesel fallback for deliberately playful feature gates -->
+            <Border CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="FeaturePowerTitle"
+                               AutomationProperties.HeadingLevel="Level2"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+                    <ToggleSwitch x:Name="DieselFallbackToggle" Toggled="DieselFallback_Toggled" />
+                    <TextBlock x:Name="FeaturePowerNote" TextWrapping="Wrap" FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <StackPanel x:Name="FeatureDieselControls" Spacing="8" Visibility="Collapsed">
+                        <ProgressBar
+                            x:Name="FeatureDieselFuelProgress"
+                            Height="8"
+                            AutomationProperties.Name="Emergency diesel fuel level · 應急柴油發電機油量"
+                            Maximum="60"
+                            Minimum="0" />
+                        <TextBlock x:Name="FeatureDieselFuelText" TextWrapping="Wrap" />
+                        <ProgressBar
+                            x:Name="FeatureDieselProgress"
+                            Height="8"
+                            AutomationProperties.Name="Emergency diesel start progress · 應急柴油發電機啟動進度"
+                            Maximum="10"
+                            Minimum="0" />
+                        <TextBlock x:Name="FeatureDieselStateText" TextWrapping="Wrap" />
+                        <Button
+                            x:Name="FillFeatureDieselButton"
+                            MinHeight="44"
+                            HorizontalAlignment="Stretch"
+                            Click="FillFeatureDiesel_Click" />
+                        <Button
+                            x:Name="StartFeatureDieselButton"
+                            MinHeight="44"
+                            HorizontalAlignment="Stretch"
+                            Click="StartFeatureDiesel_Click" />
+                        <Button
+                            x:Name="StopFeatureDieselButton"
+                            MinHeight="44"
+                            HorizontalAlignment="Stretch"
+                            Click="StopFeatureDiesel_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
 
             <!-- Keep PC awake -->
             <Border CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -38,11 +83,11 @@
 
             <!-- ARM real shutdown on meltdown -->
             <Border CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="#55FF6E6E" BorderThickness="1">
+                    BorderBrush="{ThemeResource SystemFillColorCriticalBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock x:Name="ArmTitle" FontWeight="SemiBold" />
                     <ToggleSwitch x:Name="ArmToggle" Toggled="Arm_Toggled" />
-                    <TextBlock x:Name="ArmWarn" TextWrapping="Wrap" Foreground="#FFB300" />
+                    <TextBlock x:Name="ArmWarn" TextWrapping="Wrap" Foreground="{ThemeResource SystemFillColorCautionBrush}" />
                 </StackPanel>
             </Border>
 
@@ -54,7 +99,7 @@
                     <TextBlock x:Name="ApiBlurb" TextWrapping="Wrap" FontSize="12"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <TextBlock x:Name="ApiNames" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"
-                               Foreground="#E690CAF9" />
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <ToggleSwitch x:Name="ApiToggle" Toggled="Api_Toggled" />
                     <TextBlock x:Name="ApiStateText" FontSize="12" FontWeight="SemiBold" />
                 </StackPanel>
@@ -80,9 +125,10 @@
 
                     <!-- shown when HA is not configured -->
                     <Border x:Name="HaNotConfigured" Visibility="Collapsed" CornerRadius="6" Padding="12"
-                            Background="#22FFB300">
+                            Background="{ThemeResource SystemFillColorCautionBackgroundBrush}">
                         <StackPanel Spacing="8">
-                            <TextBlock x:Name="HaNotConfiguredText" TextWrapping="Wrap" Foreground="#FFB300" />
+                            <TextBlock x:Name="HaNotConfiguredText" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource SystemFillColorCautionBrush}" />
                             <Button x:Name="HaOpenModuleButton" Click="HaOpenModule_Click" />
                         </StackPanel>
                     </Border>

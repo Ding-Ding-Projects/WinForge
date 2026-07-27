@@ -35,6 +35,7 @@ internal static class Program
     private const int SuccessExitCode = 0;
     private const int ScenarioFailureExitCode = 1;
     private const int UsageExitCode = 2;
+    private const int ExpectedFullScenarioCount = 67;
 
     private sealed record ScenarioResult(string Name, bool Pass, string Detail);
 
@@ -100,7 +101,13 @@ internal static class Program
         int failed = Results.Count - pass;
         Console.WriteLine($"  {pass}/{Results.Count} scenarios passed; {failed} failed.");
 
-        int exitCode = ExitCodeForScenarioSummary(pass, Results.Count);
+        bool scenarioCountMatches = Results.Count == ExpectedFullScenarioCount;
+        if (!scenarioCountMatches)
+            Console.WriteLine($"  [FAIL] Expected {ExpectedFullScenarioCount} scenarios, but discovered {Results.Count}.");
+
+        int exitCode = scenarioCountMatches
+            ? ExitCodeForScenarioSummary(pass, Results.Count)
+            : ScenarioFailureExitCode;
         Console.WriteLine(exitCode == SuccessExitCode
             ? "  Exit code: 0 (all scenarios passed)."
             : "  Exit code: 1 (one or more scenarios failed).");
@@ -128,8 +135,8 @@ internal static class Program
         Console.WriteLine("Reactor scenario harness exit-code contract self-test");
         var cases = new (int Passed, int Total, int Expected)[]
         {
-            (63, 63, SuccessExitCode),
-            (62, 63, ScenarioFailureExitCode),
+            (ExpectedFullScenarioCount, ExpectedFullScenarioCount, SuccessExitCode),
+            (ExpectedFullScenarioCount - 1, ExpectedFullScenarioCount, ScenarioFailureExitCode),
             (0, 1, ScenarioFailureExitCode),
         };
 
@@ -1163,9 +1170,38 @@ internal static class Program
 
     private static void ReactorDependencyScenarios()
     {
-        Scenario("APP REACTOR DEPENDENCY GATING (selected modules require a live reactor bus)", () =>
+        static FeatureEmergencyDieselSnapshot Diesel(
+            FeatureEmergencyDieselState state,
+            double progress = 0,
+            double capacity = ReactorFeaturePowerService.EmergencyDieselCapacityMW,
+            double fuel = ReactorFeaturePowerService.EmergencyDieselFuelCapacityLitres,
+            int activeModules = 0) => new(
+                state,
+                progress,
+                ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds,
+                capacity,
+                fuel,
+                ReactorFeaturePowerService.EmergencyDieselFuelCapacityLitres,
+                ReactorFeaturePowerService.EmergencyDieselFuelBurnLitresPerMinute,
+                activeModules,
+                ReactorFeaturePowerService.EmergencyDieselMaxModules);
+
+        Scenario("APP FEATURE POWER POLICY (strict nuclear, optional EDG fallback, catalog thresholds and badges)", () =>
         {
-            var dependency = ReactorDependencyService.All.First(d => d.Tag == "module.blender");
+            var expected = new (string Tag, double MinimumMW)[]
+            {
+                ("module.cakefactory", 35),
+                ("module.ollama", 80),
+                ("module.blender", 180),
+                ("module.docker", 55),
+                ("module.wslvm", 120),
+                ("module.virtualbox", 150),
+                ("module.packer", 210),
+                ("module.minecraftserver", 65),
+                ("module.emulator", 95),
+            };
+
+            var dependency = ReactorDependencyService.All.Single(d => d.Tag == "module.blender");
             var offline = ReactorBus(0.0, generating: false, mode: "Offline");
             var lowPower = ReactorBus(dependency.MinimumElectricMW - 1.0);
             var fullPower = ReactorBus(dependency.MinimumElectricMW + 25.0);
@@ -1173,38 +1209,513 @@ internal static class Program
             var scrammed = fullPower;
             scrammed.IsScrammed = true;
             scrammed.Mode = "Tripped";
+            var stoppedDry = Diesel(FeatureEmergencyDieselState.Stopped, fuel: 0);
+            var stoppedFueled = Diesel(FeatureEmergencyDieselState.Stopped);
+            var startingDiesel = Diesel(FeatureEmergencyDieselState.Starting, progress: 4, fuel: 59.9);
+            var runningDiesel = Diesel(
+                FeatureEmergencyDieselState.Running,
+                progress: ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds,
+                fuel: 59.8);
 
-            var apiDisabled = ReactorDependencyService.Evaluate(dependency, fullPower, apiEnabled: false);
-            var off = ReactorDependencyService.Evaluate(dependency, offline);
-            var low = ReactorDependencyService.Evaluate(dependency, lowPower);
-            var melt = ReactorDependencyService.Evaluate(dependency, meltdown);
-            var trip = ReactorDependencyService.Evaluate(dependency, scrammed);
-            var ok = ReactorDependencyService.Evaluate(dependency, fullPower);
-            var ordinaryModule = ReactorDependencyService.Evaluate("module.git", offline);
+            var strictApiDisabled = ReactorDependencyService.Evaluate(
+                dependency, fullPower, apiEnabled: false, allowEmergencyDieselFallback: false,
+                emergencyDiesel: runningDiesel);
+            var strictOff = ReactorDependencyService.Evaluate(
+                dependency, offline, apiEnabled: true, allowEmergencyDieselFallback: false,
+                emergencyDiesel: runningDiesel);
+            var strictLow = ReactorDependencyService.Evaluate(
+                dependency, lowPower, apiEnabled: true, allowEmergencyDieselFallback: false,
+                emergencyDiesel: runningDiesel);
+            var strictMelt = ReactorDependencyService.Evaluate(
+                dependency, meltdown, apiEnabled: true, allowEmergencyDieselFallback: false,
+                emergencyDiesel: runningDiesel);
+            var strictTrip = ReactorDependencyService.Evaluate(
+                dependency, scrammed, apiEnabled: true, allowEmergencyDieselFallback: false,
+                emergencyDiesel: runningDiesel);
+            var nuclearOk = ReactorDependencyService.Evaluate(
+                dependency, fullPower, apiEnabled: true, allowEmergencyDieselFallback: true,
+                emergencyDiesel: runningDiesel, dieselModuleSlotAvailable: false);
 
-            bool selectedApps = ReactorDependencyService.All.Count >= 5
-                                && ReactorDependencyService.Requires("module.ollama")
-                                && ReactorDependencyService.Requires("module.docker")
-                                && ReactorDependencyService.BadgeFor("module.blender").Contains("MWe", StringComparison.OrdinalIgnoreCase);
-            bool blockers = !apiDisabled.IsSatisfied
-                            && !off.IsSatisfied
-                            && !low.IsSatisfied
-                            && !melt.IsSatisfied
-                            && !trip.IsSatisfied
-                            && apiDisabled.StatusEn.Contains("API", StringComparison.OrdinalIgnoreCase)
-                            && off.StatusEn.Contains("generation", StringComparison.OrdinalIgnoreCase)
-                            && low.StatusEn.Contains("low", StringComparison.OrdinalIgnoreCase)
-                            && melt.StatusEn.Contains("meltdown", StringComparison.OrdinalIgnoreCase)
-                            && trip.StatusEn.Contains("SCRAM", StringComparison.OrdinalIgnoreCase);
-            bool pass = selectedApps && blockers && ok.IsSatisfied && ordinaryModule.IsSatisfied;
+            bool strictNuclear =
+                !strictApiDisabled.IsSatisfied && strictApiDisabled.Source == ReactorDependencyPowerSource.None
+                && !strictOff.IsSatisfied && strictOff.Source == ReactorDependencyPowerSource.None
+                && !strictLow.IsSatisfied && strictLow.Source == ReactorDependencyPowerSource.None
+                && !strictMelt.IsSatisfied && strictMelt.Source == ReactorDependencyPowerSource.None
+                && !strictTrip.IsSatisfied && strictTrip.Source == ReactorDependencyPowerSource.None
+                && strictApiDisabled.StatusEn.Contains("API", StringComparison.OrdinalIgnoreCase)
+                && strictOff.StatusEn.Contains("generation", StringComparison.OrdinalIgnoreCase)
+                && strictLow.StatusEn.Contains("low", StringComparison.OrdinalIgnoreCase)
+                && strictMelt.StatusEn.Contains("meltdown", StringComparison.OrdinalIgnoreCase)
+                && strictTrip.StatusEn.Contains("SCRAM", StringComparison.OrdinalIgnoreCase);
+            bool nuclearPreferred = nuclearOk.IsSatisfied
+                                    && nuclearOk.Source == ReactorDependencyPowerSource.Nuclear;
 
-            return (pass, $"selectedApps={selectedApps}, apiOff={apiDisabled.IsSatisfied}, offline={off.IsSatisfied}, " +
-                          $"low={low.IsSatisfied}, meltdown={melt.IsSatisfied}, scram={trip.IsSatisfied}, ok={ok.IsSatisfied}, " +
-                          $"ordinaryModule={ordinaryModule.IsSatisfied}, badge='{ReactorDependencyService.BadgeFor("module.blender")}'");
+            var dry = ReactorDependencyService.Evaluate(
+                dependency, offline, apiEnabled: true, allowEmergencyDieselFallback: true,
+                emergencyDiesel: stoppedDry);
+            var stopped = ReactorDependencyService.Evaluate(
+                dependency, offline, apiEnabled: true, allowEmergencyDieselFallback: true,
+                emergencyDiesel: stoppedFueled);
+            var starting = ReactorDependencyService.Evaluate(
+                dependency, offline, apiEnabled: true, allowEmergencyDieselFallback: true,
+                emergencyDiesel: startingDiesel);
+            var running = ReactorDependencyService.Evaluate(
+                dependency, offline, apiEnabled: true, allowEmergencyDieselFallback: true,
+                emergencyDiesel: runningDiesel);
+            var outletsFull = ReactorDependencyService.Evaluate(
+                dependency, offline, apiEnabled: true, allowEmergencyDieselFallback: true,
+                emergencyDiesel: Diesel(
+                    FeatureEmergencyDieselState.Running,
+                    progress: ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds,
+                    fuel: 59,
+                    activeModules: ReactorFeaturePowerService.EmergencyDieselMaxModules),
+                dieselModuleSlotAvailable: false);
+            var insufficient = ReactorDependencyService.Evaluate(
+                dependency,
+                offline,
+                apiEnabled: true,
+                allowEmergencyDieselFallback: true,
+                emergencyDiesel: Diesel(
+                    FeatureEmergencyDieselState.Running,
+                    progress: ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds,
+                    capacity: dependency.MinimumElectricMW - 0.1,
+                    fuel: 59));
+            bool fallbackStates =
+                !dry.IsSatisfied && dry.StatusEn.Contains("fuel", StringComparison.OrdinalIgnoreCase)
+                && !stopped.IsSatisfied && stopped.StatusEn.Contains("stopped", StringComparison.OrdinalIgnoreCase)
+                && !starting.IsSatisfied && starting.StatusEn.Contains("starting", StringComparison.OrdinalIgnoreCase)
+                && starting.DetailEn.Contains("6.0 s", StringComparison.Ordinal)
+                && running.IsSatisfied && running.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                && !outletsFull.IsSatisfied
+                && outletsFull.StatusEn.Contains("outlets full", StringComparison.OrdinalIgnoreCase)
+                && !insufficient.IsSatisfied && insufficient.StatusEn.Contains("low", StringComparison.OrdinalIgnoreCase);
+
+            var bypassApi = ReactorDependencyService.Evaluate(
+                dependency, fullPower, apiEnabled: false, allowEmergencyDieselFallback: true,
+                emergencyDiesel: runningDiesel);
+            var bypassScram = ReactorDependencyService.Evaluate(
+                dependency, scrammed, apiEnabled: true, allowEmergencyDieselFallback: true,
+                emergencyDiesel: runningDiesel);
+            var bypassMeltdown = ReactorDependencyService.Evaluate(
+                dependency, meltdown, apiEnabled: true, allowEmergencyDieselFallback: true,
+                emergencyDiesel: runningDiesel);
+            bool dieselBypassesUnavailableNuclear =
+                bypassApi.IsSatisfied && bypassApi.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                && bypassScram.IsSatisfied && bypassScram.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                && bypassMeltdown.IsSatisfied && bypassMeltdown.Source == ReactorDependencyPowerSource.EmergencyDiesel;
+
+            bool catalog = ReactorDependencyService.All.Count == expected.Length
+                           && ReactorDependencyService.All.Select(d => d.Tag).Distinct(StringComparer.OrdinalIgnoreCase).Count() == expected.Length
+                           && expected.All(item =>
+                           {
+                               if (!ReactorDependencyService.TryGet(item.Tag, out var registered)
+                                   || registered.MinimumElectricMW != item.MinimumMW
+                                   || !ReactorDependencyService.Requires(item.Tag))
+                                   return false;
+
+                               var below = ReactorDependencyService.Evaluate(
+                                   registered,
+                                   ReactorBus(item.MinimumMW - 0.001),
+                                   apiEnabled: true,
+                                   allowEmergencyDieselFallback: false,
+                                   emergencyDiesel: runningDiesel);
+                               var exact = ReactorDependencyService.Evaluate(
+                                   registered,
+                                   ReactorBus(item.MinimumMW),
+                                   apiEnabled: true,
+                                   allowEmergencyDieselFallback: false,
+                                   emergencyDiesel: runningDiesel);
+                               var onDiesel = ReactorDependencyService.Evaluate(
+                                   registered,
+                                   offline,
+                                   apiEnabled: true,
+                                   allowEmergencyDieselFallback: true,
+                                   emergencyDiesel: runningDiesel);
+                               return !below.IsSatisfied
+                                      && exact.IsSatisfied
+                                      && exact.Source == ReactorDependencyPowerSource.Nuclear
+                                      && onDiesel.IsSatisfied
+                                      && onDiesel.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                                      && ReactorDependencyService.BadgeFor(item.Tag)
+                                          == $"⚛ {item.MinimumMW:0} MWe nuclear"
+                                      && ReactorDependencyService.BadgeFor(item.Tag, allowEmergencyDieselFallback: true)
+                                          == $"⚛ {item.MinimumMW:0} MWe nuclear · ⛽ fuel + 2 slots"
+                                      && ReactorDependencyService.BadgeFor(item.Tag, cantonese: true)
+                                          == $"⚛ {item.MinimumMW:0} MWe 核電"
+                                      && ReactorDependencyService.BadgeFor(
+                                              item.Tag,
+                                              allowEmergencyDieselFallback: true,
+                                              cantonese: true)
+                                          == $"⚛ {item.MinimumMW:0} MWe 核電 · ⛽ 要入油／2 個插槽";
+                           })
+                           && ReactorDependencyService.All.Max(d => d.MinimumElectricMW)
+                              <= ReactorFeaturePowerService.EmergencyDieselCapacityMW;
+
+            var ordinaryModule = ReactorDependencyService.Evaluate(
+                "module.git", offline, apiEnabled: false, allowEmergencyDieselFallback: true,
+                emergencyDiesel: runningDiesel);
+            bool ordinary = ordinaryModule.IsSatisfied
+                            && ordinaryModule.Source == ReactorDependencyPowerSource.None
+                            && !ReactorDependencyService.Requires("module.git")
+                            && ReactorDependencyService.BadgeFor("module.git") == ""
+                            && ReactorDependencyService.BadgeFor("module.git", true) == "";
+
+            bool pass = strictNuclear && nuclearPreferred && fallbackStates
+                        && dieselBypassesUnavailableNuclear && catalog && ordinary;
+
+            return (pass, $"strict={strictNuclear}, nuclearPreferred={nuclearPreferred}, " +
+                          $"fallback dry/stopped/starting/running/full/low={fallbackStates}, bypass API/SCRAM/meltdown={dieselBypassesUnavailableNuclear}, " +
+                          $"catalog={ReactorDependencyService.All.Count}/{expected.Length} thresholds+badges={catalog}, ordinary={ordinary}");
+        });
+
+        Scenario("FEATURE-BUS EDG FUEL + LEASE STATE MACHINE (manual fill/start, two atomic owner outlets)", () =>
+        {
+            var defaultService = new ReactorFeaturePowerService();
+            bool defaultOff = !defaultService.AllowEmergencyDieselFallback
+                              && defaultService.EmergencyDiesel.State == FeatureEmergencyDieselState.Stopped
+                              && defaultService.EmergencyDiesel.FuelLitres == 0
+                              && !defaultService.FillEmergencyDiesel()
+                              && !defaultService.StartEmergencyDiesel();
+
+            var persisted = new List<bool>();
+            var service = new ReactorFeaturePowerService(
+                allowEmergencyDieselFallback: false,
+                persistFallback: persisted.Add,
+                useRealtimeClock: false);
+
+            service.AllowEmergencyDieselFallback = false;
+            service.AllowEmergencyDieselFallback = true;
+            bool dryStartRejected = !service.StartEmergencyDiesel();
+            bool filled = service.FillEmergencyDiesel();
+            var fullTank = service.EmergencyDiesel;
+            bool fullTankMetadata =
+                filled
+                && !service.FillEmergencyDiesel()
+                && fullTank.FuelLitres == ReactorFeaturePowerService.EmergencyDieselFuelCapacityLitres
+                && fullTank.FuelCapacityLitres == ReactorFeaturePowerService.EmergencyDieselFuelCapacityLitres
+                && fullTank.FuelBurnLitresPerMinute == ReactorFeaturePowerService.EmergencyDieselFuelBurnLitresPerMinute
+                && fullTank.FuelPercent == 100
+                && fullTank.ActiveModuleCount == 0
+                && fullTank.AvailableModuleSlots == ReactorFeaturePowerService.EmergencyDieselMaxModules
+                && fullTank.MaxModuleCount == ReactorFeaturePowerService.EmergencyDieselMaxModules;
+
+            bool started = service.StartEmergencyDiesel();
+            bool duplicateStartRejected = !service.StartEmergencyDiesel();
+            bool fillWhileStartingRejected = !service.FillEmergencyDiesel();
+            service.Advance(double.NaN);
+            service.Advance(double.PositiveInfinity);
+            service.Advance(-1);
+            service.Advance(0);
+            var unchanged = service.EmergencyDiesel;
+            bool invalidAdvanceIgnored = unchanged.State == FeatureEmergencyDieselState.Starting
+                                         && unchanged.StartProgressSeconds == 0
+                                         && unchanged.FuelLitres == fullTank.FuelLitres;
+
+            service.Advance(9.999);
+            var almostReady = service.EmergencyDiesel;
+            double expectedFuelAtAlmostReady =
+                ReactorFeaturePowerService.EmergencyDieselFuelCapacityLitres
+                - 9.999 * ReactorFeaturePowerService.EmergencyDieselFuelBurnLitresPerMinute / 60.0;
+            bool notEarly = almostReady.State == FeatureEmergencyDieselState.Starting
+                            && Math.Abs(almostReady.StartProgressSeconds - 9.999) < 1e-9
+                            && Math.Abs(almostReady.RemainingStartSeconds - 0.001) < 1e-9
+                            && Math.Abs(almostReady.FuelLitres - expectedFuelAtAlmostReady) < 1e-9
+                            && almostReady.StartTimeSeconds == 10
+                            && almostReady.CapacityMW == ReactorFeaturePowerService.EmergencyDieselCapacityMW;
+
+            service.Advance(0.001);
+            var ready = service.EmergencyDiesel;
+            double expectedFuelAtReady =
+                ReactorFeaturePowerService.EmergencyDieselFuelCapacityLitres
+                - ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds
+                  * ReactorFeaturePowerService.EmergencyDieselFuelBurnLitresPerMinute / 60.0;
+            bool readyAtTen = ready.State == FeatureEmergencyDieselState.Running
+                              && ready.IsRunning
+                              && ready.StartProgressSeconds == ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds
+                              && ready.RemainingStartSeconds == 0
+                              && Math.Abs(ready.FuelLitres - expectedFuelAtReady) < 1e-9
+                              && !service.FillEmergencyDiesel();
+
+            bool invalidLeaseRejected =
+                !service.TryAcquireModule("", "module.cakefactory")
+                && !service.TryAcquireModule("owner-invalid", "")
+                && !service.TryAcquireModule(" ", " ");
+            bool firstLease = service.TryAcquireModule("owner-a", "module.cakefactory");
+            bool duplicateLease = service.TryAcquireModule("OWNER-A", "MODULE.CAKEFACTORY");
+            var afterDuplicate = service.EmergencyDiesel;
+            bool secondLease = service.TryAcquireModule("owner-b", "module.blender");
+            var atCapacity = service.EmergencyDiesel;
+            bool capacityEnforced =
+                firstLease
+                && duplicateLease
+                && afterDuplicate.ActiveModuleCount == 1
+                && secondLease
+                && atCapacity.ActiveModuleCount == ReactorFeaturePowerService.EmergencyDieselMaxModules
+                && atCapacity.AvailableModuleSlots == 0
+                && !service.TryAcquireModule("owner-c", "module.packer")
+                && !service.CanAcquireModule("owner-c", "module.packer");
+
+            bool ownerTransition =
+                service.CanAcquireModule("owner-a", "module.docker")
+                && service.TryAcquireModule("owner-a", "module.docker")
+                && service.EmergencyDiesel.ActiveModuleCount == ReactorFeaturePowerService.EmergencyDieselMaxModules
+                && string.Equals(service.LeasedModuleFor("OWNER-A"), "module.docker", StringComparison.OrdinalIgnoreCase)
+                && !service.IsOwnerPoweringModule("owner-a", "module.cakefactory")
+                && service.IsOwnerPoweringModule("owner-a", "module.docker")
+                && !service.IsModulePowered("module.cakefactory")
+                && service.IsModulePowered("module.docker");
+            bool releaseAndReacquire =
+                service.ReleaseModule("owner-b")
+                && !service.ReleaseModule("owner-b")
+                && service.TryAcquireModule("owner-c", "module.packer")
+                && service.EmergencyDiesel.ActiveModuleCount == ReactorFeaturePowerService.EmergencyDieselMaxModules
+                && service.IsOwnerPoweringModule("owner-c", "module.packer");
+
+            double fuelBeforeManualStop = service.EmergencyDiesel.FuelLitres;
+            bool stoppedManually = service.StopEmergencyDiesel();
+            var afterManualStop = service.EmergencyDiesel;
+            bool manualStopPreservesFuelAndClearsLeases =
+                stoppedManually
+                && afterManualStop.State == FeatureEmergencyDieselState.Stopped
+                && afterManualStop.StartProgressSeconds == 0
+                && Math.Abs(afterManualStop.FuelLitres - fuelBeforeManualStop) < 1e-9
+                && afterManualStop.ActiveModuleCount == 0
+                && service.LeasedModuleFor("owner-a") is null
+                && service.LeasedModuleFor("owner-c") is null
+                && !service.IsOwnerPoweringModule("owner-a", "module.docker");
+
+            bool restartedWithoutRefill = service.StartEmergencyDiesel();
+            service.Advance(ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds);
+            bool leaseBeforeBurn = service.TryAcquireModule("burn-owner", "module.cakefactory");
+            var beforeMinute = service.EmergencyDiesel;
+            service.Advance(60);
+            var afterMinute = service.EmergencyDiesel;
+            bool burnsAtOneLitrePerMinute =
+                restartedWithoutRefill
+                && leaseBeforeBurn
+                && afterMinute.State == FeatureEmergencyDieselState.Running
+                && Math.Abs(
+                    beforeMinute.FuelLitres
+                    - afterMinute.FuelLitres
+                    - ReactorFeaturePowerService.EmergencyDieselFuelBurnLitresPerMinute) < 1e-9
+                && service.IsOwnerPoweringModule("burn-owner", "module.cakefactory");
+
+            service.Advance(
+                afterMinute.FuelLitres * 60.0
+                / ReactorFeaturePowerService.EmergencyDieselFuelBurnLitresPerMinute
+                + 0.001);
+            var exhausted = service.EmergencyDiesel;
+            bool exhaustionStopsAndClears =
+                exhausted.State == FeatureEmergencyDieselState.Stopped
+                && exhausted.StartProgressSeconds == 0
+                && exhausted.FuelLitres == 0
+                && exhausted.ActiveModuleCount == 0
+                && service.LeasedModuleFor("burn-owner") is null
+                && !service.StartEmergencyDiesel();
+
+            bool refilledAfterExhaustion = service.FillEmergencyDiesel();
+            bool startedForPolicyClear = service.StartEmergencyDiesel();
+            service.Advance(ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds);
+            bool leasedBeforePolicyClear = service.TryAcquireModule("policy-owner", "module.cakefactory");
+            service.AllowEmergencyDieselFallback = false;
+            var stoppedByPolicy = service.EmergencyDiesel;
+            bool policyStopsAndClearsSessionState =
+                refilledAfterExhaustion
+                && startedForPolicyClear
+                && leasedBeforePolicyClear
+                && stoppedByPolicy.State == FeatureEmergencyDieselState.Stopped
+                && stoppedByPolicy.FuelLitres == 0
+                && stoppedByPolicy.ActiveModuleCount == 0
+                && service.LeasedModuleFor("policy-owner") is null
+                && !service.StopEmergencyDiesel();
+
+            service.AllowEmergencyDieselFallback = true;
+            var freshSession = new ReactorFeaturePowerService(allowEmergencyDieselFallback: true);
+            bool policyOnlyPersists =
+                persisted.SequenceEqual(new[] { true, false, true })
+                && service.AllowEmergencyDieselFallback
+                && service.EmergencyDiesel.FuelLitres == 0
+                && !service.StartEmergencyDiesel()
+                && freshSession.AllowEmergencyDieselFallback
+                && freshSession.EmergencyDiesel.State == FeatureEmergencyDieselState.Stopped
+                && freshSession.EmergencyDiesel.FuelLitres == 0
+                && !freshSession.StartEmergencyDiesel();
+
+            var parallel = new ReactorFeaturePowerService(allowEmergencyDieselFallback: true);
+            bool parallelReady = parallel.FillEmergencyDiesel()
+                                 && parallel.StartEmergencyDiesel();
+            parallel.Advance(ReactorFeaturePowerService.EmergencyDieselStartTimeSeconds);
+            int parallelWins = 0;
+            Parallel.For(0, 64, i =>
+            {
+                if (parallel.TryAcquireModule($"parallel-owner-{i}", $"module.parallel-{i}"))
+                    Interlocked.Increment(ref parallelWins);
+            });
+            int parallelOwners = Enumerable.Range(0, 64)
+                .Count(i => parallel.LeasedModuleFor($"parallel-owner-{i}") is not null);
+            var parallelSnapshot = parallel.EmergencyDiesel;
+            bool parallelExactlyTwo =
+                parallelReady
+                && parallelWins == ReactorFeaturePowerService.EmergencyDieselMaxModules
+                && parallelOwners == ReactorFeaturePowerService.EmergencyDieselMaxModules
+                && parallelSnapshot.ActiveModuleCount == ReactorFeaturePowerService.EmergencyDieselMaxModules
+                && parallelSnapshot.AvailableModuleSlots == 0;
+
+            bool pass =
+                defaultOff
+                && dryStartRejected
+                && fullTankMetadata
+                && started
+                && duplicateStartRejected
+                && fillWhileStartingRejected
+                && invalidAdvanceIgnored
+                && notEarly
+                && readyAtTen
+                && invalidLeaseRejected
+                && capacityEnforced
+                && ownerTransition
+                && releaseAndReacquire
+                && manualStopPreservesFuelAndClearsLeases
+                && burnsAtOneLitrePerMinute
+                && exhaustionStopsAndClears
+                && policyStopsAndClearsSessionState
+                && policyOnlyPersists
+                && parallelExactlyTwo;
+            return (pass,
+                $"default/dry/fill/start={defaultOff}/{dryStartRejected}/{fullTankMetadata}/{started}, " +
+                $"10s+burn={notEarly && readyAtTen}, leases cap/transition/release={capacityEnforced}/{ownerTransition}/{releaseAndReacquire}, " +
+                $"manualStop={manualStopPreservesFuelAndClearsLeases}, 1Lmin={burnsAtOneLitrePerMinute}, exhaustion={exhaustionStopsAndClears}, " +
+                $"policyClear/session={policyStopsAndClearsSessionState}/{policyOnlyPersists}, parallelWins={parallelWins}/2");
+        });
+
+        Scenario("FEATURE POWER SNAPSHOT (exact owner/module lease, nuclear preference, Cake overload)", () =>
+        {
+            var dependency = ReactorDependencyService.All.Single(d => d.Tag == "module.cakefactory");
+            var otherDependency = ReactorDependencyService.All.Single(d => d.Tag == "module.blender");
+            var liveOffline = ReactorBus(0, generating: false, mode: "Offline");
+
+            var service = new ReactorFeaturePowerService(allowEmergencyDieselFallback: false);
+            var strict = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: true, ownerToken: "owner-cake");
+            service.AllowEmergencyDieselFallback = true;
+            var dry = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: true, ownerToken: "owner-cake");
+            bool filled = service.FillEmergencyDiesel();
+            bool started = service.StartEmergencyDiesel();
+            service.Advance(9.999);
+            var starting = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: true, ownerToken: "owner-cake");
+            service.Advance(0.001);
+            var unleased = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: true, ownerToken: "owner-cake");
+            bool exactLeaseAcquired = service.TryAcquireModule("owner-cake", dependency.Tag);
+            var exactOwner = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: true, ownerToken: "owner-cake");
+            var wrongOwner = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: true, ownerToken: "owner-other");
+            var wrongModule = service.ResolveFeaturePower(otherDependency, liveOffline, apiEnabled: true, ownerToken: "owner-cake");
+            var apiOffFallback = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: false, ownerToken: "owner-cake");
+
+            bool offlineShape =
+                !strict.IsAvailable
+                && strict.Source == ReactorDependencyPowerSource.None
+                && strict.ElectricMW == 0
+                && strict.ModeEn == "Offline"
+                && strict.ModeZh == "離線"
+                && !dry.IsAvailable
+                && !starting.IsAvailable
+                && !unleased.IsAvailable;
+            bool exactOwnerOnly =
+                filled
+                && started
+                && exactLeaseAcquired
+                && exactOwner.IsAvailable
+                && exactOwner.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                && exactOwner.ElectricMW == ReactorFeaturePowerService.EmergencyDieselCapacityMW
+                && exactOwner.ModeEn == "Emergency diesel"
+                && exactOwner.ModeZh == "應急柴油發電機"
+                && !wrongOwner.IsAvailable
+                && wrongOwner.Source == ReactorDependencyPowerSource.None
+                && !wrongModule.IsAvailable
+                && wrongModule.Source == ReactorDependencyPowerSource.None
+                && apiOffFallback.IsAvailable
+                && apiOffFallback.Source == ReactorDependencyPowerSource.EmergencyDiesel;
+
+            var nuclear = ReactorBus(dependency.MinimumElectricMW + 1);
+            nuclear.Mode = "NuclearPreferred";
+            var preferred = service.ResolveFeaturePower(dependency, nuclear, apiEnabled: true, ownerToken: "no-diesel-lease");
+            bool nuclearPreferred =
+                preferred.IsAvailable
+                && preferred.Source == ReactorDependencyPowerSource.Nuclear
+                && preferred.ModeEn == "NuclearPreferred"
+                && preferred.ModeZh == "核電"
+                                    && preferred.ElectricMW == nuclear.ElectricMW
+                && service.TryAcquireModule("owner-other", dependency.Tag);
+            var secondOwner = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: true, ownerToken: "owner-other");
+            bool duplicateTabsNeedOwnLease =
+                !wrongOwner.IsAvailable
+                && secondOwner.IsAvailable
+                && secondOwner.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                && service.EmergencyDiesel.ActiveModuleCount == 2;
+
+            bool stopped = service.StopEmergencyDiesel();
+            var afterStop = service.ResolveFeaturePower(dependency, liveOffline, apiEnabled: true, ownerToken: "owner-cake");
+            bool stopClearsPower =
+                stopped
+                && !afterStop.IsAvailable
+                && afterStop.Source == ReactorDependencyPowerSource.None
+                && service.EmergencyDiesel.ActiveModuleCount == 0
+                && service.LeasedModuleFor("owner-cake") is null;
+
+            var cake = new CakeFactoryService();
+            TickCake(cake, strict, 0.5);
+            var unpowered = cake.Snapshot;
+            TickCake(cake, exactOwner, 0.5);
+            var powered = cake.Snapshot;
+            string kitMessage = cake.StageBatchKit();
+            TickCake(cake, exactOwner, 0.25);
+            var staged = cake.Snapshot;
+            var piggybackCake = new CakeFactoryService();
+            TickCake(piggybackCake, wrongOwner, 0.5);
+            var piggyback = piggybackCake.Snapshot;
+            bool cakeRuns =
+                !unpowered.ReactorOnline
+                && unpowered.PowerSource == ReactorDependencyPowerSource.None
+                && unpowered.PowerAvailability == 0
+                && powered.ReactorOnline
+                && powered.PowerSource == ReactorDependencyPowerSource.EmergencyDiesel
+                && powered.ReactorMode == exactOwner.ModeEn
+                && powered.ReactorModeZh == exactOwner.ModeZh
+                && powered.ReactorElectricMW == ReactorFeaturePowerService.EmergencyDieselCapacityMW
+                && powered.PowerAvailability > 0.98
+                && powered.PowerStatus.Contains("diesel", StringComparison.OrdinalIgnoreCase)
+                && powered.CanStageBatchKit
+                && kitMessage.Contains("staged", StringComparison.OrdinalIgnoreCase)
+                && staged.CanStartBatch
+                && !piggyback.ReactorOnline
+                && piggyback.PowerAvailability == 0;
+
+            bool pass =
+                offlineShape
+                && exactOwnerOnly
+                && nuclearPreferred
+                && duplicateTabsNeedOwnLease
+                && stopClearsPower
+                && cakeRuns;
+            return (pass,
+                $"offlineShape={offlineShape}, exactOwnerOnly={exactOwnerOnly}, nuclearPreferred={nuclearPreferred}, " +
+                $"duplicateOwnLease={duplicateTabsNeedOwnLease}, stopClears={stopClearsPower}, " +
+                $"cake EDG={powered.PowerAvailability:P0}/{powered.PowerSource}, piggyback={piggyback.PowerAvailability:P0}, " +
+                $"kit='{Trim(kitMessage)}'");
         });
     }
 
     private static void TickCake(CakeFactoryService cake, ReactorStatusSnapshot bus, double seconds)
+    {
+        double left = seconds;
+        while (left > 0)
+        {
+            double dt = Math.Min(0.25, left);
+            cake.Tick(dt, bus);
+            left -= dt;
+        }
+    }
+
+    private static void TickCake(CakeFactoryService cake, FeaturePowerSnapshot bus, double seconds)
     {
         double left = seconds;
         while (left > 0)
@@ -1229,7 +1740,7 @@ internal static class Program
         var offline = ReactorBus(0.0, generating: false, mode: "Offline");
         var meltdown = ReactorBus(250.0, generating: true, meltdown: true, mode: "Meltdown");
 
-        Scenario("CAKE POWER GATING (reactor bus required; meltdown locks out the line)", () =>
+        Scenario("CAKE POWER GATING (feature bus required; direct meltdown snapshot locks out the line)", () =>
         {
             var cake = new CakeFactoryService();
 
@@ -1244,15 +1755,41 @@ internal static class Program
             TickCake(cake, meltdown, 0.5);
             var melt = cake.Snapshot;
 
+            var animationCake = new CakeFactoryService { LineSpeed = 1.0, FarmIntensity = 1.0 };
+            var animationAtRest = animationCake.Snapshot;
+            TickCake(animationCake, fullBus, 0.5);
+            var animationPowered = animationCake.Snapshot;
+            TickCake(animationCake, offline, 2.0);
+            var animationUnpowered = animationCake.Snapshot;
+
             bool offlineGated = !off.ReactorOnline && off.PowerAvailability == 0 && !off.CanStartBatch && !off.CanHarvest;
-            bool actionBlocked = startBlocked && blockedMsg.Contains("reactor", StringComparison.OrdinalIgnoreCase)
+            bool actionBlocked = startBlocked && blockedMsg.Contains("feature-bus", StringComparison.OrdinalIgnoreCase)
                                  && harvestBlockedMsg.Contains("locked", StringComparison.OrdinalIgnoreCase);
             bool poweredEnabled = on.ReactorOnline && on.PowerAvailability > 0.98 && on.CanStageBatchKit && on.CanHarvest && on.CanCollectDairy;
             bool meltdownGated = !melt.ReactorOnline && melt.PowerAvailability == 0 && !melt.CanStartBatch && !melt.CanStageBatchKit;
-            bool pass = offlineGated && actionBlocked && poweredEnabled && meltdownGated;
+            bool animationMovesWithPower =
+                animationPowered.PowerAvailability > 0.98
+                && animationPowered.ConveyorPhase != animationAtRest.ConveyorPhase
+                && animationPowered.MixerAngle != animationAtRest.MixerAngle
+                && animationPowered.TractorPhase != animationAtRest.TractorPhase;
+            bool animationFreezesExactlyAtZeroPower =
+                animationUnpowered.PowerAvailability == 0
+                && animationUnpowered.ConveyorPhase == animationPowered.ConveyorPhase
+                && animationUnpowered.MixerAngle == animationPowered.MixerAngle
+                && animationUnpowered.TractorPhase == animationPowered.TractorPhase;
+            bool pass = offlineGated
+                        && actionBlocked
+                        && poweredEnabled
+                        && meltdownGated
+                        && animationMovesWithPower
+                        && animationFreezesExactlyAtZeroPower;
             return (pass, $"offline start={off.CanStartBatch}/harvest={off.CanHarvest}, blockedMsg='{Trim(blockedMsg)}', " +
                           $"powered availability={on.PowerAvailability:P0} stageKit={on.CanStageBatchKit}, " +
-                          $"meltdown availability={melt.PowerAvailability:P0} start={melt.CanStartBatch}/stageKit={melt.CanStageBatchKit}");
+                          $"meltdown availability={melt.PowerAvailability:P0} start={melt.CanStartBatch}/stageKit={melt.CanStageBatchKit}, " +
+                          $"animation moved={animationMovesWithPower}, zero-power exact freeze={animationFreezesExactlyAtZeroPower} " +
+                          $"(belt {animationPowered.ConveyorPhase:F3}->{animationUnpowered.ConveyorPhase:F3}, " +
+                          $"mixer {animationPowered.MixerAngle:F3}->{animationUnpowered.MixerAngle:F3}, " +
+                          $"tractor {animationPowered.TractorPhase:F6}->{animationUnpowered.TractorPhase:F6})");
         });
 
         Scenario("CAKE MANUAL MODE (no auto batch, no auto harvest, no auto stage advance)", () =>
@@ -3211,24 +3748,41 @@ internal static class Program
             }
         });
 
-        Scenario("CAKE CIP SANITATION (cleaning locks batching, progresses, restores sanitation)", () =>
+        Scenario("CAKE CIP SANITATION (feature-power start gate, powered progress, exact loss freeze)", () =>
         {
             var cake = new CakeFactoryService();
-            TickCake(cake, fullBus, 0.5);
+            TickCake(cake, offline, 0.5);
             double before = cake.Snapshot.SanitationScore;
+            bool rejectedWithoutPower = !cake.StartClean();
+            var rejected = cake.Snapshot;
 
-            cake.StartClean();
+            TickCake(cake, fullBus, 0.5);
+            bool startedWithPower = cake.StartClean();
             TickCake(cake, fullBus, 0.5);
             var active = cake.Snapshot;
+
+            TickCake(cake, offline, 2.0);
+            var frozen = cake.Snapshot;
 
             TickCake(cake, fullBus, 40);
             var after = cake.Snapshot;
 
-            bool activeLocks = active.CipActive && !active.CanStartBatch && active.OperatorPrompt.Contains("CIP", StringComparison.OrdinalIgnoreCase);
+            bool powerGate = rejectedWithoutPower && !rejected.CipActive;
+            bool poweredProgress = startedWithPower
+                                   && active.CipActive
+                                   && active.CipProgress > 0
+                                   && active.CipProgress < 1;
+            bool exactPowerLossFreeze = frozen.CipActive
+                                        && frozen.CipProgress == active.CipProgress;
+            bool activeLocks = active.CipActive
+                               && !active.CanStartBatch
+                               && active.OperatorPrompt.Contains("CIP", StringComparison.OrdinalIgnoreCase);
             bool finished = !after.CipActive && after.CipProgress >= 1.0;
             bool sanitationRecovered = after.SanitationScore >= before;
-            bool pass = activeLocks && finished && sanitationRecovered;
-            return (pass, $"before={before:F0}%, active={active.CipActive}/start={active.CanStartBatch}/progress={active.CipProgress:P0}, " +
+            bool pass = powerGate && poweredProgress && exactPowerLossFreeze
+                        && activeLocks && finished && sanitationRecovered;
+            return (pass, $"noPowerRejected={powerGate}, poweredStart/progress={startedWithPower}/{active.CipProgress:P1}, " +
+                          $"lossFreeze={active.CipProgress:P1}->{frozen.CipProgress:P1}, locks={activeLocks}, " +
                           $"after active={after.CipActive}, progress={after.CipProgress:P0}, sanitation={after.SanitationScore:F0}%");
         });
     }

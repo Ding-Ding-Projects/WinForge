@@ -34,13 +34,15 @@
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                                 <StackPanel Orientation="Horizontal" Spacing="12">
                                     <FontIcon Glyph="{Binding Glyph}" FontSize="18" VerticalAlignment="Center" />
-                                    <StackPanel Spacing="1" VerticalAlignment="Center">
+                                    <StackPanel Width="180" Spacing="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding En}" FontWeight="SemiBold" FontSize="13" />
                                         <TextBlock Text="{Binding Zh}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                         <TextBlock
                                             Text="{Binding ReactorRequirementBadge}"
                                             FontSize="10"
                                             Opacity="{Binding ReactorRequirementOpacity}"
+                                            TextWrapping="Wrap"
+                                            MaxLines="2"
                                             Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
                                     </StackPanel>
                                 </StackPanel>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WinForge.Services;
@@ -14,8 +15,40 @@ namespace WinForge.Services;
 /// </summary>
 public static class ReactorRealShutdownArm
 {
+    private static bool _armed;
+    private static bool _pendingVisibleArm;
+
     /// <summary>DEFAULT OFF. When true, a meltdown starts the 10-second abortable real-shutdown countdown.</summary>
-    public static bool Armed { get; set; }
+    public static bool Armed
+    {
+        get => _armed;
+        set
+        {
+            if (_armed == value) return;
+            _armed = value;
+            ArmedChanged?.Invoke(value);
+        }
+    }
+
+    public static event Action<bool>? ArmedChanged;
+
+    public static bool HasPendingVisibleArm => _pendingVisibleArm;
+
+    /// <summary>
+    /// Records an operator request made from Reactor Settings while no control room is visible.
+    /// The request itself is harmless: it becomes armed only when a ReactorModule is loaded and can
+    /// render the abort controls.
+    /// </summary>
+    public static void RequestArmWhenControlRoomVisible() => _pendingVisibleArm = true;
+
+    public static bool ConsumePendingVisibleArm()
+    {
+        bool pending = _pendingVisibleArm;
+        _pendingVisibleArm = false;
+        return pending;
+    }
+
+    public static void CancelPendingVisibleArm() => _pendingVisibleArm = false;
 }
 
 /// <summary>
@@ -80,7 +113,8 @@ public sealed class ReactorHomeAssistantMirror
     private bool? _lastGenOn;
     private DateTime _lastAlarmAssertUtc = DateTime.MinValue;
     private DateTime _lastGenAssertUtc = DateTime.MinValue;
-    private bool _busy; // single-flight guard so overlapping ticks never queue concurrent REST calls
+    private int _busy; // single-flight guard shared by drive and restore operations
+    private int _lifecycleGeneration;
 
     private ReactorHomeAssistantMirror()
     {
@@ -98,6 +132,23 @@ public sealed class ReactorHomeAssistantMirror
 
     public bool IsHaConfigured => _ha.IsConfigured;
 
+    /// <summary>
+    /// Starts a new visible-reactor epoch. Any queued OFF restore from an older background epoch is
+    /// cancelled, and edge caches are cleared so the next live Tick immediately reasserts truth.
+    /// </summary>
+    public void Resume()
+    {
+        // An explicit disable owns its pending OFF cleanup. A page opening while the mirror is
+        // disabled must not invalidate that cleanup, because Drive() will not be able to reassert
+        // either entity afterwards.
+        if (!_enabled) return;
+        Interlocked.Increment(ref _lifecycleGeneration);
+        _lastAlarmOn = null;
+        _lastGenOn = null;
+        _lastAlarmAssertUtc = DateTime.MinValue;
+        _lastGenAssertUtc = DateTime.MinValue;
+    }
+
     public bool Enabled
     {
         get => _enabled;
@@ -106,11 +157,13 @@ public sealed class ReactorHomeAssistantMirror
             if (_enabled == value) return;
             _enabled = value;
             SettingsStore.Set(KeyEnabled, value ? "True" : "False");
-            if (!value)
+            if (value)
+            {
+                Resume();
+            }
+            else
             {
                 // Turning off: stop driving and best-effort restore both entities to OFF.
-                _lastAlarmOn = null;
-                _lastGenOn = null;
                 RestoreOff();
             }
         }
@@ -173,7 +226,7 @@ public sealed class ReactorHomeAssistantMirror
     /// </summary>
     public void Drive(bool alarmActive, bool generating)
     {
-        if (!_enabled || _busy) return;
+        if (!_enabled) return;
         if (!_ha.IsConfigured) return;
 
         DateTime now = DateTime.UtcNow;
@@ -183,7 +236,7 @@ public sealed class ReactorHomeAssistantMirror
             (_lastGenOn != generating || (generating && now - _lastGenAssertUtc >= AssertInterval));
         if (!needAlarm && !needGen) return;
 
-        _busy = true;
+        if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0) return;
         _ = PushAsync(needAlarm, alarmActive, needGen, generating, now);
     }
 
@@ -236,31 +289,70 @@ public sealed class ReactorHomeAssistantMirror
             }
         }
         catch { /* never propagate into the reactor tick */ }
-        finally { _busy = false; }
+        finally { Volatile.Write(ref _busy, 0); }
     }
 
-    /// <summary>Best-effort: turn both chosen entities OFF (used when the mirror is disabled).</summary>
-    private void RestoreOff()
+    /// <summary>
+    /// Best-effort: turn every chosen entity OFF. Used both when the mirror is disabled and when
+    /// the last visible reactor page hands physics to the background session. The persisted opt-in
+    /// remains unchanged, so a later visible reactor can deliberately resume mirroring.
+    /// </summary>
+    public void RestoreOff()
     {
+        int restoreGeneration = Interlocked.Increment(ref _lifecycleGeneration);
+        _lastAlarmOn = null;
+        _lastGenOn = null;
+        _lastAlarmAssertUtc = DateTime.MinValue;
+        _lastGenAssertUtc = DateTime.MinValue;
         if (!_ha.IsConfigured) return;
         _ = Task.Run(async () =>
         {
+            while (true)
+            {
+                if (Volatile.Read(ref _lifecycleGeneration) != restoreGeneration) return;
+                if (Interlocked.CompareExchange(ref _busy, 1, 0) == 0)
+                    break;
+                await Task.Delay(25).ConfigureAwait(false);
+            }
+
             try
             {
-                foreach (string id in _alarmLightIds) await _ha.LightOff(id).ConfigureAwait(false);
+                try
+                {
+                    foreach (string id in _alarmLightIds)
+                    {
+                        if (Volatile.Read(ref _lifecycleGeneration) != restoreGeneration) return;
+                        await _ha.LightOff(id).ConfigureAwait(false);
+                    }
+                }
+                catch { }
+                try
+                {
+                    foreach (string id in _genLightIds.Except(_alarmLightIds, StringComparer.OrdinalIgnoreCase))
+                    {
+                        if (Volatile.Read(ref _lifecycleGeneration) != restoreGeneration) return;
+                        await _ha.LightOff(id).ConfigureAwait(false);
+                    }
+                }
+                catch { }
+                try
+                {
+                    foreach (string id in _genSwitchIds)
+                    {
+                        if (Volatile.Read(ref _lifecycleGeneration) != restoreGeneration) return;
+                        await _ha.TurnOff(id).ConfigureAwait(false);
+                    }
+                }
+                catch { }
             }
-            catch { }
-            try
+            finally
             {
-                foreach (string id in _genLightIds.Except(_alarmLightIds, StringComparer.OrdinalIgnoreCase))
-                    await _ha.LightOff(id).ConfigureAwait(false);
+                bool stillRestoring =
+                    Volatile.Read(ref _lifecycleGeneration) == restoreGeneration;
+                _lastAlarmOn = stillRestoring ? false : null;
+                _lastGenOn = stillRestoring ? false : null;
+                Volatile.Write(ref _busy, 0);
             }
-            catch { }
-            try
-            {
-                foreach (string id in _genSwitchIds) await _ha.TurnOff(id).ConfigureAwait(false);
-            }
-            catch { }
         });
     }
 

@@ -552,7 +552,25 @@ The 852×646 LowLevel and 760×720 app-owned Dashboard captures show the unclipp
 ![](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactor.png)
 
 ### Reactor Settings · 反應堆設定
-> **Capture status · 截圖狀態：** Fresh `reactorsettings` capture is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable in this desktop session. The prior Reactor Settings image was removed rather than reused as current evidence; the route passed a no-control launch-only check. · 新嘅 `reactorsettings` 截圖係 `capture-blocked`：呢個 desktop session 嘅 `CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。之前嘅 Reactor Settings 圖片已移除，唔會當成最新證據重用；route 冇操作控制項嘅 launch-only check 通過。
+![](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactorsettings.png)
+
+### Emergency diesel enabled, empty tank · 應急柴油已容許、空缸
+![](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactorsettings-enabled.png)
+
+### Emergency diesel starting · 應急柴油啟動中
+![](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactorsettings-starting.png)
+
+### Emergency diesel running · 應急柴油運行中
+![](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactorsettings-running.png)
+
+### Feature-power recovery · 功能電源復原
+![](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactor-feature-power-required.png)
+
+### Feature-power search badge · 功能電源搜尋徽章
+![](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactor-feature-power-search.png)
+
+### Cake Factory on emergency diesel · 蛋糕工廠使用應急柴油
+![](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-cakefactory-feature-power.png)
 
 ### Reactor Gauges · 反應堆儀表
 ![](images/screenshot-reactor-gauges.png)

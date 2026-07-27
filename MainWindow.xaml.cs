@@ -23,6 +23,7 @@ namespace WinForge;
 public sealed partial class MainWindow : Window
 {
     private readonly Dictionary<object, (string en, string zh)> _navOriginalLabels = new();
+    private readonly Dictionary<TabViewItem, string> _featurePowerOwnerTokens = new();
     private const string AllAppsPickerKey = "shell.allapps";
 
     public MainWindow()
@@ -195,6 +196,9 @@ public sealed partial class MainWindow : Window
         if (_reallyQuit || !TrayService.IsInstalled)
         {
             CloseDetachedTabs();
+            foreach (var ownerToken in _featurePowerOwnerTokens.Values)
+                ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+            _featurePowerOwnerTokens.Clear();
             // Genuinely closing → stop the pill timer and detach long-lived handlers, then flush all
             // volatile state before the process tears down.
             CrashLogger.Guard("reactorpill:stop", () =>
@@ -2081,7 +2085,6 @@ public sealed partial class MainWindow : Window
             }
             NavigateActive(key);
         };
-
         // Global "open module" hotkeys (HotkeyMacroModule → action = Open module): bring WinForge to the
         // front from the tray/background and navigate to the bound module. Fires on the hotkey pump thread,
         // so marshal onto the UI dispatcher before touching the window.
@@ -2187,6 +2190,7 @@ public sealed partial class MainWindow : Window
     {
         try
         {
+            RevalidateFeaturePowerTabs();
             if (ReactorPillText is null) return;
             var snap = ReactorStatusApiService.I.LastSnapshot;
             // 0 = meltdown, 1 = scram, 2 = generating, 3 = standby.
@@ -2584,7 +2588,11 @@ public sealed partial class MainWindow : Window
 
     private void TitleBar_BackRequested(TitleBar sender, object args)
     {
-        if (ActiveFrame is { CanGoBack: true } f) { f.GoBack(); UpdateBackButton(); }
+        if (ActiveFrame is not { CanGoBack: true } f) return;
+        if (Tabs.SelectedItem is TabViewItem tab)
+            ReactorFeaturePowerService.I.ReleaseModule(FeaturePowerOwnerTokenFor(tab));
+        f.GoBack();
+        UpdateBackButton();
     }
 
     private async void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -3263,7 +3271,7 @@ public sealed partial class MainWindow : Window
             Key = module.Tag,
             Title = $"{module.En} · {module.Zh}",
             Subtitle = module.RequiresReactor
-                ? Loc.I.Pick(module.ReactorRequirementBadge, module.ReactorRequirementBadge)
+                ? Loc.I.Pick(module.ReactorRequirementBadgeEn, module.ReactorRequirementBadgeZh)
                 : module.Keywords.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(6).DefaultIfEmpty(module.En).Aggregate((a, b) => $"{a} {b}"),
             Glyph = module.Glyph,
             CategoryId = PickerCategoryIdFor(module.Tag),
@@ -3380,41 +3388,185 @@ public sealed partial class MainWindow : Window
         _titles[typeof(SearchResultsPage)] = Loc.I.Pick("Search", "搜尋");
         _titles[typeof(ManualPage)] = Loc.I.Pick("Manual", "使用手冊");
         _titles[typeof(LicensesPage)] = Loc.I.Pick("Licenses", "授權");
-        _titles[typeof(ReactorDependencyPage)] = Loc.I.Pick("Reactor required", "需要反應堆");
+        _titles[typeof(ReactorDependencyPage)] = Loc.I.Pick("Feature power required", "需要功能電源");
         foreach (var m in ModuleRegistry.All)
             _titles[MapType(m.Tag)] = Loc.I.Pick(m.En, m.Zh);
     }
 
-    /// <summary>Resolve a tab/nav key into a page type + parameter.</summary>
-    private (Type type, object? param) Resolve(string key)
+    /// <summary>
+    /// Resolve a tab/nav key into a page type + parameter. When requested by an actual navigation,
+    /// EDG outlet acquisition/release is performed atomically against the tab's stable owner token.
+    /// Header rendering calls this without acquisition and never mutates power ownership.
+    /// </summary>
+    private (Type type, object? param) Resolve(
+        string key,
+        string? featurePowerOwnerToken = null,
+        bool acquireFeaturePower = false)
     {
         var baseKey = BaseNavKey(key);
         var fragment = NavFragment(key);
+        var featurePower = ReactorFeaturePowerService.I;
         switch (baseKey)
         {
-            case "dashboard": return (typeof(DashboardPage), null);
-            case "about": return (typeof(AboutPage), null);
-            case "settings": return (typeof(SettingsPage), null);
-            case "manual": return (typeof(ManualPage), null);
-            case "licenses": return (typeof(LicensesPage), null);
+            case "dashboard":
+                if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
+                return (typeof(DashboardPage), null);
+            case "about":
+                if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
+                return (typeof(AboutPage), null);
+            case "settings":
+                if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
+                return (typeof(SettingsPage), null);
+            case "manual":
+                if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
+                return (typeof(ManualPage), null);
+            case "licenses":
+                if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
+                return (typeof(LicensesPage), null);
         }
         if (baseKey.StartsWith("manual:", StringComparison.OrdinalIgnoreCase))
+        {
+            if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
             return (typeof(ManualPage), baseKey.Substring("manual:".Length));
+        }
         if (baseKey.StartsWith("search:", StringComparison.OrdinalIgnoreCase))
+        {
+            if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
             return (typeof(SearchResultsPage), baseKey.Substring("search:".Length));
+        }
         if (baseKey.StartsWith("module.", StringComparison.Ordinal))
         {
             if (ReactorDependencyService.TryGet(baseKey, out var dependency))
             {
-                var check = ReactorDependencyService.Evaluate(dependency, ReactorStatusApiService.I.LastSnapshot, ReactorStatusApiService.I.Enabled);
+                var check = ReactorDependencyService.EvaluateConfigured(
+                    dependency,
+                    ReactorStatusApiService.I.LastSnapshot,
+                    ReactorStatusApiService.I.Enabled,
+                    featurePowerOwnerToken);
                 if (!check.IsSatisfied)
-                    return (typeof(ReactorDependencyPage), new ReactorDependencyPageContext(baseKey, dependency));
+                {
+                    if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
+                    return (
+                        typeof(ReactorDependencyPage),
+                        new ReactorDependencyPageContext(baseKey, dependency, featurePowerOwnerToken));
+                }
+
+                if (acquireFeaturePower)
+                {
+                    if (check.Source == ReactorDependencyPowerSource.EmergencyDiesel)
+                    {
+                        if (string.IsNullOrWhiteSpace(featurePowerOwnerToken)
+                            || !featurePower.TryAcquireModule(featurePowerOwnerToken, baseKey))
+                        {
+                            featurePower.ReleaseModule(featurePowerOwnerToken);
+                            return (
+                                typeof(ReactorDependencyPage),
+                                new ReactorDependencyPageContext(baseKey, dependency, featurePowerOwnerToken));
+                        }
+                    }
+                    else
+                    {
+                        // Healthy nuclear generation is always preferred and never occupies an EDG outlet.
+                        featurePower.ReleaseModule(featurePowerOwnerToken);
+                    }
+                }
             }
-            return (MapType(baseKey), fragment);
+            else if (acquireFeaturePower)
+            {
+                featurePower.ReleaseModule(featurePowerOwnerToken);
+            }
+            object? moduleParameter = ReactorDependencyService.Requires(baseKey)
+                                      && !string.IsNullOrWhiteSpace(featurePowerOwnerToken)
+                ? new FeaturePoweredModuleContext(fragment, featurePowerOwnerToken)
+                : fragment;
+            return (MapType(baseKey), moduleParameter);
         }
         var cat = Categories.All.FirstOrDefault(c => c.Id == baseKey);
-        if (cat is not null) return (typeof(CategoryPage), cat);
+        if (cat is not null)
+        {
+            if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
+            return (typeof(CategoryPage), cat);
+        }
+        if (acquireFeaturePower) featurePower.ReleaseModule(featurePowerOwnerToken);
         return (typeof(DashboardPage), null);
+    }
+
+    private string FeaturePowerOwnerTokenFor(TabViewItem tab)
+    {
+        if (_featurePowerOwnerTokens.TryGetValue(tab, out var token)) return token;
+        token = "tab:" + Guid.NewGuid().ToString("N");
+        _featurePowerOwnerTokens[tab] = token;
+        return token;
+    }
+
+    /// <summary>
+    /// Continuous enforcement for the nine playful gates. Reactor power stays preferred. When a
+    /// module needs the EDG, it must retain one of two tab-owned outlets; stop/fuel exhaustion or a
+    /// lost outlet returns the live page to its non-blocking recovery surface.
+    /// </summary>
+    private void RevalidateFeaturePowerTabs()
+    {
+        if (Tabs is null) return;
+
+        bool navigated = false;
+        foreach (var tab in Tabs.TabItems.OfType<TabViewItem>().ToArray())
+        {
+            if (tab.Content is not Frame frame) continue;
+            string baseKey = BaseNavKey(DataOf(tab).Key);
+            string ownerToken = FeaturePowerOwnerTokenFor(tab);
+            if (!ReactorDependencyService.TryGet(baseKey, out var dependency))
+            {
+                ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+                continue;
+            }
+
+            // A recovery page owns no outlet. Its own timer enables Retry when fuel and a slot exist.
+            if (frame.Content is ReactorDependencyPage)
+            {
+                ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+                continue;
+            }
+
+            // A Back/Forward operation can leave the persisted tab key temporarily pointing at a
+            // different page. Never attach or revoke power for a page that is not actually displayed.
+            if (frame.Content?.GetType() != MapType(baseKey))
+            {
+                ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+                continue;
+            }
+
+            var check = ReactorDependencyService.EvaluateConfigured(
+                dependency,
+                ReactorStatusApiService.I.LastSnapshot,
+                ReactorStatusApiService.I.Enabled,
+                ownerToken);
+            if (check.Source == ReactorDependencyPowerSource.Nuclear)
+            {
+                ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+                continue;
+            }
+            if (check.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                && ReactorFeaturePowerService.I.TryAcquireModule(ownerToken, baseKey))
+                continue;
+
+            ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+            if (frame.Content is CakeFactoryModule)
+            {
+                // Cake Factory owns a rich in-memory plant. Keep the page alive and let its exact
+                // owner-token power snapshot pause every powered process until this tab reacquires
+                // nuclear or one of the two EDG outlets; never discard the operator's factory state.
+                continue;
+            }
+            if (frame.Navigate(
+                    typeof(ReactorDependencyPage),
+                    new ReactorDependencyPageContext(baseKey, dependency, ownerToken)))
+            {
+                navigated = true;
+                RefreshTabHeader(tab);
+            }
+        }
+
+        if (navigated) SaveSession();
     }
 
     private string TitleFor(string key, Type type, object? param)
@@ -3422,7 +3574,7 @@ public sealed partial class MainWindow : Window
         if (type == typeof(CategoryPage) && param is AppCategory c) return c.Name.Display;
         if (type == typeof(SearchResultsPage)) return param is string q && q.Length > 0 ? Loc.I.Pick($"Search: {q}", $"搜尋：{q}") : Loc.I.Pick("Search", "搜尋");
         if (type == typeof(ReactorDependencyPage) && param is ReactorDependencyPageContext ctx)
-            return Loc.I.Pick($"{ctx.Dependency.NameEn} - reactor required", $"{ctx.Dependency.NameZh} - 需要反應堆");
+            return Loc.I.Pick($"{ctx.Dependency.NameEn} - feature power required", $"{ctx.Dependency.NameZh} - 需要功能電源");
         return _titles.TryGetValue(type, out var t) ? t : "WinForge";
     }
 
@@ -3431,8 +3583,22 @@ public sealed partial class MainWindow : Window
     {
         if (Tabs.TabItems.Count == 0) { AddTab(key); return; }
         if (Tabs.SelectedItem is not TabViewItem tab || tab.Content is not Frame frame) { AddTab(key); return; }
-        var (type, param) = Resolve(key);
-        frame.Navigate(type, param);
+        string ownerToken = FeaturePowerOwnerTokenFor(tab);
+        string? previousLease = ReactorFeaturePowerService.I.LeasedModuleFor(ownerToken);
+        var (type, param) = Resolve(key, ownerToken, acquireFeaturePower: true);
+        bool didNavigate;
+        try { didNavigate = frame.Navigate(type, param); }
+        catch
+        {
+            RestoreFeaturePowerLease(ownerToken, previousLease);
+            throw;
+        }
+        if (!didNavigate)
+        {
+            RestoreFeaturePowerLease(ownerToken, previousLease);
+            return;
+        }
+
         DataOf(tab).Key = key;
         RememberAppUse(key);
         RefreshTabHeader(tab);
@@ -3450,24 +3616,116 @@ public sealed partial class MainWindow : Window
         if (select) RememberAppUse(data.Key);
         if (!string.IsNullOrWhiteSpace(data.GroupId) && GroupFor(data.GroupId) is null) data.GroupId = string.Empty;
 
-        var (type, param) = Resolve(data.Key);
         var frame = new Frame();
-        frame.Navigated += (_, _) => UpdateBackButton();
         var tab = new TabViewItem
         {
             Tag = data,
-            Header = BuildTabHeader(data, type, param),
             Content = frame,
             IconSource = new SymbolIconSource { Symbol = Symbol.Document },
         };
+        frame.Navigated += (_, e) => OnTabFrameNavigated(tab, frame, e);
+        string ownerToken = FeaturePowerOwnerTokenFor(tab);
+        var (type, param) = Resolve(data.Key, ownerToken, acquireFeaturePower: true);
+        tab.Header = BuildTabHeader(data, type, param);
         ApplyTabAutomation(tab, type, param);
         tab.ContextFlyout = BuildTabFlyout(tab);
         Tabs.TabItems.Add(tab);
         if (select) Tabs.SelectedItem = tab;
-        frame.Navigate(type, param);
+        bool didNavigate;
+        try { didNavigate = frame.Navigate(type, param); }
+        catch
+        {
+            ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+            _featurePowerOwnerTokens.Remove(tab);
+            Tabs.TabItems.Remove(tab);
+            throw;
+        }
+        if (!didNavigate)
+        {
+            ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+            data.Key = "dashboard";
+            (type, param) = Resolve(data.Key, ownerToken, acquireFeaturePower: true);
+            tab.Header = BuildTabHeader(data, type, param);
+            ApplyTabAutomation(tab, type, param);
+            frame.Navigate(type, param);
+        }
         UpdateBackButton();
         SaveSession();
         return tab;
+    }
+
+    private void OnTabFrameNavigated(
+        TabViewItem tab,
+        Frame frame,
+        Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        UpdateBackButton();
+        if (e.NavigationMode == Microsoft.UI.Xaml.Navigation.NavigationMode.New) return;
+
+        string? key = KeyForNavigatedPage(e.SourcePageType, e.Parameter);
+        if (string.IsNullOrWhiteSpace(key)) return;
+
+        var data = DataOf(tab);
+        data.Key = key;
+        string ownerToken = FeaturePowerOwnerTokenFor(tab);
+
+        if (e.SourcePageType == typeof(ReactorDependencyPage))
+        {
+            ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+        }
+        else
+        {
+            var resolved = Resolve(key, ownerToken, acquireFeaturePower: true);
+            if (resolved.type != e.SourcePageType)
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (frame.Content?.GetType() != e.SourcePageType) return;
+                    frame.Navigate(resolved.type, resolved.param);
+                    RefreshTabHeader(tab);
+                    SaveSession();
+                });
+            }
+        }
+
+        RefreshTabHeader(tab);
+        SyncNavSelectionToActiveTab();
+        SaveSession();
+    }
+
+    private static string? KeyForNavigatedPage(Type sourcePageType, object? parameter)
+    {
+        if (sourcePageType == typeof(ReactorDependencyPage)
+            && parameter is ReactorDependencyPageContext dependencyContext)
+            return dependencyContext.TargetTag;
+        if (sourcePageType == typeof(DashboardPage)) return "dashboard";
+        if (sourcePageType == typeof(AboutPage)) return "about";
+        if (sourcePageType == typeof(SettingsPage)) return "settings";
+        if (sourcePageType == typeof(LicensesPage)) return "licenses";
+        if (sourcePageType == typeof(ManualPage))
+            return parameter is string manualSection && !string.IsNullOrWhiteSpace(manualSection)
+                ? "manual:" + manualSection
+                : "manual";
+        if (sourcePageType == typeof(SearchResultsPage))
+            return parameter is string query && !string.IsNullOrWhiteSpace(query)
+                ? "search:" + query
+                : "search:";
+        if (sourcePageType == typeof(CategoryPage) && parameter is AppCategory category)
+            return category.Id;
+
+        var module = ModuleRegistry.All.FirstOrDefault(
+            candidate => candidate.Tag.StartsWith("module.", StringComparison.OrdinalIgnoreCase)
+                         && MapType(candidate.Tag) == sourcePageType);
+        if (module is null) return null;
+        string? fragment = parameter switch
+        {
+            FeaturePoweredModuleContext context => context.Fragment,
+            string value => value,
+            _ => null,
+        };
+        return string.IsNullOrWhiteSpace(fragment)
+            ? module.Tag
+            : module.Tag + "#" + fragment;
     }
 
     private void CloseActiveTab()
@@ -3477,9 +3735,19 @@ public sealed partial class MainWindow : Window
 
     private void CloseTab(TabViewItem tab)
     {
+        if (_featurePowerOwnerTokens.Remove(tab, out var ownerToken))
+            ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
         Tabs.TabItems.Remove(tab);
         if (Tabs.TabItems.Count == 0) AddTab("dashboard");
         SaveSession();
+    }
+
+    private static void RestoreFeaturePowerLease(string ownerToken, string? previousModule)
+    {
+        var power = ReactorFeaturePowerService.I;
+        power.ReleaseModule(ownerToken);
+        if (!string.IsNullOrWhiteSpace(previousModule))
+            power.TryAcquireModule(ownerToken, previousModule);
     }
 
     private void UpdateBackButton()
@@ -3536,6 +3804,9 @@ public sealed partial class MainWindow : Window
         {
             ApplyLocalGitState(data.LocalGit, selectActive: true);
             var tabs = LoadGroupsAndMapTabs(data);
+            foreach (var ownerToken in _featurePowerOwnerTokens.Values)
+                ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
+            _featurePowerOwnerTokens.Clear();
             Tabs.TabItems.Clear();
             foreach (var tabData in tabs) AddTab(tabData, select: false);
             if (Tabs.TabItems.Count == 0) AddTab("dashboard", select: false);
@@ -3807,7 +4078,7 @@ public sealed partial class MainWindow : Window
     private void RefreshTabHeader(TabViewItem tab)
     {
         var data = DataOf(tab);
-        var (type, param) = Resolve(data.Key);
+        var (type, param) = Resolve(data.Key, FeaturePowerOwnerTokenFor(tab));
         tab.Header = BuildTabHeader(data, type, param);
         ApplyTabAutomation(tab, type, param);
         tab.ContextFlyout = BuildTabFlyout(tab);

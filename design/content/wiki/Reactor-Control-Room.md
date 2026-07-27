@@ -35,6 +35,18 @@
 
 ---
 
+## Foreground authority & handoff · 前景 authority 同交接
+
+**EN —** Every Reactor page sees the same canonical plant state, but only the newest visible page/window has foreground authority to drive it and own safety UI. Parallel pages stay live as read-only observers: status, gauges, annunciators, mimic, strip charts, NIS/CSF/RPS, synchronized control positions, and the status-API card keep rendering from shared state, while plant/scenario/SCRAM controls and companion launchers are disabled behind a non-dismissible observer notice.
+
+**粵語 —** 每個反應堆頁都會睇到同一個正式機組狀態，但只有最新可見頁面／視窗有前景 authority 去驅動同持有安全 UI。並行頁面會保持即時唯讀觀察：狀態、儀錶、警示、流程圖、走紙記錄、NIS／CSF／RPS、同步控制位置同狀態 API 卡會照樣由共用狀態更新；機組／情景／SCRAM 控制同 companion 啟動掣就會停用，並顯示唔可以關閉嘅觀察提示。
+
+**EN —** Moving authority does not reset the plant. Before handoff it automatically aborts any active real-shutdown countdown, then closes mutating HTML/full-control-room, startup-checklist, and SCRAM-widget companions owned by the demoted page; read-only core-power, status, and startup-gauge widgets may remain. During a shared meltdown, a demoted page keeps a live overlay but exposes no ABORT/reset controls; the overlay synchronizes and collapses automatically when the authoritative driver resets the shared plant, so it cannot survive as stale state if that page is promoted later. When the final control room closes, real shutdown disarms, Home Assistant/Awake/SystemLink and audio stop or restore, and a minimal background loop keeps only physics, automatic-start progression, the mission clock, and the truthful public API current.
+
+**粵語 —** 交接 authority 唔會重設機組。交接之前會自動中止任何進行中嘅真實關機倒數，再關閉由降級頁面持有、可改動模擬嘅 HTML／完整控制室、起動 checklist 同 SCRAM widget companion；唯讀爐心功率、狀態同起動儀錶 widget 可以留低。共用機組熔毀時，降級頁面會保持即時 overlay，但唔會提供 ABORT／重設控制；authoritative driver 重設共用機組後，overlay 會自動同步兼收起，所以之後再升級嗰頁都唔會殘留舊 overlay。最後一個控制室關閉時，真實關機會解除武裝，Home Assistant／Awake／SystemLink 同音效會停止或還原；最小化背景 loop 只會繼續更新物理、自動起動進度、任務時鐘同如實公開 API。
+
+---
+
 ## Rooms, pop-out & widgets · 房間、彈出與小工具
 
 - **Rooms as tabs · 房間分頁** — the control room is rendered as an HTML5 / WebView2 surface where each room is a tab you switch between. · 控制室以 HTML5／WebView2 介面繪製，每個房間係一個可切換嘅分頁。

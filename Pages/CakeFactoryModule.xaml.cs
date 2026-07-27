@@ -37,6 +37,7 @@ public sealed partial class CakeFactoryModule : Page
     private CakeValidationResult? _cachedLatestCakeValidation;
     private int _cakeFileRefreshInFlight;
     private int _cakeFileIssueInFlight;
+    private string? _featurePowerOwnerToken;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -54,6 +55,13 @@ public sealed partial class CakeFactoryModule : Page
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (e.Parameter is FeaturePoweredModuleContext context)
+            _featurePowerOwnerToken = context.OwnerToken;
+    }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -208,7 +216,11 @@ public sealed partial class CakeFactoryModule : Page
         ProcessCocoaButton.IsEnabled = s.CanProcessCocoa;
         StartBatchButton.IsEnabled = s.CanStartBatch;
         AdvanceButton.IsEnabled = s.CanAdvanceStage;
-        CleanButton.IsEnabled = !s.CipActive && s.Stage == CakeBatchStage.Idle;
+        CleanButton.IsEnabled =
+            s.ReactorOnline
+            && s.PowerAvailability >= 0.2
+            && !s.CipActive
+            && s.Stage == CakeBatchStage.Idle;
 
         FlourValue.Text = $"{P("Flour", "麵粉")}: {s.FlourKg:0.0} kg";
         SugarValue.Text = $"{P("Sugar", "糖")}: {s.SugarKg:0.0} kg";
@@ -342,7 +354,7 @@ public sealed partial class CakeFactoryModule : Page
         double dt = Math.Clamp((now - _lastTick).TotalSeconds, 0.016, 0.25);
         _lastTick = now;
 
-        _sim.Tick(dt, ReactorStatusApiService.I.LastSnapshot);
+        _sim.Tick(dt, CurrentFeaturePowerSnapshot());
         IssueCakeFilesIfNeeded(_sim.Snapshot);
         UpdatePowerInfo(_sim.Snapshot);
         UpdateNativeSnapshot(_sim.Snapshot);
@@ -356,11 +368,30 @@ public sealed partial class CakeFactoryModule : Page
             : s.PowerAvailability < 0.98
                 ? InfoBarSeverity.Warning
                 : InfoBarSeverity.Success;
-        PowerInfo.Title = s.PowerStatus;
+        PowerInfo.Title = P(s.PowerStatus, s.PowerStatusZh);
         PowerInfo.Message = P(
-            $"Reactor {s.ReactorMode} · {s.ReactorElectricMW:0.0} MWe available · plant demand {s.PowerDemandMW:0.0} MW",
-            $"反應堆 {s.ReactorMode} · 可用 {s.ReactorElectricMW:0.0} MWe · 廠房需求 {s.PowerDemandMW:0.0} MW");
+            $"Feature-bus source {s.ReactorMode} · {s.ReactorElectricMW:0.0} MWe available · plant demand {s.PowerDemandMW:0.0} MW",
+            $"功能匯流排電源 {s.ReactorModeZh} · 可用 {s.ReactorElectricMW:0.0} MWe · 廠房需求 {s.PowerDemandMW:0.0} MW");
         PowerInfo.IsOpen = true;
+    }
+
+    private FeaturePowerSnapshot CurrentFeaturePowerSnapshot()
+    {
+        var live = ReactorStatusApiService.I.LastSnapshot;
+        return ReactorDependencyService.TryGet("module.cakefactory", out var dependency)
+            ? ReactorFeaturePowerService.I.ResolveFeaturePower(
+                dependency,
+                live,
+                ReactorStatusApiService.I.Enabled,
+                _featurePowerOwnerToken)
+            : new FeaturePowerSnapshot(
+                live.IsGenerating && !live.IsScrammed && !live.IsMeltdown,
+                live.IsGenerating && !live.IsScrammed && !live.IsMeltdown
+                    ? ReactorDependencyPowerSource.Nuclear
+                    : ReactorDependencyPowerSource.None,
+                live.ElectricMW,
+                live.Mode ?? "Offline",
+                live.IsGenerating ? "核電" : "離線");
     }
 
     private void OnWebMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -388,6 +419,18 @@ public sealed partial class CakeFactoryModule : Page
     private async void HandleCakeAction(string? action, int? index = null, double? value = null)
     {
         bool forceCakeFileRefresh = false;
+        if (RequiresFeaturePower(action) && !CurrentFeaturePowerSnapshot().IsAvailable)
+        {
+            PostNotice(
+                "warning",
+                P("Feature power required", "需要功能電源"),
+                P(
+                    "This plant action is paused until this exact tab owns nuclear or emergency-diesel feature power.",
+                    "呢個廠房操作會暫停，直至呢個分頁取得核電或應急柴油功能電源。"));
+            RefreshSnapshot();
+            return;
+        }
+
         switch (action)
         {
             case "recipe":
@@ -556,10 +599,17 @@ public sealed partial class CakeFactoryModule : Page
                 }
 
             case "clean":
-                _sim.StartClean();
-                PostNotice("info", P("CIP started", "CIP 已開始"),
-                    P("Sanitation loop is washing mixer, depositor, oven belt, icing head and packer.",
-                        "清潔迴路正沖洗攪拌機、落模機、爐帶、唧花頭同包裝機。"));
+                bool cleanStarted = _sim.StartClean();
+                PostNotice(
+                    cleanStarted ? "info" : "warning",
+                    cleanStarted ? P("CIP started", "CIP 已開始") : P("CIP unavailable", "CIP 暫時不可用"),
+                    cleanStarted
+                        ? P(
+                            "Sanitation loop is washing mixer, depositor, oven belt, icing head and packer.",
+                            "清潔迴路正沖洗攪拌機、落模機、爐帶、唧花頭同包裝機。")
+                        : P(
+                            "CIP needs feature power, an idle line, and no cleaning cycle already in progress.",
+                            "CIP 需要功能電源、生產線處於閒置，而且唔可以已有清潔週期進行中。"));
                 break;
 
             case "validateCake":
@@ -619,9 +669,18 @@ public sealed partial class CakeFactoryModule : Page
         RefreshSnapshot(forceCakeFileRefresh);
     }
 
+    private static bool RequiresFeaturePower(string? action) => action switch
+    {
+        null or "" => false,
+        "recipe" or "farmIntensity" or "lineSpeed" => false,
+        "validateCake" or "trustCakeKey" or "eatCake" or "openCakeFolder" => false,
+        "openReactor" => false,
+        _ => true,
+    };
+
     private void RefreshSnapshot(bool forceCakeFileRefresh = false)
     {
-        _sim.Tick(0.016, ReactorStatusApiService.I.LastSnapshot);
+        _sim.Tick(0.016, CurrentFeaturePowerSnapshot());
         IssueCakeFilesIfNeeded(_sim.Snapshot);
         UpdatePowerInfo(_sim.Snapshot);
         UpdateNativeSnapshot(_sim.Snapshot, forceCakeFileRefresh);
@@ -705,7 +764,11 @@ public sealed partial class CakeFactoryModule : Page
             farmIntensity = _sim.FarmIntensity,
             lineSpeed = _sim.LineSpeed,
             stageKey = s.Stage.ToString(),
-            cleanEnabled = !s.CipActive && s.Stage == CakeBatchStage.Idle,
+            cleanEnabled =
+                s.ReactorOnline
+                && s.PowerAvailability >= 0.2
+                && !s.CipActive
+                && s.Stage == CakeBatchStage.Idle,
             bakeryKeyId = _cakeFiles.PublicKeyId,
             cakeFileCount = cakes.Count,
             latestCakeId = latestCake?.CakeId ?? "",

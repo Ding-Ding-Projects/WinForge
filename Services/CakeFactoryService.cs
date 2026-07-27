@@ -39,10 +39,13 @@ public sealed class CakeFactorySnapshot
     public CakeRecipe Recipe { get; init; } = CakeFactoryService.Recipes[0];
     public bool ReactorOnline { get; init; }
     public string ReactorMode { get; init; } = "Offline";
+    public string ReactorModeZh { get; init; } = "離線";
+    public ReactorDependencyPowerSource PowerSource { get; init; }
     public double ReactorElectricMW { get; init; }
     public double PowerDemandMW { get; init; }
     public double PowerAvailability { get; init; }
     public string PowerStatus { get; init; } = "";
+    public string PowerStatusZh { get; init; } = "";
     public CakeBatchStage Stage { get; init; }
     public string StageName { get; init; } = "";
     public double StageProgress { get; init; }
@@ -1129,7 +1132,7 @@ public sealed class CakeFactoryService
     public string DispatchOrder()
     {
         if (_lastPowerAvailability < 0.15)
-            return "Dispatch dock, scanner and reefer truck charger need reactor bus power.";
+            return "Dispatch dock, scanner and reefer truck charger need feature-bus power.";
         if (_finishedGoodsCakes < _orderCakesRequired)
             return $"Order {_currentOrderId} needs {_orderCakesRequired} packed cakes; finished goods has {_finishedGoodsCakes}.";
         if (_dispatchTruckChargePct < 18)
@@ -1154,7 +1157,7 @@ public sealed class CakeFactoryService
     public string HarvestNow()
     {
         if (_lastPowerAvailability < 0.15)
-            return "Harvesters are locked out until the reactor bus is energized.";
+            return "Harvesters are locked out until the nuclear or emergency-diesel feature bus is energized.";
 
         if (_wheatGrowth < 25 && _beetGrowth < 25 && _vanillaGrowth < 25)
             return "Fields are still immature; keep irrigation and lighting powered.";
@@ -1203,7 +1206,7 @@ public sealed class CakeFactoryService
     public string HarvestFeedCrops()
     {
         if (_lastPowerAvailability < 0.15)
-            return "Forage mower, wagon scale and grain cleaner need reactor bus power.";
+            return "Forage mower, wagon scale and grain cleaner need feature-bus power.";
 
         const double labor = 0.7;
         if (_barnLaborHours < labor)
@@ -1249,7 +1252,7 @@ public sealed class CakeFactoryService
     public string HarvestCocoa()
     {
         if (_lastPowerAvailability < 0.15)
-            return "Cocoa greenhouse harvest needs reactor bus power for irrigation valves, shade controls and drying fans.";
+            return "Cocoa greenhouse harvest needs feature-bus power for irrigation valves, shade controls and drying fans.";
 
         const double labor = 0.55;
         if (_barnLaborHours < labor)
@@ -1275,7 +1278,7 @@ public sealed class CakeFactoryService
     public string GetCowFromPetStore()
     {
         if (_lastPowerAvailability < 0.10)
-            return "Pet-store cow pickup needs reactor bus power for the barn gate, ID scanner and trailer checks.";
+            return "Pet-store cow pickup needs feature-bus power for the barn gate, ID scanner and trailer checks.";
         if (_cowPickupActive)
             return $"Pet-store cow pickup already scheduled; trailer ETA {_cowPickupEtaSeconds:0}s.";
         if (_guestCowActive)
@@ -1305,7 +1308,7 @@ public sealed class CakeFactoryService
     public string MixDairyRation()
     {
         if (_lastPowerAvailability < 0.15)
-            return "The TMR mixer wagon and ration scales need reactor bus power.";
+            return "The TMR mixer wagon and ration scales need feature-bus power.";
 
         const double forage = 48.0;
         const double grain = 22.0;
@@ -1345,7 +1348,7 @@ public sealed class CakeFactoryService
     public string WashDairyParlor()
     {
         if (_lastPowerAvailability < 0.15)
-            return "Dairy washdown pumps, hot-water set and scraper alley need reactor bus power.";
+            return "Dairy washdown pumps, hot-water set and scraper alley need feature-bus power.";
 
         const double processWater = 180.0;
         const double steam = 60.0;
@@ -1373,7 +1376,7 @@ public sealed class CakeFactoryService
     public string WashPoultryHouse()
     {
         if (_lastPowerAvailability < 0.15)
-            return "Poultry-house washdown pumps and egg-room sanitizer need reactor bus power.";
+            return "Poultry-house washdown pumps and egg-room sanitizer need feature-bus power.";
 
         const double processWater = 90.0;
         const double steam = 30.0;
@@ -1400,7 +1403,7 @@ public sealed class CakeFactoryService
     public string CollectDairyAndEggs()
     {
         if (_lastPowerAvailability < 0.12)
-            return "Milking parlor and egg grading line need reactor bus power.";
+            return "Milking parlor and egg grading line need feature-bus power.";
 
         if (_dairyReadyL < 1 && _eggsReady < 1)
             return "Barn and nest buffers are not ready yet.";
@@ -1448,7 +1451,7 @@ public sealed class CakeFactoryService
     public string MillWheat()
     {
         if (_lastPowerAvailability < 0.2)
-            return "The roller mill requires reactor power before wheat can be milled.";
+            return "The roller mill requires feature-bus power before wheat can be milled.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1492,7 +1495,7 @@ public sealed class CakeFactoryService
     public string RefineSugar()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Sugar washing, extraction and evaporation need reactor power.";
+            return "Sugar washing, extraction and evaporation need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1540,7 +1543,7 @@ public sealed class CakeFactoryService
     public string PasteurizeMilk()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Milk pasteurizer, balance tank and homogenizer need reactor power.";
+            return "Milk pasteurizer, balance tank and homogenizer need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1581,7 +1584,7 @@ public sealed class CakeFactoryService
     public string ChurnButter()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Cream separator and churn need reactor power.";
+            return "Cream separator and churn need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1633,7 +1636,7 @@ public sealed class CakeFactoryService
     public string ExtractVanilla()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Vanilla curing room, extractor and polish filter need reactor power.";
+            return "Vanilla curing room, extractor and polish filter need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1683,7 +1686,7 @@ public sealed class CakeFactoryService
     public string OrderSupplyDelivery()
     {
         if (_lastPowerAvailability < 0.1)
-            return "Purchasing terminal and supplier EDI need reactor bus power.";
+            return "Purchasing terminal and supplier EDI need feature-bus power.";
         if (_supplyTruckEnRoute)
             return $"Supplier truck {_inboundSupplyManifestId} is already scheduled; ETA {_supplyTruckEtaSeconds:0}s.";
         if (_cashBalance < _supplyOrderCost)
@@ -1702,7 +1705,7 @@ public sealed class CakeFactoryService
     public string UnloadSupplyDelivery()
     {
         if (_lastPowerAvailability < 0.1)
-            return "Receiving dock, cold room and barcode scales need reactor bus power.";
+            return "Receiving dock, cold room and barcode scales need feature-bus power.";
         if (!_supplyTruckEnRoute)
             return "No supplier truck is scheduled.";
         if (!_supplyTruckArrived)
@@ -1777,7 +1780,7 @@ public sealed class CakeFactoryService
     public string ProcessCocoa()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Cocoa roaster, winnower, hydraulic press and pin mill need reactor power.";
+            return "Cocoa roaster, winnower, hydraulic press and pin mill need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1820,7 +1823,7 @@ public sealed class CakeFactoryService
     public string RunSaltWorks()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Brine clarifier, vacuum evaporator, centrifuge and salt dryer need reactor power.";
+            return "Brine clarifier, vacuum evaporator, centrifuge and salt dryer need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1865,7 +1868,7 @@ public sealed class CakeFactoryService
     public string RunStarchPlant()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Starch wet mill, centrifuge and flash dryer need reactor power.";
+            return "Starch wet mill, centrifuge and flash dryer need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1904,7 +1907,7 @@ public sealed class CakeFactoryService
     public string RunBakingSodaPlant()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Baking-soda carbonation reactor, centrifuge and dryer need reactor power.";
+            return "Baking-soda carbonation reactor, centrifuge and dryer need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -1946,7 +1949,7 @@ public sealed class CakeFactoryService
     public string RunLeaveningPlant()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Baking-powder leavening plant, dehumidifier and dust collector need reactor power.";
+            return "Baking-powder leavening plant, dehumidifier and dust collector need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -2001,7 +2004,7 @@ public sealed class CakeFactoryService
     public string RunPackagingPlant()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Carton former, labeler and case coder need reactor power.";
+            return "Carton former, labeler and case coder need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -2056,7 +2059,7 @@ public sealed class CakeFactoryService
     public string RunCompostPlant()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Compost turner, aeration blower and screen need reactor power.";
+            return "Compost turner, aeration blower and screen need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -2118,7 +2121,7 @@ public sealed class CakeFactoryService
     public string RunBeddingPlant()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Straw bedding chopper, dust collector and bagger need reactor power.";
+            return "Straw bedding chopper, dust collector and bagger need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -2163,7 +2166,7 @@ public sealed class CakeFactoryService
     public string RunMineralPremixPlant()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Mineral premix weigh room, micro-doser and ribbon blender need reactor power.";
+            return "Mineral premix weigh room, micro-doser and ribbon blender need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -2216,7 +2219,7 @@ public sealed class CakeFactoryService
     public string RunFeedMill()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Feed mill, pellet conditioner and cooler need reactor power.";
+            return "Feed mill, pellet conditioner and cooler need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -2274,7 +2277,7 @@ public sealed class CakeFactoryService
     public string PrepareIcing()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Icing kettle, tempering jacket and depositor hopper need reactor power.";
+            return "Icing kettle, tempering jacket and depositor hopper need feature-bus power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
@@ -2379,7 +2382,7 @@ public sealed class CakeFactoryService
     public string RunUtilityPlant()
     {
         if (_lastPowerAvailability < 0.18)
-            return "Utility plant needs reactor bus power for the RO skid, clean-steam boiler and compressor.";
+            return "Utility plant needs feature-bus power for the RO skid, clean-steam boiler and compressor.";
         if (_utilityPlantActive)
             return $"Utility plant already running: {UtilityPlantPhase()}, {UtilityPlantProgressValue() * 100:0}% complete.";
         if (_irrigationWaterL < 900 || _filterMediaPct < 0.8)
@@ -2431,7 +2434,7 @@ public sealed class CakeFactoryService
 
         if (power < 0.15)
         {
-            _utilityPlantStatus = $"Utility plant paused: reactor bus power is too low during {UtilityPlantPhase()}.";
+            _utilityPlantStatus = $"Utility plant paused: feature-bus power is too low during {UtilityPlantPhase()}.";
             return;
         }
 
@@ -2462,7 +2465,7 @@ public sealed class CakeFactoryService
     public string ServiceIngredientFactories()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Maintenance crews need reactor bus power before servicing ingredient factories.";
+            return "Maintenance crews need feature-bus power before servicing ingredient factories.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is running; service crews cannot enter until the plant is isolated.";
 
@@ -2495,7 +2498,7 @@ public sealed class CakeFactoryService
     public string HaulFactoryByproducts()
     {
         if (_lastPowerAvailability < 0.12)
-            return "Byproduct loading dock, scale and forklift charger need reactor bus power.";
+            return "Byproduct loading dock, scale and forklift charger need feature-bus power.";
 
         double load = ByproductStorageLoadKg();
         if (load < 10)
@@ -2530,7 +2533,7 @@ public sealed class CakeFactoryService
     public string TreatFactoryEffluent()
     {
         if (_lastPowerAvailability < 0.15)
-            return "Effluent equalization pumps and dissolved-air flotation need reactor bus power.";
+            return "Effluent equalization pumps and dissolved-air flotation need feature-bus power.";
 
         if (_factoryEffluentL < 25)
             return "Factory effluent tank is already nearly empty.";
@@ -2558,7 +2561,7 @@ public sealed class CakeFactoryService
 
         if (power < 0.2)
         {
-            _factoryStatus = $"{run.Name} paused during {FactoryPhase(run)} at {run.Progress:P0}; restore reactor bus power.";
+            _factoryStatus = $"{run.Name} paused during {FactoryPhase(run)} at {run.Progress:P0}; restore feature-bus power.";
             return;
         }
 
@@ -3015,7 +3018,7 @@ public sealed class CakeFactoryService
     public string ReleaseIngredientLabLot()
     {
         if (_lastPowerAvailability < 0.15)
-            return "QA lab instruments need reactor bus power before releasing an ingredient lot.";
+            return "QA lab instruments need feature-bus power before releasing an ingredient lot.";
         if (string.IsNullOrWhiteSpace(_pendingLabLotId))
             return "No ingredient lot is waiting in the QA lab.";
         if (!HasFactoryUtilities(12, 0, 4, 0.1))
@@ -3473,10 +3476,13 @@ public sealed class CakeFactoryService
         _factoryStatus += $" {byproductStatus} Equipment now {equipment.ConditionPct:0}% condition, {equipment.CalibrationPct:0}% calibration, {equipment.VibrationMmS:0.0} mm/s vibration. QA lab is holding lot {run.OutputLotId}.";
     }
 
-    public void StartClean()
+    public bool StartClean()
     {
+        if (_lastPowerAvailability < 0.2 || _stage != CakeBatchStage.Idle || CipActive)
+            return false;
         _cipSeconds = Math.Max(_cipSeconds, 24);
-        if (_stage == CakeBatchStage.Idle) _stageSeconds = 0;
+        _stageSeconds = 0;
+        return true;
     }
 
     public string StageBatchKit()
@@ -3486,7 +3492,7 @@ public sealed class CakeFactoryService
         if (CipActive)
             return "Cannot stage a batch kit while CIP sanitation is active.";
         if (_lastPowerAvailability < 0.2)
-            return "Warehouse pick scales, forklift chargers and line staging need reactor bus power.";
+            return "Warehouse pick scales, forklift chargers and line staging need feature-bus power.";
         if (_batchKitStaged)
             return $"Batch kit {_batchKitLotId} is already staged for the line.";
         if (_forkliftBatteryPct < 12)
@@ -3533,7 +3539,7 @@ public sealed class CakeFactoryService
         }
         if (_lastPowerAvailability < 0.2)
         {
-            message = "Nuclear reactor power is required before the factory can start a batch.";
+            message = "Nuclear or emergency-diesel feature-bus power is required before the factory can start a batch.";
             return false;
         }
         if (!_batchKitStaged)
@@ -3588,7 +3594,7 @@ public sealed class CakeFactoryService
 
         if (_lastPowerAvailability < 0.2)
         {
-            message = "Restore reactor bus power before releasing the next powered step.";
+            message = "Restore nuclear or emergency-diesel feature-bus power before releasing the next powered step.";
             return false;
         }
 
@@ -3621,6 +3627,22 @@ public sealed class CakeFactoryService
 
     public void Tick(double seconds, ReactorStatusSnapshot reactor)
     {
+        bool available = reactor.IsGenerating
+                         && reactor.ElectricMW > 1
+                         && !reactor.IsMeltdown
+                         && !reactor.IsScrammed;
+        Tick(
+            seconds,
+            new FeaturePowerSnapshot(
+                available,
+                available ? ReactorDependencyPowerSource.Nuclear : ReactorDependencyPowerSource.None,
+                available ? Math.Max(0, reactor.ElectricMW) : 0,
+                reactor.Mode ?? "Offline",
+                available ? "核電" : "離線"));
+    }
+
+    public void Tick(double seconds, FeaturePowerSnapshot featurePower)
+    {
         seconds = Math.Clamp(seconds, 0.016, 0.25);
         var recipe = CurrentRecipe;
         double farmDemand = 0.7 + FarmIntensity * 3.8;
@@ -3629,8 +3651,10 @@ public sealed class CakeFactoryService
         double cowPickupDemand = _cowPickupActive ? 0.25 : 0;
         double factoryDemand = 2.4 + LineSpeed * 28.0 + (CipActive ? 2.8 : 0) + ingredientFactoryDemand + utilityDemand;
         double demand = farmDemand + factoryDemand + cowPickupDemand;
-        bool reactorOnline = reactor.IsGenerating && reactor.ElectricMW > 1 && !reactor.IsMeltdown;
-        double power = reactorOnline ? Math.Clamp(reactor.ElectricMW / Math.Max(1, demand), 0, 1) : 0;
+        bool reactorOnline = featurePower.IsAvailable && featurePower.ElectricMW > 1;
+        double power = reactorOnline
+            ? Math.Clamp(featurePower.ElectricMW / Math.Max(1, demand), 0, 1)
+            : 0;
         _lastPowerAvailability = power;
 
         UpdateAnimation(seconds, power);
@@ -3657,13 +3681,22 @@ public sealed class CakeFactoryService
         {
             Recipe = recipe,
             ReactorOnline = reactorOnline,
-            ReactorMode = reactor.Mode ?? "Offline",
-            ReactorElectricMW = reactor.ElectricMW,
+            ReactorMode = featurePower.ModeEn,
+            ReactorModeZh = featurePower.ModeZh,
+            PowerSource = featurePower.Source,
+            ReactorElectricMW = featurePower.ElectricMW,
             PowerDemandMW = demand,
             PowerAvailability = power,
             PowerStatus = reactorOnline
-                ? (power >= 0.98 ? "Reactor bus nominal" : "Reactor output limiting the line")
-                : "Waiting for nuclear reactor generation",
+                ? featurePower.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                    ? (power >= 0.98 ? "Emergency diesel bus nominal" : "Emergency diesel output limiting the line")
+                    : (power >= 0.98 ? "Reactor bus nominal" : "Reactor output limiting the line")
+                : "Waiting for nuclear or emergency-diesel feature-bus power",
+            PowerStatusZh = reactorOnline
+                ? featurePower.Source == ReactorDependencyPowerSource.EmergencyDiesel
+                    ? (power >= 0.98 ? "應急柴油匯流排正常" : "應急柴油輸出限制生產線")
+                    : (power >= 0.98 ? "核電匯流排正常" : "核電輸出限制生產線")
+                : "等待核電或應急柴油功能電源",
             Stage = _stage,
             StageName = StageLabel(_stage),
             StageProgress = StageProgress(recipe),
@@ -4075,10 +4108,10 @@ public sealed class CakeFactoryService
 
     private void UpdateAnimation(double seconds, double power)
     {
-        double motion = 0.15 + power * Math.Max(0.05, LineSpeed);
+        double motion = power <= 0 ? 0 : power * Math.Max(0.05, LineSpeed);
         _conveyorPhase = (_conveyorPhase + seconds * motion * 90) % 80;
         _mixerAngle = (_mixerAngle + seconds * motion * 260) % 360;
-        _tractorPhase = (_tractorPhase + seconds * Math.Max(0.02, FarmIntensity * power) * 0.05) % 1;
+        _tractorPhase = (_tractorPhase + seconds * FarmIntensity * power * 0.05) % 1;
     }
 
     private void UpdateMilkColdChain(double seconds, double power)
@@ -4306,7 +4339,7 @@ public sealed class CakeFactoryService
             : !feedLotReleased
                 ? $"Egg production stalled: poultry feed lot {_feedLotId} is waiting for QA lab release."
                 : beddingLotReleased
-                    ? "Egg production stalled: hens need released feed, water, released bedding, labor, clean nests and reactor-powered grading."
+                    ? "Egg production stalled: hens need released feed, water, released bedding, labor, clean nests and feature-bus-powered grading."
                     : $"Egg production stalled: livestock bedding lot {_beddingLotId} is waiting for QA lab release.";
         if (cowInputFactor <= 0)
             _pastureHealth = Math.Max(10, _pastureHealth - seconds * 0.035);
@@ -4334,8 +4367,8 @@ public sealed class CakeFactoryService
 
     private void UpdateCleaning(double seconds, double power)
     {
-        if (!CipActive) return;
-        double cleanRate = seconds * Math.Max(0.1, power);
+        if (!CipActive || power < 0.2) return;
+        double cleanRate = seconds * power;
         _cipSeconds = Math.Max(0, _cipSeconds - cleanRate);
         _sanitationScore = Math.Min(100, _sanitationScore + cleanRate * 4.2);
     }
@@ -4505,7 +4538,7 @@ public sealed class CakeFactoryService
             return $"CIP sanitation loop active ({(1.0 - _cipSeconds / 24.0) * 100:0}%). Wait for wash, rinse and drain.";
 
         if (power < 0.2)
-            return "Start or recover the nuclear reactor; farm equipment and bakery drives are waiting for bus power.";
+            return "Start or recover the nuclear reactor or feature-bus emergency diesel; farm equipment and bakery drives are waiting for power.";
 
         if (_stage == CakeBatchStage.Idle)
         {
@@ -4565,7 +4598,7 @@ public sealed class CakeFactoryService
 
     private string ResourceStatus(double power)
     {
-        if (power < 0.2) return "Reactor bus required";
+        if (power < 0.2) return "Feature-bus power required";
         var low = new List<string>();
         if (_irrigationWaterL < 800) low.Add("water");
         if (_fertilizerKg < 8) low.Add("fertilizer");

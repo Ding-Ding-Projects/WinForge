@@ -32,19 +32,23 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class ReactorModule : Page
 {
-    private readonly ReactorSimService _sim = new();
+    private readonly ReactorSimulationSession _session;
+    private readonly string _runtimeOwnerToken = "reactor-page:" + Guid.NewGuid().ToString("N");
+    private bool _sessionHandlersAttached;
+    private ReactorSimService _sim => _session.Sim;
     // Shared fuel factory so the HTML control room and this page see one fuel inventory.
     private readonly FuelFactoryService _fuel = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) }; // 10 Hz
     private DateTime _last = DateTime.UtcNow;
-    private double _simClock; // seconds since start
+    private double _simClock
+    {
+        get => _session.SimClockSeconds;
+        set => _session.SimClockSeconds = value;
+    }
 
     // Real-shutdown safety state. The ARM flag now lives in ReactorRealShutdownArm (set on the Reactor
     // Settings page; DEFAULT OFF, in-memory only). 真實關機致動旗標已搬去反應堆設定頁（預設關閉）。
     private DispatcherTimer? _countdownTimer;
-    private int _countdownRemaining;
-    private bool _aborted;
-    private bool _shutdownIssued;
     private bool _meltdownHandled;
 
     // Strip-chart recorders (replace the old static trend polylines).
@@ -162,20 +166,16 @@ public sealed partial class ReactorModule : Page
     private static readonly TimeSpan StripChartUiInterval = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan InstrumentPanelUiInterval = TimeSpan.FromMilliseconds(350);
     private static readonly TimeSpan ControlSyncUiInterval = TimeSpan.FromMilliseconds(500);
-    private bool _autoStartApplied;
-
     public ReactorModule()
     {
+        _session = ReactorSessionRuntime.I.AcquireForPage();
         InitializeComponent();
-        // _sim is a long-lived singleton: every handler must be NAMED and unsubscribed on Unloaded,
-        // or each visit to this page roots another dead ReactorModule (and doubles the audio pops).
-        _sim.MeltdownOccurred += OnMeltdown;
-        _sim.PzrCodeSafetyLifted += OnSafetyValveLift;
-        _sim.MssvValveLifted += OnSafetyValveLift;
-        Loc.I.LanguageChanged += OnLanguageChanged;
 
         Loaded += async (_, _) =>
         {
+            AttachSessionHandlers();
+            ReactorSessionRuntime.I.RegisterForeground(_session, _runtimeOwnerToken);
+            UpdateDriverUi(ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken));
             // 還原已儲存狀態（如有）· Restore saved reactor state (if any) BEFORE building the UI so
             // gauges/controls reflect the resumed state. The provider's restore Action runs here.
             RegisterPersistence();
@@ -199,6 +199,7 @@ public sealed partial class ReactorModule : Page
             CrashLogger.Guard("Reactor.DrawMimicStatic", DrawMimicStatic);
             CrashLogger.Guard("Reactor.InitFx", InitFx);
             CrashLogger.Guard("Reactor.Render", Render);
+            UpdateDriverUi(ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken));
 
             UpdateSaveIndicator(PersistenceService.I.LastSaved);
             PersistenceService.I.Saved += OnStateSaved;
@@ -231,38 +232,190 @@ public sealed partial class ReactorModule : Page
             catch { /* degrade silently */ }
 
             TryApplyPendingDeepLink();
+
+            // Settings may request arming while no control room is visible. Consume that request only
+            // after this Loaded handler has finished building the page, then use a low-priority
+            // dispatcher turn so the abort surface can paint and accept input before its ten-second
+            // wall-clock deadline begins.
+            DispatcherQueue.TryEnqueue(
+                Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+                () =>
+                {
+                    if (IsLoaded
+                        && ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)
+                        && ReactorRealShutdownArm.ConsumePendingVisibleArm())
+                    {
+                        ReactorRealShutdownArm.Armed = true;
+                    }
+                });
         };
         Unloaded += (_, _) =>
         {
+            bool wasForegroundDriver =
+                ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken);
             _timer.Stop();
             _timer.Tick -= Tick;
-            _countdownTimer?.Stop();
+            StopLocalShutdownCountdown();
             _renderClock.Stop();
-            _sim.MeltdownOccurred -= OnMeltdown;
-            _sim.PzrCodeSafetyLifted -= OnSafetyValveLift;
-            _sim.MssvValveLifted -= OnSafetyValveLift;
+            DetachSessionHandlers();
             // Persist current reactor state one last time, then stop listening. This must be
             // synchronous so navigating away and immediately back restores the state just left.
             // We keep the provider registered so a final app-exit/crash flush still captures it.
             PersistenceService.I.Saved -= OnStateSaved;
             CrashLogger.Guard("reactor:unload-flush", () => PersistenceService.I.Flush());
-            Loc.I.LanguageChanged -= OnLanguageChanged;
-            // Stop the synthesized voices but keep the graph alive (singleton, reused by the windows).
-            try { ReactorAudioEngine.I.StopVoices(); } catch { }
-            // SAFETY: always release the keep-awake hold when leaving the page so navigating
-            // away never leaves the system pinned awake. 離開頁面時務必釋放保持喚醒。
-            ReleaseKeepAwake();
-            // 解除狀態 API 綁定並發佈「離線」快照 · Unbind the status API and publish an offline snapshot
-            // so dependents see isGenerating=false once the reactor page is closed. The server stays up.
-            try { ReactorStatusApiService.I.Unbind(); ReactorStatusApiService.I.PublishOffline(); } catch { }
-            // SAFETY: restore all real Windows settings (power plan / accent / brightness / volume)
-            // when leaving the page so the user is never stranded on a red accent or power-saver.
-            // The persisted toggle is left as-is, so it re-arms next time the page opens.
-            // 離開頁面時務必還原所有真實 Windows 設定，免得使用者卡喺紅色強調色或省電模式。
-            try { _ = ReactorSystemLinkService.I.RestoreAllAsync(); } catch { }
+            if (wasForegroundDriver)
+                ReactorWindowManager.CloseInteractiveSurfaces();
+            // Hand only the simulated physics + truthful local API to the session background loop.
+            // Real integrations, audio and keep-awake are still stopped/restored below.
+            bool movedToBackground =
+                ReactorSessionRuntime.I.ReleaseForeground(_session, _runtimeOwnerToken);
+            if (movedToBackground)
+            {
+                // SAFETY: only the last visible reactor page releases process-global real effects.
+                // A driver handoff must preserve them for the promoted visible control room.
+                try { ReactorAudioEngine.I.StopVoices(); } catch { }
+                ReleaseKeepAwake(force: true);
+                try { _ = ReactorSystemLinkService.I.RestoreAllAsync(); } catch { }
+            }
             try { _controlRoomWindow?.Close(); } catch { }
             _controlRoomWindow = null;
         };
+    }
+
+    private void AttachSessionHandlers()
+    {
+        if (_sessionHandlersAttached) return;
+        _sim.MeltdownOccurred += OnMeltdown;
+        _sim.PzrCodeSafetyLifted += OnSafetyValveLift;
+        _sim.MssvValveLifted += OnSafetyValveLift;
+        ReactorSessionRuntime.I.ForegroundDriverChanged += OnForegroundDriverChanged;
+        ReactorRealShutdownArm.ArmedChanged += OnRealShutdownArmChanged;
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        _sessionHandlersAttached = true;
+    }
+
+    private void DetachSessionHandlers()
+    {
+        if (!_sessionHandlersAttached) return;
+        _sim.MeltdownOccurred -= OnMeltdown;
+        _sim.PzrCodeSafetyLifted -= OnSafetyValveLift;
+        _sim.MssvValveLifted -= OnSafetyValveLift;
+        ReactorSessionRuntime.I.ForegroundDriverChanged -= OnForegroundDriverChanged;
+        ReactorRealShutdownArm.ArmedChanged -= OnRealShutdownArmChanged;
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        _sessionHandlersAttached = false;
+    }
+
+    private void OnForegroundDriverChanged(string? ownerToken)
+    {
+        bool isDriver = string.Equals(
+            ownerToken,
+            _runtimeOwnerToken,
+            StringComparison.Ordinal);
+        if (isDriver)
+        {
+            UpdateDriverUi(true);
+            // Adopt the process-global hold left by the previous driver. The next Tick either
+            // preserves it or releases it based on the shared simulation's current generation.
+            _keepingAwake = AwakeService.Active;
+            if (_sim.Mode == ReactorMode.Meltdown)
+            {
+                _meltdownHandled = false;
+                OnMeltdown();
+            }
+            else
+            {
+                ClearLocalMeltdownPresentation();
+            }
+            return;
+        }
+
+        // Only the authoritative reactor window may own page-local safety controls. The session
+        // countdown is auto-aborted by ReactorSessionRuntime before authority transfers.
+        UpdateDriverUi(false);
+        ReactorWindowManager.CloseInteractiveSurfaces();
+        StopLocalShutdownCountdown();
+        SyncObserverMeltdownPresentation();
+    }
+
+    private void SyncObserverMeltdownPresentation()
+    {
+        if (ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)) return;
+        if (_sim.Mode == ReactorMode.Meltdown)
+        {
+            StopLocalShutdownCountdown();
+            MeltdownOverlay.Visibility = Visibility.Visible;
+            CountdownBox.Visibility = Visibility.Collapsed;
+            AbortButton.Visibility = Visibility.Collapsed;
+            MeltdownCloseButton.Visibility = Visibility.Collapsed;
+            MeltdownSub.Text = P(
+                "Fuel temperature exceeded structural limits. This read-only window shows live shared state; safety controls are active in the authoritative reactor window.",
+                "燃料溫度超出結構極限。呢個唯讀視窗會顯示即時共享狀態；安全控制由有操作權嘅反應堆視窗負責。");
+            return;
+        }
+
+        ClearLocalMeltdownPresentation();
+    }
+
+    private void ClearLocalMeltdownPresentation()
+    {
+        if (MeltdownOverlay.Visibility == Visibility.Collapsed
+            && !_meltdownFxStarted
+            && _countdownTimer is null)
+        {
+            _meltdownHandled = false;
+            return;
+        }
+
+        StopLocalShutdownCountdown();
+        MeltdownOverlay.Visibility = Visibility.Collapsed;
+        CountdownBox.Visibility = Visibility.Collapsed;
+        AbortButton.Visibility = Visibility.Collapsed;
+        MeltdownCloseButton.Visibility = Visibility.Collapsed;
+        _meltdownHandled = false;
+        _meltdownFxStarted = false;
+        try
+        {
+            if (_scrollVisual is not null) ReactorFx.ScreenShake(_scrollVisual, 0);
+            var strobeVisual = ElementCompositionPreview.GetElementVisual(MeltdownStrobe);
+            ReactorFx.RedStrobe(strobeVisual, false);
+        }
+        catch { }
+    }
+
+    private void OnRealShutdownArmChanged(bool armed)
+    {
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)
+            || _sim.Mode != ReactorMode.Meltdown)
+            return;
+
+        if (armed)
+        {
+            _session.ResetRealShutdownSequence();
+            _meltdownHandled = false;
+            OnMeltdown();
+            return;
+        }
+
+        _session.RealShutdownAborted = true;
+        _session.RealShutdownDeadlineUtc = null;
+        void RenderDisarmed()
+        {
+            // A rapid OFF→ON resets the session and begins a fresh countdown synchronously. Never
+            // let a stale queued OFF render stop that newer countdown.
+            if (ReactorRealShutdownArm.Armed
+                || !ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)
+                || _sim.Mode != ReactorMode.Meltdown)
+                return;
+            ShowShutdownAborted(
+                "Real shutdown was disarmed. Your PC is safe.",
+                "真實關機已解除武裝。你部電腦安全。");
+        }
+
+        if (DispatcherQueue.HasThreadAccess)
+            RenderDisarmed();
+        else
+            DispatcherQueue.TryEnqueue(RenderDisarmed);
     }
 
     protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
@@ -291,8 +444,8 @@ public sealed partial class ReactorModule : Page
 
     private void ApplyCommandLineAutoStart()
     {
-        if (_autoStartApplied || !App.AutoStartReactor) return;
-        _autoStartApplied = true;
+        if (_session.CommandLineAutoStartApplied || !App.AutoStartReactor) return;
+        _session.CommandLineAutoStartApplied = true;
         _sim.ApplyAutoStartPreset();
         _pendingDeepLink = "startup";
         _startupChecklistRequested = true;
@@ -352,6 +505,37 @@ public sealed partial class ReactorModule : Page
         Render();
         foreach (var r in _relocalizers) r();
         UpdateSaveIndicator(PersistenceService.I.LastSaved);
+        UpdateDriverUi(ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken));
+    }
+
+    private void UpdateDriverUi(bool isDriver)
+    {
+        ObserverInfoBar.IsOpen = !isDriver;
+        ObserverInfoBar.Title = P(
+            "Read-only reactor observer",
+            "唯讀反應堆監察視窗");
+        ObserverInfoBar.Message = P(
+            "Another visible control room is authoritative. This page keeps rendering live shared state, but plant controls are disabled until this window is promoted.",
+            "另一個可見控制室而家有操作權。呢一頁會繼續顯示即時共享狀態，但機組控制會停用，直至呢個視窗獲提升。");
+
+        ControlsSurface.IsEnabled = isDriver;
+        ScenarioCombo.IsEnabled = isDriver;
+        IsolateSgToggle.IsEnabled = isDriver;
+        AmsacDefeatToggle.IsEnabled = isDriver;
+        ScramButton.IsEnabled = isDriver;
+        ResetTripButton.IsEnabled = isDriver;
+        AutoRunToggle.IsEnabled = isDriver;
+        RevMeterMarkButton.IsEnabled = isDriver;
+        RevMeterClearButton.IsEnabled = isDriver;
+        CalMeterCalibrateButton.IsEnabled = isDriver;
+        CalMeterLefmToggle.IsEnabled = isDriver;
+        AckButton.IsEnabled = isDriver;
+        SilenceButton.IsEnabled = isDriver;
+        ResetAlarmButton.IsEnabled = isDriver;
+        LampTestButton.IsEnabled = isDriver;
+        OpenControlRoomButton.IsEnabled = isDriver;
+        ChecklistWidgetButton.IsEnabled = isDriver;
+        OpenWidgetsButton.IsEnabled = isDriver;
     }
 
     // ============================================================ persistence ====
@@ -367,6 +551,7 @@ public sealed partial class ReactorModule : Page
         _persistenceRegistered = true;
         try
         {
+            bool restoreSavedState = !_session.PersistenceRestoreAttempted;
             PersistenceService.I.Register(
                 PersistId,
                 snapshot: () => _sim.CaptureSnapshot(_simClock),
@@ -379,7 +564,9 @@ public sealed partial class ReactorModule : Page
                     _simClock = snap.SimClockSeconds;
                     // If we restored straight into a meltdown, surface the overlay (simulated only).
                     if (_sim.Mode == ReactorMode.Meltdown) { _meltdownHandled = false; OnMeltdown(); }
-                });
+                },
+                restoreSavedState: restoreSavedState);
+            _session.PersistenceRestoreAttempted = true;
         }
         catch (Exception ex) { CrashLogger.Log("reactor:register-persistence", ex); }
     }
@@ -474,9 +661,45 @@ public sealed partial class ReactorModule : Page
         double dt = (now - _last).TotalSeconds;
         _last = now;
         if (dt <= 0 || dt > 1.0) dt = 0.1;
-        _simClock += dt;
         _flashPhase += dt;
 
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken))
+        {
+            // A parallel/detached reactor page is a live, read-only observer. It must never advance
+            // shared physics or drive real-world effects, but it must not present frozen gauges or
+            // enabled controls against state owned by a different visible window.
+            UpdateAnnunciator(dt);
+            UpdateStatusBanner();
+            UpdateGauges();
+            UpdateAlarmTiles();
+            UpdateMimic();
+            UpdateAutoStartOverlay();
+            if (now - _lastStripChartUiUtc >= StripChartUiInterval)
+            {
+                _lastStripChartUiUtc = now;
+                UpdateStripCharts();
+            }
+            if (now - _lastInstrumentPanelUiUtc >= InstrumentPanelUiInterval)
+            {
+                _lastInstrumentPanelUiUtc = now;
+                UpdateNisPanels();
+                UpdateCsfPanel();
+                UpdateRpsPanel();
+            }
+            if (now - _lastControlSyncUiUtc >= ControlSyncUiInterval)
+            {
+                _lastControlSyncUiUtc = now;
+                UpdateControlsLive();
+                UpdateStatusApiCard();
+            }
+            UpdateDriverUi(false);
+            SyncObserverMeltdownPresentation();
+            if (_sim.Mode == ReactorMode.Meltdown)
+                AnimateMeltdown(dt);
+            return;
+        }
+
+        _simClock += dt;
         if (_sim.AutoStartMode)
             _sim.DriveAutoStart(dt);
         _sim.Update(dt);
@@ -764,9 +987,14 @@ public sealed partial class ReactorModule : Page
         UpdateKeepAwakePill(generating);
     }
 
-    private void ReleaseKeepAwake()
+    private void ReleaseKeepAwake(bool force = false)
     {
-        if (!_keepingAwake) return;
+        if (!force && !_keepingAwake) return;
+        if (!AwakeService.Active)
+        {
+            _keepingAwake = false;
+            return;
+        }
         AwakeService.AllowSleep();
         _keepingAwake = false;
     }
@@ -2238,11 +2466,15 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("Loss of feedwater heating (Ch 15.1.1)", "喪失給水加熱（15.1.1）"));
         ScenarioCombo.Items.Add(P("Loss of component cooling water (LCO 3.7.7)", "喪失設備冷卻水（LCO 3.7.7）"));
         ScenarioCombo.Items.Add(P("Uncontrolled RCCA withdrawal (Ch 15.4.1/2)", "失控提棒（15.4.1/2）"));
-        ScenarioCombo.SelectedIndex = 0;
+        bool wasSyncing = _syncingControlValues;
+        _syncingControlValues = true;
+        try { ScenarioCombo.SelectedIndex = ScenarioIndex(_sim.ActiveScenario); }
+        finally { _syncingControlValues = wasSyncing; }
     }
 
     private void IsolateSg_Click(object sender, RoutedEventArgs e)
     {
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)) return;
         bool on = IsolateSgToggle.IsChecked == true;
         // The same operator action means "isolate the affected SG": MSIV + feedwater closure for an SGTR,
         // MSIV closure (terminating the blowdown) for an MSLB. Route it to whichever transient is active.
@@ -2252,6 +2484,7 @@ public sealed partial class ReactorModule : Page
 
     private void AmsacDefeat_Click(object sender, RoutedEventArgs e)
     {
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)) return;
         // Operator demo switch: defeat AMSAC to show the UNMITIGATED ATWS (turbine stays on, AFW does not
         // auto-start on the diverse path, peak RCS pressure climbs toward the ASME Level C limit). Default OFF.
         _sim.AmsacDefeated = AmsacDefeatToggle.IsChecked == true;
@@ -2259,6 +2492,9 @@ public sealed partial class ReactorModule : Page
 
     private void Scenario_Changed(object sender, SelectionChangedEventArgs e)
     {
+        if (_syncingControlValues
+            || !ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken))
+            return;
         _sim.TriggerScenario(ScenarioCombo.SelectedIndex switch
         {
             1 => ReactorScenario.Loca,
@@ -2298,6 +2534,26 @@ public sealed partial class ReactorModule : Page
             AmsacDefeatToggle.Content = P("Defeat AMSAC (unmitigated ATWS)", "停用 AMSAC（未緩解 ATWS）");
         }
     }
+
+    private static int ScenarioIndex(ReactorScenario scenario) => scenario switch
+    {
+        ReactorScenario.Loca => 1,
+        ReactorScenario.StationBlackout => 2,
+        ReactorScenario.LossOfFeedwater => 3,
+        ReactorScenario.Atws => 4,
+        ReactorScenario.XenonRestart => 5,
+        ReactorScenario.SgTubeRupture => 6,
+        ReactorScenario.MainSteamLineBreak => 7,
+        ReactorScenario.RcpSealLoca => 8,
+        ReactorScenario.RodEjection => 9,
+        ReactorScenario.BoronDilution => 10,
+        ReactorScenario.CompleteLossOfFlow => 11,
+        ReactorScenario.LockedRotor => 12,
+        ReactorScenario.LossOfFeedwaterHeating => 13,
+        ReactorScenario.LossOfComponentCoolingWater => 14,
+        ReactorScenario.RccaWithdrawal => 15,
+        _ => 0,
+    };
 
     // ================================================================ COMPOSITION FX ====
     private void InitFx()
@@ -2351,6 +2607,7 @@ public sealed partial class ReactorModule : Page
     // ================================================================ TOOLBAR ====
     private void OpenControlRoom_Click(object sender, RoutedEventArgs e)
     {
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)) return;
         try
         {
             if (_controlRoomWindow is not null)
@@ -2378,6 +2635,7 @@ public sealed partial class ReactorModule : Page
 
     private void OpenChecklistWidget_Click(object sender, RoutedEventArgs e)
     {
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)) return;
         try
         {
             if (_startupChecklistWindow is not null)
@@ -2401,6 +2659,7 @@ public sealed partial class ReactorModule : Page
 
     private void OpenWidgets_Click(object sender, RoutedEventArgs e)
     {
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)) return;
         try
         {
             new ReactorWidgetWindow(_sim, WidgetKind.CorePower).Activate();
@@ -2894,7 +3153,8 @@ public sealed partial class ReactorModule : Page
         // autosave / Home Assistant siblings) now live on the dedicated Reactor Settings page. The reactor still
         // honours ReactorRealShutdownArm.Armed when a meltdown occurs. 真實關機等對外設定已搬去反應堆設定頁。
 
-        ResetTripButton.IsEnabled = true;
+        ResetTripButton.IsEnabled =
+            ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken);
         SyncControlValues();
     }
 
@@ -2926,6 +3186,16 @@ public sealed partial class ReactorModule : Page
 
         if (AutoRunToggle.IsOn != _sim.AutoRodControl)
             AutoRunToggle.IsOn = _sim.AutoRodControl;
+        int scenarioIndex = ScenarioIndex(_sim.ActiveScenario);
+        if (ScenarioCombo.SelectedIndex != scenarioIndex)
+            ScenarioCombo.SelectedIndex = scenarioIndex;
+        bool isolated = _sim.ActiveScenario == ReactorScenario.MainSteamLineBreak
+            ? _sim.MslbIsolated
+            : _sim.SgtrIsolated;
+        if (IsolateSgToggle.IsChecked != isolated)
+            IsolateSgToggle.IsChecked = isolated;
+        if (AmsacDefeatToggle.IsChecked != _sim.AmsacDefeated)
+            AmsacDefeatToggle.IsChecked = _sim.AmsacDefeated;
     }
 
     private void UpdateControlsLive()
@@ -3505,83 +3775,184 @@ public sealed partial class ReactorModule : Page
 
     // ================================================================ MELTDOWN ====
     // Audible "pop" cue each time a pressurizer code safety / MSSV valve lifts (relay-click voice).
-    private void OnSafetyValveLift() => ReactorAudioEngine.I.RelayClick();
+    private void OnSafetyValveLift()
+    {
+        if (ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken))
+            ReactorAudioEngine.I.RelayClick();
+    }
 
     private void OnMeltdown()
     {
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken)) return;
         if (_meltdownHandled) return;
         _meltdownHandled = true;
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            MeltdownOverlay.Visibility = Visibility.Visible;
-            MeltdownSub.Text = P(
-                "Fuel temperature exceeded structural limits. Fission products released. This is a SIMULATION.",
-                "燃料溫度超出結構極限，裂變產物已釋放。呢個係模擬。");
+        if (DispatcherQueue.HasThreadAccess)
+            RenderMeltdownOverlay();
+        else
+            DispatcherQueue.TryEnqueue(RenderMeltdownOverlay);
+    }
 
-            if (ReactorRealShutdownArm.Armed)
+    private void RenderMeltdownOverlay()
+    {
+        MeltdownOverlay.Visibility = Visibility.Visible;
+        MeltdownSub.Text = P(
+            "Fuel temperature exceeded structural limits. Fission products released. This is a SIMULATION.",
+            "燃料溫度超出結構極限，裂變產物已釋放。呢個係模擬。");
+
+        if (_session.RealShutdownFailed)
+        {
+            ShowShutdownFailed();
+        }
+        else if (_session.RealShutdownIssued)
+        {
+            ShowShutdownIssued();
+        }
+        else if (ReactorRealShutdownArm.Armed)
+        {
+            if (_session.RealShutdownAborted)
             {
-                // SAFETY GATE: abortable 10-second countdown before any real shutdown.
-                StartShutdownCountdown();
+                ShowShutdownAborted(
+                    "Shutdown ABORTED. Your PC is safe.",
+                    "已中止關機。你部電腦安全。");
             }
             else
             {
-                // Default-off path: simulated only. Never powers off the PC.
-                CountdownBox.Visibility = Visibility.Collapsed;
-                MeltdownCloseButton.Visibility = Visibility.Visible;
-                MeltdownSub.Text += P(
-                    "\n\nReal shutdown is OFF — your PC is safe.",
-                    "\n\n真實關機已關閉 — 你部電腦安全。");
+                // SAFETY GATE: one session-global, visibly transferable ten-second countdown
+                // before any real shutdown. Only the current foreground driver renders it.
+                StartShutdownCountdown();
             }
-        });
+        }
+        else
+        {
+            // Default-off path: simulated only. Never powers off the PC.
+            CountdownBox.Visibility = Visibility.Collapsed;
+            MeltdownCloseButton.Visibility = Visibility.Visible;
+            MeltdownSub.Text += P(
+                "\n\nReal shutdown is OFF — your PC is safe.",
+                "\n\n真實關機已關閉 — 你部電腦安全。");
+        }
     }
 
     private void StartShutdownCountdown()
     {
-        _aborted = false;
-        _shutdownIssued = false;
-        _countdownRemaining = 10;
+        if (_session.RealShutdownDeadlineUtc is null)
+            _session.RealShutdownDeadlineUtc = DateTime.UtcNow.AddSeconds(10);
+
         CountdownBox.Visibility = Visibility.Visible;
         MeltdownCloseButton.Visibility = Visibility.Collapsed;
+        AbortButton.Visibility = Visibility.Visible;
+        AbortButton.IsEnabled = true;
         CountdownText.Text = P(
             "REAL PC SHUTDOWN ARMED. This computer will shut down (normal, apps can save) when the timer reaches zero. Press ABORT to cancel.",
             "已啟用真實關機。倒數到零時呢部電腦會關機（正常關機，程式可儲存）。揿「中止」可取消。");
-        CountdownNumber.Text = _countdownRemaining.ToString();
-
-        _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _countdownTimer.Tick += (_, _) =>
-        {
-            if (_aborted) { _countdownTimer!.Stop(); return; }
-            _countdownRemaining--;
-            CountdownNumber.Text = Math.Max(0, _countdownRemaining).ToString();
-            if (_countdownRemaining <= 0)
-            {
-                _countdownTimer!.Stop();
-                if (!_aborted && !_shutdownIssued)
-                {
-                    _shutdownIssued = true;
-                    // CRITICAL: flush ALL persisted state to disk SYNCHRONOUSLY before we power the
-                    // PC off, so nothing is lost when the machine shuts down. 關機前先同步保存全部狀態。
-                    CrashLogger.Guard("reactor:pre-shutdown-flush", () => PersistenceService.I.Flush());
-                    string msg = "WinForge nuclear reactor simulation: meltdown — initiating shutdown.";
-                    bool ok = ReactorSimService.InitiateRealShutdown(msg);
-                    CountdownText.Text = ok
-                        ? P("Shutdown initiated by the operating system…", "作業系統已開始關機…")
-                        : P("Shutdown request was refused by Windows (insufficient privilege?).", "Windows 拒絕咗關機要求（權限不足？）。");
-                    CountdownNumber.Text = "0";
-                    if (!ok) MeltdownCloseButton.Visibility = Visibility.Visible;
-                }
-            }
-        };
+        StopLocalShutdownCountdown();
+        _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _countdownTimer.Tick += OnShutdownCountdownTick;
+        UpdateShutdownCountdown();
         _countdownTimer.Start();
+    }
+
+    private void OnShutdownCountdownTick(object? sender, object e) => UpdateShutdownCountdown();
+
+    private void UpdateShutdownCountdown()
+    {
+        if (!ReactorSessionRuntime.I.IsForegroundDriver(_runtimeOwnerToken))
+        {
+            StopLocalShutdownCountdown();
+            return;
+        }
+        if (!ReactorRealShutdownArm.Armed)
+        {
+            _session.RealShutdownAborted = true;
+            _session.RealShutdownDeadlineUtc = null;
+            ShowShutdownAborted(
+                "Real shutdown was disarmed. Your PC is safe.",
+                "真實關機已解除武裝。你部電腦安全。");
+            return;
+        }
+        if (_session.RealShutdownAborted)
+        {
+            ShowShutdownAborted(
+                "Shutdown ABORTED. Your PC is safe.",
+                "已中止關機。你部電腦安全。");
+            return;
+        }
+
+        DateTime deadline = _session.RealShutdownDeadlineUtc ?? DateTime.UtcNow.AddSeconds(10);
+        _session.RealShutdownDeadlineUtc ??= deadline;
+        int remaining = Math.Max(0, (int)Math.Ceiling((deadline - DateTime.UtcNow).TotalSeconds));
+        CountdownNumber.Text = remaining.ToString();
+        if (remaining > 0 || _session.RealShutdownIssued) return;
+
+        StopLocalShutdownCountdown();
+        _session.RealShutdownIssued = true;
+        // CRITICAL: flush ALL persisted state to disk SYNCHRONOUSLY before we power the
+        // PC off, so nothing is lost when the machine shuts down. 關機前先同步保存全部狀態。
+        CrashLogger.Guard("reactor:pre-shutdown-flush", () => PersistenceService.I.SaveAll());
+        string msg = "WinForge nuclear reactor simulation: meltdown — initiating shutdown.";
+        bool ok = ReactorSimService.InitiateRealShutdown(msg);
+        if (ok)
+        {
+            ShowShutdownIssued();
+        }
+        else
+        {
+            _session.RealShutdownFailed = true;
+            _session.RealShutdownDeadlineUtc = null;
+            ShowShutdownFailed();
+        }
+    }
+
+    private void StopLocalShutdownCountdown()
+    {
+        if (_countdownTimer is null) return;
+        _countdownTimer.Stop();
+        _countdownTimer.Tick -= OnShutdownCountdownTick;
+        _countdownTimer = null;
+    }
+
+    private void ShowShutdownAborted(string en, string zh)
+    {
+        StopLocalShutdownCountdown();
+        CountdownBox.Visibility = Visibility.Visible;
+        CountdownText.Text = P(en, zh);
+        CountdownNumber.Text = "✓";
+        AbortButton.Visibility = Visibility.Collapsed;
+        MeltdownCloseButton.Visibility = Visibility.Visible;
+    }
+
+    private void ShowShutdownIssued()
+    {
+        StopLocalShutdownCountdown();
+        CountdownBox.Visibility = Visibility.Visible;
+        CountdownText.Text = P(
+            "Windows accepted the shutdown request. It has already been issued and can no longer be cancelled from WinForge.",
+            "Windows 已接受關機要求。指令已經發出，而家唔可以再喺 WinForge 取消。");
+        CountdownNumber.Text = "0";
+        AbortButton.Visibility = Visibility.Collapsed;
+        MeltdownCloseButton.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowShutdownFailed()
+    {
+        StopLocalShutdownCountdown();
+        CountdownBox.Visibility = Visibility.Visible;
+        CountdownText.Text = P(
+            "Shutdown request was refused by Windows (insufficient privilege?). No retry will occur unless you disarm and explicitly arm again.",
+            "Windows 拒絕咗關機要求（可能權限不足）。除非先解除武裝再明確重新啟用，否則唔會重試。");
+        CountdownNumber.Text = "!";
+        AbortButton.Visibility = Visibility.Collapsed;
+        MeltdownCloseButton.Visibility = Visibility.Visible;
     }
 
     private void Abort_Click(object sender, RoutedEventArgs e)
     {
-        _aborted = true;
-        _countdownTimer?.Stop();
-        CountdownText.Text = P("Shutdown ABORTED. Your PC is safe.", "已中止關機。你部電腦安全。");
-        CountdownNumber.Text = "✓";
-        MeltdownCloseButton.Visibility = Visibility.Visible;
+        if (_session.RealShutdownIssued) return;
+        _session.RealShutdownAborted = true;
+        _session.RealShutdownDeadlineUtc = null;
+        ShowShutdownAborted(
+            "Shutdown ABORTED. Your PC is safe.",
+            "已中止關機。你部電腦安全。");
     }
 
     private void MeltdownClose_Click(object sender, RoutedEventArgs e)
@@ -3602,9 +3973,8 @@ public sealed partial class ReactorModule : Page
     private void ResetSimulation()
     {
         _meltdownHandled = false;
-        _shutdownIssued = false;
-        _aborted = false;
-        _countdownTimer?.Stop();
+        _session.ResetRealShutdownSequence();
+        StopLocalShutdownCountdown();
         _oneOverMHist.Clear();
         _simClock = 0;
         // Stop meltdown FX.
