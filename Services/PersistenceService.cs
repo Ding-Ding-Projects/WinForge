@@ -103,13 +103,17 @@ public sealed class PersistenceService
     /// Register a state provider. If saved state for this id was loaded at startup, the provider is
     /// restored immediately (so a page that opens after launch still gets its state back).
     /// </summary>
-    public void Register(string id, Func<object?> snapshot, Action<JsonElement> restore)
+    public void Register(
+        string id,
+        Func<object?> snapshot,
+        Action<JsonElement> restore,
+        bool restoreSavedState = true)
     {
         if (string.IsNullOrEmpty(id) || snapshot is null || restore is null) return;
         lock (_gate)
             _providers[id] = new Provider { Id = id, Snapshot = snapshot, Restore = restore };
         // Best-effort immediate restore from whatever we loaded at startup.
-        TryRestoreOne(id, restore);
+        if (restoreSavedState) TryRestoreOne(id, restore);
     }
 
     /// <summary>取消登記 · Unregister a provider (e.g. page unloaded). Optionally flush first.</summary>

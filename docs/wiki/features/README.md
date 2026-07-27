@@ -237,7 +237,7 @@
 | [WinForge Vault · WinForge 保險庫](security-privacy/vault.md) | `module.vault-volumes` | `vault` | 14 |
 | [Dashboard · 概覽](suite/dashboard.md) | `dashboard` | `dashboard` | 0 |
 | [Nuclear Reactor · 核反應堆](suite/reactor.md) | `module.reactor` | `reactor` | 19 |
-| [Reactor Settings · 反應堆設定](suite/reactorsettings.md) | `module.reactorsettings` | `reactorsettings` | 3 |
+| [Reactor Settings · 反應堆設定](suite/reactorsettings.md) | `module.reactorsettings` | `reactorsettings` | 6 |
 | [Battery & Thermal · 電池與散熱](system/battery.md) | `module.battery` | `battery` | 2 |
 | [Clipboard · 剪貼簿](system/clipboard.md) | `module.clipboard` | `clipboard` | 3 |
 | [Connections · 連線](system/connections.md) | `module.connections` | `connections` | 3 |

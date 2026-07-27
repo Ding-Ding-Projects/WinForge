@@ -30,6 +30,6 @@ The page uses separate English/Cantonese copy, wrapped captions, semantic theme 
 
 ## Security and verification · 安全同驗證
 
-This is a local dispatcher simulation; it does not connect to or switch a real grid. The focused harness covers cold-bus accounting, exact-fit healthy dispatch, a 350/640 MW sag split, unserved-MWh integration, ten-tick anti-flap reclose, operator-off semantics, blackout, reset, and duplicate-tick stability. The current Windows run passes as part of **65/65** scenarios.
+This is a local dispatcher simulation; it does not connect to or switch a real grid. The focused harness covers cold-bus accounting, exact-fit healthy dispatch, a 350/640 MW sag split, unserved-MWh integration, ten-tick anti-flap reclose, operator-off semantics, blackout, reset, and duplicate-tick stability. The current Windows run passes as part of **67/67** scenarios.
 
-呢個只係本機調度模擬，唔會連接或者切換真實電網。專項 harness 覆蓋冷母線計數、剛好放得落嘅健康調度、350/640 MW 下跌分割、未供電 MWh 累積、十 tick 防拍翼重合閘、操作員關閉語意、全黑、重設，同重複 tick 穩定性；目前 Windows 執行屬於 **65/65** 全綠結果。
+呢個只係本機調度模擬，唔會連接或者切換真實電網。專項 harness 覆蓋冷母線計數、剛好放得落嘅健康調度、350/640 MW 下跌分割、未供電 MWh 累積、十 tick 防拍翼重合閘、操作員關閉語意、全黑、重設，同重複 tick 穩定性；目前 Windows 執行屬於 **67/67** 全綠結果。

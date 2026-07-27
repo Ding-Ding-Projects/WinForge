@@ -747,8 +747,8 @@
 | [HexCopy](calculators-numbers/baseconvert/004-hexcopy.md) | Base Converter · 進位轉換 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Hex` |
 | [OctCopy](calculators-numbers/baseconvert/002-octcopy.md) | Base Converter · 進位轉換 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Oct` |
 | [ClearBtn](calculators-numbers/calculator/001-clearbtn.md) | Calculator · 計數機 | Calculators & Numbers · 計算與數字 | `Button` | `Clear_Click` |
-| [[icon U+E711]](calculators-numbers/expensesplit/002-removeperson-click.md) | Expense Splitter · 夾錢分帳 | Calculators & Numbers · 計算與數字 | `Button` | `RemovePerson_Click` |
 | [[icon U+E711]](calculators-numbers/expensesplit/004-removeexpense-click.md) | Expense Splitter · 夾錢分帳 | Calculators & Numbers · 計算與數字 | `Button` | `RemoveExpense_Click` |
+| [[icon U+E711]](calculators-numbers/expensesplit/002-removeperson-click.md) | Expense Splitter · 夾錢分帳 | Calculators & Numbers · 計算與數字 | `Button` | `RemovePerson_Click` |
 | [AddExpenseBtn](calculators-numbers/expensesplit/003-addexpensebtn.md) | Expense Splitter · 夾錢分帳 | Calculators & Numbers · 計算與數字 | `Button` | `AddExpense_Click` |
 | [AddPersonBtn](calculators-numbers/expensesplit/001-addpersonbtn.md) | Expense Splitter · 夾錢分帳 | Calculators & Numbers · 計算與數字 | `Button` | `AddPerson_Click` |
 | [CopyBtn](calculators-numbers/expensesplit/005-copybtn.md) | Expense Splitter · 夾錢分帳 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
@@ -770,10 +770,10 @@
 | [ListCopyBtn](calculators-numbers/randomizer/008-listcopybtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListCopy_Click` |
 | [ListPickBtn](calculators-numbers/randomizer/006-listpickbtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListPick_Click` |
 | [ListShuffleBtn](calculators-numbers/randomizer/007-listshufflebtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListShuffle_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/005-sicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+2212]](calculators-numbers/tally/002-minus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Minus_Click` |
 | [[icon U+2B]](calculators-numbers/tally/003-plus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Plus_Click` |
@@ -1394,12 +1394,12 @@
 | [WriteBackBtn](network-tools/hostsedit/009-writebackbtn.md) | Hosts File Editor · 主機檔編輯器 | Network Tools · 網絡工具 | `Button` | `WriteBack_Click` |
 | [CopyBtn](network-tools/ipinfo/002-copybtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Copy_Click` |
 | [RefreshBtn](network-tools/ipinfo/001-refreshbtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Refresh_Click` |
-| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
-| [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
-| [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
 | [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
 | [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
+| [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
 | [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
+| [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
+| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
 | [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
 | [RandomBtn](network-tools/mactools/001-randombtn.md) | MAC Address Tools · MAC 位址工具 | Network Tools · 網絡工具 | `Button` | `Random_Click` |
 | [PingStartBtn](network-tools/ping/001-pingstartbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStart_Click` |
@@ -1472,14 +1472,14 @@
 | [Delete · 刪除](security-privacy/camoufox/004-deletebtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Delete_Click` |
 | [DetectBtn](security-privacy/camoufox/019-detectbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Detect_Click` |
 | [Diff · 差異](security-privacy/camoufox/016-commitdiff-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `CommitDiff_Click` |
-| [Edit · 編輯](security-privacy/camoufox/002-editbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Edit_Click` |
 | [Edit · 編輯](security-privacy/camoufox/010-rowedit-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowEdit_Click` |
+| [Edit · 編輯](security-privacy/camoufox/002-editbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Edit_Click` |
 | [EmptyNewBtn](security-privacy/camoufox/011-emptynewbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `New_Click` |
 | [Export all · 全部匯出](security-privacy/camoufox/006-exportallbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `ExportAll_Click` |
 | [Export selected · 匯出已選](security-privacy/camoufox/005-exportselbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `ExportSelected_Click` |
 | [Import · 匯入](security-privacy/camoufox/007-importbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Import_Click` |
-| [Launch · 啟動](security-privacy/camoufox/009-rowlaunch-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowLaunch_Click` |
 | [Launch · 啟動](security-privacy/camoufox/003-launchbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Launch_Click` |
+| [Launch · 啟動](security-privacy/camoufox/009-rowlaunch-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowLaunch_Click` |
 | [NewBtn](security-privacy/camoufox/001-newbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `New_Click` |
 | [PushNowBtn](security-privacy/camoufox/015-pushnowbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `PushNow_Click` |
 | [Refresh · 重新整理](security-privacy/camoufox/008-refreshprofilesbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RefreshProfiles_Click` |
@@ -1536,8 +1536,11 @@
 | [SilenceButton](suite/reactor/015-silencebutton.md) | Nuclear Reactor · 核反應堆 | Suite | `Button` | `Silence_Click` |
 | [StartupChecklistButton](suite/reactor/003-startupchecklistbutton.md) | Nuclear Reactor · 核反應堆 | Suite | `Button` | `StartupChecklist_Click` |
 | [BackToReactorButton](suite/reactorsettings/001-backtoreactorbutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `BackToReactor_Click` |
-| [HaOpenModuleButton](suite/reactorsettings/002-haopenmodulebutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `HaOpenModule_Click` |
-| [HaRefreshButton](suite/reactorsettings/003-harefreshbutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `HaRefresh_Click` |
+| [FillFeatureDieselButton](suite/reactorsettings/002-fillfeaturedieselbutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `FillFeatureDiesel_Click` |
+| [HaOpenModuleButton](suite/reactorsettings/005-haopenmodulebutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `HaOpenModule_Click` |
+| [HaRefreshButton](suite/reactorsettings/006-harefreshbutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `HaRefresh_Click` |
+| [StartFeatureDieselButton](suite/reactorsettings/003-startfeaturedieselbutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `StartFeatureDiesel_Click` |
+| [StopFeatureDieselButton](suite/reactorsettings/004-stopfeaturedieselbutton.md) | Reactor Settings · 反應堆設定 | Suite | `Button` | `StopFeatureDiesel_Click` |
 | [EnergyBtn](system/battery/002-energybtn.md) | Battery & Thermal · 電池與散熱 | System · 系統 | `Button` | `EnergyReport_Click` |
 | [HealthBtn](system/battery/001-healthbtn.md) | Battery & Thermal · 電池與散熱 | System · 系統 | `Button` | `HealthReport_Click` |
 | [ClearBtn](system/clipboard/003-clearbtn.md) | Clipboard · 剪貼簿 | System · 系統 | `Button` | `Clear_Click` |

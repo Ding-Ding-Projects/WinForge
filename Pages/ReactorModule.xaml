@@ -9,7 +9,20 @@
     mc:Ignorable="d">
 
     <Grid>
-        <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <InfoBar x:Name="ObserverInfoBar"
+                 Grid.Row="0"
+                 IsOpen="False"
+                 IsClosable="False"
+                 Severity="Informational"
+                 Margin="24,8,24,0" />
+
+        <ScrollViewer x:Name="RootScroll" Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Padding="24,16,24,24" RowSpacing="14">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -103,23 +116,37 @@
                 <Border Grid.Row="3" CornerRadius="8" Padding="12,8,12,8"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <Button x:Name="ReactorSettingsButton" Click="ReactorSettings_Click" Background="#2FAF57" Foreground="White">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE713;" FontSize="14" Foreground="White" />
-                                <TextBlock x:Name="ReactorSettingsButtonText" />
+                    <StackPanel Spacing="8">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                      HorizontalScrollMode="Enabled"
+                                      VerticalScrollBarVisibility="Disabled"
+                                      VerticalScrollMode="Disabled">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Button x:Name="ReactorSettingsButton" Click="ReactorSettings_Click" Background="#2FAF57" Foreground="White">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE713;" FontSize="14" Foreground="White" />
+                                        <TextBlock x:Name="ReactorSettingsButtonText" />
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="OpenControlRoomButton" Click="OpenControlRoom_Click" />
+                                <Button x:Name="StartupChecklistButton" Click="StartupChecklist_Click" />
                             </StackPanel>
-                        </Button>
-                        <Button x:Name="OpenControlRoomButton" Click="OpenControlRoom_Click" />
-                        <Button x:Name="StartupChecklistButton" Click="StartupChecklist_Click" />
-                        <Button x:Name="ChecklistWidgetButton" Click="OpenChecklistWidget_Click" />
-                        <Button x:Name="OpenWidgetsButton" Click="OpenWidgets_Click" />
-                        <ToggleButton x:Name="MuteToggle" Click="MuteToggle_Click" />
-                        <TextBlock x:Name="ScenarioLabel" VerticalAlignment="Center" Margin="8,0,0,0"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <ComboBox x:Name="ScenarioCombo" MinWidth="220" SelectionChanged="Scenario_Changed" />
-                        <ToggleButton x:Name="IsolateSgToggle" Click="IsolateSg_Click" Visibility="Collapsed" />
-                        <ToggleButton x:Name="AmsacDefeatToggle" Click="AmsacDefeat_Click" Visibility="Collapsed" />
+                        </ScrollViewer>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                      HorizontalScrollMode="Enabled"
+                                      VerticalScrollBarVisibility="Disabled"
+                                      VerticalScrollMode="Disabled">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Button x:Name="ChecklistWidgetButton" Click="OpenChecklistWidget_Click" />
+                                <Button x:Name="OpenWidgetsButton" Click="OpenWidgets_Click" />
+                                <ToggleButton x:Name="MuteToggle" Click="MuteToggle_Click" />
+                                <TextBlock x:Name="ScenarioLabel" VerticalAlignment="Center" Margin="8,0,0,0"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <ComboBox x:Name="ScenarioCombo" MinWidth="220" SelectionChanged="Scenario_Changed" />
+                                <ToggleButton x:Name="IsolateSgToggle" Click="IsolateSg_Click" Visibility="Collapsed" />
+                                <ToggleButton x:Name="AmsacDefeatToggle" Click="AmsacDefeat_Click" Visibility="Collapsed" />
+                            </StackPanel>
+                        </ScrollViewer>
                     </StackPanel>
                 </Border>
 
@@ -276,7 +303,9 @@
                 <Border Grid.Row="11" CornerRadius="8" Padding="16"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                    <StackPanel x:Name="ControlsHost" Spacing="14" />
+                    <ContentControl x:Name="ControlsSurface" IsTabStop="False">
+                        <StackPanel x:Name="ControlsHost" Spacing="14" />
+                    </ContentControl>
                 </Border>
 
                 <!-- Public status API (named pipe + MMF) — for dependent apps -->
@@ -289,7 +318,7 @@
         </ScrollViewer>
 
         <!-- Command-line auto-start animation/progress. Non-blocking: the control room stays usable. -->
-        <Border x:Name="AutoStartOverlay" Visibility="Collapsed" IsHitTestVisible="False"
+        <Border x:Name="AutoStartOverlay" Grid.RowSpan="2" Visibility="Collapsed" IsHitTestVisible="False"
                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24"
                 CornerRadius="8" Padding="14,12,14,12" Width="360"
                 Background="#E61B2430" BorderBrush="#FF49CDD9" BorderThickness="1">
@@ -312,7 +341,7 @@
         </Border>
 
         <!-- MELTDOWN overlay (dramatic) -->
-        <Grid x:Name="MeltdownOverlay" Visibility="Collapsed" Background="#E6000000">
+        <Grid x:Name="MeltdownOverlay" Grid.RowSpan="2" Visibility="Collapsed" Background="#E6000000">
             <Border Background="#22FF0000" />
             <Grid x:Name="MeltdownStrobe" Background="#33FF0000" IsHitTestVisible="False" />
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20" MaxWidth="640">

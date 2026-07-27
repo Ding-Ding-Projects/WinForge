@@ -30,6 +30,6 @@ The page uses separate English/Cantonese strings through the persisted language 
 
 ## Security and verification · 安全同驗證
 
-The module is a local simulation and does not actuate real plant equipment or add network access. The focused harness verifies idle gating, pressurisation, synthesis, CO₂ accounting, power-loss depressurisation, reset, and duplicate-tick stability. The current Windows run passes as part of **65/65** scenarios.
+The module is a local simulation and does not actuate real plant equipment or add network access. The focused harness verifies idle gating, pressurisation, synthesis, CO₂ accounting, power-loss depressurisation, reset, and duplicate-tick stability. The current Windows run passes as part of **67/67** scenarios.
 
-模組只係本機模擬，唔會控制真實廠房設備或者新增網絡存取。專項 harness 驗證閒置閘門、加壓、合成、CO₂ 計數、失電降壓、重設，同重複 tick 穩定性；目前 Windows 執行屬於 **65/65** 全綠結果。
+模組只係本機模擬，唔會控制真實廠房設備或者新增網絡存取。專項 harness 驗證閒置閘門、加壓、合成、CO₂ 計數、失電降壓、重設，同重複 tick 穩定性；目前 Windows 執行屬於 **67/67** 全綠結果。

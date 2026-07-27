@@ -138,9 +138,9 @@ Local gates are green: the solution builds with zero errors; all **27/27** Relea
 
 ## Validation · 驗證
 
-The managed compile gate is `dotnet build WinForge.sln -c Debug -p:Platform=x64` with zero errors. The reactor/dependent-service gate is `dotnet run --project tests/ReactorSim.Tests -c Debug`, currently 65/65 with nonzero exit on failure. Use the repository's managed-only run driver for a process-owned deep-link launch or screenshot.
+The managed compile gate is `dotnet build WinForge.sln -c Debug -p:Platform=x64` with zero errors. The reactor/dependent-service gate is `dotnet run --project tests/ReactorSim.Tests -c Debug`, currently 67/67 with nonzero exit on failure. Use the repository's headless-only, no-focus-steal run driver for a process-owned deep-link launch or screenshot.
 
-正式編譯 gate 係指定 `dotnet build` command 同零 errors；反應堆／依賴服務 gate 係指定 `ReactorSim.Tests` command，目前 65/65，失敗時非零退出。直接開頁或者截圖要用 repo 嘅 managed-only driver，只控制自己開嘅 process。
+正式編譯 gate 係指定 `dotnet build` command 同零 errors；反應堆／依賴服務 gate 係指定 `ReactorSim.Tests` command，目前 67/67，失敗時非零退出。直接開頁或者截圖要用 repo 嘅只限 headless、唔搶焦點 driver，只控制自己開嘅 process。
 
 ## Repository split proof · Repository 分拆證明
 
@@ -166,3 +166,11 @@ See the repository [handoff summary](https://github.com/Ding-Ding-Projects/WinFo
 - The reusable `SearchPatternBox` synchronizes compact query, raw .NET pattern, explicit mode, five flags, validation, and live captures with real results on eight core/common surfaces; plain text remains the default. · 可重用 `SearchPatternBox` 會將精簡 query、原樣 .NET pattern、明確 mode、五旗標、驗證同即時擷取，同八個核心／共用介面嘅真實結果同步；純文字保持預設。
 - Focused tests pass 33/33. The generated 93-control/74-file inventory records 8 integrated, 64 ordinary remaining, 9 adapter-required dialects, 7 dedicated pattern tools, 2 outputs, and 3 shared-control internals. · 專項 33/33；生成嘅 93 控制／74 檔案清單記低八個已整合、64 個一般搜尋保留、九個需要 adapter 嘅方言、七個專用 pattern 工具、兩個輸出，同三個共用控制內部欄位。
 - Fresh inspected 852×646 normal LowLevel and 760×720 app-owned narrow bilingual evidence covers the unclipped compact row. The live flyout audit produced one-column flags and a short sample prompt; the full builder remains source/test locked, with exact cleanup/hashes in the repository handoff summary. · 最新已檢視正常 LowLevel 同窄畫面 app-owned 雙語證據，精簡列冇裁切；live flyout 審核促成單欄旗標同短 sample 提示，完整 builder 由原始碼／測試鎖實，準確清理／hash 見 repo handoff summary。
+
+## Optional nuclear feature power and emergency diesel — 2026-07-27 · 可選核電功能同應急柴油
+
+Nine playful gates now prefer healthy nuclear generation but may use an explicitly enabled simulated EDG. Permission defaults OFF and persists; every app session starts stopped and empty, requires a manual 60 L fill plus 10-second start, burns 1.0 L/min while starting/running, and allows at most two exact owner-token module instances on its 250 MWe bus. Cake Factory preserves its live model and freezes only powered work/CIP on loss, while passive risk and clocks continue. The other 19 industrial loads stay nuclear-only. · 九個玩味閘門優先用健康核電，但可明確啟用模擬 EDG；權限預設 OFF 並保存，每次 session 都由停機空缸開始，要手動入滿 60 L 加等 10 秒啟動，啟動／運行每分鐘燒 1.0 L，250 MWe 匯流排同時最多兩個準確 owner-token module instance。蛋糕工廠失電時保留 live model，只凍結有電工作／CIP，被動風險同時鐘繼續；其餘 19 個工業負載只限核電。
+
+Reactor pages now share one canonical session with one visible driver and live read-only observers. Authority handoff aborts pending real shutdown first; demotion closes mutating companions; last-owner cleanup ends page-owned audio and real integrations while background physics/API stay current. Local gates pass: solution **0 warnings / 0 errors**, lifecycle **10/10**, reactor scenarios **67/67**, and XAML safety. Eight inspected 1558×878/1574×887 real-build screenshots cover every changed surface and state. All launch/capture work used dedicated off-screen desktops, no visible terminal or focus steal, exact owned-process cleanup, and left unrelated WinForge PID 37896 untouched. · 反應堆頁共用一個正式 session，有一個可見 driver 同即時唯讀 observer；交接前先中止待處理真實關機，降級關閉可改動 companion，最後 owner 清理頁面音效／真實整合，但背景物理／API 繼續。solution **0 warning／0 error**、生命週期 **10/10**、情景 **67/67**、XAML safety 全過；八張真實 build 圖覆蓋所有改動介面／狀態。全部啟動／擷取只用專用離屏桌面，冇可見終端、冇搶焦點，準確清理自家 process，亦冇郁唔相關 PID 37896。
+
+Progress is tracked in Discussion [#10](https://github.com/Ding-Ding-Projects/WinForge/discussions/10). GitHub Projects remains externally blocked because the active token lacks `read:project` / `project`; no Project item was changed. This pre-push record is based on `b6927976` and does not claim hosted workflow success; exact commit/main proof follows in the repository handoff completion record. · 進度喺 Discussion #10；現用 token 冇 Project scopes，所以 GitHub Projects 外部受阻，冇改任何 item。呢段 push 前記錄以 `b6927976` 為基線，未聲稱 hosted workflow 成功；準確 commit／main 證明會記喺 repo handoff 完成記錄。

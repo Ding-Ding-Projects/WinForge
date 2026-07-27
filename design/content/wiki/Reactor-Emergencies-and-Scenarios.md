@@ -20,9 +20,9 @@
 
 ## Meltdown & recovery · 熔毀與復原
 
-**EN —** If fuel temperature exceeds structural limits for too long, the core melts. The simulation shows the **CORE MELTDOWN** overlay and (with real shutdown OFF — the default) the message *"Real shutdown is OFF — your PC is safe."* Click **Dismiss & reset simulation · 關閉並重設模擬** to recover. Only if you have armed "ARM REAL SHUTDOWN" will an actual (abortable, 10 s countdown) Windows shutdown follow — see [Safety & Integrations](Reactor-Safety-and-Integrations.md).
+**EN —** If fuel temperature exceeds structural limits for too long, the core melts. The simulation shows the **CORE MELTDOWN** overlay and (with real shutdown OFF — the default) the message *"Real shutdown is OFF — your PC is safe."* Click **Dismiss & reset simulation · 關閉並重設模擬** to recover. Only a fully loaded, visible control room can arm **ARM REAL SHUTDOWN** and expose the abortable ten-second countdown. The deadline and Windows accepted/refused outcome are truthful session-global state, but any foreground page/window authority handoff automatically aborts an active countdown; closing the last control room disarms and resets it. If Windows accepts the shutdown request, ABORT is hidden because cancellation is no longer possible. See [Safety & Integrations](Reactor-Safety-and-Integrations.md).
 
-**粵語 —** 如果燃料溫度長時間超過結構極限，爐心就會熔毀。模擬會顯示 **CORE MELTDOWN** 畫面，並（喺真實關機 OFF——即預設下）顯示*「Real shutdown is OFF — your PC is safe.」*。揿**關閉並重設模擬**復原。只有當你已開啟「ARM REAL SHUTDOWN」，先會跟住觸發真實（可中止、10 秒倒數）嘅 Windows 關機——詳見[安全與整合](Reactor-Safety-and-Integrations.md)。
+**粵語 —** 如果燃料溫度長時間超過結構極限，爐心就會熔毀。模擬會顯示 **CORE MELTDOWN** 畫面，並（喺真實關機 OFF——即預設下）顯示*「Real shutdown is OFF — your PC is safe.」*。揿**關閉並重設模擬**復原。只有已完成載入兼可見嘅控制室先可以開啟 **ARM REAL SHUTDOWN** 同顯示可中止十秒倒數。Deadline 同 Windows 接受／拒絕結果係如實嘅全 session 狀態，但任何前景頁面／視窗 authority 交接都會自動中止進行中倒數；關閉最後一個控制室會解除武裝兼重設。Windows 一接受關機要求就會收起 ABORT，因為已經唔可以取消。詳見[安全與整合](Reactor-Safety-and-Integrations.md)。
 
 ---
 
@@ -41,8 +41,8 @@
 | **SGTR** (Steam Generator Tube Rupture · 蒸汽產生器傳熱管破裂) | Primary-to-secondary leak, secondary radiation rises. · 一次往二次洩漏、二次側輻射上升。 | Isolate affected SG, cool & depressurize. · 隔離受影響 SG、冷卻並洩壓。 |
 | **MSLB** (Main Steam Line Break · 主蒸汽管破裂) | Rapid secondary depressurization, overcooling. · 二次側快速洩壓、過度冷卻。 | Isolate steam line, control overcooling transient. · 隔離蒸汽管、控制過冷瞬態。 |
 
-> ⚠️ **EN —** Because the at-power reactivity calibration is unfinished (P1–P3), some scenarios may run the core away once power rises; the reactor is safe to view in Shutdown. See the [Test Report](Reactor-Test-Report.md).
-> ⚠️ **粵語 —** 由於滿載反應性校準未完成（P1–P3），部分情景一旦功率上升可能令爐心失控；喺停堆狀態下觀看係安全嘅。詳見[測試報告](Reactor-Test-Report.md)。
+> ✅ **EN —** The foundational P1–P5 realism findings are resolved. The current headless engine/dependency run is **67/67 green**, and the focused Reactor Settings/session lifecycle contract is **10/10 green**. See the [Test Report](Reactor-Test-Report.md).
+> ✅ **粵語 —** 基礎 P1–P5 寫實度問題已解決。現時反應堆引擎／相依服務無介面測試 **67/67** 全綠，專項反應堆設定／session 生命週期合約亦 **10/10** 全綠。詳見[測試報告](Reactor-Test-Report.md)。
 
 ---
 

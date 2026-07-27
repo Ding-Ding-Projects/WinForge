@@ -8,6 +8,15 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Source-level assertions keep the test headless: no reactor or external integration is started. -->
+    <None Include="..\..\Pages\ReactorDependencyPage.xaml" Link="ReactorDependencyPage.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Pages\ReactorDependencyPage.xaml.cs" Link="ReactorDependencyPage.xaml.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Pages\ReactorSettingsModule.xaml" Link="ReactorSettingsModule.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\Pages\ReactorSettingsModule.xaml.cs" Link="ReactorSettingsModule.xaml.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Pages\ReactorModule.xaml" Link="ReactorModule.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Pages\ReactorModule.xaml.cs" Link="ReactorModule.xaml.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Pages\ReactorWindows.cs" Link="ReactorWindows.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Services\ReactorHomeAssistantMirror.cs" Link="ReactorHomeAssistantMirror.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Services\ReactorSessionRuntime.cs" Link="ReactorSessionRuntime.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Services\ReactorSystemLinkService.cs" Link="ReactorSystemLinkService.cs" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

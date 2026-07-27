@@ -12,8 +12,9 @@ namespace WinForge.Services;
 /// </summary>
 public static class SettingsStore
 {
-    private static readonly string Dir =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge");
+    internal const string AutomationDataRootEnvironmentVariable = "WINFORGE_AUTOMATION_DATA_ROOT";
+
+    private static readonly string Dir = ResolveDirectory();
 
     private static readonly string FilePath = Path.Combine(Dir, "settings.json");
     private static readonly SettingsStoreSession Session = new(FilePath);
@@ -27,6 +28,37 @@ public static class SettingsStore
 
     /// <summary>由檔案匯入設定（合併）· Import settings from a JSON file (merge). Returns count imported.</summary>
     public static int ImportFrom(string path) => Session.ImportFrom(path);
+
+    private static string ResolveDirectory()
+    {
+#if DEBUG
+        // Headless capture/smoke runs must never read or mutate the operator's real profile.
+        // Accept an explicit automation root only beneath the current user's temporary folder;
+        // Release builds always use the normal LocalAppData known folder.
+        string? requestedRoot = Environment.GetEnvironmentVariable(AutomationDataRootEnvironmentVariable);
+        if (!string.IsNullOrWhiteSpace(requestedRoot))
+        {
+            try
+            {
+                string fullRoot = Path.GetFullPath(requestedRoot);
+                string tempRoot = Path.GetFullPath(Path.GetTempPath());
+                string tempPrefix = tempRoot.EndsWith(Path.DirectorySeparatorChar)
+                    ? tempRoot
+                    : tempRoot + Path.DirectorySeparatorChar;
+
+                if (fullRoot.StartsWith(tempPrefix, StringComparison.OrdinalIgnoreCase))
+                    return Path.Combine(fullRoot, "WinForge");
+            }
+            catch
+            {
+                // Invalid or non-local automation roots fail closed to the normal profile path.
+            }
+        }
+#endif
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "WinForge");
+    }
 }
 
 /// <summary>

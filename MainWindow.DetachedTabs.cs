@@ -25,11 +25,26 @@ public sealed partial class MainWindow
         if (!Tabs.TabItems.Contains(tab)) return;
 
         var data = TabSessionService.CloneTab(DataOf(tab));
+        if (ReactorDependencyService.Requires(BaseNavKey(data.Key)))
+        {
+            AppNotificationService.Publish(new AppNoticeDraft(
+                "Keep this powered module in a tab",
+                "請將呢個供電模組留喺分頁",
+                "Feature-power modules stay in the main tab strip so their nuclear/EDG source and the two EDG outlets can be enforced continuously.",
+                "功能電源模組要留喺主分頁列，先可以持續執行核電／柴油來源同兩個柴油插槽限制。",
+                AppNoticeSeverity.Warning,
+                Key: "feature-power.detach",
+                AutoDismissMs: 0));
+            return;
+        }
+
         var (type, param) = Resolve(data.Key);
         var title = string.IsNullOrWhiteSpace(data.Name) ? TitleFor(data.Key, type, param) : data.Name.Trim();
         var window = new DetachedTabWindow(title, type, param);
         TrackDetachedTabWindow(window);
 
+        if (_featurePowerOwnerTokens.Remove(tab, out var ownerToken))
+            ReactorFeaturePowerService.I.ReleaseModule(ownerToken);
         Tabs.TabItems.Remove(tab);
         if (Tabs.TabItems.Count == 0) AddTab("dashboard");
         UpdateBackButton();

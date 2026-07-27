@@ -10,9 +10,9 @@
 
 ## Where to find it · 喺邊度搵到
 
-**EN —** It is the **first tile on the Dashboard** (★ FLAGSHIP) and the **top entry in the navigation**. You can also deep-link from a terminal: `WinForge.exe --reactor` (or `--page reactor`).
+**EN —** It is the **first tile on the Dashboard** (★ FLAGSHIP) and the **top entry in the navigation**. You can also deep-link from a terminal: `WinForge.exe --reactor` (or `--page reactor`). `WinForge.exe --auto-start-reactor` opens the same canonical reactor session and applies the automatic-start preset once per app session; reopening the page cannot replay it.
 
-**粵語 —** 它係**儀表板第一個磚** (★ 旗艦) 同**導覽列最頂**。亦可由終端機深層連結：`WinForge.exe --reactor`（或 `--page reactor`）。
+**粵語 —** 它係**儀表板第一個磚** (★ 旗艦) 同**導覽列最頂**。亦可由終端機深層連結：`WinForge.exe --reactor`（或 `--page reactor`）。`WinForge.exe --auto-start-reactor` 會開啟同一個正式反應堆 session，並喺每個 app session 只套用一次自動起動 preset；重開頁面唔會重播。
 
 ---
 
@@ -31,16 +31,24 @@
 
 ---
 
+## Session continuity · Session 連續性
+
+**EN —** All Reactor pages share one in-memory simulation. The newest visible page is the sole foreground driver; parallel pages remain live read-only observers whose gauges/status keep rendering while plant controls are disabled. Authority demotion aborts any active shutdown countdown and closes mutating HTML/control-room, checklist, and SCRAM-widget companions, while read-only widgets may remain. A demoted meltdown page keeps its live overlay without ABORT/reset and auto-collapses it when the driver resets shared state. After the last control room closes, a minimal UI-thread loop continues only simulated physics, automatic-start progression, the mission clock, and the truthful public status API. Page-owned audio, Home Assistant, keep-awake, Windows linkage, and real-shutdown handling stop or restore rather than running invisibly.
+
+**粵語 —** 全部反應堆頁共用一個記憶體內模擬；最新可見頁係唯一前景 driver，而並行頁面會保持即時唯讀觀察，儀錶／狀態繼續更新但機組控制會停用。Authority 降級會中止任何進行中嘅關機倒數，並關閉可改動模擬嘅 HTML／控制室、checklist 同 SCRAM widget companion；唯讀 widget 可以留低。降級頁面嘅熔毀 overlay 會保持即時顯示但冇 ABORT／重設，driver 重設共用狀態時會自動收起。最後一個控制室關閉後，最小化 UI-thread loop 只會繼續模擬物理、自動起動進度、任務時鐘同如實公開狀態 API。頁面持有嘅音效、Home Assistant、保持喚醒、Windows 連動同真實關機處理會停止或還原，唔會暗中運行。
+
+---
+
 ## Safety summary · 安全摘要
 
-> ⚠️ **EN —** Two real-world side-effects are **opt-in and clearly gated**:
-> - **Meltdown → real PC shutdown** is **OFF by default**. When meltdown occurs it only shows a simulated overlay. You must arm "ARM REAL SHUTDOWN" to enable an actual (abortable, 10 s countdown) Windows shutdown.
-> - **Keep PC awake while generating** holds the PC awake only while the generator is on-load; it releases the instant you SCRAM or trip.
+> ⚠️ **EN —** Real-world side-effects are **opt-in or clearly bounded**:
+> - **Meltdown → real PC shutdown** is **OFF by default** and can be armed only with a fully loaded, visible control room that can show ABORT. The ten-second deadline and OS accepted/refused outcome are truthful session-global state, but changing foreground page/window authority automatically aborts an active countdown. If Windows accepts the request, ABORT disappears because the request can no longer be cancelled.
+> - **Keep PC awake while generating** holds the PC awake only while the generator is on-load and a Reactor page is visible; it releases the instant you SCRAM/trip or close the last page.
 > - The reactor is **sim-only** — it controls no real hardware.
 
-> ⚠️ **粵語 —** 兩個會影響真實系統嘅效果都係**預設關閉、明確開關**：
-> - **熔毀 → 真實關機**預設 **OFF**；熔毀時只播模擬畫面。你要開啟「ARM REAL SHUTDOWN」先會觸發真實（可中止、10 秒倒數）嘅 Windows 關機。
-> - **發電時保持喚醒**只喺發電機併網時保持電腦喚醒；一 SCRAM 或跳脫即刻放開。
+> ⚠️ **粵語 —** 真實世界效果全部都係**可選或者有清楚界線**：
+> - **熔毀 → 真實關機**預設 **OFF**，只可以喺已完成載入、可顯示 ABORT 嘅控制室明確 ARM。十秒 deadline 同 OS 接受／拒絕結果係如實嘅全 session 狀態，但前景頁面／視窗 authority 一改變就會自動中止進行中倒數。Windows 接受要求後，因為已經唔可以取消，所以 ABORT 會消失。
+> - **發電時保持喚醒**只喺發電機併網兼有反應堆頁面可見時保持電腦喚醒；一 SCRAM／跳脫，或者關閉最後一頁，就即刻放開。
 > - 反應堆**只係模擬**，唔會控制任何真實硬件。
 
 See [Reactor Safety & Integrations · 反應堆安全與整合](Reactor-Safety-and-Integrations.md) for the full detail. · 詳情見反應堆安全與整合頁。

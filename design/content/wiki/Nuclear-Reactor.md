@@ -8,6 +8,8 @@ Open in-app · 喺 app 內開啟：`WinForge.exe --reactor` (or `--page reactor`
 
 ![Nuclear Reactor · 核反應堆](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-reactor.png)
 
+> **Verified state · 已驗證狀態 —** **EN:** The engine/dependency harness is **67/67 green**, including optional EDG and Cake Factory exact-owner/CIP power-loss regressions; the safe focused session/settings lifecycle harness is **10/10 green**. · **粵語：**引擎／相依服務 harness **67/67** 全綠，包括可選 EDG 同蛋糕工廠準確 owner／CIP 失電回歸；安全專項 session／設定生命週期 harness 亦 **10/10** 全綠。
+
 ---
 
 ## Table of contents · 目錄
@@ -21,9 +23,9 @@ Open in-app · 喺 app 內開啟：`WinForge.exe --reactor` (or `--page reactor`
 | [Reactor Fuel & Waste · 反應堆燃料與廢料](Reactor-Fuel-and-Waste.md) | 17×17 UO₂ fuel factory, HMAC validate, load-consumes-file, forged harm, real waste files, caps & floors. · 燃料工廠、HMAC 驗證、入料即刪檔、偽冒損堆、真實廢料檔、上限與下限。 |
 | [Reactor Water Treatment · 反應堆水處理](Reactor-Water-Treatment.md) | Intake → clarifier → filter → RO → demin → degasifier → ultrapure; chemistry; reactor dependency. · 取水 → 澄清 → 過濾 → RO → 除鹽 → 除氣 → 超純；水質；反應堆依賴。 |
 | [Reactor Industrial Loads · 反應堆工業負載](Reactor-Industrial-Loads.md) | Green-ammonia synthesis and strict-priority feeder dispatch against the live simulated bus. · 用即時模擬母線做綠氨合成同嚴格優先級饋線調度。 |
-| [Reactor Safety & Integrations · 反應堆安全與整合](Reactor-Safety-and-Integrations.md) | ARM real-shutdown toggle, keep-awake, Windows linkage, crash-safe autosave, public status API. · ARM 真實關機開關、保持喚醒、Windows 連動、防崩潰自動儲存、公開狀態 API。 |
+| [Reactor Safety & Integrations · 反應堆安全與整合](Reactor-Safety-and-Integrations.md) | Canonical foreground/background session, live read-only parallel observers, mutating-companion cleanup on authority demotion, visible-only ARM with pre-handoff abort, truthful OS outcomes, page-owned real-effect cleanup, once-per-session command-line auto-start, keep-awake, Windows linkage, autosave, and public API. · 正式前景／背景 session、並行頁面即時唯讀觀察、authority 降級時清理可改動 companion、只限可見控制室 ARM 同交接前中止、如實 OS 結果、頁面持有真實效果清理、每 session 一次命令列自動起動、保持喚醒、Windows 連動、自動儲存同公開 API。 |
 | [Nuclear Reactor — Operating Manual · 核反應堆操作手冊](Nuclear-Reactor-Operating-Manual.md) | Manual index linking the focused pages above. · 連結上述聚焦頁面嘅手冊索引。 |
-| [Reactor Test Report · 反應堆測試報告](Reactor-Test-Report.md) | Latest headless run: **65 / 65** scenarios pass, including ammonia and load-shed regressions. The harness exits 0 only for a complete pass and 1 on any scenario failure or exception. · 最新無介面運行：**65／65** 情景通過，包括合成氨同卸載回歸；測試框架只會喺完全通過時退出 0，任何情景失敗或例外都退出 1。 |
+| [Reactor Test Report · 反應堆測試報告](Reactor-Test-Report.md) | Latest: **67 / 67** engine/dependency scenarios and **10 / 10** focused lifecycle tests pass, including industrial-load, EDG fuel/outlet, Cake CIP freeze/resume, and visible-safety regressions. · 最新 **67／67** 引擎／相依服務情景同 **10／10** 專項生命週期測試通過，包括工業負載、柴油機油量／插槽、蛋糕 CIP 凍結／恢復，同可見安全回歸。 |
 
 ---
 

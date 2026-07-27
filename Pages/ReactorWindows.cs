@@ -55,6 +55,24 @@ public static class ReactorWindowManager
             }
         }
     }
+
+    /// <summary>
+    /// Close every companion surface that can mutate the shared simulation. Read-only gauges/status
+    /// widgets remain useful when their owning page becomes an observer.
+    /// </summary>
+    public static void CloseInteractiveSurfaces()
+    {
+        foreach (var w in Open.ToArray())
+        {
+            if (w is ReactorHtmlWindow
+                or ReactorControlRoomWindow
+                or ReactorStartupChecklistWindow
+                || w is ReactorWidgetWindow { CanMutateSimulation: true })
+            {
+                try { w.Close(); } catch { /* best effort */ }
+            }
+        }
+    }
 }
 
 /// <summary>完整控制室視窗 · Full control-room window in its own AppWindow.</summary>
@@ -240,6 +258,8 @@ public sealed class ReactorWidgetWindow : Window
 {
     private readonly ReactorSimService _sim;
     private readonly WidgetKind _kind;
+
+    public bool CanMutateSimulation => _kind == WidgetKind.Scram;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
 
