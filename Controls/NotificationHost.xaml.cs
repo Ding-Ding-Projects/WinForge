@@ -50,7 +50,7 @@ public sealed partial class NotificationHost : UserControl
             _subscribed = true;
         }
         PublishAutomationFixtureOnce();
-        _lastNarratedNoticeId = AppNotificationService.History
+        _lastNarratedNoticeId = AppNotificationService.VisibleHistory
             .OrderByDescending(item => item.CreatedAt)
             .Select(item => item.Id)
             .FirstOrDefault() ?? string.Empty;
@@ -70,7 +70,7 @@ public sealed partial class NotificationHost : UserControl
     {
         try
         {
-            var latest = AppNotificationService.Active.OrderByDescending(item => item.CreatedAt).FirstOrDefault();
+            var latest = AppNotificationService.VisibleActive.OrderByDescending(item => item.CreatedAt).FirstOrDefault();
             if (latest is not null && !string.Equals(latest.Id, _lastNarratedNoticeId, StringComparison.Ordinal))
             {
                 _lastNarratedNoticeId = latest.Id;
@@ -96,10 +96,10 @@ public sealed partial class NotificationHost : UserControl
     private void Refresh()
     {
         ToastStack.Children.Clear();
-        foreach (var notice in AppNotificationService.Active)
+        foreach (var notice in AppNotificationService.VisibleActive)
             ToastStack.Children.Add(BuildToast(notice));
 
-        var unread = AppNotificationService.UnreadCount;
+        var unread = AppNotificationService.VisibleUnreadCount;
         UnreadText.Text = unread > 99 ? "99+" : unread.ToString();
         AutomationProperties.SetName(
             HistoryButton,
@@ -222,7 +222,7 @@ public sealed partial class NotificationHost : UserControl
         {
             Content = Loc.I.Pick("Clear dismissed", "清除已關閉記錄"),
             MinHeight = 40,
-            IsEnabled = AppNotificationService.History.Any(x => x.IsDismissed),
+            IsEnabled = AppNotificationService.VisibleHistory.Any(x => x.IsDismissed),
         };
         AutomationProperties.SetName(clear, Loc.I.Pick("Clear dismissed notification history", "清除已關閉通知記錄"));
         clear.Click += (_, _) => AppNotificationService.ClearDismissedHistory();
@@ -232,7 +232,7 @@ public sealed partial class NotificationHost : UserControl
         root.Children.Add(heading);
 
         var list = new StackPanel { Spacing = 8 };
-        var history = AppNotificationService.History;
+        var history = AppNotificationService.VisibleHistory;
         if (history.Count == 0)
         {
             list.Children.Add(new TextBlock

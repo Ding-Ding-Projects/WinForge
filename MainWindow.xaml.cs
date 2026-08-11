@@ -78,6 +78,7 @@ public sealed partial class MainWindow : Window
         // so global hooks/overlays never race the fragile XAML init (the cause of intermittent
         // stowed-exception crashes at launch) and one faulty service can never abort startup.
         RootGrid.Loaded += StartBackgroundServicesOnce;
+        RootGrid.Loaded += StartDimSumSurpriseOnce;
         RootGrid.Loaded += CaptureRequestedVisualOnce;
     }
 
@@ -108,6 +109,14 @@ public sealed partial class MainWindow : Window
     }
 
     private bool _bgStarted;
+
+    private void StartDimSumSurpriseOnce(object sender, RoutedEventArgs e)
+    {
+        RootGrid.Loaded -= StartDimSumSurpriseOnce;
+        // The surprise starts only after the first usable layout. It remains asynchronous and
+        // self-suppresses when an update/error/progress notice is already visible.
+        CrashLogger.Guard("startup:dim-sum-surprise", () => DimSumSurpriseService.Start(DispatcherQueue));
+    }
 
     private async void CaptureRequestedVisualOnce(object sender, RoutedEventArgs e)
     {

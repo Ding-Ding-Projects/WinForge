@@ -6,9 +6,9 @@ NotificationHost anchors a maximum four-notice stack in the shell's bottom-right
 
 NotificationHost 將最多四個通知疊喺外殼右下角。資訊同成功通知會自動關閉；警告同錯誤會留低直到用戶關閉。進度通知一般有限時自動關閉，真正進行中嘅工作亦可以用穩定 channel key 保持顯示，再由完成結果取代。超出可見堆疊嘅通知仍然會留喺記錄，避免卡片無限重疊。
 
-The shell button opens a keyboard-accessible history flyout. The newest 200 notices are retained, newest first; opening the centre marks them viewed, and **Clear dismissed** removes old entries without hiding active notices. Toasts and the centre re-render when the persisted English, Cantonese, or bilingual language mode changes.
+The shell button opens a keyboard-accessible history flyout. The newest 200 notices are retained, newest first; opening the centre marks them viewed, and **Clear dismissed** removes old entries without hiding active notices. Toasts and the centre re-render when the persisted English, Cantonese, or bilingual language mode changes. When School mode is enabled, the dim-sum surprise is filtered from both the active stack and history view without deleting its local record; it becomes visible again only after School mode is turned off.
 
-外殼按鈕會開啟鍵盤可用嘅記錄 flyout。最新 200 個通知會按新至舊保留；開啟中心會標記為已讀，而 **清除已關閉記錄** 唔會收埋仍然生效嘅通知。切換持久化英文、粵語或者雙語模式時，通知同中心會即時重畫。
+外殼按鈕會開啟鍵盤可用嘅記錄 flyout。最新 200 個通知會按新至舊保留；開啟中心會標記為已讀，而 **清除已關閉記錄** 唔會收埋仍然生效嘅通知。切換持久化英文、粵語或者雙語模式時，通知同中心會即時重畫。用戶開啟 School mode 時，點心驚喜會由 active stack 同 history view 過濾，但唔會刪本機記錄；只有關閉 School mode 後先會再顯示。
 
 ## Configuration and API · 設定同 API
 

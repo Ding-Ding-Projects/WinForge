@@ -17,13 +17,55 @@ public sealed record DimSumDishDefinition(
     string NameZhHant,
     string AltEn,
     string AltZhHant,
-    string AssetFileName);
+    string AssetFileName)
+{
+    /// <summary>Published catalog-v1 release tag containing <see cref="AssetFileName"/>.</summary>
+    public string AssetReleaseTag { get; init; } = "catalog-v1";
+}
+
+/// <summary>
+/// A verified public catalog-v1 release partition. The partition ranges are derived from the
+/// published release inventories; the catalog supplies the authoritative dish metadata and path.
+/// </summary>
+public sealed record DimSumPublishedAssetPartition(
+    int FirstDishNumber,
+    int LastDishNumber,
+    string ReleaseTag)
+{
+    public bool Contains(int dishNumber)
+        => dishNumber >= FirstDishNumber && dishNumber <= LastDishNumber;
+}
 
 public static class DimSumSurpriseCore
 {
     public const double Probability = 0.10;
     public const int MaximumCatalogBytes = 16 * 1024 * 1024;
     public const int MaximumImageBytes = 12 * 1024 * 1024;
+
+    // Public release inventory verified on 2026-08-11:
+    // catalog-v1: 995 assets, catalog-v1-part-002: 990 assets,
+    // catalog-v1-part-003: 943 assets. The exact names live in the generated name-only manifest.
+    public static IReadOnlyList<DimSumPublishedAssetPartition> PublishedAssetPartitions { get; } =
+        new[]
+        {
+            new DimSumPublishedAssetPartition(1, 995, "catalog-v1"),
+            new DimSumPublishedAssetPartition(996, 1985, "catalog-v1-part-002"),
+            new DimSumPublishedAssetPartition(1986, 3070, "catalog-v1-part-003"),
+        };
+
+    public static bool TryGetPublishedAssetRelease(string assetFileName, out string releaseTag)
+    {
+        releaseTag = string.Empty;
+        var fileName = Path.GetFileName(assetFileName);
+        if (!string.Equals(fileName, assetFileName, StringComparison.Ordinal) ||
+            !DimSumPublishedAssetManifest.TryGetReleaseTag(fileName, out releaseTag))
+            return false;
+        return true;
+    }
+
+    public static IReadOnlyList<DimSumDishDefinition> ParsePublishedCatalog(string json)
+        => ParseCatalog(json, asset =>
+            TryGetPublishedAssetRelease(asset, out var releaseTag) ? releaseTag : null);
 
     public static IReadOnlyList<DimSumDishDefinition> ParseEligibleCatalog(
         string json,
@@ -32,11 +74,21 @@ public static class DimSumSurpriseCore
         if (string.IsNullOrWhiteSpace(json) || json.Length > MaximumCatalogBytes)
             return Array.Empty<DimSumDishDefinition>();
 
-        var assets = publishedAssetFileNames
+        var assets = (publishedAssetFileNames ?? Array.Empty<string>())
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(Path.GetFileName)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return ParseCatalog(json, asset => assets.Contains(asset) ? "catalog-v1" : null);
+    }
+
+    private static IReadOnlyList<DimSumDishDefinition> ParseCatalog(
+        string json,
+        Func<string, string?> resolveReleaseTag)
+    {
+        if (string.IsNullOrWhiteSpace(json) || json.Length > MaximumCatalogBytes)
+            return Array.Empty<DimSumDishDefinition>();
 
         var result = new List<DimSumDishDefinition>();
         try
@@ -58,16 +110,20 @@ public static class DimSumSurpriseCore
                 var path = ReadBounded(image, "path", 300);
                 var asset = Path.GetFileName(path);
                 if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(en) ||
-                    string.IsNullOrWhiteSpace(zh) || string.IsNullOrWhiteSpace(asset) ||
-                    !assets.Contains(asset))
+                    string.IsNullOrWhiteSpace(zh) || string.IsNullOrWhiteSpace(asset))
                     continue;
+
+                var releaseTag = resolveReleaseTag(asset);
+                if (string.IsNullOrWhiteSpace(releaseTag)) continue;
 
                 var altEn = ReadBounded(imageAlt, "en", 300);
                 var altZh = ReadBounded(imageAlt, "yue", 300);
                 if (string.IsNullOrWhiteSpace(altEn)) altEn = en;
                 if (string.IsNullOrWhiteSpace(altZh)) altZh = zh;
-                result.Add(new DimSumDishDefinition(id, en, zh, altEn, altZh, asset));
-                if (result.Count >= 512) break;
+                result.Add(new DimSumDishDefinition(id, en, zh, altEn, altZh, asset)
+                {
+                    AssetReleaseTag = releaseTag,
+                });
             }
         }
         catch (JsonException)

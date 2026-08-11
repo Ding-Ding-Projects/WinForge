@@ -1,5 +1,41 @@
 # WinForge Handoff · WinForge 交接
 
+## Dim-sum startup surprise hardening · 啟動點心驚喜加固
+
+The dim-sum startup path now starts only after the first usable `RootGrid.Loaded` layout and runs
+catalog/cache work off the UI thread. It resolves exact filenames through the name-only manifest
+generated from the three published `catalog-v1*` release inventories (2,928 PNG names total), allows
+only one HTTPS hop from GitHub release downloads to `release-assets.githubusercontent.com`, records
+the catalog digest, binds image cache identity to release tag plus filename, decodes PNGs before cache
+promotion, and hides the surprise from active/history notification views while School mode is enabled.
+The parser no longer truncates eligible entries at 512. · 點心啟動流程而家只會喺第一個可用
+`RootGrid.Loaded` layout 後開始，catalog／cache 工作離開 UI thread。佢用由三個已發佈
+`catalog-v1*` release inventory 生成、只含檔名嘅 manifest（總共 2,928 個 PNG 名），只准 GitHub
+release download 去 `release-assets.githubusercontent.com` 一跳 HTTPS，記錄 catalog digest，
+用 release tag 加檔名綁定 image cache identity，PNG decode 通過先升格 cache，School mode 開啟時
+由 active／history notification view 隱藏驚喜，亦移除 512 項 parser 截斷。
+
+Verification is `DimSumSurprise.Tests` **11/11**, `ManagedReleaseContract.Tests` **27/27**, full
+x64 Debug solution build **0 warnings / 0 errors**, XAML safety passed, and the source audit resolved
+**2,935/2,935** event handlers and **1,986/1,986** direct action controls. A real public candidate
+asset was independently verified as one `302` followed by `200`, 2,382,563 bytes, and digest
+`eae1fe471005e55e65151ddb4c3b7d941ba9984fd8719c98389000afc97a80c2`. A dedicated dim-sum screenshot
+is not claimed: the built artifact opened the first-run Terms & Conditions consent surface, and the
+agent does not accept user legal terms on the user's behalf; the 10% surprise is intentionally
+non-deterministic. · 驗證係 `DimSumSurprise.Tests` **11/11**、`ManagedReleaseContract.Tests` **27/27**、
+完整 x64 Debug solution build **0 warnings／0 errors**、XAML safety 通過，source audit resolve
+**2,935／2,935** handlers 同 **1,986／1,986** direct action controls。公開 candidate asset 真實
+驗證到一個 `302` 再一個 `200`、2,382,563 bytes，同 digest
+`eae1fe471005e55e65151ddb4c3b7d941ba9984fd8719c98389000afc97a80c2`。冇聲稱專用點心 screenshot：
+建置 artifact 開到首次 Terms & Conditions consent surface，而 agent 唔會代用戶接受法律條款；
+10% 驚喜亦刻意係 nondeterministic。
+
+The repository-wide pure sweep also completed all **44/44** test projects with zero failures. The
+only emitted analyzer warning was corrected by guarding the Windows-only Quick Accent STA hook on
+non-Windows targets; its focused harness is now warning-free. · Repository-wide pure sweep 亦完成
+全部 **44/44** test project，零 failed。唯一 analyzer warning 已經用 non-Windows target 嘅
+Windows-only Quick Accent STA hook guard 修正；專項 harness 而家冇 warning。
+
 ## Managed delivery alignment WIP · 正式發佈對齊 WIP
 
 An isolated checkpoint centralizes the canonical repository/version/assets/digests/paths across the app, updater, launcher, installer, portable footprint, and workflow. Focused contracts pass **23/23** and the app plus both helpers build with **0 warnings / 0 errors**. Work stopped on request before final README/ROADMAP/index reconciliation, aggregate/installer/archive verification, hosted release proof, or `main` integration; it is not yet a completed roadmap item. · 獨立檢查點已集中 repo／版本／資產／digest／路徑合約；專測 **23/23**，app 同兩個 helper build 零 warning／零 error。按要求停止，最終文件、aggregate／installer／ZIP、hosted release 同 `main` 整合未做，未算完成路線圖項目。

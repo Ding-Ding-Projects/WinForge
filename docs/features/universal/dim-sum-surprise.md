@@ -2,46 +2,57 @@
 
 ## Behavior · 行為
 
-On each eligible launch WinForge makes one fresh random draw with an exact 10% threshold. A
-successful draw chooses one dish whose image filename is present in the verified public
-catalog-v1-part-003 release asset list, reads the bilingual name and alt text from the public
-catalog, and shows the result through the non-blocking notification host. The notice auto-dismisses,
-never takes focus, and does not delay the main window. · 每次合資格啟動 WinForge 會重新抽一次，準確
-用 10% threshold。抽中後只會揀已喺驗證過嘅 public catalog-v1-part-003 release asset list 入面
-有圖檔名嘅菜式，再由 public catalog 讀雙語名稱同 alt text，經非阻塞通知 host 顯示。通知會自動
-消失，唔搶 focus，亦唔會拖慢主視窗開啟。
+On each eligible launch WinForge makes one fresh random draw with an exact 10% threshold after
+the first usable `RootGrid.Loaded` layout. A successful draw chooses one dish whose image filename
+resolves to a verified public `catalog-v1*` release partition, reads the bilingual name and alt
+text from the public catalog, and shows the result through the non-blocking notification host. The
+notice auto-dismisses, never takes focus, and does not delay the main window. · 每次合資格啟動
+WinForge 會喺第一個可用 `RootGrid.Loaded` layout 之後重新抽一次，準確用 10% threshold。抽中後只
+會揀可以解析到已驗證 public `catalog-v1*` release partition 嘅圖檔名，再由 public catalog 讀
+雙語名稱同 alt text，經非阻塞通知 host 顯示。通知會自動消失，唔搶 focus，亦唔會拖慢主視窗開啟。
 
 ## Source and cache · 來源同 cache
 
 The authoritative metadata source is
 https://raw.githubusercontent.com/Ding-Ding-Projects/dim-sum-photos/main/catalog/index.json.
-Published images are resolved only from
-https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/catalog-v1-part-003/.
-The downloaded catalog and selected PNG stay under the user's WinForge application-data cache;
-no image is tracked in this repository and no release asset is copied. · 準確 metadata 來源係上面
-嘅 public catalog URL；圖片只會由上面嘅 published release asset URL 解決。下載嘅 catalog 同揀中
-PNG 只留喺使用者 WinForge application-data cache；repository 唔會 track 圖片，release 亦唔會
-copy 圖片。
+Published images are resolved only through an exact name-only manifest generated from the verified
+public release inventories: `catalog-v1` (995 assets), `catalog-v1-part-002` (990), and
+`catalog-v1-part-003` (943). The manifest contains no catalog fields or image bytes. The downloaded
+catalog is digest-recorded, and selected PNGs are cached under an identity derived from the exact
+release tag and asset filename. · 準確 metadata 來源係上面嘅 public catalog URL；圖片只會經由已驗證
+public release inventory 生成嘅準確檔名 manifest 解決：`catalog-v1`（995 張）、`catalog-v1-part-002`
+（990 張）同 `catalog-v1-part-003`（943 張）。manifest 唔含 catalog 欄位或者圖片 bytes。下載嘅
+catalog 會記錄 digest，揀中 PNG 就用準確 release tag 同 asset 檔名組成 identity cache。repository
+唔會保存 catalog 或圖片副本；release 亦唔會 copy 圖片。
 
-The request path is HTTPS-only, bounded to the two public hosts, rejects redirects, caps catalog and
-image sizes, validates the PNG signature, and writes through a temporary file before promotion.
-Malformed or unavailable source data fails safe by leaving the application usable without a notice.
-· request path 只准 HTTPS、只准兩個 public host、拒絕 redirect、有 catalog／圖片大小上限、驗證 PNG
-signature，同埋先寫 temporary file 再升格。來源格式錯或者唔得時會安全唔顯示通知，但 app 照常可用。
+The request path is HTTPS-only, bounded to the public catalog, GitHub release, and one exact
+`release-assets.githubusercontent.com` redirect target, with no credentials or unapproved redirect
+chain. Catalog and image sizes are capped, PNG bytes are decoded through the platform bitmap decoder,
+and files are written through a temporary path before promotion. Malformed or unavailable source
+data fails safe by leaving the application usable without a notice. · request path 只准 HTTPS，public
+catalog、GitHub release 同一個準確 `release-assets.githubusercontent.com` redirect target 有界，唔准
+credential 或未批准 redirect chain。catalog／圖片有大小上限，PNG bytes 會用 platform bitmap decoder
+真正 decode，文件亦會先寫 temporary path 再升格。來源格式錯或者唔得時會安全唔顯示通知，但 app
+照常可用。
 
-School mode and first-run terms suppress the draw. A command-line deep-link launch is also excluded
-so the surprise never interrupts an automation or an in-progress task. · School mode 同首次 terms 會
-抑制抽獎；command-line deep-link launch 亦會排除，避免驚喜打斷 automation 或進行中工作。
+School mode, first-run terms, minimized/tray launches, and command-line deep-link launches suppress
+the draw. Before publication the service also suppresses itself when a progress, warning, or error
+notification is active, covering update handoff and visible recovery work; the UI rechecks that
+condition immediately before publishing. · School mode、首次 terms、最小化／tray 啟動同
+command-line deep-link launch 都會抑制抽獎。通知發佈前如果有 progress、warning 或 error notification
+存在，亦會停止驚喜，涵蓋 update handoff 同可見復原工作；UI 真正發佈前會再檢查一次。
 
 ## Verification · 驗證
 
 tests/DimSumSurprise.Tests/Program.cs covers the exact 10% threshold, authoritative bilingual
-metadata, published-asset filtering, deterministic selection, malformed-catalog fallback, and PNG
-signature checking (6/6). The full x64 solution build verifies the notification image fields and
-startup wiring with zero warnings and errors. · tests/DimSumSurprise.Tests/Program.cs 覆蓋準確 10%
-threshold、準確雙語 metadata、published asset filtering、deterministic selection、malformed catalog
-fallback，同 PNG signature（6/6）。完整 x64 solution build 以零 warnings 同 errors 驗證通知圖片
-欄位同 startup wiring。
+metadata, exact published-asset filtering, deterministic selection, malformed-catalog fallback, PNG
+signature checking, partition routing, fake-suffix rejection, and selection beyond 512 entries
+(11/11). The full x64 solution build verifies the notification image fields, first-usable-layout
+startup wiring, and digest/decoder source wiring with zero warnings and errors. ·
+tests/DimSumSurprise.Tests/Program.cs 覆蓋準確 10% threshold、準確雙語 metadata、準確 published asset
+filtering、deterministic selection、malformed catalog fallback、PNG signature、partition routing、
+fake suffix 拒絕，同超過 512 項嘅 selection（11/11）。完整 x64 solution build 以零 warnings 同 errors
+驗證通知圖片欄位、第一個可用 layout startup wiring，同 digest／decoder source wiring。
 
 ## Built-artifact evidence · 真實建置證據
 

@@ -141,6 +141,9 @@ public static class QuickAccentService
 
     public static void Start()
     {
+        // The pure settings harness links this service on non-Windows targets; do not attempt
+        // Win32/STA hook setup there. Production delivery remains Windows-only.
+        if (!OperatingSystem.IsWindows()) return;
         Load();
         if (_running) return;
         _running = true;

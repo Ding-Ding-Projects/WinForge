@@ -48,9 +48,24 @@ public static class AppNotificationService
         get { lock (Gate) return State.History.ToArray(); }
     }
 
+    public static IReadOnlyList<AppNoticeEntry> VisibleActive
+    {
+        get { lock (Gate) return State.Active.Where(IsVisibleInCurrentMode).ToArray(); }
+    }
+
+    public static IReadOnlyList<AppNoticeEntry> VisibleHistory
+    {
+        get { lock (Gate) return State.History.Where(IsVisibleInCurrentMode).ToArray(); }
+    }
+
     public static int UnreadCount
     {
         get { lock (Gate) return State.UnreadCount; }
+    }
+
+    public static int VisibleUnreadCount
+    {
+        get { lock (Gate) return State.History.Count(x => x.IsUnread && IsVisibleInCurrentMode(x)); }
     }
 
     public static string Publish(AppNoticeDraft draft)
@@ -129,6 +144,9 @@ public static class AppNotificationService
     {
         try { Changed?.Invoke(null, EventArgs.Empty); } catch { }
     }
+
+    private static bool IsVisibleInCurrentMode(AppNoticeEntry entry)
+        => !UniversalSettingsService.SchoolModeEnabled || !string.Equals(entry.Key, "dim-sum.surprise", StringComparison.Ordinal);
 
     private static bool IsAutomationFixture
     {

@@ -298,6 +298,23 @@ static void UniversalExperienceContract()
     Contains(changelog, "CHANGELOG.md", "offline changelog source");
     Contains(changelog, "SearchPatternService.Compile", "shared bounded changelog matcher");
     Contains(ReadRepoFile("WinForge.csproj"), "CHANGELOG.md", "bundled changelog");
+    string dimService = ReadRepoFile("Services", "DimSumSurpriseService.cs");
+    string dimCore = ReadRepoFile("Services", "DimSumSurpriseCore.cs");
+    string main = ReadRepoFile("MainWindow.xaml.cs");
+    Contains(dimService, "ParsePublishedCatalog", "public dim-sum catalog resolver");
+    Contains(dimService, "AssetReleaseTag", "partitioned public image URL");
+    Contains(dimService, "HasBlockingAttentionNotice", "startup attention suppression");
+    Contains(dimService, "IsExpectedReleaseRedirect", "bounded GitHub asset redirect");
+    Contains(dimService, "IsDecodedPngAsync", "decoded PNG validation");
+    Contains(dimService, "Task.Run(() => RunAsync(ui))", "off-thread cache work");
+    Contains(dimCore, "catalog-v1-part-002", "published partition two");
+    Contains(dimCore, "catalog-v1-part-003", "published partition three");
+    Contains(ReadRepoFile("Services", "DimSumPublishedAssetManifest.cs"), "PublishedAssetCount = 2928", "exact public asset manifest");
+    Contains(ReadRepoFile("Services", "AppNotificationService.cs"), "VisibleHistory", "School-mode notification filtering");
+    Contains(ReadRepoFile("Controls", "NotificationHost.xaml.cs"), "VisibleActive", "visible notification stack filtering");
+    Contains(main, "RootGrid.Loaded += StartDimSumSurpriseOnce", "first-usable-layout trigger");
+    False(ReadRepoFile("App.xaml.cs").Contains("DimSumSurpriseService.Start(Shell.DispatcherQueue)", StringComparison.Ordinal),
+        "pre-layout dim-sum trigger");
 }
 
 static void SuperConfirmationContract()
