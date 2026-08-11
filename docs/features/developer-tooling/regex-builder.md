@@ -8,6 +8,10 @@ The page is bilingual through `Loc.I.Pick`. Builder fields stack vertically, opt
 
 `Controls/SearchPatternBox` brings that complete builder directly to eleven XAML surfaces: Dashboard, Category, Search Results, Manual, App Launcher, Licenses, Native OSS Hub, Settings Hub, Offline Documentation, Support Tickets, and the Authenticator vault. The code-built Settings and About searches use the same session contract; About now passes the complete `Spec` into the changelog matcher, so all selected flags reach real results. Plain text remains the initial/default mode. · `Controls/SearchPatternBox` 將同一套完整版砌法直接放入十一個 XAML 介面：Dashboard、Category、Search Results、Manual、App Launcher、Licenses、Native OSS Hub、Settings Hub、Offline Documentation、Support Tickets 同 Authenticator vault。用 code-built 砌出嚟嘅 Settings 同 About 搜尋都用同一套 session contract；About 而家會將完整 `Spec` 交畀 changelog matcher，所有揀中嘅旗標都真正到達結果。初始／預設仍然係純文字。
 
+![About page offline changelog search with its adjacent builder action](../../screenshot-about-changelog-regex-2026-08-11.png)
+
+This real built-artifact capture is `docs/screenshot-about-changelog-regex-2026-08-11.png`, 1574×887, SHA-256 `7A92E8D73347AAC3549B03F7F541D14AC2D1CC3F022F6855756CC3DC85755B56`. It was captured from the self-contained Debug build on the named cheap headless desktop; the About/changelog search field, date controls, export action, and adjacent regex-builder affordance are in frame. · 呢張真實 build 擷取係 `docs/screenshot-about-changelog-regex-2026-08-11.png`，1574×887，SHA-256 如上；由 self-contained Debug build 喺指定 cheap headless desktop 擷取，About／changelog 搜尋欄、日期控制、匯出動作同隔籬 regex-builder affordance 都喺畫面內。
+
 ## Configuration and engine rules · 設定同引擎規則
 
 - Engine/dialect: .NET 11 `System.Text.RegularExpressions`; backslash escaping follows .NET rules. · 引擎／方言：.NET 11 `System.Text.RegularExpressions`；反斜線按 .NET 規則跳脫。
@@ -21,4 +25,4 @@ Patterns are limited to 4,096 characters, samples/search candidates to 1,000,000
 
 ## Verification · 驗證
 
-`dotnet run --project tests/RegexBuilder.Tests -c Debug` now covers the changelog `Spec` handoff, all eleven XAML builder surfaces, the two code-built builder surfaces, the complete builder UI contract, and the 102-row source inventory. The remaining ordinary searches and all dropdown/menu/picker surfaces remain an explicit pending migration lane. · `dotnet run --project tests/RegexBuilder.Tests -c Debug` 而家會驗證 changelog `Spec` 交接、十一個 XAML builder 介面、兩個 code-built builder 介面、完整 builder UI contract，同 102 行來源清單。其餘一般搜尋，同所有 dropdown／menu／picker 介面，仍然明確保留做待整合 lane。
+`dotnet run --project tests/RegexBuilder.Tests -c Debug` passes **35/35** and covers the changelog `Spec` handoff, all eleven XAML builder surfaces, the two code-built builder surfaces, the complete builder UI contract, and the 102-row source inventory. The remaining ordinary searches and all dropdown/menu/picker surfaces remain an explicit pending migration lane. · `dotnet run --project tests/RegexBuilder.Tests -c Debug` **35/35** 全過，會驗證 changelog `Spec` 交接、十一個 XAML builder 介面、兩個 code-built builder 介面、完整 builder UI contract，同 102 行來源清單。其餘一般搜尋，同所有 dropdown／menu／picker 介面，仍然明確保留做待整合 lane。
