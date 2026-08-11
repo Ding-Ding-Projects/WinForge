@@ -17,6 +17,18 @@ $releaseOutput = if ([string]::IsNullOrWhiteSpace($ReleaseDir)) { Join-Path $rep
 
 function Say([string]$message) { Write-Host "[WinForge] $message" }
 function Fail([string]$message) { throw "WinForge build failed: $message" }
+function Get-HashHex([string]$path) {
+  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { Fail "cannot hash missing artifact: $path" }
+  $algorithm = [Security.Cryptography.SHA256]::Create()
+  $stream = [IO.File]::OpenRead($path)
+  try {
+    return ([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '').ToLowerInvariant()
+  }
+  finally {
+    $stream.Dispose()
+    $algorithm.Dispose()
+  }
+}
 
 function Resolve-Dotnet {
   $system = Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'
@@ -198,11 +210,11 @@ if ($Installer) { $null = Package-Squirrel $dotnet $squirrel $Version }
 
 Say "Source commit: $((& git -C $repo rev-parse HEAD).Trim())"
 Say "Publish directory: $publishDir"
-Say "Portable SHA-256: $((Get-FileHash -LiteralPath $portable -Algorithm SHA256).Hash.ToLowerInvariant())"
+Say "Portable SHA-256: $(Get-HashHex $portable)"
 if ($Installer) {
   foreach ($name in @('Setup.exe','RELEASES',"WinForge-$Version-full.nupkg")) {
     $path = Join-Path $releaseOutput $name
-    Say "$name SHA-256: $((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant())"
+    Say "$name SHA-256: $(Get-HashHex $path)"
   }
   Say 'Unsigned installer warning: Setup.exe is unsigned and may trigger an unknown-publisher or SmartScreen warning.'
 }

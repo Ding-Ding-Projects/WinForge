@@ -7,8 +7,10 @@ set "SILENT=0"
 if /I "%~1"=="/s" set "SILENT=1"
 if /I "%~1"=="--silent" set "SILENT=1"
 if /I "%INCOMING_SILENT%"=="1" set "SILENT=1"
+set "VERSION=%~2"
 
 set "PS_ARGS=-NoProfile -ExecutionPolicy Bypass -File tools\build-winforge.ps1"
+if not "%VERSION%"=="" set "PS_ARGS=%PS_ARGS% -Version %VERSION%"
 if "%SILENT%"=="1" set "PS_ARGS=%PS_ARGS% -Silent"
 
 echo === WinForge build: self-contained runnable x64 application ===
