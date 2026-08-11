@@ -14,6 +14,18 @@ _Cleaned-up project history. Contributor / author names intentionally omitted._
 - **照實嘅搜尋介面清單** — 生成 ledger 而家覆蓋 83 個來源檔案入面 102 個 XAML 同 code-built 控制，13 個已接 builder，其餘一般、專用、獨立工具同內部類別全部清楚列出。
 - **驗證** — `RegexBuilder.Tests` 35/35、`ManagedReleaseContract.Tests` 27/27、清單生成 102 控制／83 檔案，同完整 x64 Debug solution build 0 warnings／0 errors。
 
+## 2026-08-11 — Native tab reorder persistence
+
+- **Drag order is durable** — native `TabView` drag/reorder completion now saves the full tab sequence through `SaveSession()`, and the app-window closing path flushes it before hiding to the tray or exiting. Commit: [`2ec6a039`](https://github.com/Ding-Ding-Projects/WinForge/commit/2ec6a039a0b2e8e14489800a3977ac090f2cdba0).
+- **Scope remains explicit** — tab docking, per-tab locks, group search/discovery, and bulk-close behavior remain documented follow-up work rather than implied by this persistence fix.
+- **Verification** — `ManagedReleaseContract.Tests` 27/27 and full x64 Debug solution build 0 warnings / 0 errors.
+
+## 2026-08-11 — 原生分頁重排保存
+
+- **拖曳次序會保存** — 原生 `TabView` 拖曳／重排完成而家會經 `SaveSession()` 保存完整分頁次序，而 app window closing path 會喺收埋去系統匣或者退出前 flush。Commit：[`2ec6a039`](https://github.com/Ding-Ding-Projects/WinForge/commit/2ec6a039a0b2e8e14489800a3977ac090f2cdba0)。
+- **範圍照實** — tab docking、逐 tab locks、group search／discovery，同 bulk-close 行為仍然係文件列明嘅後續工作，唔會扮成今次修復已經全包。
+- **驗證** — `ManagedReleaseContract.Tests` 27/27，同完整 x64 Debug solution build 0 warnings／0 errors。
+
 ## Latest — native Dew Encryption integration
 
 - **Dew-compatible file history** — a new bilingual native WinUI module snapshots selected files or
