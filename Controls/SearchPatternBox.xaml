@@ -22,6 +22,7 @@
                 Grid.Column="0"
                 AutomationProperties.AutomationId="SearchPatternQuery"
                 QueryIcon="Find"
+                KeyDown="QueryBox_KeyDown"
                 QuerySubmitted="QueryBox_QuerySubmitted"
                 TextChanged="QueryBox_TextChanged" />
 

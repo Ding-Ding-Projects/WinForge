@@ -101,14 +101,42 @@ static void CategoryPickerSearchContract()
     AssertContains(control, "private readonly SearchPatternBox _search", "category control has no owned SearchPatternBox");
     AssertContains(control, "_search.PatternChanged +=", "category search does not react to synchronized pattern changes");
     AssertContains(control, "_search.QuerySubmitted +=", "category search has no query-only Enter path");
-    AssertContains(control, "_search.CompileMatcher()", "category search does not validate the full pattern");
+    AssertContains(control, "SearchPatternService.Matcher matcher = _search.CompileMatcher()", "category search does not validate the full pattern");
+    AssertContains(control, "matcher.MatchAny(option.SearchValues)", "category search does not reuse one compiled matcher for every option");
+    AssertNotContains(control, "_search.MatchAny(option.SearchValues)", "category search recompiles its matcher for every option");
     AssertContains(control, "Invalid .NET regex", "category search has no honest regex error state");
     AssertContains(control, "No matching categories.", "category search has no honest no-match state");
     AssertContains(control, "_flyout.Closed += Flyout_Closed", "category search has no close lifecycle");
     AssertContains(control, "private void Flyout_Closed", "category picker close handler is missing");
     AssertContains(control, "FocusPicker();", "category picker does not return focus after closing");
-    AssertContains(control, "SearchablePickerNoResults", "category status has no stable automation ID");
+    AssertContains(control, "_search.QueryKeyDown += Search_QueryKeyDown", "category search has no query-field keyboard path");
+    AssertContains(control, "VirtualKey.Down", "category search does not handle Down from the query field");
+    AssertContains(control, "VirtualKey.Up", "category search does not handle Up from the query field");
+    AssertContains(control, "VirtualKey.Escape", "category search has no clear-then-close Escape path");
+    AssertContains(control, "HasSearchInput()", "category Escape behavior has no clear-versus-close decision");
+    AssertContains(control, "_search.Clear()", "category search cannot clear before closing");
+    AssertContains(control, "CommitHighlightedOption", "category query Enter does not commit the highlighted option");
+    AssertContains(control, "_optionsList.SelectedItem as Option", "category query Enter ignores the highlighted option");
+    AssertNotContains(control, "_pickerButton.Click += PickerButton_Click", "category picker has a second flyout opening path");
+    AssertContains(control, "_pickerButton.Flyout = _flyout", "category picker has no authoritative flyout path");
+    AssertContains(control, "_searchLabel.Text = P(\"Search options\", \"搜尋選項\")", "flyout chrome is not refreshed with language/tone");
+    AssertContains(control, "_search.PlaceholderText = P(\"Search categories\", \"搜尋分類\")", "category placeholder is not refreshed with language/tone");
+    AssertContains(control, "FunnyLevelSettings.I.Changed += OnToneChanged", "category picker does not subscribe to live funny-level changes");
+    AssertContains(control, "FunnyLevelSettings.I.Changed -= OnToneChanged", "category picker does not unsubscribe from funny-level changes");
+    AssertContains(control, "StyleEnglish", "English funny level does not style category copy");
+    AssertContains(control, "StyleCantonese", "Cantonese funny level does not style category copy");
+    AssertContains(control, "_pickerButton.XamlRoot?.Size.Width", "category flyout does not measure the available viewport");
+    AssertContains(control, "_flyoutPanel.Width = width", "category flyout does not apply a viewport-aware width");
+    AssertContains(control, "_search.MaxLayoutWidth", "nested regex builder does not receive the narrow-layout width cap");
+    AssertContains(control, "_search.AutomationIdPrefix = _searchAutomationId", "category search descendants are not namespaced");
+    AssertContains(control, "$\"{prefix}_Status\"", "category status automation ID is not namespaced");
+    AssertContains(control, "SearchablePickerNoResults", "category status keeps its semantic status marker");
     AssertContains(control, "VirtualKey.Escape", "category list has no keyboard cancellation path");
+
+    var searchPatternBox = ReadRepo("Controls", "SearchPatternBox.xaml.cs");
+    AssertContains(searchPatternBox, "QueryKeyDown?.Invoke", "shared search control does not expose query-field key events");
+    AssertContains(searchPatternBox, "AutomationIdPrefix", "shared search control cannot namespace descendant IDs");
+    AssertContains(searchPatternBox, "MaxLayoutWidth", "shared search control cannot honor a narrow host width");
 }
 
 static string MethodBody(string source, string signature)

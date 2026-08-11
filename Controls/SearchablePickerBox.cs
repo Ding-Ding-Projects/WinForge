@@ -35,10 +35,13 @@ public sealed class SearchablePickerBox : UserControl
     private readonly SearchPatternBox _search = new();
     private readonly ListView _optionsList = new();
     private readonly TextBlock _statusText = new();
+    private readonly TextBlock _searchLabel = new();
+    private readonly StackPanel _flyoutPanel;
     private readonly List<Option> _allOptions = new();
     private readonly List<Option> _visibleOptions = new();
     private IEnumerable? _itemsSource;
     private bool _languageSubscribed;
+    private bool _toneSubscribed;
     private object? _selectedItem;
     private int _pendingSelectedIndex = -1;
     private string _automationId = string.Empty;
@@ -60,7 +63,6 @@ public sealed class SearchablePickerBox : UserControl
         _pickerButton.HorizontalContentAlignment = HorizontalAlignment.Stretch;
         _pickerButton.MinHeight = 40;
         _pickerButton.Padding = new Thickness(12, 7, 10, 7);
-        _pickerButton.Click += PickerButton_Click;
         _pickerButton.Content = BuildPickerButtonContent();
 
         _search.PlaceholderText = P("Search options", "搜尋選項");
@@ -72,7 +74,8 @@ public sealed class SearchablePickerBox : UserControl
                 : P($"{name}: search options", $"{name}：搜尋選項");
         };
         _search.PatternChanged += (_, _) => RenderOptions();
-        _search.QuerySubmitted += (_, _) => CommitFirstVisibleOption();
+        _search.QueryKeyDown += Search_QueryKeyDown;
+        _search.QuerySubmitted += (_, _) => CommitHighlightedOption();
 
         _optionsList.DisplayMemberPath = nameof(Option.Text);
         _optionsList.SelectionMode = ListViewSelectionMode.Single;
@@ -89,19 +92,20 @@ public sealed class SearchablePickerBox : UserControl
         AutomationProperties.SetName(_statusText, P("Picker search status", "選擇器搜尋狀態"));
         AutomationProperties.SetLiveSetting(_statusText, AutomationLiveSetting.Polite);
 
-        var flyoutPanel = new StackPanel { Spacing = 8, MinWidth = 320, MaxWidth = 560 };
-        var searchLabel = new TextBlock { Text = P("Search options", "搜尋選項"), FontWeight = FontWeights.SemiBold };
-        flyoutPanel.Children.Add(searchLabel);
-        flyoutPanel.Children.Add(_search);
-        flyoutPanel.Children.Add(_optionsList);
-        flyoutPanel.Children.Add(_statusText);
+        _flyoutPanel = new StackPanel { Spacing = 8, MaxWidth = 560 };
+        _searchLabel.Text = P("Search options", "搜尋選項");
+        _searchLabel.FontWeight = FontWeights.SemiBold;
+        _flyoutPanel.Children.Add(_searchLabel);
+        _flyoutPanel.Children.Add(_search);
+        _flyoutPanel.Children.Add(_optionsList);
+        _flyoutPanel.Children.Add(_statusText);
         _flyout.Content = new Border
         {
             Padding = new Thickness(12),
             Background = SurfaceBrush(),
             BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Gray),
             BorderThickness = new Thickness(1),
-            Child = flyoutPanel,
+            Child = _flyoutPanel,
         };
         _flyout.Opening += Flyout_Opening;
         _flyout.Closed += Flyout_Closed;
@@ -187,8 +191,7 @@ public sealed class SearchablePickerBox : UserControl
         set
         {
             _automationId = value ?? string.Empty;
-            AutomationProperties.SetAutomationId(this, _automationId);
-            AutomationProperties.SetAutomationId(_pickerButton, _automationId);
+            ApplyAutomationIds();
         }
     }
 
@@ -198,7 +201,8 @@ public sealed class SearchablePickerBox : UserControl
         set
         {
             _searchAutomationId = string.IsNullOrWhiteSpace(value) ? "SearchablePickerSearchBox" : value;
-            AutomationProperties.SetAutomationId(_search, _searchAutomationId);
+            _search.AutomationIdPrefix = _searchAutomationId;
+            ApplyAutomationIds();
         }
     }
 
@@ -274,7 +278,7 @@ public sealed class SearchablePickerBox : UserControl
         }
         else
         {
-            var matcher = _search.CompileMatcher();
+            SearchPatternService.Matcher matcher = _search.CompileMatcher();
             if (!matcher.Ok)
             {
                 ShowStatus(P($"Invalid .NET regex: {matcher.Error}", $".NET regex 無效：{matcher.Error}"));
@@ -285,7 +289,7 @@ public sealed class SearchablePickerBox : UserControl
             string? error = null;
             foreach (Option option in _allOptions)
             {
-                SearchPatternService.MatchResult result = _search.MatchAny(option.SearchValues);
+                SearchPatternService.MatchResult result = matcher.MatchAny(option.SearchValues);
                 if (!result.Ok)
                 {
                     error = result.Error;
@@ -339,9 +343,9 @@ public sealed class SearchablePickerBox : UserControl
 
     private void OptionsList_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e) => CommitSelectedOption();
 
-    private void CommitFirstVisibleOption()
+    private void CommitHighlightedOption()
     {
-        Option? option = _visibleOptions.FirstOrDefault();
+        Option? option = _optionsList.SelectedItem as Option ?? _visibleOptions.FirstOrDefault();
         if (option is not null) SelectItem(option.Value, notify: true);
     }
 
@@ -362,10 +366,9 @@ public sealed class SearchablePickerBox : UserControl
         _flyout.Hide();
     }
 
-    private void PickerButton_Click(object sender, RoutedEventArgs e) => _flyout.ShowAt(_pickerButton);
-
     private void Flyout_Opening(object? sender, object e)
     {
+        ApplyFlyoutLayout();
         _search.Clear();
         RenderOptions();
         _search.FocusQuery();
@@ -373,11 +376,63 @@ public sealed class SearchablePickerBox : UserControl
 
     private void Flyout_Closed(object? sender, object e) => FocusPicker();
 
+    private void Search_QueryKeyDown(object? sender, KeyRoutedEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Windows.System.VirtualKey.Down:
+                FocusOption(1);
+                e.Handled = true;
+                break;
+            case Windows.System.VirtualKey.Up:
+                FocusOption(-1);
+                e.Handled = true;
+                break;
+            case Windows.System.VirtualKey.Escape:
+                if (HasSearchInput())
+                {
+                    _search.Clear();
+                    RenderOptions();
+                    _search.FocusQuery();
+                }
+                else
+                {
+                    _flyout.Hide();
+                }
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private bool HasSearchInput()
+        => _search.Spec.UseRegex || _search.Spec.Query.Length > 0;
+
+    private void FocusOption(int delta)
+    {
+        if (_optionsList.Items.Count == 0) return;
+        int current = _optionsList.SelectedIndex;
+        int next = current < 0
+            ? delta > 0 ? 0 : _optionsList.Items.Count - 1
+            : Math.Clamp(current + delta, 0, _optionsList.Items.Count - 1);
+        _optionsList.SelectedIndex = next;
+        _optionsList.Focus(FocusState.Programmatic);
+    }
+
     private void UpdatePickerButton()
     {
         Option? option = _allOptions.FirstOrDefault(candidate => Equals(candidate.Value, _selectedItem));
         _selectedText.Text = option?.Text ?? P("Choose a category", "揀分類");
         _pickerButton.Content = BuildPickerButtonContent();
+    }
+
+    private void ApplyFlyoutLayout()
+    {
+        double viewportWidth = _pickerButton.XamlRoot?.Size.Width ?? 640;
+        double viewportHeight = _pickerButton.XamlRoot?.Size.Height ?? 640;
+        double width = Math.Max(1, Math.Min(560, viewportWidth - 32));
+        _flyoutPanel.Width = width;
+        _search.MaxLayoutWidth = Math.Max(1, width - 24);
+        _optionsList.MaxHeight = Math.Clamp(viewportHeight - 220, 160, 320);
     }
 
     private object BuildPickerButtonContent()
@@ -408,7 +463,9 @@ public sealed class SearchablePickerBox : UserControl
     {
         if (_languageSubscribed) return;
         Loc.I.LanguageChanged += OnLanguageChanged;
+        FunnyLevelSettings.I.Changed += OnToneChanged;
         _languageSubscribed = true;
+        _toneSubscribed = true;
         ApplyAutomationNames();
         RefreshItems();
     }
@@ -417,6 +474,11 @@ public sealed class SearchablePickerBox : UserControl
     {
         if (!_languageSubscribed) return;
         Loc.I.LanguageChanged -= OnLanguageChanged;
+        if (_toneSubscribed)
+        {
+            FunnyLevelSettings.I.Changed -= OnToneChanged;
+            _toneSubscribed = false;
+        }
         _languageSubscribed = false;
     }
 
@@ -426,20 +488,40 @@ public sealed class SearchablePickerBox : UserControl
         RefreshItems();
     }
 
+    private void OnToneChanged(object? sender, EventArgs e)
+    {
+        ApplyAutomationNames();
+        RenderOptions();
+    }
+
     private void ApplyAutomationNames()
     {
         string name = _automationNameProvider?.Invoke() ?? _automationName;
         if (string.IsNullOrWhiteSpace(name)) name = P("Category picker", "分類選擇器");
         AutomationProperties.SetName(this, name);
-        AutomationProperties.SetName(_pickerButton, name);
+        AutomationProperties.SetName(_pickerButton, P(name, name));
         AutomationProperties.SetHelpText(_pickerButton, P("Opens a searchable category list. Use arrow keys and Enter to select.", "開啟可搜尋分類清單；用方向鍵同 Enter 揀選。"));
         AutomationProperties.SetName(_statusText, P("Category picker search status", "分類選擇器搜尋狀態"));
         AutomationProperties.SetName(_search, P($"{name}: search categories", $"{name}：搜尋分類"));
+        _searchLabel.Text = P("Search options", "搜尋選項");
+        _search.PlaceholderText = P("Search categories", "搜尋分類");
+        _search.AutomationIdPrefix = _searchAutomationId;
+        ApplyAutomationIds();
         _header.Text = string.IsNullOrWhiteSpace(Header) ? string.Empty : Header;
         UpdatePickerButton();
     }
 
-    private string P(string en, string zh) => Loc.I.Pick(en, zh);
+    private string P(string en, string zh)
+        => Loc.I.Pick(FunnyLevelSettings.I.StyleEnglish(en), FunnyLevelSettings.I.StyleCantonese(zh));
+
+    private void ApplyAutomationIds()
+    {
+        string prefix = string.IsNullOrWhiteSpace(_automationId) ? "SearchablePicker" : _automationId;
+        AutomationProperties.SetAutomationId(this, prefix);
+        AutomationProperties.SetAutomationId(_pickerButton, $"{prefix}_Button");
+        AutomationProperties.SetAutomationId(_statusText, $"{prefix}_Status");
+        AutomationProperties.SetAutomationId(_search, _searchAutomationId);
+    }
 
     private static Brush? SecondaryBrush()
         => Application.Current?.Resources.TryGetValue("TextFillColorSecondaryBrush", out object value) == true ? value as Brush : null;

@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
@@ -22,6 +23,7 @@ public sealed partial class SearchPatternBox : UserControl
     private bool _languageSubscribed;
     private bool _builderChoicesReady;
     private string _automationName = string.Empty;
+    private string _automationIdPrefix = "SearchPattern";
     private Func<string>? _automationNameProvider;
 
     public SearchPatternBox()
@@ -40,6 +42,7 @@ public sealed partial class SearchPatternBox : UserControl
 
     public event EventHandler? PatternChanged;
     public event EventHandler? QuerySubmitted;
+    public event EventHandler<KeyRoutedEventArgs>? QueryKeyDown;
 
     public string Text
     {
@@ -68,6 +71,20 @@ public sealed partial class SearchPatternBox : UserControl
             ApplyAutomationNames();
         }
     }
+
+    /// <summary>Namespaces descendant automation IDs when several search controls share a surface.</summary>
+    public string AutomationIdPrefix
+    {
+        get => _automationIdPrefix;
+        set
+        {
+            _automationIdPrefix = string.IsNullOrWhiteSpace(value) ? "SearchPattern" : value.TrimEnd('_');
+            ApplyAutomationIds();
+        }
+    }
+
+    /// <summary>Optional host width cap for nested builder surfaces.</summary>
+    public double MaxLayoutWidth { get; set; } = double.PositiveInfinity;
 
     /// <summary>Provides a language-refreshable base name for the composite search control.</summary>
     public Func<string>? AutomationNameProvider
@@ -131,6 +148,9 @@ public sealed partial class SearchPatternBox : UserControl
         _session.Query = sender.Text ?? string.Empty;
     }
 
+    private void QueryBox_KeyDown(object sender, KeyRoutedEventArgs e)
+        => QueryKeyDown?.Invoke(this, e);
+
     private void QueryBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
         => QuerySubmitted?.Invoke(this, EventArgs.Empty);
 
@@ -186,7 +206,9 @@ public sealed partial class SearchPatternBox : UserControl
         EnsureBuilderChoices();
         _session.UseRegex = true;
         double available = XamlRoot?.Size.Width ?? 600;
-        BuilderPanel.Width = Math.Clamp(available - 72, 300, 600);
+        double capped = Math.Min(available - 72, MaxLayoutWidth);
+        double minimum = double.IsFinite(MaxLayoutWidth) ? Math.Max(1, Math.Min(216, MaxLayoutWidth)) : 216;
+        BuilderPanel.Width = Math.Clamp(capped, minimum, 600);
         RawPatternBox.Focus(FocusState.Programmatic);
         UpdatePreview();
     }
@@ -398,7 +420,22 @@ public sealed partial class SearchPatternBox : UserControl
         ToolTipService.SetToolTip(RegexModeButton, P("Toggle .NET regex mode", "切換 .NET 正則模式"));
         ToolTipService.SetToolTip(BuilderButton, P("Open the full regex builder", "開啟完整正則砌法"));
         ApplyAutomationNames();
+        ApplyAutomationIds();
         UpdateValidation();
+    }
+
+    private void ApplyAutomationIds()
+    {
+        string Id(string suffix) => _automationIdPrefix == "SearchPattern"
+            ? $"SearchPattern{suffix}"
+            : $"{_automationIdPrefix}_{suffix.TrimStart('_')}";
+
+        AutomationProperties.SetAutomationId(QueryBox, Id("Query"));
+        AutomationProperties.SetAutomationId(RegexModeButton, Id("RegexMode"));
+        AutomationProperties.SetAutomationId(BuilderButton, Id("BuilderButton"));
+        AutomationProperties.SetAutomationId(RawPatternBox, Id("RawPattern"));
+        AutomationProperties.SetAutomationId(SampleBox, Id("Sample"));
+        AutomationProperties.SetAutomationId(ValidationText, Id("Validation"));
     }
 
     private void ApplyAutomationNames()
