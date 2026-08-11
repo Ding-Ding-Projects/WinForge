@@ -571,6 +571,7 @@
                 CanDragTabs="True"
                 CanReorderTabs="True"
                 SelectionChanged="Tabs_SelectionChanged"
+                TabDragCompleted="Tabs_TabDragCompleted"
                 TabCloseRequested="Tabs_TabCloseRequested"
                 TabDroppedOutside="Tabs_TabDroppedOutside"
                 automation:AutomationProperties.AutomationId="ShellTabs"

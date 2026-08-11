@@ -194,6 +194,7 @@ public sealed partial class MainWindow : Window
 
     private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
+        CrashLogger.Guard("tabs:save", SaveSession);
         if (_reallyQuit || !TrayService.IsInstalled)
         {
             CloseDetachedTabs();
@@ -3800,6 +3801,13 @@ public sealed partial class MainWindow : Window
     private void Tabs_TabCloseRequested(TabView sender, TabViewTabCloseRequestedEventArgs args)
     {
         if (args.Tab is TabViewItem tab) CloseTab(tab);
+    }
+
+    private void Tabs_TabDragCompleted(TabView sender, TabViewTabDragCompletedEventArgs args)
+    {
+        // Native drag/reorder changes TabItems in place; persist at the completion boundary so a
+        // crash or tray close cannot quietly resurrect the old visual order.
+        SaveSession();
     }
 
     private void Tabs_SelectionChanged(object sender, SelectionChangedEventArgs e)

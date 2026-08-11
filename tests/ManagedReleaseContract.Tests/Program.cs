@@ -318,11 +318,15 @@ static void PinnedTabContract()
 {
     string session = ReadRepoFile("Services", "TabSessionService.cs");
     string main = ReadRepoFile("MainWindow.xaml.cs");
+    string xaml = ReadRepoFile("MainWindow.xaml");
     Contains(session, "IsPinned", "pinned tab field");
     Contains(session, "AppendBoolean", "pinned tab persistence");
     Contains(main, "InsertTabInPinnedRegion", "pinned tab ordering");
     Contains(main, "Pin tab · 釘選分頁", "pin menu action");
     Contains(main, "Unpin tab · 取消釘選分頁", "unpin menu action");
+    Contains(xaml, "TabDragCompleted=\"Tabs_TabDragCompleted\"", "native tab reorder persistence event");
+    Contains(main, "Tabs_TabDragCompleted(TabView sender", "native tab reorder handler");
+    Contains(main, "tabs:save", "tab session close flush");
 }
 
 static void NoStaleManagedRepositoryLinks()
