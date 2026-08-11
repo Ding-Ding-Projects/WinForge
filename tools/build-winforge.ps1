@@ -181,6 +181,9 @@ function Validate-Footprint([string]$version) {
 
 function Package-Portable([string]$version) {
   New-Item -ItemType Directory -Force -Path $releaseOutput | Out-Null
+  Get-ChildItem -LiteralPath $releaseOutput -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -eq 'Setup.exe' -or $_.Name -eq 'RELEASES' -or $_.Name -like 'WinForge-*.nupkg' -or $_.Name -like 'WinForge-portable-x64-*.zip' } |
+    ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
   $portable = Join-Path $releaseOutput "WinForge-portable-x64-$version.zip"
   if (Test-Path -LiteralPath $portable) { Remove-Item -LiteralPath $portable -Force }
   Say "Creating portable archive $portable"
