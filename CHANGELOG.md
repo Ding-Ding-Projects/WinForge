@@ -2,6 +2,16 @@
 
 _Cleaned-up project history. Contributor / author names intentionally omitted._
 
+## 2026-08-11 — Category dropdown gains its own regex search surface
+
+- **Searchable category picker** — The new-tab picker category dropdown now uses a local `SearchablePickerBox` with an anchored `SearchPatternBox`, plain-text-first matching over stable ids and bilingual labels, bounded .NET regex validation, and named no-match/error status. Arrow keys highlight options; click or Enter commits a category; Escape cancels; closing returns focus to the category button. The original `PickerCategory` objects and selection event remain intact. Commit: [`748791fe`](https://github.com/Ding-Ding-Projects/WinForge/commit/748791fe27fdd862ee0826c528afb0a38a09d8b7).
+- **Verification** — `ShellAllAppsRoute.Tests` 5/5, `RegexBuilder.Tests` 35/35, `ManagedReleaseContract.Tests` 27/27, `dotnet build WinForge.csproj -c Debug -p:Platform=x64 --no-restore` 0 warnings / 0 errors, and search-surface inventory 103 controls / 83 source files with 15 integrated and 67 ordinary surfaces remaining. No release or publication was performed for this isolated lane.
+
+## 2026-08-11 — 分類 dropdown 有自己嘅 regex 搜尋介面
+
+- **可搜尋分類 picker** — 新分頁 picker 嘅分類 dropdown 而家用本機 `SearchablePickerBox`，內置 anchored `SearchPatternBox`，預設純文字查穩定 id 同雙語標籤，支援有界 .NET regex 驗證同具名 no-match/error status。方向鍵 highlight 選項；click 或 Enter 確認分類；Escape 取消；關閉後 focus 返分類按鈕。原本 `PickerCategory` object 同 selection event 完整保留。Commit：[`748791fe`](https://github.com/Ding-Ding-Projects/WinForge/commit/748791fe27fdd862ee0826c528afb0a38a09d8b7)。
+- **驗證** — `ShellAllAppsRoute.Tests` 5/5、`RegexBuilder.Tests` 35/35、`ManagedReleaseContract.Tests` 27/27、`dotnet build WinForge.csproj -c Debug -p:Platform=x64 --no-restore` 0 warnings／0 errors，而搜尋介面清單係 103 controls／83 source files，15 個 integrated、67 個普通介面仍待後續批次。呢個 isolated lane 冇做 release 或 publication。
+
 ## 2026-08-11 — New-tab picker gets the shared regex search builder
 
 - **Real shared search control** — the Ctrl+T and Add-tab picker now uses `SearchPatternBox`; plain text remains the default, while the adjacent full .NET builder synchronizes raw pattern, flags, validation, local preview, and capture-aware search behavior. Category filtering, bilingual labels, and Enter-to-open-first-result remain intact. Commit: [`ab0d4201`](https://github.com/Ding-Ding-Projects/WinForge/commit/ab0d4201dc995610ee0c0ca9d31a5a3a378a7101).
