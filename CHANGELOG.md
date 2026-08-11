@@ -2,6 +2,18 @@
 
 _Cleaned-up project history. Contributor / author names intentionally omitted._
 
+## 2026-08-11 — Regex inventory and changelog matcher
+
+- **Complete changelog search specification** — the offline About-page changelog now passes the shared `SearchPatternService.Spec` into the bounded matcher, so regex mode, case, multiline, singleline, whitespace, and explicit-capture choices reach the real filtered results. Commit: [`4292aed5`](https://github.com/Ding-Ding-Projects/WinForge/commit/4292aed588a598b61d06b15397cac03e6ec7547a).
+- **Truthful search-surface inventory** — the generated ledger now covers 102 XAML and code-built controls across 83 source files, with 13 builder-backed surfaces and the remaining ordinary, specialized, dedicated, and internal categories explicit.
+- **Verification** — `RegexBuilder.Tests` 35/35, `ManagedReleaseContract.Tests` 27/27, inventory generation 102 controls / 83 files, and full x64 Debug solution build 0 warnings / 0 errors.
+
+## 2026-08-11 — Regex 清單同變更紀錄搜尋器
+
+- **完整變更紀錄搜尋規格** — About 入面嘅離線變更紀錄而家會將共用 `SearchPatternService.Spec` 交畀有限 matcher，所以 regex mode、大小寫、多行、單行、忽略空白同 explicit-capture 選擇都真正落到篩選結果。Commit：[`4292aed5`](https://github.com/Ding-Ding-Projects/WinForge/commit/4292aed588a598b61d06b15397cac03e6ec7547a)。
+- **照實嘅搜尋介面清單** — 生成 ledger 而家覆蓋 83 個來源檔案入面 102 個 XAML 同 code-built 控制，13 個已接 builder，其餘一般、專用、獨立工具同內部類別全部清楚列出。
+- **驗證** — `RegexBuilder.Tests` 35/35、`ManagedReleaseContract.Tests` 27/27、清單生成 102 控制／83 檔案，同完整 x64 Debug solution build 0 warnings／0 errors。
+
 ## Latest — native Dew Encryption integration
 
 - **Dew-compatible file history** — a new bilingual native WinUI module snapshots selected files or
