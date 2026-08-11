@@ -29,6 +29,32 @@ function Get-HashHex([string]$path) {
     $algorithm.Dispose()
   }
 }
+function Get-PeCertificateTable([string]$path) {
+  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { Fail "cannot inspect missing PE: $path" }
+  $stream = [IO.File]::OpenRead($path)
+  $reader = [IO.BinaryReader]::new($stream)
+  try {
+    if ($reader.ReadUInt16() -ne 0x5A4D) { Fail "Setup.exe is not a valid PE image: $path" }
+    $stream.Position = 0x3C
+    $peOffset = $reader.ReadInt32()
+    if ($peOffset -lt 0 -or $peOffset -gt ($stream.Length - 24)) { Fail "PE header offset is invalid: $path" }
+    $stream.Position = $peOffset
+    if ($reader.ReadUInt32() -ne 0x00004550) { Fail "PE signature is invalid: $path" }
+    $null = $reader.ReadBytes(20)
+    $optionalStart = $stream.Position
+    $magic = $reader.ReadUInt16()
+    $directoryStart = if ($magic -eq 0x20B) { $optionalStart + 112 } elseif ($magic -eq 0x10B) { $optionalStart + 96 } else { Fail "PE optional-header magic is unsupported: $path" }
+    $stream.Position = $directoryStart + (4 * 8)
+    [pscustomobject]@{
+      Offset = $reader.ReadUInt32()
+      Size = $reader.ReadUInt32()
+    }
+  }
+  finally {
+    $reader.Dispose()
+    $stream.Dispose()
+  }
+}
 
 function Resolve-Dotnet {
   $system = Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'
@@ -191,8 +217,8 @@ function Package-Squirrel([string]$dotnet, [string]$squirrel, [string]$version) 
     Start-Sleep -Seconds 1
   }
   if (-not $stable) { Fail 'Squirrel output did not become complete and stable within three minutes' }
-  $signature = Get-AuthenticodeSignature -LiteralPath $setup
-  if ($signature.Status -ne 'NotSigned') { Fail "Squirrel Setup.exe is not unsigned: $($signature.Status)" }
+  $certificateTable = Get-PeCertificateTable $setup
+  if ($certificateTable.Size -ne 0) { Fail "Squirrel Setup.exe contains an Authenticode certificate table at file offset $($certificateTable.Offset)" }
   New-Item -ItemType Directory -Force -Path $releaseOutput | Out-Null
   foreach ($name in @('Setup.exe','RELEASES',"WinForge-$version-full.nupkg")) { Copy-Item -LiteralPath (Join-Path $squirrelReleaseDir $name) -Destination (Join-Path $releaseOutput $name) -Force }
   Get-ChildItem -LiteralPath $squirrelReleaseDir -File -Filter '*-delta.nupkg' | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $releaseOutput $_.Name) -Force }
