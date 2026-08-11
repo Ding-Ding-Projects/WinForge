@@ -193,7 +193,7 @@ jobs:
 
           $completed = [DateTimeOffset]::UtcNow
           $duration = $completed - $started
-          $durationText = '{0:hh\\:mm\\:ss}' -f $duration
+          $durationText = '{0:hh\:mm\:ss}' -f $duration
           $finalNotes = $notes -replace 'Workflow completed: recorded immediately after release publication\.', "Workflow completed: $($completed.UtcDateTime.ToString('o'))" -replace 'Workflow duration: recorded immediately after release publication\.', "Workflow duration: $durationText"
           [IO.File]::WriteAllText($notesPath, $finalNotes, [Text.UTF8Encoding]::new($false))
           gh release edit $tag --repo $env:GITHUB_REPOSITORY --notes-file $notesPath

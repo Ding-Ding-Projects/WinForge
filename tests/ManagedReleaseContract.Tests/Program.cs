@@ -235,6 +235,7 @@ static void WorkflowContract()
     Contains(text, "managed release digest mismatch", "GitHub/local digest proof");
     Contains(text, "managed release download URL mismatch", "download URL proof");
     Contains(text, "ProductVersion.Trim()", "version mapping proof");
+    Contains(text, "'{0:hh\\:mm\\:ss}'", "PowerShell workflow timing format");
 }
 
 static void InstallerMetadataContract()
