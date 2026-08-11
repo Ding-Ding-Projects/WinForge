@@ -4,13 +4,13 @@ _Cleaned-up project history. Contributor / author names intentionally omitted._
 
 ## 2026-08-11 — New-tab picker gets the shared regex search builder
 
-- **Real shared search control** — the Ctrl+T and Add-tab picker now uses `SearchPatternBox`; plain text remains the default, while the adjacent full .NET builder synchronizes raw pattern, flags, validation, local preview, and capture-aware search behavior. Category filtering, bilingual labels, and Enter-to-open-first-result remain intact. Commit: pending this lane's verification.
+- **Real shared search control** — the Ctrl+T and Add-tab picker now uses `SearchPatternBox`; plain text remains the default, while the adjacent full .NET builder synchronizes raw pattern, flags, validation, local preview, and capture-aware search behavior. Category filtering, bilingual labels, and Enter-to-open-first-result remain intact. Commit: [`ab0d4201`](https://github.com/Ding-Ding-Projects/WinForge/commit/ab0d4201dc995610ee0c0ca9d31a5a3a378a7101).
 - **No hidden persistence** — query, pattern, flags, and sample stay session-only and never enter tab-session JSON, exports, local history, telemetry, or network requests.
 - **Verification target** — the managed release contract now guards the `SearchPatternBox`/`PatternChanged`/matcher seam; the existing regex suite remains the behavioral safety net.
 
 ## 2026-08-11 — 新分頁選擇器接上共用 regex 搜尋砌法
 
-- **真正共用 search control** — Ctrl+T 同 Add-tab picker 而家用 `SearchPatternBox`；純文字照舊係預設，旁邊完整 .NET builder 會同步 raw pattern、旗標、驗證、本機預覽同 capture-aware 搜尋。分類篩選、雙語標籤同 Enter 開第一項照樣保留。Commit：今次 lane 驗證後補上。
+- **真正共用 search control** — Ctrl+T 同 Add-tab picker 而家用 `SearchPatternBox`；純文字照舊係預設，旁邊完整 .NET builder 會同步 raw pattern、旗標、驗證、本機預覽同 capture-aware 搜尋。分類篩選、雙語標籤同 Enter 開第一項照樣保留。Commit：[`ab0d4201`](https://github.com/Ding-Ding-Projects/WinForge/commit/ab0d4201dc995610ee0c0ca9d31a5a3a378a7101)。
 - **唔會暗中保存** — query、pattern、旗標同 sample 只留 session，唔會入 tab-session JSON、export、本機 history、telemetry 或 network request。
 - **驗證目標** — managed release contract 而家守住 `SearchPatternBox`／`PatternChanged`／matcher seam；原有 regex suite 繼續做行為安全網。
 
