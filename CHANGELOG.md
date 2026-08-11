@@ -5,16 +5,16 @@ _Cleaned-up project history. Contributor / author names intentionally omitted._
 ## 2026-08-11 — Dim-sum startup timing and public release partitions
 
 - **First usable layout** — the non-blocking 10% surprise now begins from `RootGrid.Loaded` instead of pre-layout application startup, while first-run terms, minimized/deep-link launches, and visible progress/warning/error notifications suppress publication.
-- **Public asset authority** — metadata still comes from the public catalog, while dish filenames resolve to the three verified `catalog-v1*` release partitions (`0001–0995`, `0996–1985`, `1986–3070`). No photo or catalog copy is tracked here. Commit: pending for this lane.
-- **Verification** — `DimSumSurprise.Tests` 11/11, `ManagedReleaseContract.Tests` 27/27, full x64 Debug solution build 0 warnings / 0 errors, XAML safety passed, and the source audit resolved 2,935/2,935 handlers and 1,986/1,986 direct action controls. Commit: pending for this lane.
-- **Repository sweep** — all 44 pure test projects completed with 0 failures; the Quick Accent settings harness is warning-free after guarding its Windows-only STA hook setup. Commit: pending for this lane.
+- **Public asset authority** — metadata still comes from the public catalog, while dish filenames resolve to the three verified `catalog-v1*` release partitions (`0001–0995`, `0996–1985`, `1986–3070`). No photo or catalog copy is tracked here. Implementation: [`8270cc49`](https://github.com/Ding-Ding-Projects/WinForge/commit/8270cc4951b4a323aa9ff9134b1d02bb65a0744d).
+- **Verification** — `DimSumSurprise.Tests` 11/11, `ManagedReleaseContract.Tests` 27/27, full x64 Debug solution build 0 warnings / 0 errors, XAML safety passed, and the source audit resolved 2,935/2,935 handlers and 1,986/1,986 direct action controls. Implementation: [`8270cc49`](https://github.com/Ding-Ding-Projects/WinForge/commit/8270cc4951b4a323aa9ff9134b1d02bb65a0744d).
+- **Repository sweep** — all 44 pure test projects completed with 0 failures; the Quick Accent settings harness is warning-free after guarding its Windows-only STA hook setup. Implementation: [`8270cc49`](https://github.com/Ding-Ding-Projects/WinForge/commit/8270cc4951b4a323aa9ff9134b1d02bb65a0744d).
 
 ## 2026-08-11 — 啟動點心時機同公開 release partition
 
 - **第一個可用 layout** — 非阻塞 10% 驚喜而家由 `RootGrid.Loaded` 開始，唔再喺 application startup layout 前抽；首次 terms、最小化／deep-link 啟動，同可見 progress／warning／error notification 都會抑制發佈。
-- **公開 asset authority** — metadata 繼續由 public catalog 提供，菜式檔名就解析到三個已驗證 `catalog-v1*` release partition（`0001–0995`、`0996–1985`、`1986–3070`）。呢度唔會 track 圖片或者 catalog 副本。Commit：呢條 lane 待定。
-- **驗證** — `DimSumSurprise.Tests` 11/11、`ManagedReleaseContract.Tests` 27/27、完整 x64 Debug solution build 0 warnings／0 errors、XAML safety 通過，source audit resolve 2,935／2,935 handlers 同 1,986／1,986 direct action controls。Commit：呢條 lane 待定。
-- **Repository sweep** — 44 個 pure test project 全部完成，0 個 failed；Quick Accent settings harness 加咗 Windows-only STA hook guard 後冇 warning。Commit：呢條 lane 待定。
+- **公開 asset authority** — metadata 繼續由 public catalog 提供，菜式檔名就解析到三個已驗證 `catalog-v1*` release partition（`0001–0995`、`0996–1985`、`1986–3070`）。呢度唔會 track 圖片或者 catalog 副本。Implementation：[`8270cc49`](https://github.com/Ding-Ding-Projects/WinForge/commit/8270cc4951b4a323aa9ff9134b1d02bb65a0744d)。
+- **驗證** — `DimSumSurprise.Tests` 11/11、`ManagedReleaseContract.Tests` 27/27、完整 x64 Debug solution build 0 warnings／0 errors、XAML safety 通過，source audit resolve 2,935／2,935 handlers 同 1,986／1,986 direct action controls。Implementation：[`8270cc49`](https://github.com/Ding-Ding-Projects/WinForge/commit/8270cc4951b4a323aa9ff9134b1d02bb65a0744d)。
+- **Repository sweep** — 44 個 pure test project 全部完成，0 個 failed；Quick Accent settings harness 加咗 Windows-only STA hook guard 後冇 warning。Implementation：[`8270cc49`](https://github.com/Ding-Ding-Projects/WinForge/commit/8270cc4951b4a323aa9ff9134b1d02bb65a0744d)。
 
 ## 2026-08-11 — Regex inventory and changelog matcher
 

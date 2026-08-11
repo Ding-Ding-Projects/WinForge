@@ -36,6 +36,8 @@ non-Windows targets; its focused harness is now warning-free. · Repository-wide
 全部 **44/44** test project，零 failed。唯一 analyzer warning 已經用 non-Windows target 嘅
 Windows-only Quick Accent STA hook guard 修正；專項 harness 而家冇 warning。
 
+Implementation commit: [`8270cc49`](https://github.com/Ding-Ding-Projects/WinForge/commit/8270cc4951b4a323aa9ff9134b1d02bb65a0744d). · Implementation commit：[`8270cc49`](https://github.com/Ding-Ding-Projects/WinForge/commit/8270cc4951b4a323aa9ff9134b1d02bb65a0744d)。
+
 ## Managed delivery alignment WIP · 正式發佈對齊 WIP
 
 An isolated checkpoint centralizes the canonical repository/version/assets/digests/paths across the app, updater, launcher, installer, portable footprint, and workflow. Focused contracts pass **23/23** and the app plus both helpers build with **0 warnings / 0 errors**. Work stopped on request before final README/ROADMAP/index reconciliation, aggregate/installer/archive verification, hosted release proof, or `main` integration; it is not yet a completed roadmap item. · 獨立檢查點已集中 repo／版本／資產／digest／路徑合約；專測 **23/23**，app 同兩個 helper build 零 warning／零 error。按要求停止，最終文件、aggregate／installer／ZIP、hosted release 同 `main` 整合未做，未算完成路線圖項目。
