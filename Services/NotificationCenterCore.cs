@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -31,7 +32,10 @@ public sealed record AppNoticeDraft(
     string? Key = null,
     int? AutoDismissMs = null,
     bool PersistInHistory = true,
-    IReadOnlyList<AppNoticeAction>? Actions = null);
+    IReadOnlyList<AppNoticeAction>? Actions = null,
+    string? ImagePath = null,
+    string? ImageAltEn = null,
+    string? ImageAltZh = null);
 
 public sealed record AppNoticeEntry(
     string Id,
@@ -46,7 +50,10 @@ public sealed record AppNoticeEntry(
     bool PersistInHistory,
     bool IsDismissed,
     bool IsUnread,
-    [property: JsonIgnore] IReadOnlyList<AppNoticeAction>? Actions = null);
+    [property: JsonIgnore] IReadOnlyList<AppNoticeAction>? Actions = null,
+    string? ImagePath = null,
+    string? ImageAltEn = null,
+    string? ImageAltZh = null);
 
 /// <summary>
 /// Bounded, UI-independent notification state. It deliberately contains no WinUI types so the
@@ -107,7 +114,10 @@ public sealed class NotificationCenterState
             draft.PersistInHistory,
             IsDismissed: false,
             IsUnread: true,
-            actions);
+            actions,
+            NormalizeImagePath(draft.ImagePath),
+            Clean(draft.ImageAltEn, 300, allowEmpty: true),
+            Clean(draft.ImageAltZh, 300, allowEmpty: true));
 
         if (previous is not null)
         {
@@ -169,6 +179,9 @@ public sealed class NotificationCenterState
                 AutoDismissMs = NormalizeAutoDismiss(source.Severity, source.AutoDismissMs),
                 IsDismissed = true,
                 Actions = null,
+                ImagePath = NormalizeImagePath(source.ImagePath),
+                ImageAltEn = Clean(source.ImageAltEn, 300, allowEmpty: true),
+                ImageAltZh = Clean(source.ImageAltZh, 300, allowEmpty: true),
             });
         }
     }
@@ -252,5 +265,16 @@ public sealed class NotificationCenterState
         if (cleaned.Length > maxLength) cleaned = cleaned[..maxLength];
         if (cleaned.Length == 0 && !allowEmpty) cleaned = "WinForge";
         return cleaned;
+    }
+
+    private static string? NormalizeImagePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return null;
+        try
+        {
+            var full = Path.GetFullPath(path.Trim());
+            return full.Length <= 1024 && File.Exists(full) ? full : null;
+        }
+        catch { return null; }
     }
 }

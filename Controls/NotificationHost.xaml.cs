@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using WinForge.Services;
 
 namespace WinForge.Controls;
@@ -143,6 +145,34 @@ public sealed partial class NotificationHost : UserControl
                 MinWidth = 160,
                 Margin = new Thickness(0, 4, 0, 2),
             };
+        }
+
+        if (!string.IsNullOrWhiteSpace(notice.ImagePath) && File.Exists(notice.ImagePath))
+        {
+            var content = new StackPanel { Spacing = 6 };
+            try
+            {
+                var image = new Image
+                {
+                    Source = new BitmapImage(new Uri(notice.ImagePath, UriKind.Absolute)),
+                    Height = 120,
+                    MaxWidth = 360,
+                    Stretch = Stretch.UniformToFill,
+                };
+                AutomationProperties.SetName(image, Loc.I.Pick(
+                    notice.ImageAltEn ?? notice.TitleEn,
+                    notice.ImageAltZh ?? notice.TitleZh));
+                content.Children.Add(image);
+            }
+            catch { }
+            var body = Pick(notice.BodyEn, notice.BodyZh);
+            if (!string.IsNullOrWhiteSpace(body))
+                content.Children.Add(new TextBlock
+                {
+                    Text = Decorate(notice.Severity, body),
+                    TextWrapping = TextWrapping.Wrap,
+                });
+            if (content.Children.Count > 0) bar.Content = content;
         }
 
         var actions = notice.Actions?.Where(CanInvoke).ToArray() ?? Array.Empty<AppNoticeAction>();

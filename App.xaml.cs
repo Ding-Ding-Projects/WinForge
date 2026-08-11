@@ -155,6 +155,7 @@ public partial class App : Application
         }
         catch { /* best effort */ }
         StartScheduledSettingsRuntime();
+        CrashLogger.Guard("startup:dim-sum-surprise", () => DimSumSurpriseService.Start(Shell.DispatcherQueue));
         CrashLogger.Mark("App: after ApplyTheme");
 
         if (StartMinimized && Shell is MainWindow mw)

@@ -4,7 +4,7 @@
 
 ## Universal experience · 共用體驗
 
-Cross-surface settings, offline changelog and documentation browsers, pinned tabs, scheduled settings, local Support Tickets, the vault-backed authenticator, local OTP QR pairing, and destructive confirmation are documented in the [Universal experience](universal/README.md) category. The index also records universal contracts that are still under implementation, so documentation does not imply that an unshipped surface exists. · 跨介面設定、離線變更紀錄同文件瀏覽器、釘選分頁、排程設定、本機支援工單、vault 驗證器、本機 OTP QR 配對，同破壞性確認喺 [共用體驗](universal/README.md) 分類記錄；index 亦會列出仍在實作嘅共用合約，避免文件扮到未出貨嘅介面已經存在。
+Cross-surface settings, offline changelog and documentation browsers, the dim-sum startup surprise, pinned tabs, scheduled settings, local Support Tickets, the vault-backed authenticator, local OTP QR pairing, and destructive confirmation are documented in the [Universal experience](universal/README.md) category. The index also records universal contracts that are still under implementation, so documentation does not imply that an unshipped surface exists. · 跨介面設定、離線變更紀錄同文件瀏覽器、啟動點心驚喜、釘選分頁、排程設定、本機支援工單、vault 驗證器、本機 OTP QR 配對，同破壞性確認喺 [共用體驗](universal/README.md) 分類記錄；index 亦會列出仍在實作嘅共用合約，避免文件扮到未出貨嘅介面已經存在。
 
 ## Appearance & Personalisation · 外觀與個人化 (16)
 - [Accent colour · 主題色](appearance-personalisation/appearance.accent-colour.md)
