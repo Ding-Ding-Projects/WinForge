@@ -5,14 +5,16 @@ _Cleaned-up project history. Contributor / author names intentionally omitted._
 ## 2026-08-11 — New-tab picker gets the shared regex search builder
 
 - **Real shared search control** — the Ctrl+T and Add-tab picker now uses `SearchPatternBox`; plain text remains the default, while the adjacent full .NET builder synchronizes raw pattern, flags, validation, local preview, and capture-aware search behavior. Category filtering, bilingual labels, and Enter-to-open-first-result remain intact. Commit: [`ab0d4201`](https://github.com/Ding-Ding-Projects/WinForge/commit/ab0d4201dc995610ee0c0ca9d31a5a3a378a7101).
+- **Interaction hardening** — the picker focuses the real query editor, keeps Enter in raw-pattern/sample fields from closing the dialog, preserves whitespace-only regex patterns, exposes named no-match/error states, refreshes localized automation names, and keeps the generated inventory at 14 integrated / 67 remaining. Commit: [`f3a82bdc`](https://github.com/Ding-Ding-Projects/WinForge/commit/f3a82bdc33450de0f1c4ed9c790c0d70b2d5e516).
 - **No hidden persistence** — query, pattern, flags, and sample stay session-only and never enter tab-session JSON, exports, local history, telemetry, or network requests.
-- **Verification target** — the managed release contract now guards the `SearchPatternBox`/`PatternChanged`/matcher seam; the existing regex suite remains the behavioral safety net.
+- **Verification** — `ManagedReleaseContract.Tests` 27/27, `RegexBuilder.Tests` 35/35, `ShellAllAppsRoute.Tests` 4/4, inventory generation 102 controls / 83 files, and full x64 Debug solution build 0 warnings / 0 errors. Commit: [`f3a82bdc`](https://github.com/Ding-Ding-Projects/WinForge/commit/f3a82bdc33450de0f1c4ed9c790c0d70b2d5e516).
 
 ## 2026-08-11 — 新分頁選擇器接上共用 regex 搜尋砌法
 
 - **真正共用 search control** — Ctrl+T 同 Add-tab picker 而家用 `SearchPatternBox`；純文字照舊係預設，旁邊完整 .NET builder 會同步 raw pattern、旗標、驗證、本機預覽同 capture-aware 搜尋。分類篩選、雙語標籤同 Enter 開第一項照樣保留。Commit：[`ab0d4201`](https://github.com/Ding-Ding-Projects/WinForge/commit/ab0d4201dc995610ee0c0ca9d31a5a3a378a7101)。
+- **互動加固** — picker 會聚焦真正 query editor，raw-pattern／sample 欄位按 Enter 唔會關對話框，空白 regex pattern 唔會畀當成空搜尋，具名 no-match／error 狀態會顯示，localized automation names 會更新，生成清單維持 14 個 integrated／67 個剩低。Commit：[`f3a82bdc`](https://github.com/Ding-Ding-Projects/WinForge/commit/f3a82bdc33450de0f1c4ed9c790c0d70b2d5e516)。
 - **唔會暗中保存** — query、pattern、旗標同 sample 只留 session，唔會入 tab-session JSON、export、本機 history、telemetry 或 network request。
-- **驗證目標** — managed release contract 而家守住 `SearchPatternBox`／`PatternChanged`／matcher seam；原有 regex suite 繼續做行為安全網。
+- **驗證** — `ManagedReleaseContract.Tests` 27/27、`RegexBuilder.Tests` 35/35、`ShellAllAppsRoute.Tests` 4/4、inventory 102 controls／83 files，同完整 x64 Debug solution build 0 warnings／0 errors。Commit：[`f3a82bdc`](https://github.com/Ding-Ding-Projects/WinForge/commit/f3a82bdc33450de0f1c4ed9c790c0d70b2d5e516)。
 
 ## 2026-08-11 — Dim-sum startup timing and public release partitions
 
