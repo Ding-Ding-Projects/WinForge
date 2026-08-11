@@ -1,5 +1,6 @@
 using System;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Dispatching;
 using WinForge.Services;
 
 namespace WinForge;
@@ -46,6 +47,8 @@ public partial class App : Application
     private static string? _exportSiteData;
     private static bool _takeSnapshot;
     private static bool _applyTheme;
+    private static DispatcherQueueTimer? _scheduledSettingsTimer;
+    private static CancellationTokenSource? _scheduledRefreshCancellation;
 
     /// <summary>由命令列 "--minimized" 設定：開機自啟動時收入系統匣 · Start hidden in the tray (login startup).</summary>
     public static bool StartMinimized { get; private set; }
@@ -151,7 +154,7 @@ public partial class App : Application
             if (System.IO.File.Exists(flag)) System.IO.File.Delete(flag);
         }
         catch { /* best effort */ }
-        ApplyThemeFromSettings();
+        StartScheduledSettingsRuntime();
         CrashLogger.Mark("App: after ApplyTheme");
 
         if (StartMinimized && Shell is MainWindow mw)
@@ -331,7 +334,10 @@ public partial class App : Application
         // Dark-first: the WinForge "Reactor" design (WinForge.dc.html) is a dark, reactor-green
         // theme, so Dark is the baseline. Only an explicit "Light" choice opts out — "Default"/unset
         // resolve to Dark so the reactor look is what users see out of the box (toggle still works).
-        var theme = SettingsStore.Get("theme", "Dark");   // unset → Dark reactor look out of the box
+        var scheduled = ScheduledSettingsService.Resolve();
+        var theme = scheduled.Values.TryGetValue("theme", out string? scheduledTheme)
+            ? scheduledTheme
+            : SettingsStore.Get("theme", "Dark");   // unset → Dark reactor look out of the box
         SetTheme(theme switch
         {
             "Light" => ElementTheme.Light,
@@ -344,5 +350,70 @@ public partial class App : Application
     {
         if (Shell?.Content is FrameworkElement root)
             root.RequestedTheme = theme;
+    }
+
+    private static void StartScheduledSettingsRuntime()
+    {
+        if (_scheduledSettingsTimer is not null)
+        {
+            ApplyScheduledSettingsRuntime();
+            return;
+        }
+
+        ScheduledSettingsService.Changed += OnScheduledSettingsChanged;
+        UniversalSettingsService.Changed += OnScheduledSettingsChanged;
+        ApplyScheduledSettingsRuntime();
+
+        if (Shell?.DispatcherQueue is not DispatcherQueue queue) return;
+        _scheduledSettingsTimer = queue.CreateTimer();
+        _scheduledSettingsTimer.Interval = TimeSpan.FromMinutes(1);
+        _scheduledSettingsTimer.Tick += (_, _) =>
+        {
+            ApplyScheduledSettingsRuntime();
+            _ = RefreshScheduledSourcesAsync();
+        };
+        _scheduledSettingsTimer.Start();
+        _ = RefreshScheduledSourcesAsync();
+    }
+
+    private static void OnScheduledSettingsChanged(object? sender, EventArgs e)
+    {
+        if (Shell?.DispatcherQueue is DispatcherQueue queue)
+            queue.TryEnqueue(ApplyScheduledSettingsRuntime);
+    }
+
+    private static void ApplyScheduledSettingsRuntime()
+    {
+        ScheduledSettingsResolution resolution = ScheduledSettingsService.Resolve();
+        bool schoolMode = UniversalSettingsService.SchoolModeEnabled;
+        if (schoolMode)
+            Loc.I.SetScheduledOverride(Models.AppLanguage.English);
+        else if (resolution.Values.TryGetValue("language", out string? language) &&
+                 Enum.TryParse<Models.AppLanguage>(language, true, out Models.AppLanguage parsed))
+            Loc.I.SetScheduledOverride(parsed);
+        else
+            Loc.I.SetScheduledOverride(null);
+
+        resolution.Values.TryGetValue("displayName", out string? displayName);
+        BrandingService.SetScheduledOverride(displayName);
+        ScheduledAppearanceService.Apply(Shell?.Content as FrameworkElement,
+            schoolMode ? null : (resolution.RuleId is null ? null : resolution.Values));
+        ApplyThemeFromSettings();
+    }
+
+    private static async Task RefreshScheduledSourcesAsync()
+    {
+        _scheduledRefreshCancellation?.Cancel();
+        _scheduledRefreshCancellation?.Dispose();
+        var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(ScheduledSettingsService.RefreshTimeoutSeconds + 2));
+        _scheduledRefreshCancellation = cancellation;
+        try
+        {
+            await ScheduledSettingsService.RefreshExternalSourcesAsync(cancellationToken: cancellation.Token).ConfigureAwait(false);
+            if (Shell?.DispatcherQueue is DispatcherQueue queue)
+                queue.TryEnqueue(ApplyScheduledSettingsRuntime);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+        catch (Exception ex) { CrashLogger.Log("scheduled-settings.refresh", ex); }
     }
 }

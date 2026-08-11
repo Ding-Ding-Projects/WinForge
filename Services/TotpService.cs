@@ -131,29 +131,47 @@ public static class TotpService
         try
         {
             if (string.IsNullOrWhiteSpace(uri)) return null;
-            if (!Uri.TryCreate(uri.Trim(), UriKind.Absolute, out var u)) return null;
+            string normalizedUri = uri.Trim();
+            if (normalizedUri.Length > 4096) return null;
+            if (!Uri.TryCreate(normalizedUri, UriKind.Absolute, out var u)) return null;
             if (!string.Equals(u.Scheme, "otpauth", StringComparison.OrdinalIgnoreCase)) return null;
             if (!string.Equals(u.Host, "totp", StringComparison.OrdinalIgnoreCase)) return null;
+            if (u.Query.Length > 4096) return null;
 
             var result = new OtpAuth();
+            bool invalidParameter = false;
+            bool secretSeen = false;
 
             string label = Uri.UnescapeDataString(u.AbsolutePath.TrimStart('/'));
+            if (label.Length > 256) return null;
             if (!string.IsNullOrEmpty(label)) result.Label = label;
 
             foreach (var kv in ParseQuery(u.Query))
             {
                 switch (kv.Key.ToLowerInvariant())
                 {
-                    case "secret": result.Secret = kv.Value; break;
+                    case "secret":
+                        if (secretSeen) invalidParameter = true;
+                        secretSeen = true;
+                        result.Secret = kv.Value;
+                        break;
                     case "issuer": result.Issuer = kv.Value; break;
                     case "digits":
                         if (int.TryParse(kv.Value, out var d) && d >= 1 && d <= 10) result.Digits = d;
+                        else invalidParameter = true;
                         break;
                     case "period":
-                        if (int.TryParse(kv.Value, out var p) && p > 0) result.Period = p;
+                        if (int.TryParse(kv.Value, out var p) && p > 0 && p <= 3600) result.Period = p;
+                        else invalidParameter = true;
                         break;
                     case "algorithm":
-                        result.Algorithm = kv.Value.ToUpperInvariant() switch
+                        string algorithm = kv.Value.ToUpperInvariant();
+                        if (algorithm is not ("SHA1" or "SHA256" or "SHA512"))
+                        {
+                            invalidParameter = true;
+                            break;
+                        }
+                        result.Algorithm = algorithm switch
                         {
                             "SHA256" => HashAlgo.Sha256,
                             "SHA512" => HashAlgo.Sha512,
@@ -163,7 +181,7 @@ public static class TotpService
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(result.Secret)) return null;
+            if (invalidParameter || string.IsNullOrWhiteSpace(result.Secret) || result.Secret.Length > 512) return null;
             return result;
         }
         catch

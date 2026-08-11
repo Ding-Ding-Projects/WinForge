@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -67,6 +68,15 @@ public sealed partial class ManualPage : Page
     private void BuildToc()
     {
         TocPanel.Children.Clear();
+        var support = new Button
+        {
+            Content = "Support Tickets · 支援工單",
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            MinHeight = 44,
+        };
+        AutomationProperties.SetName(support, P("Open Support Tickets", "開啟支援工單"));
+        support.Click += (_, _) => Navigator.GoToModule?.Invoke("module.supporttickets");
+        TocPanel.Children.Add(support);
 
         if (HasFilter())
         {

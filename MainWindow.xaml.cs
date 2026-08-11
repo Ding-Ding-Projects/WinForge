@@ -1807,6 +1807,17 @@ public sealed partial class MainWindow : Window
             case "settings":
                 NavigateActive("settings");
                 break;
+            case "supporttickets":
+            case "support-tickets":
+            case "tickets":
+                Navigator.GoToModule?.Invoke("module.supporttickets");
+                break;
+            case "offlinedocs":
+            case "offline-docs":
+            case "docs":
+            case "wiki":
+                Navigator.GoToModule?.Invoke("module.offlinedocs");
+                break;
             case "manual":
             case "help":
             case "guide":
@@ -2416,6 +2427,8 @@ public sealed partial class MainWindow : Window
         "module.ciphers" => typeof(CiphersModule),
         "module.checkdigit" => typeof(CheckDigitModule),
         "module.totp" => typeof(TotpModule),
+        "module.supporttickets" => typeof(SupportTicketsPage),
+        "module.offlinedocs" => typeof(OfflineDocsPage),
         "module.uuidv5" => typeof(UuidV5Module),
         "module.tableformat" => typeof(TableFormatModule),
         "module.textstats" => typeof(TextStatsModule),

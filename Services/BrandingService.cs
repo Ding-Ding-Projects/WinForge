@@ -15,6 +15,7 @@ public static class BrandingService
 
     private const string KeyEn = "app.name.en";
     private const string KeyZh = "app.name.zh";
+    private static string? _scheduledDisplayName;
 
     /// <summary>品牌改變時觸發 · Raised whenever the custom name changes (for live re-render).</summary>
     public static event EventHandler? Changed;
@@ -45,7 +46,19 @@ public static class BrandingService
     public static bool IsCustom => NameEn != DefaultEn || NameZh != DefaultZh;
 
     /// <summary>跟語言模式嘅顯示名 · The display name for the current language mode (bilingual = "En · Zh").</summary>
-    public static string Display => Loc.I.Pick(NameEn, NameZh);
+    public static string Display => _scheduledDisplayName ?? Loc.I.Pick(NameEn, NameZh);
+
+    /// <summary>
+    /// Applies a temporary scheduled display name without changing the persisted names.
+    /// </summary>
+    public static void SetScheduledOverride(string? value)
+    {
+        string? normalized = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        if (normalized is not null && normalized.Length > 128) normalized = normalized[..128];
+        if (string.Equals(_scheduledDisplayName, normalized, StringComparison.Ordinal)) return;
+        _scheduledDisplayName = normalized;
+        Changed?.Invoke(null, EventArgs.Empty);
+    }
 
     /// <summary>一次過設定兩個名再通知 · Set both names then notify once.</summary>
     public static void Set(string? en, string? zh)

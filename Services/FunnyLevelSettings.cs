@@ -19,7 +19,7 @@ public sealed class FunnyLevelSettings
     public const string CantoneseSettingKey = "tone.cantoneseFunnyLevel";
 
     private static readonly Lazy<FunnyLevelSettings> Shared = new(() =>
-        new FunnyLevelSettings(SettingsStore.Get, SettingsStore.Set));
+        new FunnyLevelSettings(SettingsStore.Get, (key, value) => SettingsStore.Set(key, value)));
 
     private readonly object _gate = new();
     private readonly Func<string, string, string> _get;
@@ -75,6 +75,15 @@ public sealed class FunnyLevelSettings
             _ => Loc.Both(en, zh),
         };
     }
+
+    /// <summary>
+    /// Styles factual status copy without changing the event, affected item, or available action.
+    /// This is the bounded voice layer used by newer universal surfaces, including warnings and
+    /// errors; the five variants never remove the operational facts.
+    /// </summary>
+    public string StyleEnglish(string factual) => Style(factual ?? string.Empty, EnglishLevel, english: true);
+
+    public string StyleCantonese(string factual) => Style(factual ?? string.Empty, CantoneseLevel, english: false);
 
     /// <summary>Reload values after an explicit settings import.</summary>
     public void ReloadFromSettings()
@@ -133,5 +142,26 @@ public sealed class FunnyLevelSettings
     {
         if (value is < MinimumLevel or > MaximumLevel)
             throw new ArgumentOutOfRangeException(nameof(value), value, "Funny level must be between 1 and 5.");
+    }
+
+    private static string Style(string factual, int level, bool english)
+    {
+        if (level <= 1 || string.IsNullOrWhiteSpace(factual)) return factual;
+        string suffix = english
+            ? level switch
+            {
+                2 => " (facts unchanged)",
+                3 => " — the local paper trail has arrived",
+                4 => " — the tiny office goblin is taking notes",
+                _ => " — maximum paperwork sparkle, same facts",
+            }
+            : level switch
+            {
+                2 => "（事實冇變）",
+                3 => "——本機紙仔已經到場",
+                4 => "——小小辦公室精靈幫手記低",
+                _ => "——紙仔閃閃發光，但事實一樣",
+            };
+        return factual + suffix;
     }
 }

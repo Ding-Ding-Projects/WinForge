@@ -535,18 +535,16 @@ public sealed class ControlRowList : UserControl
     // ---------------- Confirmation for destructive actions ----------------
     private async Task<bool> ConfirmAsync(TweakDefinition op)
     {
-        var dlg = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = P("Are you sure?", "確定嗎？"),
-            Content = $"{op.Title.En}\n{op.Title.Zh}\n\n" +
-                      "This action may be hard to undo.\n呢個動作可能難以復原。",
-            PrimaryButtonText = P("Proceed", "繼續"),
-            CloseButtonText = P("Cancel", "取消"),
-            DefaultButton = ContentDialogButton.Close,
-        };
-        try { return await dlg.ShowAsync() == ContentDialogResult.Primary; }
-        catch { return false; }
+        string keyTwo = op.Title.En.Trim().ToUpperInvariant() + " ACTION";
+        return await SuperConfirmationDialog.ShowAsync(
+            XamlRoot,
+            "Confirm destructive action",
+            "確認破壞性動作",
+            "Proceed",
+            "繼續",
+            $"{op.Title.En}\n{op.Title.Zh}\n\nThis action may be hard to undo. Enter DELETE and the visible second key ({keyTwo}), then complete the slider.",
+            $"{op.Title.En}\n{op.Title.Zh}\n\n呢個動作可能難以復原。輸入 DELETE 同畫面顯示嘅第二條匙（{keyTwo}），再完成滑桿。",
+            keyTwo);
     }
 
     // ── Result / status helpers (route through the one persistent InfoBar) ──────

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.SupportTicketsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="Root" MaxWidth="820" Spacing="14">
+            <TextBlock x:Name="TitleText" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock x:Name="SubtitleText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+            <Border Padding="14" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="DisclosureText" TextWrapping="Wrap" />
+                    <TextBlock x:Name="RecoveryText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="14" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="CreateHeading" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="CategoryBox" Grid.Column="0" HorizontalAlignment="Stretch" />
+                        <ComboBox x:Name="SeverityBox" Grid.Column="1" HorizontalAlignment="Stretch" />
+                    </Grid>
+                    <TextBox x:Name="DescriptionBox" AcceptsReturn="True" MinHeight="120" TextWrapping="Wrap" />
+                    <Button x:Name="CreateButton" MinHeight="40" Click="CreateButton_Click" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="14" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ListHeading" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <controls:SearchPatternBox x:Name="TicketSearchBox" AutomationName="Support ticket search" />
+                    <TextBlock x:Name="TicketCountText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="EmptyStateText" TextWrapping="Wrap" Visibility="Collapsed" AutomationProperties.Name="Support ticket empty state" />
+                    <TextBlock x:Name="BulkScopeText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <StackPanel Spacing="8">
+                        <Button x:Name="SelectAllButton" MinHeight="40" Click="SelectAllButton_Click" />
+                        <Button x:Name="InvertSelectionButton" MinHeight="40" Click="InvertSelectionButton_Click" />
+                    </StackPanel>
+                    <ListView x:Name="TicketsList" MinHeight="180" SelectionMode="Extended" SelectionChanged="TicketsList_SelectionChanged" ContainerContentChanging="TicketsList_ContainerContentChanging">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="3" Padding="2,6">
+                                    <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Details}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <StackPanel Spacing="8">
+                        <Button x:Name="AdvanceStatusButton" MinHeight="40" Click="AdvanceStatusButton_Click" />
+                        <Button x:Name="DeleteSelectedButton" MinHeight="40" Click="DeleteSelectedButton_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="ExportHeading" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <StackPanel Spacing="8">
+                        <Button x:Name="ExportJsonButton" MinHeight="40" Click="ExportJsonButton_Click" />
+                        <Button x:Name="ExportCsvButton" MinHeight="40" Click="ExportCsvButton_Click" />
+                        <Button x:Name="ExportMarkdownButton" MinHeight="40" Click="ExportMarkdownButton_Click" />
+                        <Button x:Name="ExportHtmlButton" MinHeight="40" Click="ExportHtmlButton_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="14" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ResolutionHeading" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBox x:Name="FolderPathBox" IsReadOnly="True" TextWrapping="Wrap" />
+                    <Button x:Name="OpenFolderButton" MinHeight="40" Click="OpenFolderButton_Click" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

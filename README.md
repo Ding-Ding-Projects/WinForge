@@ -26,7 +26,8 @@ The Squirrel.Windows installer is intentionally unsigned and may trigger an unkn
 - **Dew-compatible local history · Dew 相容本機歷史** — a native, bilingual workspace snapshots a file or folder into adjacent Git history, reviews changes, restores rollback-safely, and exports password/header-encrypted 7z archives without launching the upstream app or placing secrets on a command line. · 原生雙語工作區會將檔案或資料夾影成旁置 Git 歷史、檢視變更、安全 rollback 還原，同匯出密碼及檔名加密 7z；唔會啟動上游 app，亦唔會將秘密放入命令列。
 - **Three persisted language modes · 三種持久語言模式** — English, playful Hong Kong-style Cantonese, and compact bilingual mode.
 - **Independent funny levels · 英粵分開搞笑等級** — persisted 1–5 tone controls for English and Cantonese provide a live safe-copy preview; errors, security, destructive actions, accessibility wording, and other operational text stay exact at every level. · 英文同粵語各自有持久化 1–5 級語氣控制同安全文案即時預覽；錯誤、安全、破壞性操作、無障礙同其他操作文字喺任何級別都保持準確。
-- **Shared experience controls · 共用體驗控制** — shared live settings include the emoji-message switch, user-renamable School mode with credential-vault recovery, opt-in serialized notification narration, an offline changelog viewer with date/regex filtering and export, pinned tabs, and local TOTP pairing QR generation. The remaining universal contract is documented as unfinished work rather than implied. · 共用即時設定包括 emoji 訊息開關、可改名並用 credential vault 解鎖嘅 School mode、選擇性序列化通知旁白、附日期／regex 篩選同匯出嘅離線變更紀錄、釘選分頁，同本機 TOTP 配對 QR 產生。其餘共用合約會清楚記錄做未做，唔會扮成已完成。
+- **Shared experience controls · 共用體驗控制** — shared live settings include the emoji-message switch, user-renamable School mode with credential-vault recovery, opt-in serialized notification narration, an offline changelog viewer with date/regex filtering and export, a complete bundled feature/wiki documentation browser, pinned tabs, scheduled settings with validated local/API/Home Assistant sources, a local Support Tickets recovery desk, and local TOTP pairing QR generation. The remaining universal contract is documented as unfinished work rather than implied. · 共用即時設定包括 emoji 訊息開關、可改名並用 credential vault 解鎖嘅 School mode、選擇性序列化通知旁白、附日期／regex 篩選同匯出嘅離線變更紀錄、完整捆綁功能／wiki 文件瀏覽器、釘選分頁、支援驗證本機／API／Home Assistant 來源嘅排程設定、本機支援工單復原台，同本機 TOTP 配對 QR 產生。其餘共用合約會清楚記錄做未做，唔會扮成已完成。
+- **Local authenticator vault · 本機驗證器 vault** — the TOTP surface now supports multiple vault-backed entries, current-code pairing confirmation, live codes, issuer/account/group metadata, regex-wired search, and redacted JSON/CSV exports. QR image-file and camera ingestion remain explicitly tracked follow-up work. · TOTP 介面而家支援多項 vault 密鑰、目前驗證碼配對確認、即時驗證碼、issuer／account／group 資料、接駁 regex builder 嘅搜尋，同刪密鑰 JSON／CSV 匯出；QR 圖片檔同相機匯入仍然明確列做後續工作。
 - **Reviewable notification centre · 可翻查通知中心** — bounded bottom-right cards auto-dismiss information/success, retain warnings/errors, expose accessible actions, and keep a local 200-entry history; app updates and package operations share the same reliable in-app path. · 右下角有界通知卡會自動關閉資訊／成功、保留警告／錯誤、提供無障礙動作，同本機 200 項記錄；app 更新同套件操作共用同一條可靠 app 內路徑。
 - **Bounded guided regex builder · 有界引導式正則砌法** — the managed .NET 11 tester constructs literals, character classes, anchors, groups, alternation, and quantifiers; the same full builder is synchronized with eight core/common search surfaces, while plain text remains the default. Raw editing, five flags, session-only samples, live matches/captures, replacement preview, and explicit copy remain local, size-bounded, and timeout-protected. · 正式 .NET 11 測試器可引導砌字面文字、字元類、錨點、群組、二選一同量詞；同一個完整版砌法已同八個核心／共用搜尋介面同步，而純文字繼續做預設。原始編輯、五旗標、只限今次工作階段 sample、即時配對／擷取、替換預覽同明確複製全部只喺本機、有大小上限兼有超時保護。
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.
@@ -159,6 +160,23 @@ The current contract is **16/16** and does not launch the app or perform a syste
 Visual changes require a fresh inspected screenshot for every changed page. If graphics capture is unavailable, record the exact blocker and keep functional, accessibility, and visual evidence separate.
 
 視覺改動要為每個改過嘅頁面提供最新、已檢視截圖。如果環境擷取唔到畫面，要記低確實阻礙，並將功能、無障礙同視覺證據分開。
+
+<details>
+<summary>Current universal built-artifact captures · 目前共用功能真實建置擷取</summary>
+
+These captures came from the self-contained WinForge build on a dedicated hidden desktop. They show the actual Settings, Support Tickets, TOTP authenticator, and rendered offline-documentation surfaces; they are not mockups or design exports. · 以下擷取來自專用隱藏 desktop 上面嘅自包含 WinForge build，顯示真實 Settings、Support Tickets、TOTP authenticator 同離線文件渲染介面；唔係 mockup 或 design export。
+
+![Settings universal controls in the built WinForge application](docs/screenshot-settings-universal-2026-08-11.png)
+
+![Support Tickets recovery desk with local disclosure and bulk controls](docs/screenshot-support-tickets-2026-08-11.png)
+
+![TOTP authenticator with vault-backed entry and pairing controls](docs/screenshot-totp-authenticator-2026-08-11.png)
+
+![Offline documentation article rendered inside the built application](docs/screenshot-offline-documentation-2026-08-11.png)
+
+The four files are tracked evidence from the same verification pass: Settings SHA-256 `6A0B8BDC3F5DC9F58B9F30BF7E8A6EA1D3875A7EF059AE62C26B51C667485B9C`; Support Tickets `FB4FF05D43A212468734130B8A08163E6FFF7B9D65F9B996CCAA7C333742AB63`; TOTP `7D2D6D016D22EA0F92E074291C11B3F1D728D8EB042285664879738DE1C2C4C0`; offline documentation `A4199948F47F545D9870632FEDBB8540743767B8D67F0FCCA7AC803D8E2D5759`. · 四個檔案都係同一輪驗證嘅 tracked evidence，SHA-256 如上。
+
+</details>
 
 ## Reactor safety · 反應堆安全
 

@@ -291,7 +291,8 @@ public sealed partial class BrowserControlPanel : UserControl
             P(
                 $"Close every {BrowserControlCore.BrowserName(profile.Browser)} process first. WinForge will delete only Cache and Code Cache inside {profile.DisplayLabel}.",
                 $"請先完全關閉 {BrowserControlCore.BrowserName(profile.Browser)}。WinForge 只會刪除 {profile.DisplayLabel} 入面嘅 Cache 同 Code Cache。"),
-            P("Clear cache", "清除快取"));
+            P("Clear cache", "清除快取"),
+            destructive: true);
         if (!confirmed) return;
         Run(() => BrowserControlService.ClearProfileCache(profile));
     }
@@ -336,8 +337,22 @@ public sealed partial class BrowserControlPanel : UserControl
         finally { SetBusy(false); }
     }
 
-    private async Task<bool> ConfirmAsync(string title, string message, string primary)
+    private async Task<bool> ConfirmAsync(string title, string message, string primary, bool destructive = false)
     {
+        if (destructive)
+        {
+            string keyTwo = "CLEAR PROFILE CACHE";
+            return await SuperConfirmationDialog.ShowAsync(
+                XamlRoot,
+                "Confirm destructive cache deletion",
+                "確認破壞性快取刪除",
+                primary,
+                primary,
+                $"{message}\\nEnter DELETE and the visible second key ({keyTwo}), then complete the slider.",
+                $"{message}\\n輸入 DELETE 同畫面顯示嘅第二條匙（{keyTwo}），再完成滑桿。",
+                keyTwo);
+        }
+
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,

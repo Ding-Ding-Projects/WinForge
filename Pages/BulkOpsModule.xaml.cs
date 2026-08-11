@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -104,16 +105,16 @@ public sealed partial class BulkOpsModule : Page
 
     private async Task<bool> Confirm(string verb)
     {
-        var dlg = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = P("Are you sure?", "確定嗎？"),
-            Content = P($"{verb} {_matches.Count} file(s)?", $"{verb} {_matches.Count} 個檔案？"),
-            PrimaryButtonText = P("Proceed", "繼續"),
-            CloseButtonText = P("Cancel", "取消"),
-            DefaultButton = ContentDialogButton.Close,
-        };
-        return await dlg.ShowAsync() == ContentDialogResult.Primary;
+        string keyTwo = $"{verb.ToUpperInvariant()} {_matches.Count} FILES";
+        return await SuperConfirmationDialog.ShowAsync(
+            XamlRoot,
+            "Confirm destructive file operation",
+            "確認破壞性檔案操作",
+            "Proceed",
+            "繼續",
+            $"{verb} {_matches.Count} file(s)? Enter DELETE and the visible second key ({keyTwo}), then complete the slider.",
+            $"{verb} {_matches.Count} 個檔案？輸入 DELETE 同畫面顯示嘅第二條匙（{keyTwo}），再完成滑桿。",
+            keyTwo);
     }
 
     private async void Copy_Click(object sender, RoutedEventArgs e)

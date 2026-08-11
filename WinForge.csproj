@@ -69,6 +69,10 @@
   <ItemGroup>
     <!-- Offline in-app documentation/release history; no network fetch is required to read it. -->
     <Content Include="CHANGELOG.md" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Complete offline feature/wiki article corpus for the in-app documentation browser.
+         Copy-only None items keep Markdown out of the WinUI PRI resource compiler. -->
+    <None Update="docs\features\**\*.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="docs\wiki\**\*.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
     <!-- WinForge "Reactor" design fonts (OFL) — Space Grotesk (UI) + JetBrains Mono (numerals). -->
@@ -244,5 +248,14 @@
     <Error Condition="!Exists('WebApps\diagramforge\index.html')" Text="Missing companion asset: WebApps\diagramforge\index.html" />
     <Error Condition="!Exists('native\audioforge\main.cpp')" Text="Missing companion asset: native\audioforge\main.cpp" />
     <Error Condition="!Exists('native\imageforge\main.cpp')" Text="Missing companion asset: native\imageforge\main.cpp" />
+  </Target>
+
+  <!-- The same wildcards that ship the offline corpus must never silently match nothing. -->
+  <Target Name="ValidateOfflineDocumentation" BeforeTargets="PrepareForBuild">
+    <ItemGroup>
+      <OfflineDocumentation Include="docs\features\**\*.md;docs\wiki\**\*.md" />
+    </ItemGroup>
+    <Error Condition="'@(OfflineDocumentation)' == ''"
+           Text="Offline documentation inventory is empty; feature and wiki Markdown cannot be omitted from the in-app browser." />
   </Target>
 </Project>

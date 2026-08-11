@@ -21,7 +21,7 @@ public static class SettingsStore
 
     public static string Get(string key, string fallback) => Session.Get(key, fallback);
 
-    public static void Set(string key, string value) => Session.Set(key, value);
+    public static bool Set(string key, string value) => Session.Set(key, value);
 
     /// <summary>匯出所有設定到檔案 · Export all settings to a JSON file.</summary>
     public static void ExportTo(string path) => Session.ExportTo(path);
@@ -96,12 +96,15 @@ internal sealed class SettingsStoreSession
         }
     }
 
-    internal void Set(string key, string value)
+    internal bool Set(string key, string value)
     {
         lock (_gate)
         {
             _cache[key] = value;
-            SaveLocked();
+            // Keep the live session value even when persistence is fail-closed. Callers receive
+            // false and may roll back their own higher-level transaction, while ordinary settings
+            // remain usable for the rest of this process as the established contract requires.
+            return SaveLocked();
         }
     }
 
@@ -135,9 +138,8 @@ internal sealed class SettingsStoreSession
         return imported.Count;
     }
 
-    private void SaveLocked()
+    private bool SaveLocked()
     {
-        if (_persistenceEnabled)
-            SettingsStorePersistence.TryWriteAtomically(_filePath, _cache);
+        return _persistenceEnabled && SettingsStorePersistence.TryWriteAtomically(_filePath, _cache);
     }
 }

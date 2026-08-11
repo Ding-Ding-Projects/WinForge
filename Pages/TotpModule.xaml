@@ -14,6 +14,23 @@
             <controls:ModuleHeader x:Name="Header" Glyph="&#xE72E;" />
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
+            <!-- Saved local authenticator entries. Metadata is local JSON; secrets stay in the Windows credential vault. -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="EntriesTitle" FontWeight="SemiBold" />
+                    <TextBlock x:Name="EntriesBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <controls:SearchPatternBox x:Name="EntrySearchBox" AutomationName="Authenticator entry search" />
+                    <TextBlock x:Name="EntryCountText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="EmptyEntriesText" TextWrapping="Wrap" Visibility="Collapsed" AutomationProperties.Name="Authenticator empty state" />
+                    <StackPanel x:Name="EntriesPanel" Spacing="8" />
+                    <StackPanel Orientation="Vertical" Spacing="8">
+                        <Button x:Name="ExportJsonButton" Click="ExportJson_Click" MinHeight="40" />
+                        <Button x:Name="ExportCsvButton" Click="ExportCsv_Click" MinHeight="40" />
+                    </StackPanel>
+                    <TextBlock x:Name="ExportDisclosure" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
             <!-- Live code card -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <Grid ColumnSpacing="16">
@@ -43,8 +60,19 @@
                 <StackPanel Spacing="14">
                     <StackPanel Spacing="4">
                         <TextBlock x:Name="SecretLabel" FontWeight="SemiBold" />
-                        <TextBox x:Name="SecretBox" TextChanged="Config_Changed" PlaceholderText="JBSWY3DPEHPK3PXP" FontFamily="Consolas" />
+                        <PasswordBox x:Name="SecretBox" PasswordChanged="Config_Changed" MaxLength="512" PlaceholderText="Base32 secret (masked until you choose to register it)" FontFamily="Consolas" />
                     </StackPanel>
+
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="IssuerBox" Grid.Column="0" />
+                        <TextBox x:Name="AccountBox" Grid.Column="1" />
+                    </Grid>
+                    <TextBox x:Name="GroupBox" />
+                    <Button x:Name="SaveMetadataButton" Click="SaveMetadata_Click" MinHeight="40" IsEnabled="False" />
 
                     <StackPanel Spacing="4">
                         <TextBlock x:Name="UriLabel" FontWeight="SemiBold" />
@@ -53,19 +81,20 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="UriBox" Grid.Column="0" PlaceholderText="otpauth://totp/Example?secret=JBSWY3DPEHPK3PXP&amp;issuer=Example" />
+                            <TextBox x:Name="UriBox" Grid.Column="0" MaxLength="4096" PlaceholderText="otpauth://totp/Example?secret=JBSWY3DPEHPK3PXP&amp;issuer=Example" />
                             <Button x:Name="ImportBtn" Grid.Column="1" Click="Import_Click" VerticalAlignment="Bottom" />
                         </Grid>
+                        <Button x:Name="PasteUriButton" Click="PasteUri_Click" HorizontalAlignment="Left" MinHeight="40" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="18">
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="DigitsLabel" />
-                            <NumberBox x:Name="DigitsBox" Value="6" Minimum="6" Maximum="10" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Number_Changed" />
+                            <NumberBox x:Name="DigitsBox" Minimum="6.0" Maximum="8.0" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Number_Changed" />
                         </StackPanel>
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="PeriodLabel" />
-                            <NumberBox x:Name="PeriodBox" Value="30" Minimum="1" Maximum="600" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Number_Changed" />
+                            <NumberBox x:Name="PeriodBox" Minimum="1.0" Maximum="600.0" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Number_Changed" />
                         </StackPanel>
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="AlgoLabel" />
@@ -95,6 +124,9 @@
                         <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
                             <TextBlock x:Name="QrStatusText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             <Button x:Name="QrButton" Click="GenerateQr_Click" HorizontalAlignment="Left" />
+                            <TextBox x:Name="ConfirmCodeBox" PlaceholderText="123456" MaxLength="10" FontFamily="Consolas" />
+                            <Button x:Name="ConfirmPairingButton" Click="ConfirmPairing_Click" HorizontalAlignment="Left" IsEnabled="False" />
+                            <Button x:Name="ClearPairingButton" Click="ClearPairing_Click" HorizontalAlignment="Left" MinHeight="40" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>

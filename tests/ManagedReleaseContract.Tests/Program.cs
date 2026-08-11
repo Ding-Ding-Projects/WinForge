@@ -26,6 +26,7 @@ Run("Squirrel metadata points to the canonical repository", InstallerMetadataCon
 Run("app, updater, and launcher share the pure contract", RuntimeWiringContract);
 Run("Squirrel update remains user-controlled", SquirrelUpdateActionContract);
 Run("universal settings and offline changelog are wired", UniversalExperienceContract);
+Run("destructive actions use the shared super confirmation", SuperConfirmationContract);
 Run("pinned tabs persist in the session schema", PinnedTabContract);
 Run("managed tree has no stale repository links", NoStaleManagedRepositoryLinks);
 Run("WinForge-Native links retain their independent owner", NativeRepositoryLinksPreserved);
@@ -295,6 +296,20 @@ static void UniversalExperienceContract()
     Contains(about, "CalendarDatePicker", "offline changelog date filter");
     Contains(changelog, "CHANGELOG.md", "offline changelog source");
     Contains(ReadRepoFile("WinForge.csproj"), "CHANGELOG.md", "bundled changelog");
+}
+
+static void SuperConfirmationContract()
+{
+    string dialog = ReadRepoFile("Controls", "SuperConfirmationDialog.cs");
+    string rows = ReadRepoFile("Controls", "ControlRowList.cs");
+    string bulk = ReadRepoFile("Pages", "BulkOpsModule.xaml.cs");
+    string browser = ReadRepoFile("Controls", "BrowserControlPanel.xaml.cs");
+    Contains(dialog, "two independently entered keys", "two-key explanation");
+    Contains(dialog, "slider.Value < 100", "full-range slider check");
+    Contains(dialog, "Emergency exit", "emergency cancellation");
+    Contains(rows, "SuperConfirmationDialog.ShowAsync", "control-row destructive route");
+    Contains(bulk, "SuperConfirmationDialog.ShowAsync", "bulk-file destructive route");
+    Contains(browser, "destructive: true", "browser cache destructive route");
 }
 
 static void PinnedTabContract()

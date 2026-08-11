@@ -129,6 +129,9 @@
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Support Tickets · 支援工單" Tag="module.supporttickets">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
 
                 <NavigationViewItemHeader Content="Categories · 分類" />
                 <NavigationViewItem Content="Files &amp; Disks · 檔案與磁碟" SelectsOnInvoked="False">
