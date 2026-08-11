@@ -39,7 +39,7 @@ public static class DimSumSurpriseService
     {
         ArgumentNullException.ThrowIfNull(ui);
         if (Interlocked.Exchange(ref _attempted, 1) != 0) return;
-        if (!TermsService.HasAccepted || UniversalSettingsService.SchoolModeEnabled ||
+        if (!TermsService.HasAccepted || App.StartMinimized || UniversalSettingsService.SchoolModeEnabled ||
             !string.IsNullOrWhiteSpace(App.StartPage))
             return;
 
