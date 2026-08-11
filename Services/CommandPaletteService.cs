@@ -20,7 +20,7 @@ namespace WinForge.Services;
 /// <summary>
 /// 指令面板（PowerToys Run／Command Palette 式）· The Command Palette engine — a global quick-launcher.
 ///
-/// 一個全域熱鍵（預設 Alt+Space）會彈出一個置中、置頂、無邊框嘅搜尋視窗。輸入嘅字會
+/// 一個全域熱鍵（預設 Ctrl+Shift+F）會彈出一個置中、置頂、無邊框嘅搜尋視窗。輸入嘅字會
 /// 交畀多個「結果提供者」（已安裝程式、WinForge 模組、檔案／資料夾、計算機、執行指令／開網址、
 /// 系統動作、網絡搜尋），每個都會貢獻有分數嘅結果。模糊比對 + 排名之後顯示，Enter 啟動。
 ///
@@ -33,7 +33,7 @@ public static class CommandPaletteService
 {
     // ===================== Settings keys · 設定鍵 =====================
     private const string KeyEnabled = "cmdpal.enabled";
-    private const string KeyHotkey = "cmdpal.hotkey";        // e.g. "Alt+Space"
+    private const string KeyHotkey = "cmdpal.hotkey";        // e.g. "Ctrl+Shift+F"
     private const string KeyMaxResults = "cmdpal.maxResults";
     private const string KeyProviderPrefix = "cmdpal.provider."; // + provider id
     private const string KeyDockPins = "cmdpal.dock.pins";
@@ -93,11 +93,11 @@ public static class CommandPaletteService
         set { SettingsStore.Set(KeyMaxResults, Math.Clamp(value, 3, 25).ToString()); }
     }
 
-    /// <summary>熱鍵字串（例如 "Alt+Space"）· The configured hotkey string, e.g. "Alt+Space".</summary>
+    /// <summary>熱鍵字串（例如 "Ctrl+Shift+F"）· The configured hotkey string, e.g. "Ctrl+Shift+F".</summary>
     public static string HotkeyText
     {
-        get => SettingsStore.Get(KeyHotkey, "Alt+Space");
-        set { SettingsStore.Set(KeyHotkey, string.IsNullOrWhiteSpace(value) ? "Alt+Space" : value.Trim()); }
+        get => SettingsStore.Get(KeyHotkey, "Ctrl+Shift+F");
+        set { SettingsStore.Set(KeyHotkey, string.IsNullOrWhiteSpace(value) ? "Ctrl+Shift+F" : value.Trim()); }
     }
 
     /// <summary>Palette backdrop preference; Solid preserves the established launcher surface.</summary>
@@ -503,7 +503,7 @@ public static class CommandPaletteService
     /// <summary>可揀嘅熱鍵清單（畀設定頁下拉用）· The hotkey presets shown in the settings page.</summary>
     public static IReadOnlyList<string> HotkeyChoices { get; } = new[]
     {
-        "Alt+Space", "Ctrl+Space", "Win+Space", "Ctrl+Shift+Space",
+        "Ctrl+Shift+F", "Alt+Space", "Ctrl+Space", "Win+Space", "Ctrl+Shift+Space",
         "Alt+R", "Ctrl+Shift+P", "Win+R",
     };
 

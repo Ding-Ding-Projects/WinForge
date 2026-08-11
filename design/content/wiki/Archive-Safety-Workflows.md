@@ -4,4 +4,4 @@
 
 `WinForge.exe --page archives` 接受有界 include／exclude 樣式同完整 NTFS 時間／存取開關。搬走模式會先建立、用支援密碼／分卷嘅獨立完整性測試，再用回收筒；任意檔內刪除會喺 `7z d` 前顯示準確已驗證樣式。
 
-![Archives](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-archives.png)
+![Archives](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-archives.png)

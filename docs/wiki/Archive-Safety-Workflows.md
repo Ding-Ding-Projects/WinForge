@@ -8,7 +8,7 @@ Create accepts bounded include/exclude masks and the complete 7z NTFS time/acces
 
 建立流程接受有界 include／exclude 樣式同完整 7z NTFS 時間／存取開關。搬走模式先壓縮，再用支援密碼同分卷嘅獨立 `7z t` 測試，最後先送來源去回收筒，絕對唔依賴 `-sdel`。任意檔內刪除會喺 `7z d` 前用破壞性確認顯示晒已驗證相對樣式。
 
-![Archives](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-archives.png)
+![Archives](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-archives.png)
 
 See the [safe archive workflow guide](../features/archives/safe-create-and-delete.md) for supported inputs, failure modes, and focused tests. · 支援輸入、失敗模式同專項測試請睇[安全壓縮檔指南](../features/archives/safe-create-and-delete.md)。
 

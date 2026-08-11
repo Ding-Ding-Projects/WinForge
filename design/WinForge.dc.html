@@ -523,10 +523,10 @@ class Component extends DCLogic {
       h('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginTop:24}},
         opt('⊞','winget','The simplest install — one command in any terminal.','winget install WinForge.WinForge',null,'var(--cyan)'),
         opt('⚡','PowerShell','Bootstrapping script — downloads and runs the latest installer.','irm https://get.winforge.app | iex',null,'var(--amber2)'),
-        opt('⭳','Installer & portable','Inno Setup installer or a portable zip from GitHub Releases.',null,GH+'/releases/latest','var(--green)'),
+        opt('⭳','Installer & portable','Unsigned Squirrel.Windows Setup.exe, RELEASES, packages, or a portable zip from GitHub Releases.',null,GH+'/releases/latest','var(--green)'),
         opt('↺','Older versions','Every build is published as v1.0.<run#> on GitHub Releases.',null,GH+'/releases','var(--violet)')),
       h('div',{style:{marginTop:16,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)',background:'var(--panel)',border:'1px dashed var(--line2)',borderRadius:10,padding:'12px 15px'}},
-        h('span',{style:{color:'var(--green)'}},'CI'),'GitHub Actions builds + publishes a new release on every push — portable zip + installer.',
+        h('span',{style:{color:'var(--green)'}},'CI'),'GitHub Actions builds + publishes a new release on every push — Squirrel.Windows Setup.exe/RELEASES/packages + portable zip.',
         h('a',{href:GH,target:'_blank',rel:'noopener',className:'wf-nav-h',style:{color:'var(--cyan)',marginLeft:'auto'}},'⟨⟩ View source →')));
   }
   sectionHead(t,zh,sub){

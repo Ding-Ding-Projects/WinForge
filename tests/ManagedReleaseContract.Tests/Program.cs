@@ -22,8 +22,11 @@ Run("persistent log stays in the update directory", UpdateLogBoundary);
 Run("portable footprint includes app, launcher, updater, and manifest", PortableFootprint);
 Run("portable footprint rejects traversal and omissions", PortableFootprintRejection);
 Run("workflow publishes immutable exact-contract releases", WorkflowContract);
-Run("Inno Setup metadata points to the canonical repository", InstallerMetadataContract);
+Run("Squirrel metadata points to the canonical repository", InstallerMetadataContract);
 Run("app, updater, and launcher share the pure contract", RuntimeWiringContract);
+Run("Squirrel update remains user-controlled", SquirrelUpdateActionContract);
+Run("universal settings and offline changelog are wired", UniversalExperienceContract);
+Run("pinned tabs persist in the session schema", PinnedTabContract);
 Run("managed tree has no stale repository links", NoStaleManagedRepositoryLinks);
 Run("WinForge-Native links retain their independent owner", NativeRepositoryLinksPreserved);
 
@@ -105,6 +108,8 @@ static void StableReleaseResolution()
     NotNull(selected, "release selection");
     Equal("1.1.323", selected!.Version, "selected version");
     Equal(ManagedReleaseContract.InstallerAssetName, selected.Installer.Name, "installer name");
+    Equal(ManagedReleaseContract.SquirrelReleasesAssetName, selected.Releases.Name, "RELEASES name");
+    Equal(ManagedReleaseContract.SquirrelFullPackageName("1.1.323"), selected.FullPackage.Name, "full package name");
     Equal(ManagedReleaseContract.PortableAssetName("1.1.323"), selected.Portable.Name, "portable name");
 }
 
@@ -137,7 +142,7 @@ static void RepositoryUrlRejection()
 
 static void UrlDecorationRejection()
 {
-    string baseUrl = "https://github.com/Ding-Ding-Projects/WinForge/releases/download/v1.1.323/WinForge-Setup.exe";
+    string baseUrl = "https://github.com/Ding-Ding-Projects/WinForge/releases/download/v1.1.323/Setup.exe";
     foreach (string value in new[]
              {
                  baseUrl + "?download=1",
@@ -145,7 +150,7 @@ static void UrlDecorationRejection()
                  baseUrl.Replace("github.com", "github.com:444", StringComparison.Ordinal),
                  baseUrl.Replace("https://", "https://user@", StringComparison.Ordinal)
              })
-        False(ManagedReleaseContract.IsCanonicalReleaseDownload(value, "1.1.323", "WinForge-Setup.exe"), value);
+        False(ManagedReleaseContract.IsCanonicalReleaseDownload(value, "1.1.323", "Setup.exe"), value);
 }
 
 static void InstallLayoutAcceptance()
@@ -175,10 +180,10 @@ static void InstallLayoutRejection()
 static void StagedInstallerBoundary()
 {
     string root = Path.Combine(Path.GetTempPath(), "WinForge Contract", "updates");
-    string installer = Path.Combine(root, "WinForge-Setup-1.1.323.exe");
+    string installer = Path.Combine(root, "Setup-1.1.323.exe");
     Equal(Path.GetFullPath(installer), ManagedReleaseContract.ValidateStagedInstallerPath(installer, root), "staged setup");
     Rejects<InvalidDataException>(() => ManagedReleaseContract.ValidateStagedInstallerPath(
-        Path.Combine(root, "sub", "WinForge-Setup.exe"), root));
+        Path.Combine(root, "sub", "Setup.exe"), root));
     Rejects<InvalidDataException>(() => ManagedReleaseContract.ValidateStagedInstallerPath(
         Path.Combine(root, "notepad.exe"), root));
 }
@@ -221,7 +226,10 @@ static void WorkflowContract()
     Contains(text, "workflow_dispatch:", "dispatch trigger");
     Contains(text, "Ding-Ding-Projects/WinForge", "canonical repository gate");
     Contains(text, "WinForge.release.json", "packaged manifest");
-    Contains(text, "WinForge-Setup.exe", "installer asset");
+    Contains(text, "Setup.exe", "Squirrel installer asset");
+    Contains(text, "RELEASES", "Squirrel release index");
+    Contains(text, "Squirrel.Windows", "Squirrel packaging tool");
+    Contains(text, "--no-msi", "MSI disabled");
     Contains(text, "WinForge-portable-x64-$env:RELEASE_VERSION.zip", "portable asset");
     Contains(text, "managed release tag already exists and is immutable", "immutable tag gate");
     Contains(text, "managed release digest mismatch", "GitHub/local digest proof");
@@ -231,13 +239,15 @@ static void WorkflowContract()
 
 static void InstallerMetadataContract()
 {
-    string text = ReadRepoFile("installer", "WinForge.iss");
-    Contains(text, "#define MyAppPublisher \"Ding-Ding-Projects\"", "publisher");
-    Contains(text, "#define MyAppUrl \"https://github.com/Ding-Ding-Projects/WinForge\"", "repository URL");
-    Contains(text, "AppUpdatesURL={#MyAppUpdatesUrl}", "updates URL");
-    Contains(text, "VersionInfoVersion={#MyAppVersion}.0", "file version");
-    Contains(text, "OutputBaseFilename=WinForge-Setup", "output name");
-    Contains(text, "PrivilegesRequired=lowest", "per-user install");
+    string text = ReadRepoFile("tools", "SquirrelPackaging", "SquirrelPackaging.csproj");
+    Contains(text, "Squirrel.Windows", "Squirrel.Windows package");
+    Contains(text, "2.0.1", "pinned Squirrel version");
+    string script = ReadRepoFile("tools", "build-winforge.ps1");
+    Contains(script, "--releasify", "Squirrel releasify");
+    Contains(script, "--no-msi", "MSI disabled");
+    Contains(script, "Setup.exe", "Setup output");
+    Contains(script, "RELEASES", "RELEASES output");
+    Contains(script, "Get-AuthenticodeSignature", "unsigned verification");
 }
 
 static void RuntimeWiringContract()
@@ -251,6 +261,48 @@ static void RuntimeWiringContract()
     Contains(updater, "ManagedReleaseContract.IsCanonicalReleaseDownload", "updater URL boundary");
     Contains(launcher, "ManagedReleaseContract.ValidateStagedInstallerPath", "launcher staging boundary");
     Contains(launcher, "ManagedReleaseContract.FixedTimeSha256Equals", "launcher digest boundary");
+}
+
+static void SquirrelUpdateActionContract()
+{
+    string app = ReadRepoFile("Services", "AppUpdateService.cs");
+    string launcher = ReadRepoFile("launcher", "Program.cs");
+    Contains(app, "Restart to install update", "restart action");
+    Contains(app, "Later", "later action");
+    Contains(app, "PendingInstallerPathKey", "staged installer state");
+    Contains(app, "LaunchInstallerAfterExit", "user-selected handoff");
+    False(app.Contains("LaunchUpdaterApp(", StringComparison.Ordinal), "obsolete visual updater handoff");
+    Contains(launcher, "Starting unsigned Squirrel Setup.exe", "Squirrel handoff");
+    False(launcher.Contains("/VERYSILENT", StringComparison.Ordinal), "legacy Inno command-line arguments");
+}
+
+static void UniversalExperienceContract()
+{
+    string settings = ReadRepoFile("Services", "UniversalSettingsService.cs");
+    string page = ReadRepoFile("Pages", "SettingsPage.xaml.cs");
+    string about = ReadRepoFile("Pages", "AboutPage.xaml.cs");
+    string changelog = ReadRepoFile("Services", "ChangelogService.cs");
+    Contains(settings, "universal.emojiDialogsEnabled", "emoji setting key");
+    Contains(settings, "PasswordVault", "vault-backed School unlock");
+    Contains(ReadRepoFile("Services", "NarratorService.cs"), "NarratorLanguage", "narration language");
+    Contains(ReadRepoFile("Services", "AnnouncementService.cs"), "EnqueueCoalesced", "serialized replacement queue");
+    Contains(page, "Show emojis in dialogs and message boxes", "emoji control");
+    Contains(page, "temporarily removed language, funny-level, personal-vocabulary, and dim-sum controls", "School mode surface removal");
+    Contains(about, "new SearchPatternBox", "offline changelog search");
+    Contains(about, "CalendarDatePicker", "offline changelog date filter");
+    Contains(changelog, "CHANGELOG.md", "offline changelog source");
+    Contains(ReadRepoFile("WinForge.csproj"), "CHANGELOG.md", "bundled changelog");
+}
+
+static void PinnedTabContract()
+{
+    string session = ReadRepoFile("Services", "TabSessionService.cs");
+    string main = ReadRepoFile("MainWindow.xaml.cs");
+    Contains(session, "IsPinned", "pinned tab field");
+    Contains(session, "AppendBoolean", "pinned tab persistence");
+    Contains(main, "InsertTabInPinnedRegion", "pinned tab ordering");
+    Contains(main, "Pin tab · 釘選分頁", "pin menu action");
+    Contains(main, "Unpin tab · 取消釘選分頁", "unpin menu action");
 }
 
 static void NoStaleManagedRepositoryLinks()
@@ -287,7 +339,9 @@ static ManagedReleaseMetadata ValidRelease()
     string baseUrl = $"https://github.com/Ding-Ding-Projects/WinForge/releases/download/{tag}/";
     return new ManagedReleaseMetadata(tag, false, false, new[]
     {
-        new ManagedReleaseAsset("WinForge-Setup.exe", baseUrl + "WinForge-Setup.exe", "sha256:" + new string('a', 64), 195_342_286),
+        new ManagedReleaseAsset("Setup.exe", baseUrl + "Setup.exe", "sha256:" + new string('a', 64), 195_342_286),
+        new ManagedReleaseAsset("RELEASES", baseUrl + "RELEASES", "sha256:" + new string('c', 64), 78),
+        new ManagedReleaseAsset("WinForge-1.1.323-full.nupkg", baseUrl + "WinForge-1.1.323-full.nupkg", "sha256:" + new string('d', 64), 195_000_000),
         new ManagedReleaseAsset("WinForge-portable-x64-1.1.323.zip", baseUrl + "WinForge-portable-x64-1.1.323.zip", "sha256:" + new string('b', 64), 293_830_345)
     });
 }

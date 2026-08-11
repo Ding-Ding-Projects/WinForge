@@ -67,6 +67,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Offline in-app documentation/release history; no network fetch is required to read it. -->
+    <Content Include="CHANGELOG.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
     <!-- WinForge "Reactor" design fonts (OFL) — Space Grotesk (UI) + JetBrains Mono (numerals). -->

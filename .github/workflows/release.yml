@@ -1,9 +1,8 @@
-name: Managed build, test & release · .NET 建置、測試同發佈
+name: Managed build & release · .NET 建置同發佈
 
-# WinForge's canonical product is the managed WinUI 3 app. Every ordinary push
-# and every manual dispatch gets a complete managed test pass before one unique
-# v1.1.x release is published. Non-main commits are kept as prereleases so the
-# in-app updater only sees a verified release of the current main tip.
+# This workflow builds, packages, and publishes. It deliberately does not run
+# tests, lint, type checks, accessibility checks, or screenshot checks: those
+# remain local developer/agent checks and never gate a release.
 
 on:
   push:
@@ -14,7 +13,7 @@ on:
         required: false
         type: string
       release_version:
-        description: Numeric 1.1.x version; defaults to this workflow run number
+        description: Numeric 1.1.x version; defaults to the workflow run number
         required: false
         type: string
 
@@ -26,8 +25,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-test-release:
+  build-release:
     runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Resolve immutable source · 確定不變原始碼
@@ -42,28 +43,16 @@ jobs:
             throw "managed releases are restricted to Ding-Ding-Projects/WinForge: $env:GITHUB_REPOSITORY"
           }
           $sha = ([string]$env:REQUESTED_SHA).Trim().ToLowerInvariant()
-          if ([string]::IsNullOrWhiteSpace($sha)) {
-            $sha = ([string]$env:EVENT_SHA).Trim().ToLowerInvariant()
-          }
-          if ($sha -notmatch '^[0-9a-f]{40}$') {
-            throw "source_sha must be a full 40-character commit SHA: $sha"
-          }
-
+          if ([string]::IsNullOrWhiteSpace($sha)) { $sha = ([string]$env:EVENT_SHA).Trim().ToLowerInvariant() }
+          if ($sha -notmatch '^[0-9a-f]{40}$') { throw "source_sha must be a full 40-character commit SHA: $sha" }
           $version = ([string]$env:REQUESTED_VERSION).Trim()
-          if ([string]::IsNullOrWhiteSpace($version)) {
-            $version = "1.1.$env:GITHUB_RUN_NUMBER"
-          }
-          if ($version -notmatch '^1\.1\.[0-9]+$') {
-            throw "release_version must match 1.1.<integer>: $version"
-          }
-          $buildComponent = [long]($version.Split('.')[2])
-          if ($buildComponent -lt 1 -or $buildComponent -gt 65535) {
-            throw "release_version build component must fit a Windows FileVersion (1..65535): $buildComponent"
-          }
-
-          "sha=$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          if ([string]::IsNullOrWhiteSpace($version)) { $version = "1.1.$env:GITHUB_RUN_NUMBER" }
+          if ($version -notmatch '^1\.1\.[0-9]+$') { throw "release_version must match 1.1.<integer>: $version" }
+          $build = [int]$version.Split('.')[2]
+          if ($build -lt 1 -or $build -gt 65535) { throw "release_version build component must fit a Windows FileVersion: $build" }
+          "sha=$sha" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$version" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$version" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Checkout exact source · 取出指定原始碼
         uses: actions/checkout@v7
@@ -77,9 +66,7 @@ jobs:
           EXPECTED_SHA: ${{ steps.source.outputs.sha }}
         run: |
           $actual = (git rev-parse HEAD).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $actual -ne $env:EXPECTED_SHA) {
-            throw "checkout provenance mismatch: expected $env:EXPECTED_SHA, got $actual"
-          }
+          if ($LASTEXITCODE -ne 0 -or $actual -ne $env:EXPECTED_SHA) { throw "checkout provenance mismatch: expected $env:EXPECTED_SHA, got $actual" }
 
       - name: Set up .NET 8 · 安裝 .NET 8
         uses: actions/setup-dotnet@v6
@@ -92,190 +79,60 @@ jobs:
           dotnet-version: 11.0.x
           dotnet-quality: preview
 
-      - name: Restore managed solution · 還原 .NET solution
-        run: dotnet restore WinForge.sln -p:Platform=x64
-
-      - name: Build managed solution · 建置 .NET solution
-        run: dotnet build WinForge.sln -c Debug -p:Platform=x64 --no-restore
-
-      - name: Check XAML runtime-safe defaults · 檢查 XAML 安全預設
-        shell: pwsh
-        run: >-
-          powershell -ExecutionPolicy Bypass
-          -File .agents/skills/winforge-exhaustive-smoke/scripts/Test-WinForgeXamlLiteralSafety.ps1
-          -RepoRoot .
-
-      - name: Run every managed test harness · 執行全部 .NET 測試
-        shell: pwsh
-        run: >-
-          powershell -ExecutionPolicy Bypass
-          -File .agents/skills/winforge-exhaustive-smoke/scripts/Invoke-WinForgeAllTests.ps1
-          -RepoRoot .
-          -Configuration Release
-
-      - name: Publish self-contained x64 · 發佈自包含 x64
+      - name: Build and package Squirrel.Windows release · 建置 Squirrel.Windows 發佈
         shell: pwsh
         env:
           WINFORGE_VERSION: ${{ steps.source.outputs.version }}
         run: |
-          dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:Version=$env:WINFORGE_VERSION -p:FileVersion=$env:WINFORGE_VERSION.0 -p:InformationalVersion=$env:WINFORGE_VERSION
-          if ($LASTEXITCODE -ne 0) { throw 'managed publish failed' }
+          # The helper invokes Squirrel.Windows with --releasify and --no-msi; MSI and signing are intentionally absent.
+          pwsh -NoProfile -ExecutionPolicy Bypass -File tools/build-winforge.ps1 -Installer -Silent -Version $env:WINFORGE_VERSION -ReleaseDir "$PWD\release-artifacts"
+          if ($LASTEXITCODE -ne 0) { throw 'Squirrel.Windows build or packaging failed' }
 
-      - name: Locate publish folder · 找出發佈資料夾
-        id: publish
-        shell: pwsh
-        run: |
-          $folders = @(Get-ChildItem -Path bin -Recurse -Directory -Filter publish |
-            Where-Object { $_.FullName -match 'Release' -and $_.FullName -match 'win-x64' })
-          $folders = @($folders | Where-Object { Test-Path (Join-Path $_.FullName 'WinForge.exe') })
-          if ($folders.Count -ne 1) {
-            throw "expected one managed publish folder containing WinForge.exe; found $($folders.Count)"
-          }
-          "dir=$($folders[0].FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-
-      - name: Publish launcher · 建置可靠啟動器
+      - name: Verify packaged provenance manifest · 驗證 package provenance 清單
         shell: pwsh
         env:
-          WINFORGE_VERSION: ${{ steps.source.outputs.version }}
+          EXPECTED_SHA: ${{ steps.source.outputs.sha }}
+          EXPECTED_VERSION: ${{ steps.source.outputs.version }}
         run: |
-          dotnet publish launcher/WinForgeLauncher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:Version=$env:WINFORGE_VERSION -p:FileVersion=$env:WINFORGE_VERSION.0 -p:InformationalVersion=$env:WINFORGE_VERSION -o "${{ steps.publish.outputs.dir }}"
-          if ($LASTEXITCODE -ne 0) { throw 'launcher publish failed' }
-          if (-not (Test-Path -LiteralPath "${{ steps.publish.outputs.dir }}\WinForgeLauncher.exe" -PathType Leaf)) {
-            throw 'WinForgeLauncher.exe was not produced'
+          $manifest = Join-Path $PWD 'artifacts\winforge\publish\WinForge.release.json'
+          if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { throw 'WinForge.release.json was not packaged' }
+          $record = Get-Content -Raw -LiteralPath $manifest | ConvertFrom-Json
+          if ($record.sourceSha -ne $env:EXPECTED_SHA -or $record.version -ne $env:EXPECTED_VERSION -or $record.installerAsset -ne 'Setup.exe') {
+            throw 'WinForge.release.json provenance does not match the requested source or Squirrel installer'
           }
+          $app = Get-Item -LiteralPath (Join-Path $PWD 'artifacts\winforge\publish\WinForge.exe')
+          if (-not $app.VersionInfo.ProductVersion.Trim().StartsWith($env:EXPECTED_VERSION, [StringComparison]::OrdinalIgnoreCase)) { throw "ProductVersion.Trim() mismatch: $($app.VersionInfo.ProductVersion)" }
 
-      - name: Publish updater · 建置更新器
+      - name: Count tracked lines · 統計 tracked 程式碼行數
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
+          pwsh -NoProfile -ExecutionPolicy Bypass -File tools/count-lines.ps1 | Tee-Object -FilePath release-artifacts\line-count.md
+          if ($LASTEXITCODE -ne 0) { throw 'line counter failed' }
+
+      - name: Resolve verified dim-sum release code name · 解析已驗證點心代號
+        id: dimsum
         shell: pwsh
         env:
-          WINFORGE_VERSION: ${{ steps.source.outputs.version }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          $updaterDir = Join-Path "${{ steps.publish.outputs.dir }}" 'updater-runtime'
-          New-Item -ItemType Directory -Force -Path $updaterDir | Out-Null
-          dotnet publish updater/WinForgeUpdater/WinForgeUpdater.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None -p:Version=$env:WINFORGE_VERSION -p:FileVersion=$env:WINFORGE_VERSION.0 -p:InformationalVersion=$env:WINFORGE_VERSION -o $updaterDir
-          if ($LASTEXITCODE -ne 0) { throw 'updater publish failed' }
-          if (-not (Test-Path -LiteralPath (Join-Path $updaterDir 'WinForgeUpdater.exe') -PathType Leaf)) {
-            throw 'WinForgeUpdater.exe was not produced'
+          $catalog = Invoke-RestMethod -UseBasicParsing 'https://raw.githubusercontent.com/Ding-Ding-Projects/dim-sum-photos/main/catalog/index.json'
+          $published = @(& gh api repos/Ding-Ding-Projects/dim-sum-photos/releases/tags/catalog-v1 --jq '.assets[].name')
+          $existing = @(& gh release list --repo $env:GITHUB_REPOSITORY --limit 100 --json tagName | ConvertFrom-Json)
+          $used = [System.Collections.Generic.List[string]]::new()
+          foreach ($item in $existing) {
+            try { $body = ((gh release view $item.tagName --repo $env:GITHUB_REPOSITORY --json body | ConvertFrom-Json).body); if ($body) { $used.Add([string]$body) } } catch { }
           }
-
-      - name: Write and verify packaged release contract · 寫入同驗證發佈合約
-        shell: pwsh
-        env:
-          WINFORGE_VERSION: ${{ steps.source.outputs.version }}
-          WINFORGE_TAG: ${{ steps.source.outputs.tag }}
-          WINFORGE_SHA: ${{ steps.source.outputs.sha }}
-        run: |
-          $publishDir = '${{ steps.publish.outputs.dir }}'
-          $portableName = "WinForge-portable-x64-$env:WINFORGE_VERSION.zip"
-          $manifest = [ordered]@{
-            schemaVersion = 1
-            repository = 'Ding-Ding-Projects/WinForge'
-            sourceSha = $env:WINFORGE_SHA
-            version = $env:WINFORGE_VERSION
-            tag = $env:WINFORGE_TAG
-            installerAsset = 'WinForge-Setup.exe'
-            portableAsset = $portableName
-            executable = 'WinForge.exe'
-            launcher = 'WinForgeLauncher.exe'
-            updater = 'updater-runtime/WinForgeUpdater.exe'
+          $selected = $null
+          foreach ($dish in @($catalog.dishes)) {
+            $file = [IO.Path]::GetFileName([string]$dish.image.path)
+            $code = "$($dish.name.en) · $($dish.name.zhHant)"
+            if ($published -contains $file -and -not (($used -join "`n") -match [regex]::Escape($code))) { $selected = [pscustomobject]@{ Code=$code; File=$file; Url="https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/catalog-v1/$file"; En=$dish.name.en; Zh=$dish.name.zhHant }; break }
           }
-          $manifestPath = Join-Path $publishDir 'WinForge.release.json'
-          [IO.File]::WriteAllText(
-            $manifestPath,
-            ($manifest | ConvertTo-Json -Depth 3),
-            [Text.UTF8Encoding]::new($false))
-
-          foreach ($relative in @(
-            'WinForge.exe',
-            'WinForgeLauncher.exe',
-            'WinForge.release.json',
-            'updater-runtime\WinForgeUpdater.exe')) {
-            $path = Join-Path $publishDir $relative
-            if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -le 0) {
-              throw "managed runtime footprint is missing a required file: $relative"
-            }
-          }
-
-          foreach ($relative in @('WinForge.exe', 'WinForgeLauncher.exe', 'updater-runtime\WinForgeUpdater.exe')) {
-            $versionInfo = (Get-Item -LiteralPath (Join-Path $publishDir $relative)).VersionInfo
-            if ($versionInfo.ProductVersion.Trim() -ne $env:WINFORGE_VERSION -or
-                $versionInfo.FileVersion.Trim() -ne "$env:WINFORGE_VERSION.0") {
-              throw "$relative version mismatch: product=$($versionInfo.ProductVersion); file=$($versionInfo.FileVersion)"
-            }
-          }
-          $roundTrip = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
-          if ($roundTrip.repository -ne 'Ding-Ding-Projects/WinForge' -or
-              $roundTrip.sourceSha -ne $env:WINFORGE_SHA -or
-              $roundTrip.version -ne $env:WINFORGE_VERSION -or
-              $roundTrip.tag -ne $env:WINFORGE_TAG -or
-              $roundTrip.installerAsset -ne 'WinForge-Setup.exe' -or
-              $roundTrip.portableAsset -ne $portableName) {
-            throw 'packaged release manifest did not round-trip through the canonical contract'
-          }
-
-      - name: Package portable build · 封裝可攜版
-        shell: pwsh
-        env:
-          WINFORGE_VERSION: ${{ steps.source.outputs.version }}
-        run: |
-          $artifactDir = Join-Path $PWD 'release-artifacts'
-          New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
-          $zip = Join-Path $artifactDir "WinForge-portable-x64-$env:WINFORGE_VERSION.zip"
-          Compress-Archive -Path "${{ steps.publish.outputs.dir }}\*" -DestinationPath $zip -Force
-          if (-not (Test-Path -LiteralPath $zip -PathType Leaf) -or (Get-Item -LiteralPath $zip).Length -le 0) {
-            throw 'portable archive was not produced'
-          }
-          $archive = [IO.Compression.ZipFile]::OpenRead($zip)
-          try {
-            $entries = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
-            foreach ($required in @(
-              'WinForge.exe',
-              'WinForgeLauncher.exe',
-              'WinForge.release.json',
-              'updater-runtime/WinForgeUpdater.exe')) {
-              if ($required -notin $entries) { throw "portable archive is missing $required" }
-            }
-            foreach ($entry in $entries) {
-              if ($entry.StartsWith('/') -or $entry -match '(^|/)\.\.(/|$)') {
-                throw "portable archive contains an unsafe path: $entry"
-              }
-            }
-          }
-          finally { $archive.Dispose() }
-
-      - name: Build managed installer · 建置 .NET 安裝程式
-        shell: pwsh
-        env:
-          WINFORGE_VERSION: ${{ steps.source.outputs.version }}
-        run: |
-          $iscc = @(
-            'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
-            'C:\Program Files\Inno Setup 6\ISCC.exe'
-          ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
-          if (-not $iscc) {
-            choco install innosetup --no-progress -y
-            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
-            $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
-          }
-          if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) { throw 'ISCC.exe was not found' }
-
-          $installerOut = Join-Path $PWD 'installer\out'
-          if (Test-Path -LiteralPath $installerOut) {
-            Remove-Item -LiteralPath $installerOut -Recurse -Force
-          }
-          & $iscc "/DMyAppVersion=$env:WINFORGE_VERSION" "/DMyPublishDir=${{ steps.publish.outputs.dir }}" 'installer\WinForge.iss'
-          if ($LASTEXITCODE -ne 0) { throw 'managed installer compilation failed' }
-
-          $setups = @(Get-ChildItem -LiteralPath $installerOut -File -Filter 'WinForge-Setup.exe')
-          if ($setups.Count -ne 1 -or $setups[0].Length -le 0) {
-            throw "expected exactly one non-empty WinForge-Setup.exe; found $($setups.Count)"
-          }
-          Copy-Item -LiteralPath $setups[0].FullName -Destination 'release-artifacts\WinForge-Setup.exe' -Force
-          $setupInfo = (Get-Item -LiteralPath 'release-artifacts\WinForge-Setup.exe').VersionInfo
-          if ($setupInfo.CompanyName -ne 'Ding-Ding-Projects' -or
-              $setupInfo.ProductVersion.Trim() -ne $env:WINFORGE_VERSION -or
-              $setupInfo.FileVersion.Trim() -ne "$env:WINFORGE_VERSION.0") {
-            throw "managed installer metadata mismatch: company=$($setupInfo.CompanyName); product=$($setupInfo.ProductVersion); file=$($setupInfo.FileVersion)"
-          }
+          if (-not $selected) { Write-Warning 'No unused published dim-sum photo was available; release will use version-only metadata.'; $selected = [pscustomobject]@{ Code=''; File=''; Url=''; En=''; Zh='' } }
+          "code=$($selected.Code)" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "file=$($selected.File)" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "url=$($selected.Url)" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Publish exactly one verified release · 發佈一個已驗證版本
         shell: pwsh
@@ -284,93 +141,102 @@ jobs:
           RELEASE_TAG: ${{ steps.source.outputs.tag }}
           RELEASE_VERSION: ${{ steps.source.outputs.version }}
           EVENT_REF: ${{ github.ref }}
-          GH_TOKEN: ${{ github.token }}
+          DISH_CODE: ${{ steps.dimsum.outputs.code }}
+          DISH_FILE: ${{ steps.dimsum.outputs.file }}
+          DISH_URL: ${{ steps.dimsum.outputs.url }}
         run: |
           $expectedSha = ([string]$env:EXPECTED_SHA).Trim().ToLowerInvariant()
           $tag = [string]$env:RELEASE_TAG
-          $setup = (Resolve-Path -LiteralPath 'release-artifacts\WinForge-Setup.exe').Path
-          $zip = (Resolve-Path -LiteralPath "release-artifacts\WinForge-portable-x64-$env:RELEASE_VERSION.zip").Path
-
+          $artifactDir = (Resolve-Path -LiteralPath 'release-artifacts').Path
+          $assets = @(Get-ChildItem -LiteralPath $artifactDir -File | Where-Object { $_.Name -in @('Setup.exe','RELEASES') -or $_.Name -like 'WinForge-*-full.nupkg' -or $_.Name -like 'WinForge-*-delta.nupkg' -or $_.Name -like 'WinForge-portable-x64-*.zip' })
+          $required = @('Setup.exe','RELEASES',"WinForge-$env:RELEASE_VERSION-full.nupkg", "WinForge-portable-x64-$env:RELEASE_VERSION.zip")
+          foreach ($name in $required) { if (-not ($assets.Name -contains $name)) { throw "release artifact is missing: $name" } }
           git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
           if ($LASTEXITCODE -ne 0) { throw 'could not refresh origin/main before publication' }
           $remoteMain = (git rev-parse refs/remotes/origin/main).Trim().ToLowerInvariant()
-          if ($LASTEXITCODE -ne 0 -or $remoteMain -notmatch '^[0-9a-f]{40}$') {
-            throw "could not resolve origin/main: $remoteMain"
-          }
           $stable = $env:EVENT_REF -eq 'refs/heads/main' -and $expectedSha -eq $remoteMain
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) { throw "managed release tag already exists and is immutable: $tag" }
 
-          & gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -eq 0) {
-            throw "managed release tag already exists and is immutable: $tag"
-          }
+          $lineCount = [IO.File]::ReadAllText((Join-Path $artifactDir 'line-count.md')).Trim()
+          $started = [DateTimeOffset]::Parse((& gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --jq '.run_started_at').Trim())
+          $notesPath = Join-Path $artifactDir 'release-notes.md'
           $notes = @"
-          Automated managed WinUI 3 build from commit $expectedSha.
-          由 commit $expectedSha 自動建置嘅 .NET WinUI 3 版本。
+          Automated Squirrel.Windows release from commit $expectedSha.
+          由 commit $expectedSha 建置嘅 Squirrel.Windows 版本。
 
-          - WinForge-Setup.exe — Windows installer / Windows 安裝程式
-          - WinForge-portable-x64-$env:RELEASE_VERSION.zip — portable build / 免安裝可攜版
+          ## Installer and update assets
+          - Setup.exe — Squirrel.Windows unsigned installer. It may trigger an unknown-publisher or SmartScreen warning.
+          - RELEASES — Squirrel.Windows update index.
+          - WinForge-$env:RELEASE_VERSION-full.nupkg — full Squirrel.Windows package.
+          - WinForge-portable-x64-$env:RELEASE_VERSION.zip — portable build.
+          - Delta packages are attached when a prior Squirrel release is available to the packaging step.
+
+          ## Verification
+          - GitHub Actions ran build, publish, packaging, artifact, digest, and provenance checks only; it did not run tests or lint.
+          - Workflow started: $($started.UtcDateTime.ToString('o'))
+          - Workflow completed: recorded immediately after release publication.
+          - Workflow duration: recorded immediately after release publication.
+          - Source commit: $expectedSha
+          - Unsigned artifacts: code signing is permanently disabled.
+
+          ## Line count at this commit
+          $lineCount
           "@
-          $createArgs = @(
-            'release', 'create', $tag, $setup, $zip,
-            '--repo', $env:GITHUB_REPOSITORY,
-            '--target', $expectedSha,
-            '--title', "WinForge $tag",
-            '--notes', $notes
-          )
-          if ($stable) { $createArgs += '--latest' }
-          else { $createArgs += '--prerelease' }
-          & gh @createArgs
+          if ($env:DISH_CODE) { $notes += "`n## Dim-sum release code name`n- $env:DISH_CODE — [$env:DISH_FILE]($env:DISH_URL)`n" }
+          [IO.File]::WriteAllText($notesPath, $notes, [Text.UTF8Encoding]::new($false))
+
+          $create = @('release','create',$tag) + @($assets.FullName) + @('--repo',$env:GITHUB_REPOSITORY,'--target',$expectedSha,'--title',"WinForge $tag",'--notes-file',$notesPath)
+          if ($stable) { $create += '--latest' } else { $create += '--prerelease' }
+          gh @create
           if ($LASTEXITCODE -ne 0) { throw "managed release creation failed: $tag" }
 
-          $releaseJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | Out-String)
-          if ($LASTEXITCODE -ne 0) { throw "could not read managed release: $tag" }
-          $release = $releaseJson | ConvertFrom-Json
-          if ($release.draft) { throw "managed release is unexpectedly a draft: $tag" }
-          if ([bool]$release.prerelease -eq $stable) {
-            throw "managed release channel mismatch for $tag (stable=$stable, prerelease=$($release.prerelease))"
-          }
-          $assetNames = @($release.assets | ForEach-Object { [string]$_.name } | Sort-Object)
-          $expectedAssets = @("WinForge-portable-x64-$env:RELEASE_VERSION.zip", 'WinForge-Setup.exe') | Sort-Object
-          $actualAssetList = [string]::Join([Environment]::NewLine, $assetNames)
-          $expectedAssetList = [string]::Join([Environment]::NewLine, $expectedAssets)
-          if ($actualAssetList -ne $expectedAssetList) {
-            throw "managed release assets mismatch: $($assetNames -join ', ')"
-          }
+          $completed = [DateTimeOffset]::UtcNow
+          $duration = $completed - $started
+          $durationText = '{0:hh\\:mm\\:ss}' -f $duration
+          $finalNotes = $notes -replace 'Workflow completed: recorded immediately after release publication\.', "Workflow completed: $($completed.UtcDateTime.ToString('o'))" -replace 'Workflow duration: recorded immediately after release publication\.', "Workflow duration: $durationText"
+          [IO.File]::WriteAllText($notesPath, $finalNotes, [Text.UTF8Encoding]::new($false))
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --notes-file $notesPath
+          if ($LASTEXITCODE -ne 0) { throw "managed release notes update failed: $tag" }
+
+          $release = (gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | ConvertFrom-Json)
+          if ($release.draft -or ([bool]$release.prerelease -eq $stable)) { throw 'release channel or draft state is wrong' }
+          $expectedNames = @($assets.Name | Sort-Object)
+          $actualNames = @($release.assets | ForEach-Object { [string]$_.name } | Sort-Object)
+          $expectedAssetText = [string]::Join("`n", $expectedNames)
+          $actualAssetText = [string]::Join("`n", $actualNames)
+          if ($expectedAssetText -ne $actualAssetText) { throw "release asset set mismatch: $($actualNames -join ', ')" }
           foreach ($asset in @($release.assets)) {
-            if ([long]$asset.size -le 0) { throw "managed release asset is empty: $($asset.name)" }
-            $localPath = if ($asset.name -eq 'WinForge-Setup.exe') { $setup } else { $zip }
-            $expectedDigest = (Get-FileHash -LiteralPath $localPath -Algorithm SHA256).Hash.ToLowerInvariant()
-            $publishedDigest = ([string]$asset.digest).Trim().ToLowerInvariant()
-            if ($publishedDigest -notmatch '^sha256:[0-9a-f]{64}$' -or
-                $publishedDigest -ne "sha256:$expectedDigest") {
-              throw "managed release digest mismatch for $($asset.name): $publishedDigest"
-            }
+            $local = Join-Path $artifactDir $asset.name
+            $digest = (Get-FileHash -LiteralPath $local -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ([string]$asset.digest -ne "sha256:$digest") { throw "managed release digest mismatch for $($asset.name)" }
             $expectedUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$($asset.name)"
-            if ([string]$asset.browser_download_url -ne $expectedUrl) {
-              throw "managed release download URL mismatch for $($asset.name): $($asset.browser_download_url)"
-            }
+            if ([string]$asset.browser_download_url -ne $expectedUrl) { throw "managed release download URL mismatch for $($asset.name)" }
           }
+          $tagRef = (gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" | ConvertFrom-Json)
+          $target = ([string]$tagRef.object.sha).ToLowerInvariant()
+          if ([string]$tagRef.object.type -eq 'tag') {
+            $target = ((gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$target" --jq '.object.sha').Trim()).ToLowerInvariant()
+          }
+          if ($target -ne $expectedSha) { throw "release target mismatch: expected $expectedSha, got $target" }
+          Write-Host "Verified managed Squirrel.Windows release $tag -> $expectedSha (stable=$stable; assets=$($actualNames.Count))"
 
-          $refJson = (& gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" | Out-String)
-          if ($LASTEXITCODE -ne 0) { throw "could not resolve managed release tag: $tag" }
-          $object = ($refJson | ConvertFrom-Json).object
-          for ($depth = 0; $object.type -eq 'tag'; $depth++) {
-            if ($depth -ge 8) { throw "managed release tag dereference exceeded eight levels: $tag" }
-            $tagJson = (& gh api $object.url | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "could not dereference managed release tag: $tag" }
-            $object = ($tagJson | ConvertFrom-Json).object
-          }
-          $actualSha = ([string]$object.sha).Trim().ToLowerInvariant()
-          if ($object.type -ne 'commit' -or $actualSha -ne $expectedSha) {
-            throw "managed release provenance mismatch for $($tag): expected $expectedSha, got $actualSha"
-          }
+      - name: Collect safe release evidence · 收集安全發佈證據
+        if: ${{ always() }}
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ci-evidence | Out-Null
+          git rev-parse HEAD | Out-File ci-evidence\commit.txt -Encoding utf8
+          Get-Date -AsUTC -Format o | Out-File ci-evidence\collected-at.txt -Encoding utf8
+          if (Test-Path -LiteralPath release-artifacts) { Copy-Item -LiteralPath release-artifacts -Destination ci-evidence\release-artifacts -Recurse -Force }
 
-          if ($stable) {
-            $latestJson = (& gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw 'could not read Latest release' }
-            $latest = $latestJson | ConvertFrom-Json
-            if ([string]$latest.tag_name -ne $tag) {
-              throw "stable managed release was not marked Latest: $tag"
-            }
-          }
-          Write-Host "Verified managed release $tag -> $actualSha (stable=$stable; assets=2)"
+      - name: Upload safe release evidence · 上載安全發佈證據
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: winforge-release-evidence-${{ github.run_id }}
+          path: ci-evidence
+          if-no-files-found: warn
+          retention-days: 7

@@ -111,8 +111,8 @@ internal static class Program
 
     /// <summary>
     /// Apply an update from a copy of this single-file launcher staged outside the installation folder.
-    /// The visual updater exits before this path runs the installer, so every file under the target folder
-    /// is replaceable. The installer is per-user and deliberately runs at normal integrity.
+    /// The visual updater exits before this path runs unsigned Squirrel Setup.exe, so every file under
+    /// the target folder is replaceable. Squirrel owns the per-user installation and relaunch.
     /// </summary>
     private static int ApplyUpdate(string[] args)
     {
@@ -200,21 +200,15 @@ internal static class Program
                     "The downloaded installer failed SHA-256 verification and was not run.",
                     "下載嘅安裝程式未通過 SHA-256 驗證，所以冇執行。");
 
-            string innoLog = Path.ChangeExtension(logPath, ".inno.log");
+            string squirrelLog = Path.ChangeExtension(logPath, ".squirrel.log");
             var psi = new ProcessStartInfo
             {
                 FileName = installer,
                 WorkingDirectory = Path.GetDirectoryName(installer) ?? LocalAppData(),
                 UseShellExecute = false,
             };
-            foreach (var argument in new[]
-                     {
-                         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS",
-                         "/NORESTARTAPPLICATIONS", "/LOGCLOSEAPPLICATIONS", $"/DIR={installDir}", $"/LOG={innoLog}"
-                     })
-                psi.ArgumentList.Add(argument);
 
-            AppendUpdateLog(logPath, $"Starting installer at normal integrity. Inno log: {innoLog}");
+            AppendUpdateLog(logPath, $"Starting unsigned Squirrel Setup.exe at normal integrity. Squirrel log: {squirrelLog}");
             using var installerProcess = Process.Start(psi);
             if (installerProcess is null)
                 return FailUpdate(options, "The installer process could not be started.",
@@ -223,11 +217,11 @@ internal static class Program
             AppendUpdateLog(logPath, $"Installer exit code: {installerProcess.ExitCode}");
             if (installerProcess.ExitCode != 0)
                 return FailUpdate(options,
-                    $"The installer exited with code {installerProcess.ExitCode}. Diagnostic log: {innoLog}",
-                    $"安裝程式以代碼 {installerProcess.ExitCode} 結束。診斷記錄：{innoLog}",
+                    $"Squirrel Setup.exe exited with code {installerProcess.ExitCode}. Diagnostic log: {squirrelLog}",
+                    $"Squirrel Setup.exe 以代碼 {installerProcess.ExitCode} 結束。診斷記錄：{squirrelLog}",
                     installerProcess.ExitCode);
 
-            AppendUpdateLog(logPath, "Update installed successfully; installer bootstrap owns relaunch.");
+            AppendUpdateLog(logPath, "Squirrel Setup.exe completed; its bootstrapper owns installation and relaunch.");
             ClearUpdatePendingFlag();
             return 0;
         }
@@ -313,7 +307,7 @@ internal static class Program
                         {
                             // The helper refuses elevated execution, so a higher-integrity process whose path
                             // cannot be inspected cannot be one of this normal-integrity update's children.
-                            // Inno Setup still records any unexpected file lock in its persistent log.
+                            // Squirrel Setup.exe records any unexpected file lock in its persistent log.
                             continue;
                         }
                     }

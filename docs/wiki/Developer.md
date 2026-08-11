@@ -12,7 +12,7 @@ The review-first workbench handles ports, per-shell Node, Corepack, Defender fol
 
 Open in-app: `WinForge.exe --page devterminal`
 
-![Developer & Terminal](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-devterminal.png)
+![Developer & Terminal](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-devterminal.png)
 
 ## VS Code · VS Code 編輯器
 

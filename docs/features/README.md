@@ -1,6 +1,10 @@
 # WinForge — Feature Reference · 功能總覽
 
-**1174** features, each with its own page. · **1174** 項功能，每項一頁。
+**1217** features, each with its own page. · **1217** 項功能，每項一頁。
+
+## Universal experience · 共用體驗
+
+Cross-surface settings, offline changelog, pinned tabs, and local OTP QR pairing are documented in the [Universal experience](universal/README.md) category. The index also records universal contracts that are still under implementation, so documentation does not imply that an unshipped surface exists. · 跨介面設定、離線變更紀錄、釘選分頁同本機 OTP QR 配對喺 [共用體驗](universal/README.md) 分類記錄；index 亦會列出仍在實作嘅共用合約，避免文件扮到未出貨嘅介面已經存在。
 
 ## Appearance & Personalisation · 外觀與個人化 (16)
 - [Accent colour · 主題色](appearance-personalisation/appearance.accent-colour.md)

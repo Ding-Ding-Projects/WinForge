@@ -31,6 +31,7 @@ public static class TabSessionService
         public string Name { get; set; } = string.Empty;
         public string GroupId { get; set; } = string.Empty;
         public string Color { get; set; } = string.Empty;
+        public bool IsPinned { get; set; }
         public TabFontData Font { get; set; } = new();
     }
 
@@ -51,7 +52,7 @@ public static class TabSessionService
 
     public sealed class SessionData
     {
-        public int Version { get; set; } = 2;
+        public int Version { get; set; } = 3;
         public List<TabData> Tabs { get; set; } = new();
         public int Active { get; set; }
         public List<TabGroupData> Groups { get; set; } = new();
@@ -190,7 +191,7 @@ public static class TabSessionService
     {
         return new SessionData
         {
-            Version = source.Version <= 0 ? 2 : source.Version,
+            Version = source.Version <= 0 ? 3 : source.Version,
             Active = source.Active,
             Tabs = source.Tabs.Select(CloneTab).ToList(),
             Groups = source.Groups.Select(CloneGroup).ToList(),
@@ -206,6 +207,7 @@ public static class TabSessionService
             Name = source.Name,
             GroupId = source.GroupId,
             Color = source.Color,
+            IsPinned = source.IsPinned,
             Font = CloneFont(source.Font),
         };
     }
@@ -307,6 +309,7 @@ public static class TabSessionService
         tab.Name = ReadString(item, "Name", string.Empty);
         tab.GroupId = ReadString(item, "GroupId", string.Empty);
         tab.Color = ReadString(item, "Color", string.Empty);
+        tab.IsPinned = ReadBool(item, "IsPinned", false);
         if (TryGet(item, "Font", out var font) && font.ValueKind == JsonValueKind.Object)
             tab.Font = ParseFont(font);
         return tab;
@@ -362,7 +365,7 @@ public static class TabSessionService
 
         var sb = new StringBuilder();
         sb.Append("{\n");
-        AppendNumber(sb, "  ", "Version", 2, comma: true);
+        AppendNumber(sb, "  ", "Version", 3, comma: true);
         AppendNumber(sb, "  ", "Active", data.Active, comma: true);
         AppendTabs(sb, "  ", data.Tabs, comma: true);
         AppendGroups(sb, "  ", data.Groups, comma: true);
@@ -432,6 +435,7 @@ public static class TabSessionService
         AppendString(sb, indent + "  ", "Name", tab.Name, comma: true);
         AppendString(sb, indent + "  ", "GroupId", tab.GroupId, comma: true);
         AppendString(sb, indent + "  ", "Color", tab.Color, comma: true);
+        AppendBoolean(sb, indent + "  ", "IsPinned", tab.IsPinned, comma: true);
         AppendFont(sb, indent + "  ", tab.Font, comma: false);
         sb.Append(indent).Append('}');
     }
@@ -497,6 +501,13 @@ public static class TabSessionService
         sb.Append('\n');
     }
 
+    private static void AppendBoolean(StringBuilder sb, string indent, string name, bool value, bool comma)
+    {
+        sb.Append(indent).Append('"').Append(name).Append("\": ").Append(value ? "true" : "false");
+        if (comma) sb.Append(',');
+        sb.Append('\n');
+    }
+
     private static string Escape(string s)
         => s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
 
@@ -510,7 +521,7 @@ public static class TabSessionService
 
     private static void Normalize(SessionData data)
     {
-        data.Version = 2;
+        data.Version = 3;
         data.Tabs = data.Tabs.Where(t => t is not null).Select(CloneTab).ToList();
         data.Groups = data.Groups.Where(g => g is not null).Select(CloneGroup).ToList();
         data.LocalGit = CloneLocalGit(data.LocalGit);
@@ -591,6 +602,16 @@ public static class TabSessionService
         if (TryGet(element, name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var d))
             return d;
         return fallback;
+    }
+
+    private static bool ReadBool(JsonElement element, string name, bool fallback)
+    {
+        if (!TryGet(element, name, out var value)) return fallback;
+        if (value.ValueKind == JsonValueKind.True) return true;
+        if (value.ValueKind == JsonValueKind.False) return false;
+        return value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out var parsed)
+            ? parsed
+            : fallback;
     }
 
     private static bool Same(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);

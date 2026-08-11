@@ -15,7 +15,7 @@ Open `WinForge.exe --page devterminal` for the review-first workbench above the 
 
 所有修改都有明確確認；提權只喺 Defender／TCP 真正套用時要求。輸入會用獨立 argv，檢視資料只留喺目前畫面。
 
-![Developer & Terminal](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-devterminal.png)
+![Developer & Terminal](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-devterminal.png)
 
 Implementation, limits, failure modes, privacy, and the offline verification command are in the [maintained feature guide](../features/developer-terminal/developer-workflow-workbench.md). · 實作、上限、失敗模式、私隱同離線驗證指令請睇[維護指南](../features/developer-terminal/developer-workflow-workbench.md)。
 

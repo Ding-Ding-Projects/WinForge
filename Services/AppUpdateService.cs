@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -15,8 +16,8 @@ using Microsoft.UI.Xaml;
 namespace WinForge.Services;
 
 /// <summary>
-/// Fully automatic GitHub release updater. It checks the latest WinForge release, downloads the
-/// installer asset, exits this process, silently installs into the current app folder, then relaunches.
+/// Background GitHub release checker. It validates and stages an unsigned Squirrel.Windows setup,
+/// then waits for the user to choose the restart/install action; active work is never interrupted.
 /// </summary>
 public static class AppUpdateService
 {
@@ -24,6 +25,8 @@ public static class AppUpdateService
     private const string LastAttemptTagKey = "app.autoupdate.lastAttemptTag";
     private const string LastAttemptUtcKey = "app.autoupdate.lastAttemptUtc";
     private const string LastInstalledNoticeTagKey = "app.autoupdate.lastInstalledNoticeTag";
+    private const string PendingInstallerPathKey = "app.autoupdate.pendingInstallerPath";
+    private const string PendingInstallerShaKey = "app.autoupdate.pendingInstallerSha256";
     private static readonly TimeSpan FirstCheckDelay = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
     private static readonly TimeSpan SameTagRetryDelay = TimeSpan.FromHours(12);
@@ -38,7 +41,8 @@ public static class AppUpdateService
         string TitleZh,
         string MessageEn,
         string MessageZh,
-        int AutoDismissMs = 0);
+        int AutoDismissMs = 0,
+        IReadOnlyList<AppNoticeAction>? Actions = null);
 
     public static event Action<AppUpdateNotice>? Notice;
 
@@ -148,17 +152,9 @@ public static class AppUpdateService
                         7000);
                 return;
             }
-            if (UpdatePendingIsFresh())
-            {
-                Notify(ui, NoticeSeverity.Info,
-                    "Update already in progress", "更新已經進行緊",
-                    "Another WinForge instance is applying this update; this instance will stand down.",
-                    "另一個 WinForge 實例正套用緊更新；呢個實例會停止運作。",
-                    6000);
-                ui.TryEnqueue(() => Application.Current.Exit());
-                return;
-            }
-            if (RecentlyAttempted(latestTag)) return;
+            string existingStaged = SettingsStore.Get(PendingInstallerPathKey, "");
+            bool hasStaged = !string.IsNullOrWhiteSpace(existingStaged) && File.Exists(existingStaged);
+            if (RecentlyAttempted(latestTag) && !hasStaged) return;
 
             ManagedReleaseAsset setup = selected.Installer;
             string expectedSha256 = selected.InstallerSha256;
@@ -166,67 +162,46 @@ public static class AppUpdateService
             SettingsStore.Set(LastAttemptTagKey, latestTag);
             SettingsStore.Set(LastAttemptUtcKey, DateTime.UtcNow.ToString("O"));
 
-            // Preferred path: hand off to the dedicated WinForgeUpdater WinUI app, which shows a real
-            // progress window (download → wait → install → relaunch) so the update is never silent.
-            if (LaunchUpdaterApp(latestTag, setup.BrowserDownloadUrl, expectedSha256))
-            {
-                Notify(ui, NoticeSeverity.Info,
-                    "Updating WinForge", "正在更新 WinForge",
-                    $"WinForge will close and the updater will install v{latestTag} with a progress window, then reopen.",
-                    $"WinForge 將會關閉，更新程式會用進度視窗安裝 v{latestTag}，然後重新開啟。",
-                    0);
-                await Task.Delay(2500).ConfigureAwait(false);
-                ui.TryEnqueue(() => Application.Current.Exit());
-                return;
-            }
-            if (UpdatePendingIsFresh())
-            {
-                Notify(ui, NoticeSeverity.Info,
-                    "Update already in progress", "更新已經進行緊",
-                    "Another WinForge instance is applying this update; this instance will stand down.",
-                    "另一個 WinForge 實例正套用緊更新；呢個實例會停止運作。",
-                    6000);
-                ui.TryEnqueue(() => Application.Current.Exit());
-                return;
-            }
+            string staged = string.Equals(SettingsStore.Get(LastAttemptTagKey, ""), latestTag, StringComparison.OrdinalIgnoreCase) && hasStaged
+                ? existingStaged
+                : "";
 
-            // Fallback (older installs without WinForgeUpdater.exe): download in-app, then the silent script.
             Notify(ui, NoticeSeverity.Info,
                 "Downloading WinForge update", "正在下載 WinForge 更新",
                 $"Downloading v{latestTag}. You can keep using the app while it downloads.",
                 $"正在下載 v{latestTag}。下載期間可以繼續使用 app。",
                 0);
-            string installer = await DownloadInstallerAsync(
-                latestTag, setup.BrowserDownloadUrl, expectedSha256).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(staged))
+                staged = await DownloadInstallerAsync(latestTag, setup.BrowserDownloadUrl, expectedSha256).ConfigureAwait(false);
 
-            if (LaunchInstallerAfterExit(installer, latestTag, expectedSha256))
+            SettingsStore.Set(PendingInstallerPathKey, staged);
+            SettingsStore.Set(PendingInstallerShaKey, expectedSha256);
+            var actions = new[]
             {
-                Notify(ui, NoticeSeverity.Info,
-                    "Installing update", "正在安裝更新",
-                    $"WinForge will close, install v{latestTag}, then reopen automatically.",
-                    $"WinForge 將會關閉、安裝 v{latestTag}，然後自動重新開啟。",
-                    0);
-                await Task.Delay(2500).ConfigureAwait(false);
-                ui.TryEnqueue(() => Application.Current.Exit());
-            }
-            else
-            {
-                if (UpdatePendingIsFresh())
-                {
-                    Notify(ui, NoticeSeverity.Info,
-                        "Update already in progress", "更新已經進行緊",
-                        "Another WinForge instance is applying this update; this instance will stand down.",
-                        "另一個 WinForge 實例正套用緊更新；呢個實例會停止運作。",
-                        6000);
-                    ui.TryEnqueue(() => Application.Current.Exit());
-                    return;
-                }
-                Notify(ui, NoticeSeverity.Error,
-                    "Could not start updater", "無法啟動更新程式",
-                    $"The v{latestTag} installer was downloaded, but WinForge could not start the updater.",
-                    $"已下載 v{latestTag} 安裝程式，但 WinForge 無法啟動更新程式。",
-                    12000);
-            }
+                new AppNoticeAction(
+                    "Restart to install update",
+                    "重新啟動並安裝更新",
+                    DismissOnInvoke: true,
+                    Handler: async () =>
+                    {
+                        if (!LaunchInstallerAfterExit(staged, latestTag, expectedSha256))
+                        {
+                            Notify(ui, NoticeSeverity.Error, "Could not start Squirrel Setup.exe", "無法啟動 Squirrel Setup.exe",
+                                "The update is staged, but the safe Squirrel handoff could not start.",
+                                "更新已準備好，但安全更新交接未能啟動。", 12000);
+                            return;
+                        }
+                        await Task.Delay(1500).ConfigureAwait(false);
+                        ui.TryEnqueue(() => Application.Current.Exit());
+                    }),
+                new AppNoticeAction("Later", "稍後", DismissOnInvoke: true, Handler: () => Task.CompletedTask),
+            };
+            Notify(ui, NoticeSeverity.Info,
+                "Update ready to install", "更新已準備安裝",
+                $"v{latestTag} is staged. It is unsigned and may trigger an unknown-publisher or SmartScreen warning. Choose Restart to install update when your work is saved, or Later.",
+                $"v{latestTag} 已準備好。版本冇簽名，可能觸發 unknown-publisher 或 SmartScreen 警告。儲存好工作後揀「重新啟動並安裝更新」，或者揀稍後。",
+                0,
+                actions);
         }
         catch (Exception ex)
         {
@@ -249,6 +224,8 @@ public static class AppUpdateService
             if (string.IsNullOrWhiteSpace(attempted)) return;
             if (!string.Equals(attempted, current, StringComparison.OrdinalIgnoreCase)) return;
             ClearUpdatePendingFlag();
+            SettingsStore.Set(PendingInstallerPathKey, "");
+            SettingsStore.Set(PendingInstallerShaKey, "");
             if (string.Equals(SettingsStore.Get(LastInstalledNoticeTagKey, ""), current, StringComparison.OrdinalIgnoreCase)) return;
 
             SettingsStore.Set(LastInstalledNoticeTagKey, current);
@@ -268,9 +245,10 @@ public static class AppUpdateService
         string titleZh,
         string messageEn,
         string messageZh,
-        int autoDismissMs)
+        int autoDismissMs,
+        IReadOnlyList<AppNoticeAction>? actions = null)
     {
-        var notice = new AppUpdateNotice(severity, titleEn, titleZh, messageEn, messageZh, autoDismissMs);
+        var notice = new AppUpdateNotice(severity, titleEn, titleZh, messageEn, messageZh, autoDismissMs, actions);
         void Raise()
         {
             try { Notice?.Invoke(notice); } catch { }
@@ -303,7 +281,7 @@ public static class AppUpdateService
         Directory.CreateDirectory(dir);
 
         string safeTag = SafeTag(tag);
-        string path = Path.Combine(dir, $"WinForge-Setup-{safeTag}.exe");
+        string path = Path.Combine(dir, $"Setup-{safeTag}.exe");
         string tmp = path + ".tmp";
         try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
 
@@ -348,40 +326,6 @@ public static class AppUpdateService
             throw new InvalidDataException("Downloaded installer failed SHA-256 verification.");
         }
         return path;
-    }
-
-    /// <summary>
-    /// 啟動專用 WinUI 更新程式（有進度視窗）· Launch the dedicated WinForgeUpdater WinUI app, which
-    /// downloads (with a progress bar), waits for this process to exit, installs, and relaunches WinForge.
-    /// Returns false if the updater exe isn't present (then the caller uses the silent fallback).
-    /// </summary>
-    private static bool LaunchUpdaterApp(string tag, string url, string expectedSha256)
-    {
-        try
-        {
-            string dir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            string updater = Path.Combine(dir, "updater-runtime", "WinForgeUpdater.exe");
-            if (!File.Exists(updater)) updater = Path.Combine(dir, "WinForgeUpdater.exe");
-            if (!File.Exists(updater)) return false;
-
-            if (!TrySetUpdatePendingFlag()) return false;
-            var psi = new ProcessStartInfo { FileName = updater, UseShellExecute = true };
-            psi.ArgumentList.Add("--tag"); psi.ArgumentList.Add(tag);
-            psi.ArgumentList.Add("--url"); psi.ArgumentList.Add(url);
-            psi.ArgumentList.Add("--pid"); psi.ArgumentList.Add(Environment.ProcessId.ToString());
-            psi.ArgumentList.Add("--install-dir"); psi.ArgumentList.Add(dir);
-            psi.ArgumentList.Add("--exe"); psi.ArgumentList.Add(Path.Combine(dir, "WinForge.exe"));
-            psi.ArgumentList.Add("--launcher"); psi.ArgumentList.Add(Path.Combine(dir, "WinForgeLauncher.exe"));
-            psi.ArgumentList.Add("--sha256"); psi.ArgumentList.Add(expectedSha256);
-            if (Process.Start(psi) is null) throw new InvalidOperationException("WinForgeUpdater did not start.");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            ClearUpdatePendingFlag();
-            CrashLogger.Log("app-update:launch-updater-app", ex);
-            return false;
-        }
     }
 
     private static bool LaunchInstallerAfterExit(string installer, string tag, string expectedSha256)
@@ -497,16 +441,6 @@ public static class AppUpdateService
     private static void ClearUpdatePendingFlag()
     {
         try { File.Delete(UpdatePendingFlagPath()); } catch { }
-    }
-
-    private static bool UpdatePendingIsFresh()
-    {
-        try
-        {
-            if (!File.Exists(UpdatePendingFlagPath())) return false;
-            return DateTime.UtcNow - File.GetLastWriteTimeUtc(UpdatePendingFlagPath()) <= TimeSpan.FromMinutes(10);
-        }
-        catch { return true; }
     }
 
     private static bool IsDevelopmentRun()

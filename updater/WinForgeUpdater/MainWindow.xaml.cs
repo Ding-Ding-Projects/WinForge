@@ -165,14 +165,14 @@ public sealed partial class MainWindow : Window
             }
 
             // 3) Copy the single-file launcher outside the installation directory and hand off. This
-            // updater must exit before Inno Setup replaces WinForgeUpdater.exe and shared runtime files.
+            // updater must exit before unsigned Squirrel Setup.exe replaces shared runtime files.
             Status($"Preparing WinForge {(string.IsNullOrEmpty(tag) ? "" : "v" + tag)} … · 準備緊…");
             Progress(null);
             string helperLog = Path.Combine(updateDir,
                 $"install-{SafeTag(tag)}-{DateTime.Now:yyyyMMdd-HHmmss}.log");
             int helperPid = LaunchApplyHelper(launcher, installer, installDir, exe, expectedSha256, helperLog);
             _handedOff = true;
-            Log($"Staged update helper (pid {helperPid}). Installer log will be {Path.ChangeExtension(helperLog, ".inno.log")}");
+            Log($"Staged update helper (pid {helperPid}). Squirrel log will be {Path.ChangeExtension(helperLog, ".squirrel.log")}");
             Status("Applying update in the background… · 背景套用更新緊…");
             await Task.Delay(350);
             _ui.TryEnqueue(() => Application.Current.Exit());
@@ -197,7 +197,7 @@ public sealed partial class MainWindow : Window
         string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge", "updates");
         Directory.CreateDirectory(dir);
         string safe = SafeTag(tag);
-        string path = Path.Combine(dir, $"WinForge-Setup-{safe}.exe");
+        string path = Path.Combine(dir, $"Setup-{safe}.exe");
         string tmp = path + ".tmp";
         try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
 

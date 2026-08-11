@@ -19,6 +19,7 @@ public sealed partial class SettingsPage : Page
 {
     private bool _suppress;
     private bool _subscriptionsActive;
+    private bool _universalSubscriptionsActive;
     private TextBlock? _tonePreview;
     private Slider? _englishToneSlider;
     private Slider? _cantoneseToneSlider;
@@ -32,6 +33,8 @@ public sealed partial class SettingsPage : Page
     }
 
     private void OnLang(object? sender, EventArgs e) => Build();
+
+    private void OnUniversalChanged(object? sender, EventArgs e) => Build();
 
     private void OnToneChanged(object? sender, EventArgs e)
     {
@@ -53,7 +56,9 @@ public sealed partial class SettingsPage : Page
         {
             Loc.I.LanguageChanged += OnLang;
             FunnyLevelSettings.I.Changed += OnToneChanged;
+            UniversalSettingsService.Changed += OnUniversalChanged;
             _subscriptionsActive = true;
+            _universalSubscriptionsActive = true;
         }
 
         Build();
@@ -64,6 +69,11 @@ public sealed partial class SettingsPage : Page
         if (!_subscriptionsActive) return;
         Loc.I.LanguageChanged -= OnLang;
         FunnyLevelSettings.I.Changed -= OnToneChanged;
+        if (_universalSubscriptionsActive)
+        {
+            UniversalSettingsService.Changed -= OnUniversalChanged;
+            _universalSubscriptionsActive = false;
+        }
         _subscriptionsActive = false;
     }
 
@@ -80,13 +90,174 @@ public sealed partial class SettingsPage : Page
             Style = (Style)Application.Current.Resources["TitleTextBlockStyle"],
         });
 
-        Root.Children.Add(BuildLanguageCard());
-        Root.Children.Add(BuildToneCard());
-        Root.Children.Add(BuildBrandingCard());
-        Root.Children.Add(BuildThemeCard());
-        Root.Children.Add(BuildBackupCard());
-        Root.Children.Add(BuildAdminCard());
-        Root.Children.Add(BuildAboutCard());
+        Root.Children.Add(BuildUniversalCard());
+        if (!UniversalSettingsService.SchoolModeEnabled)
+        {
+            Root.Children.Add(BuildLanguageCard());
+            Root.Children.Add(BuildToneCard());
+            Root.Children.Add(BuildBrandingCard());
+            Root.Children.Add(BuildThemeCard());
+            Root.Children.Add(BuildBackupCard());
+            Root.Children.Add(BuildAdminCard());
+            Root.Children.Add(BuildAboutCard());
+        }
+        else
+        {
+            Root.Children.Add(Muted(Loc.I.Pick(
+                $"{UniversalSettingsService.SchoolModeName} is on. WinForge is using English and has temporarily removed language, funny-level, personal-vocabulary, and dim-sum controls. Unlock it below to restore your saved choices.",
+                $"{UniversalSettingsService.SchoolModeName} 已開啟。WinForge 而家用英文，暫時移除語言、搞笑等級、個人詞彙同點心控制。喺下面解鎖就可以還原之前嘅選擇。")));
+        }
+    }
+
+    private Border BuildUniversalCard()
+    {
+        bool school = UniversalSettingsService.SchoolModeEnabled;
+        var panel = new StackPanel { Spacing = 10 };
+        string modeName = UniversalSettingsService.SchoolModeName;
+        panel.Children.Add(Heading(
+            Loc.I.Pick("Shared experience settings", "共用體驗設定"),
+            Loc.I.Pick("These settings apply live to every WinForge window using this profile. The provenance line says when a value comes from the shared settings file.",
+                "呢啲設定會即時套用到呢個使用者設定檔入面每個 WinForge 視窗。來源行會講明數值係咪由共用設定檔載入。")));
+
+        var nameBox = new TextBox
+        {
+            Header = Loc.I.Pick("School mode display name", "School mode 顯示名稱"),
+            Text = modeName,
+            MaxLength = 64,
+            MaxWidth = 420,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            IsEnabled = !school,
+        };
+        AutomationProperties.SetName(nameBox, Loc.I.Pick("School mode display name", "School mode 顯示名稱"));
+        ToolTipService.SetToolTip(nameBox, Loc.I.Pick("Rename the mode only; the app identity and data folder do not change.", "只會改模式名稱；app 身份同資料夾唔會變。"));
+        var status = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = SecondaryTextBrush() };
+        var rename = new Button { Content = Loc.I.Pick("Save display name", "儲存顯示名稱"), IsEnabled = !school, MinHeight = 40 };
+        rename.Click += (_, _) =>
+        {
+            try { UniversalSettingsService.SchoolModeName = nameBox.Text; }
+            catch (Exception ex) { status.Text = ex.Message; }
+        };
+
+        var nameRow = new StackPanel { Spacing = 4, Children = { nameBox, rename } };
+        panel.Children.Add(nameRow);
+        panel.Children.Add(Muted(Loc.I.Pick(
+            $"Source: {(school ? "shared settings file" : "saved value or compiled-in value 'School mode'")}. This name is only a label; it is not a security boundary.",
+                $"來源：{(school ? "共用設定檔" : "已儲存值或內置值「School mode」")}。呢個名只係標籤，唔係安全防線。")));
+
+        if (!school)
+        {
+            var emoji = new ToggleSwitch
+            {
+                Header = Loc.I.Pick("Show emojis in dialogs and message boxes", "喺對話框同訊息框顯示 emoji"),
+                IsOn = UniversalSettingsService.EmojiDialogsEnabled,
+                OnContent = Loc.I.Pick("On", "開"),
+                OffContent = Loc.I.Pick("Off", "關"),
+            };
+            AutomationProperties.SetName(emoji, Loc.I.Pick("Show emojis in dialogs and message boxes", "喺對話框同訊息框顯示 emoji"));
+            ToolTipService.SetToolTip(emoji, Loc.I.Pick("Adds a relevant decorative emoji to dialog and message-box copy without changing control labels or facts.", "喺對話框／訊息框文字加相關裝飾 emoji，但唔會改按鈕、標籤或者事實。"));
+            emoji.Toggled += (_, _) => UniversalSettingsService.EmojiDialogsEnabled = emoji.IsOn;
+            panel.Children.Add(emoji);
+            panel.Children.Add(Muted(Loc.I.Pick(
+                $"Source: {(SettingsStore.Get("universal.emojiDialogsEnabled", "") is "True" or "False" ? "shared settings file" : "compiled-in value True")}. The switch is persisted and keyboard accessible.",
+                $"來源：{(SettingsStore.Get("universal.emojiDialogsEnabled", "") is "True" or "False" ? "共用設定檔" : "內置值 True")}。開關會保存，亦可以用鍵盤操作。")));
+
+            var narrator = new ToggleSwitch
+            {
+                Header = Loc.I.Pick("Narrate app events (off by default)", "讀出 app 事件（預設關閉）"),
+                IsOn = NarratorService.Enabled,
+                OnContent = Loc.I.Pick("On", "開"),
+                OffContent = Loc.I.Pick("Off", "關"),
+            };
+            AutomationProperties.SetName(narrator, Loc.I.Pick("Narrate app events", "讀出 app 事件"));
+            ToolTipService.SetToolTip(narrator, Loc.I.Pick(
+                "Opt in to serialized event narration. It is off by default, debounced, and rate-limited.",
+                "選擇開啟事件旁白。預設關閉，會序列化、debounce 同限制頻率。"));
+            narrator.Toggled += (_, _) => NarratorService.Enabled = narrator.IsOn;
+            panel.Children.Add(narrator);
+
+            var narratorLanguage = new ComboBox
+            {
+                Header = Loc.I.Pick("Narration language", "旁白語言"),
+                MaxWidth = 420,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                MinWidth = 240,
+            };
+            narratorLanguage.Items.Add(new ComboBoxItem { Content = Loc.I.Pick("English", "英文"), Tag = NarratorLanguage.English });
+            narratorLanguage.Items.Add(new ComboBoxItem { Content = Loc.I.Pick("Cantonese", "粵語"), Tag = NarratorLanguage.Cantonese });
+            narratorLanguage.Items.Add(new ComboBoxItem { Content = Loc.I.Pick("Both (English then Cantonese)", "兩種（英文再粵語）"), Tag = NarratorLanguage.Both });
+            narratorLanguage.SelectedIndex = (int)NarratorService.Language;
+            AutomationProperties.SetName(narratorLanguage, Loc.I.Pick("Narration language", "旁白語言"));
+            narratorLanguage.SelectionChanged += (_, _) =>
+            {
+                if (narratorLanguage.SelectedItem is ComboBoxItem { Tag: NarratorLanguage language })
+                    NarratorService.Language = language;
+            };
+            panel.Children.Add(narratorLanguage);
+            panel.Children.Add(Muted(Loc.I.Pick(
+                "Source: enabled state and narration language are stored in the shared settings file. Narration yields to School mode and uses the selected language's funny level for tone.",
+                "來源：開關同旁白語言會保存喺共用設定檔。School mode 開啟時會停止旁白，語氣會跟所選語言嘅搞笑等級。")));
+        }
+
+        var schoolSwitch = new ToggleSwitch
+        {
+            Header = modeName,
+            IsOn = school,
+            OnContent = Loc.I.Pick("On", "開"),
+            OffContent = Loc.I.Pick("Off", "關"),
+        };
+        AutomationProperties.SetName(schoolSwitch, modeName);
+        ToolTipService.SetToolTip(schoolSwitch, Loc.I.Pick(
+            "When on, English is forced and non-English, funny, vocabulary, and dim-sum surfaces are removed until unlocked.",
+            "開啟後會強制英文，並移除非英文、搞笑、詞彙同點心介面，直到解鎖。"));
+
+        var pinBox = new PasswordBox
+        {
+            Header = Loc.I.Pick("Unlock value (4–256 characters)", "解鎖值（4–256 個字元）"),
+            PlaceholderText = Loc.I.Pick("Set or enter the local unlock value", "設定或輸入本機解鎖值"),
+            MaxWidth = 420,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            PasswordRevealMode = PasswordRevealMode.Peek,
+        };
+        AutomationProperties.SetName(pinBox, Loc.I.Pick("School mode unlock value", "School mode 解鎖值"));
+        var pinButton = new Button { Content = Loc.I.Pick("Save unlock value", "儲存解鎖值"), MinHeight = 40 };
+        pinButton.Click += (_, _) =>
+        {
+            try
+            {
+                UniversalSettingsService.SetSchoolUnlock(pinBox.Password);
+                pinBox.Password = string.Empty;
+                status.Text = Loc.I.Pick("Unlock value saved in the Windows credential vault; it was not written to settings.", "解鎖值已儲存喺 Windows credential vault，冇寫入設定檔。");
+            }
+            catch (Exception ex) { status.Text = ex.Message; }
+        };
+
+        schoolSwitch.Toggled += (_, _) =>
+        {
+            if (_suppress) return;
+            if (schoolSwitch.IsOn)
+            {
+                UniversalSettingsService.SchoolModeEnabled = true;
+                return;
+            }
+            if (!UniversalSettingsService.VerifySchoolUnlock(pinBox.Password))
+            {
+                _suppress = true;
+                schoolSwitch.IsOn = true;
+                _suppress = false;
+                status.Text = Loc.I.Pick("That unlock value did not match. The mode remains on; use the Windows credential-vault value or reset the local app data folder.", "解鎖值唔啱。模式會繼續開；請用 Windows credential vault 入面嘅值，或者刪除本機 app data folder 重設。 ");
+                return;
+            }
+            UniversalSettingsService.SchoolModeEnabled = false;
+            pinBox.Password = string.Empty;
+        };
+        panel.Children.Add(schoolSwitch);
+        panel.Children.Add(pinBox);
+        panel.Children.Add(pinButton);
+        panel.Children.Add(status);
+        panel.Children.Add(Muted(Loc.I.Pick(
+            "This is a local user-experience lock, not encryption or protection from another person using the machine. Deleting the WinForge LocalAppData folder resets it.",
+            "呢個係本機使用體驗鎖，唔係加密，亦唔可以防止其他人用部機。刪除 WinForge LocalAppData 資料夾可以重設。")));
+        return Card(panel);
     }
 
     private Border BuildBackupCard()

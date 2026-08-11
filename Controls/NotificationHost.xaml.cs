@@ -23,6 +23,7 @@ public sealed partial class NotificationHost : UserControl
     private static int _automationFixturePublished;
     private readonly Flyout _historyFlyout;
     private bool _subscribed;
+    private string _lastNarratedNoticeId = string.Empty;
 
     public NotificationHost()
     {
@@ -43,9 +44,14 @@ public sealed partial class NotificationHost : UserControl
         {
             AppNotificationService.Changed += OnNotificationsChanged;
             Loc.I.LanguageChanged += OnLanguageChanged;
+            UniversalSettingsService.Changed += OnUniversalSettingsChanged;
             _subscribed = true;
         }
         PublishAutomationFixtureOnce();
+        _lastNarratedNoticeId = AppNotificationService.History
+            .OrderByDescending(item => item.CreatedAt)
+            .Select(item => item.Id)
+            .FirstOrDefault() ?? string.Empty;
         Refresh();
     }
 
@@ -54,15 +60,30 @@ public sealed partial class NotificationHost : UserControl
         if (!_subscribed) return;
         AppNotificationService.Changed -= OnNotificationsChanged;
         Loc.I.LanguageChanged -= OnLanguageChanged;
+        UniversalSettingsService.Changed -= OnUniversalSettingsChanged;
         _subscribed = false;
     }
 
     private void OnNotificationsChanged(object? sender, EventArgs e)
     {
+        try
+        {
+            var latest = AppNotificationService.Active.OrderByDescending(item => item.CreatedAt).FirstOrDefault();
+            if (latest is not null && !string.Equals(latest.Id, _lastNarratedNoticeId, StringComparison.Ordinal))
+            {
+                _lastNarratedNoticeId = latest.Id;
+                NarratorService.Narrate(latest.TitleEn + ". " + latest.BodyEn,
+                    latest.TitleZh + "。" + latest.BodyZh,
+                    "notification");
+            }
+        }
+        catch { }
         try { DispatcherQueue.TryEnqueue(Refresh); } catch { }
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e) => Refresh();
+
+    private void OnUniversalSettingsChanged(object? sender, EventArgs e) => Refresh();
 
     private void OnHistoryOpening(object? sender, object e)
     {
@@ -97,8 +118,8 @@ public sealed partial class NotificationHost : UserControl
             IsOpen = true,
             IsClosable = true,
             Severity = ToInfoBarSeverity(notice.Severity),
-            Title = Pick(notice.TitleEn, notice.TitleZh),
-            Message = Pick(notice.BodyEn, notice.BodyZh),
+            Title = Decorate(notice.Severity, Pick(notice.TitleEn, notice.TitleZh)),
+            Message = Decorate(notice.Severity, Pick(notice.BodyEn, notice.BodyZh)),
             MaxWidth = 400,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
@@ -302,6 +323,21 @@ public sealed partial class NotificationHost : UserControl
         => action.Handler is not null || !string.IsNullOrWhiteSpace(action.Link);
 
     private static string Pick(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private static string Decorate(AppNoticeSeverity severity, string text)
+    {
+        if (!UniversalSettingsService.EmojiDialogsEnabled || UniversalSettingsService.SchoolModeEnabled || string.IsNullOrWhiteSpace(text))
+            return text;
+        string emoji = severity switch
+        {
+            AppNoticeSeverity.Success => "✅",
+            AppNoticeSeverity.Warning => "⚠️",
+            AppNoticeSeverity.Error => "❌",
+            AppNoticeSeverity.Progress => "⏳",
+            _ => "ℹ️",
+        };
+        return $"{emoji} {text}";
+    }
 
     private static InfoBarSeverity ToInfoBarSeverity(AppNoticeSeverity severity) => severity switch
     {

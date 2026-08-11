@@ -6,6 +6,12 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 322
 
 `WinUI 3` · `.NET 11` · `English / 粵語 / bilingual` · `Windows 11 x64`
 
+## Build and install · 建置同安裝
+
+Run [`build.bat`](build.bat) for a self-contained runnable x64 build, or [`build-installer.bat`](build-installer.bat) for the supported Squirrel.Windows delivery. Both scripts bootstrap the required .NET SDKs when missing, accept `/s` or `--silent`, and keep all build output under ignored directories. The installer script produces `release-artifacts/Setup.exe`, `RELEASES`, the versioned full `.nupkg`, optional delta packages, and the portable ZIP. · 用 [`build.bat`](build.bat) 整自包含可運行 x64 build，或者用 [`build-installer.bat`](build-installer.bat) 整正式 Squirrel.Windows 交付。兩個 script 都會喺缺少時自動準備需要嘅 .NET SDK，支援 `/s`／`--silent`，所有 build output 都放喺 ignored directory。installer script 會產生 `release-artifacts/Setup.exe`、`RELEASES`、有版本號嘅 full `.nupkg`、可選 delta package，同 portable ZIP。
+
+The Squirrel.Windows installer is intentionally unsigned and may trigger an unknown-publisher or SmartScreen warning. Code signing is not used. · Squirrel.Windows installer 刻意冇簽名，可能會觸發 unknown-publisher 或 SmartScreen 警告；本項目唔使用 code signing。
+
 > The experimental C++20/C++/WinRT port has moved to [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native). It is developed and released independently and does not replace this application. · 實驗性 C++20/C++/WinRT 移植版已搬去 [codingmachineedge/WinForge-Native](https://github.com/codingmachineedge/WinForge-Native)，會獨立開發同發佈，唔會取代呢個正式 app。
 
 ## Highlights · 重點
@@ -18,6 +24,7 @@ WinForge 係正式嘅 **.NET 11 / WinUI 3** Windows 11 控制中心。佢將 322
 - **Dew-compatible local history · Dew 相容本機歷史** — a native, bilingual workspace snapshots a file or folder into adjacent Git history, reviews changes, restores rollback-safely, and exports password/header-encrypted 7z archives without launching the upstream app or placing secrets on a command line. · 原生雙語工作區會將檔案或資料夾影成旁置 Git 歷史、檢視變更、安全 rollback 還原，同匯出密碼及檔名加密 7z；唔會啟動上游 app，亦唔會將秘密放入命令列。
 - **Three persisted language modes · 三種持久語言模式** — English, playful Hong Kong-style Cantonese, and compact bilingual mode.
 - **Independent funny levels · 英粵分開搞笑等級** — persisted 1–5 tone controls for English and Cantonese provide a live safe-copy preview; errors, security, destructive actions, accessibility wording, and other operational text stay exact at every level. · 英文同粵語各自有持久化 1–5 級語氣控制同安全文案即時預覽；錯誤、安全、破壞性操作、無障礙同其他操作文字喺任何級別都保持準確。
+- **Shared experience controls · 共用體驗控制** — shared live settings include the emoji-message switch, user-renamable School mode with credential-vault recovery, opt-in serialized notification narration, an offline changelog viewer with date/regex filtering and export, pinned tabs, and local TOTP pairing QR generation. The remaining universal contract is documented as unfinished work rather than implied. · 共用即時設定包括 emoji 訊息開關、可改名並用 credential vault 解鎖嘅 School mode、選擇性序列化通知旁白、附日期／regex 篩選同匯出嘅離線變更紀錄、釘選分頁，同本機 TOTP 配對 QR 產生。其餘共用合約會清楚記錄做未做，唔會扮成已完成。
 - **Reviewable notification centre · 可翻查通知中心** — bounded bottom-right cards auto-dismiss information/success, retain warnings/errors, expose accessible actions, and keep a local 200-entry history; app updates and package operations share the same reliable in-app path. · 右下角有界通知卡會自動關閉資訊／成功、保留警告／錯誤、提供無障礙動作，同本機 200 項記錄；app 更新同套件操作共用同一條可靠 app 內路徑。
 - **Bounded guided regex builder · 有界引導式正則砌法** — the managed .NET 11 tester constructs literals, character classes, anchors, groups, alternation, and quantifiers; the same full builder is synchronized with eight core/common search surfaces, while plain text remains the default. Raw editing, five flags, session-only samples, live matches/captures, replacement preview, and explicit copy remain local, size-bounded, and timeout-protected. · 正式 .NET 11 測試器可引導砌字面文字、字元類、錨點、群組、二選一同量詞；同一個完整版砌法已同八個核心／共用搜尋介面同步，而純文字繼續做預設。原始編輯、五旗標、只限今次工作階段 sample、即時配對／擷取、替換預覽同明確複製全部只喺本機、有大小上限兼有超時保護。
 - **Self-contained delivery · 自包含發佈** — the managed application and Windows App SDK runtime ship together; a separate desktop runtime install is not required.

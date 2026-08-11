@@ -8,4 +8,4 @@ Every mutation requires review; listener identity is re-read immediately before 
 
 每次修改都要確認；終止前會重新核對 listener 身份，提權動作只喺確認後執行，使用者值保持有界獨立參數。
 
-![Developer & Terminal](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-devterminal.png)
+![Developer & Terminal](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-devterminal.png)

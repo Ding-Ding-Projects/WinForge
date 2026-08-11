@@ -78,6 +78,27 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
+
+            <!-- Local QR pairing card: the secret never leaves this process. -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="QrTitle" FontWeight="SemiBold" />
+                    <TextBlock x:Name="QrBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="176" Height="176" Padding="8" Background="White" CornerRadius="8">
+                            <Image x:Name="QrImage" Stretch="Uniform" AutomationProperties.Name="Local TOTP pairing QR code" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock x:Name="QrStatusText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Button x:Name="QrButton" Click="GenerateQr_Click" HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

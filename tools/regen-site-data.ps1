@@ -89,6 +89,16 @@ $exe  = if ($ExePath) { $ExePath } else { Join-Path $root "bin/x64/Debug/$tfm/wi
 $data = Join-Path $root 'design/winforge-data.js'
 $tmp  = Join-Path $env:TEMP 'winforge-sitedata.json'
 
+# Resolve the system host explicitly when the current process inherited a stale
+# PATH. Fresh-machine build scripts and CI may install .NET during the same
+# process, so relying on a future-shell PATH update makes this generator fail
+# before it can publish the app that supplies its own site data.
+$dotnet = Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'
+if (-not (Test-Path -LiteralPath $dotnet -PathType Leaf)) {
+  $dotnetCommand = Get-Command dotnet -ErrorAction Stop
+  $dotnet = $dotnetCommand.Source
+}
+
 $jsonSerializer = $null
 if ($PSVersionTable.PSEdition -eq 'Desktop') {
   try {
@@ -130,7 +140,7 @@ if ($DocsOnly) {
 } else {
   if (-not $ExePath -and (-not $SkipBuild -or -not (Test-Path $exe))) {
     Write-Host 'Publishing WinForge (self-contained)...'
-    & dotnet publish (Join-Path $root 'WinForge.csproj') -c Debug -r win-x64 --self-contained true `
+    & $dotnet publish (Join-Path $root 'WinForge.csproj') -c Debug -r win-x64 --self-contained true `
         -p:Platform=x64 -p:WindowsAppSDKSelfContained=true | Out-Null
   }
   if (-not (Test-Path $exe)) { throw "WinForge.exe not found at $exe" }

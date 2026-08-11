@@ -10,9 +10,9 @@ The same full builder is now directly synchronized with the real Dashboard, Cate
 
 ![Visible keyboard focus on the guided builder · 引導砌法嘅可見鍵盤 focus](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-regextester-builder.png)
 
-![Shared search control on Dashboard · Dashboard 共用搜尋控制](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-regex-search-core.png)
+![Shared search control on Dashboard · Dashboard 共用搜尋控制](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-regex-search-core.png)
 
-![Narrow bilingual synchronized search row · 窄畫面雙語同步搜尋列](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-regex-search-core-narrow.png)
+![Narrow bilingual synchronized search row · 窄畫面雙語同步搜尋列](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-regex-search-core-narrow.png)
 
 ## Safety contract · 安全合約
 

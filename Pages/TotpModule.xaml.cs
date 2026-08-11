@@ -1,7 +1,11 @@
 using System;
+using QRCoder;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage.Streams;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -56,6 +60,11 @@ public sealed partial class TotpModule : Page
         SecretLabel.Text = P("Base32 secret", "Base32 密鑰");
         UriLabel.Text = P("otpauth:// URI (optional)", "otpauth:// 連結（可選）");
         ImportBtn.Content = P("Import", "匯入");
+        QrTitle.Text = P("Authenticator pairing QR", "驗證器配對 QR");
+        QrBlurb.Text = P("Draw a standard otpauth://totp/ QR locally for your authenticator. Nothing is uploaded.",
+            "喺本機畫標準 otpauth://totp/ QR 畀驗證器配對；唔會上載任何嘢。");
+        QrButton.Content = P("Generate QR locally", "喺本機產生 QR");
+        QrStatusText.Text = P("Enter a valid secret, then choose Generate QR locally.", "輸入有效密鑰，再撳「喺本機產生 QR」。");
         DigitsLabel.Text = P("Digits", "位數");
         PeriodLabel.Text = P("Period (s)", "週期（秒）");
         AlgoLabel.Text = P("Algorithm", "演算法");
@@ -153,6 +162,49 @@ public sealed partial class TotpModule : Page
         catch
         {
             StatusText.Text = P("Could not copy to the clipboard.", "無法複製到剪貼簿。");
+        }
+    }
+
+    private async void GenerateQr_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string secret = (SecretBox.Text ?? string.Empty).Trim().Replace(" ", string.Empty);
+            if (TotpService.DecodeBase32(secret) is null)
+            {
+                QrStatusText.Text = P("Enter a valid Base32 secret before generating a QR.", "產生 QR 前請先輸入有效 Base32 密鑰。");
+                QrImage.Source = null;
+                return;
+            }
+
+            int digits = (int)(double.IsNaN(DigitsBox.Value) ? 6 : DigitsBox.Value);
+            int period = (int)(double.IsNaN(PeriodBox.Value) ? 30 : PeriodBox.Value);
+            var algo = AlgoFromIndex(AlgoBox.SelectedIndex);
+            string uri = $"otpauth://totp/{Uri.EscapeDataString("WinForge")}?secret={Uri.EscapeDataString(secret)}&issuer=WinForge&algorithm={algo.ToString().ToUpperInvariant()}&digits={digits}&period={period}";
+            UriBox.Text = uri;
+
+            using var generator = new QRCodeGenerator();
+            using var data = generator.CreateQrCode(uri, QRCodeGenerator.ECCLevel.Q);
+            var png = new PngByteQRCode(data).GetGraphic(8);
+            using var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(png);
+                await writer.StoreAsync();
+                await writer.FlushAsync();
+            }
+            stream.Seek(0);
+            var bitmap = new BitmapImage();
+            await bitmap.SetSourceAsync(stream);
+            QrImage.Source = bitmap;
+            AutomationProperties.SetName(QrImage, P($"Local TOTP pairing QR for WinForge, {digits} digits every {period} seconds", $"WinForge 本機 TOTP 配對 QR，{digits} 位，每 {period} 秒"));
+            QrStatusText.Text = P("QR generated locally. Scan it with your authenticator, then verify the current code.",
+                "QR 已喺本機產生。用 authenticator 掃描，之後驗證目前驗證碼。");
+        }
+        catch
+        {
+            QrImage.Source = null;
+            QrStatusText.Text = P("Could not draw the QR locally.", "無法喺本機畫出 QR。");
         }
     }
 

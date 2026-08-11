@@ -22,8 +22,12 @@ public sealed record ManagedReleaseMetadata(
 public sealed record ManagedReleaseSelection(
     string Version,
     ManagedReleaseAsset Installer,
+    ManagedReleaseAsset Releases,
+    ManagedReleaseAsset FullPackage,
     ManagedReleaseAsset Portable,
     string InstallerSha256,
+    string ReleasesSha256,
+    string FullPackageSha256,
     string PortableSha256);
 
 public sealed record ManagedInstallLayout(
@@ -43,7 +47,11 @@ public static class ManagedReleaseContract
     public const string RepositorySlug = RepositoryOwner + "/" + RepositoryName;
     public const string RepositoryUrl = "https://github.com/" + RepositorySlug;
     public const string LatestReleaseApi = "https://api.github.com/repos/" + RepositorySlug + "/releases/latest";
-    public const string InstallerAssetName = "WinForge-Setup.exe";
+    public const string InstallerAssetName = "Setup.exe";
+    public const string SquirrelReleasesAssetName = "RELEASES";
+    public const string SquirrelFullPackagePrefix = "WinForge-";
+    public const string SquirrelFullPackageSuffix = "-full.nupkg";
+    public const string SquirrelDeltaPackageSuffix = "-delta.nupkg";
     public const string PortableAssetPrefix = "WinForge-portable-x64-";
     public const string ReleaseManifestName = "WinForge.release.json";
     public const string LauncherFileName = "WinForgeLauncher.exe";
@@ -54,6 +62,8 @@ public static class ManagedReleaseContract
     public const int ReleaseMinor = 1;
     public const int MaximumWindowsBuildComponent = 65_535;
     public const long MaximumInstallerBytes = 512L * 1024 * 1024;
+    public const long MaximumSquirrelPackageBytes = 1024L * 1024 * 1024;
+    public const long MaximumSquirrelReleasesBytes = 16L * 1024 * 1024;
     public const long MaximumPortableBytes = 1024L * 1024 * 1024;
 
     public static string PortableAssetName(string versionOrTag)
@@ -61,6 +71,27 @@ public static class ManagedReleaseContract
         if (!TryParseReleaseVersion(versionOrTag, out Version? version))
             throw new ArgumentException("Version must use the managed v1.1.<1..65535> release line.", nameof(versionOrTag));
         return PortableAssetPrefix + FormatVersion(version) + ".zip";
+    }
+
+    public static string SquirrelFullPackageName(string versionOrTag)
+    {
+        if (!TryParseReleaseVersion(versionOrTag, out Version? version))
+            throw new ArgumentException("Version must use the managed v1.1.<1..65535> release line.", nameof(versionOrTag));
+        return SquirrelFullPackagePrefix + FormatVersion(version) + SquirrelFullPackageSuffix;
+    }
+
+    public static bool IsSquirrelDeltaPackageName(string? name, string versionOrTag)
+    {
+        if (!TryParseReleaseVersion(versionOrTag, out Version? version) || string.IsNullOrWhiteSpace(name)) return false;
+        string prefix = SquirrelFullPackagePrefix;
+        string suffix = SquirrelDeltaPackageSuffix;
+        if (!name.StartsWith(prefix, StringComparison.Ordinal) ||
+            !name.EndsWith(suffix, StringComparison.Ordinal) ||
+            name.Length <= prefix.Length + suffix.Length)
+            return false;
+
+        string deltaVersion = name[prefix.Length..^suffix.Length];
+        return TryParseReleaseVersion(deltaVersion, out Version? parsed) && parsed.Equals(version);
     }
 
     public static bool TryParseReleaseVersion(string? value, out Version version)
@@ -130,29 +161,45 @@ public static class ManagedReleaseContract
         string normalizedVersion = FormatVersion(version);
         string portableName = PortableAssetName(normalizedVersion);
         ManagedReleaseAsset[] assets = release.Assets?.ToArray() ?? [];
-        string[] expectedNames = [InstallerAssetName, portableName];
+        string fullPackageName = SquirrelFullPackageName(normalizedVersion);
+        string[] requiredNames = [InstallerAssetName, SquirrelReleasesAssetName, fullPackageName, portableName];
         string[] actualNames = assets.Select(asset => asset.Name).Order(StringComparer.Ordinal).ToArray();
-        if (!actualNames.SequenceEqual(expectedNames.Order(StringComparer.Ordinal), StringComparer.Ordinal))
+        bool duplicateAssetName = assets
+            .GroupBy(asset => asset.Name, StringComparer.Ordinal)
+            .Any(group => group.Count() != 1);
+        if (duplicateAssetName ||
+            requiredNames.Any(name => !actualNames.Contains(name, StringComparer.Ordinal)) ||
+            assets.Any(asset => !requiredNames.Contains(asset.Name, StringComparer.Ordinal) &&
+                                !IsSquirrelDeltaPackageName(asset.Name, normalizedVersion)))
         {
-            reason = "The stable release must contain exactly the installer and versioned x64 portable archive.";
+            reason = "The stable release must contain one Setup.exe, one RELEASES index, the versioned full Squirrel package, and the x64 portable archive; current-version delta packages are optional when a prior release exists.";
             return false;
         }
 
         ManagedReleaseAsset installer = assets.Single(asset => asset.Name == InstallerAssetName);
+        ManagedReleaseAsset releases = assets.Single(asset => asset.Name == SquirrelReleasesAssetName);
+        ManagedReleaseAsset fullPackage = assets.Single(asset => asset.Name == fullPackageName);
         ManagedReleaseAsset portable = assets.Single(asset => asset.Name == portableName);
         string installerDigest = NormalizeSha256(installer.Digest);
+        string releasesDigest = NormalizeSha256(releases.Digest);
+        string fullPackageDigest = NormalizeSha256(fullPackage.Digest);
         string portableDigest = NormalizeSha256(portable.Digest);
-        if (installerDigest.Length != 64 || portableDigest.Length != 64)
+        if (installerDigest.Length != 64 || releasesDigest.Length != 64 || fullPackageDigest.Length != 64 || portableDigest.Length != 64)
         {
             reason = "One or more release assets do not carry a valid GitHub SHA-256 digest.";
             return false;
         }
-        if (installer.Size is <= 0 or > MaximumInstallerBytes || portable.Size is <= 0 or > MaximumPortableBytes)
+        if (installer.Size is <= 0 or > MaximumInstallerBytes ||
+            releases.Size is <= 0 or > MaximumSquirrelReleasesBytes ||
+            fullPackage.Size is <= 0 or > MaximumSquirrelPackageBytes ||
+            portable.Size is <= 0 or > MaximumPortableBytes)
         {
             reason = "One or more release assets are empty or exceed their bounded size contract.";
             return false;
         }
         if (!IsCanonicalReleaseDownload(installer.BrowserDownloadUrl, release.TagName, InstallerAssetName) ||
+            !IsCanonicalReleaseDownload(releases.BrowserDownloadUrl, release.TagName, SquirrelReleasesAssetName) ||
+            !IsCanonicalReleaseDownload(fullPackage.BrowserDownloadUrl, release.TagName, fullPackageName) ||
             !IsCanonicalReleaseDownload(portable.BrowserDownloadUrl, release.TagName, portableName))
         {
             reason = "A release asset URL is outside the canonical HTTPS repository/tag path.";
@@ -160,14 +207,19 @@ public static class ManagedReleaseContract
         }
 
         selection = new ManagedReleaseSelection(
-            normalizedVersion, installer, portable, installerDigest, portableDigest);
+            normalizedVersion, installer, releases, fullPackage, portable,
+            installerDigest, releasesDigest, fullPackageDigest, portableDigest);
         return true;
     }
 
     public static bool IsCanonicalReleaseDownload(string? value, string versionOrTag, string assetName)
     {
         if (!TryParseReleaseVersion(versionOrTag, out Version? version)) return false;
-        if (assetName != InstallerAssetName && assetName != PortableAssetName(FormatVersion(version))) return false;
+        string normalizedVersion = FormatVersion(version);
+        if (assetName != InstallerAssetName && assetName != SquirrelReleasesAssetName &&
+            assetName != SquirrelFullPackageName(normalizedVersion) &&
+            assetName != PortableAssetName(normalizedVersion) &&
+            !IsSquirrelDeltaPackageName(assetName, normalizedVersion)) return false;
         if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)) return false;
         if (uri.Scheme != Uri.UriSchemeHttps || !uri.IsDefaultPort || uri.Host != "github.com" ||
             !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
@@ -200,8 +252,8 @@ public static class ManagedReleaseContract
                 StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("The staged installer must be a direct child of WinForge's update directory.");
         string name = Path.GetFileName(installer);
-        if (!name.StartsWith("WinForge-Setup", StringComparison.OrdinalIgnoreCase) ||
-            !name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        if (!(string.Equals(name, InstallerAssetName, StringComparison.OrdinalIgnoreCase) ||
+              (name.StartsWith("Setup-", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))))
             throw new InvalidDataException("The staged installer filename is outside the WinForge setup contract.");
         return installer;
     }

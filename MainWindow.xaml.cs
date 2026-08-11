@@ -103,7 +103,8 @@ public sealed partial class MainWindow : Window
             notice.MessageZh,
             severity,
             Key: "app.update",
-            AutoDismissMs: notice.AutoDismissMs));
+            AutoDismissMs: notice.AutoDismissMs,
+            Actions: notice.Actions));
     }
 
     private bool _bgStarted;
@@ -3629,7 +3630,7 @@ public sealed partial class MainWindow : Window
         tab.Header = BuildTabHeader(data, type, param);
         ApplyTabAutomation(tab, type, param);
         tab.ContextFlyout = BuildTabFlyout(tab);
-        Tabs.TabItems.Add(tab);
+        InsertTabInPinnedRegion(tab);
         if (select) Tabs.SelectedItem = tab;
         bool didNavigate;
         try { didNavigate = frame.Navigate(type, param); }
@@ -3742,6 +3743,32 @@ public sealed partial class MainWindow : Window
         SaveSession();
     }
 
+    private void InsertTabInPinnedRegion(TabViewItem tab)
+    {
+        if (!DataOf(tab).IsPinned)
+        {
+            Tabs.TabItems.Add(tab);
+            return;
+        }
+
+        int insertAt = 0;
+        while (insertAt < Tabs.TabItems.Count
+               && Tabs.TabItems[insertAt] is TabViewItem existing
+               && DataOf(existing).IsPinned)
+            insertAt++;
+        Tabs.TabItems.Insert(insertAt, tab);
+    }
+
+    private void ToggleTabPinned(TabViewItem tab)
+    {
+        var data = DataOf(tab);
+        data.IsPinned = !data.IsPinned;
+        Tabs.TabItems.Remove(tab);
+        InsertTabInPinnedRegion(tab);
+        Tabs.SelectedItem = tab;
+        SaveSession();
+    }
+
     private static void RestoreFeaturePowerLease(string ownerToken, string? previousModule)
     {
         var power = ReactorFeaturePowerService.I;
@@ -3802,6 +3829,9 @@ public sealed partial class MainWindow : Window
         _restoring = true;
         try
         {
+            string? activeKey = data.Active >= 0 && data.Active < data.Tabs.Count
+                ? data.Tabs[data.Active].Key
+                : null;
             ApplyLocalGitState(data.LocalGit, selectActive: true);
             var tabs = LoadGroupsAndMapTabs(data);
             foreach (var ownerToken in _featurePowerOwnerTokens.Values)
@@ -3810,8 +3840,10 @@ public sealed partial class MainWindow : Window
             Tabs.TabItems.Clear();
             foreach (var tabData in tabs) AddTab(tabData, select: false);
             if (Tabs.TabItems.Count == 0) AddTab("dashboard", select: false);
-            var active = (data.Active >= 0 && data.Active < Tabs.TabItems.Count) ? data.Active : 0;
-            Tabs.SelectedItem = Tabs.TabItems[active];
+            var restoredActive = Tabs.TabItems.OfType<TabViewItem>()
+                .FirstOrDefault(tab => !string.IsNullOrWhiteSpace(activeKey)
+                    && string.Equals(DataOf(tab).Key, activeKey, StringComparison.OrdinalIgnoreCase));
+            Tabs.SelectedItem = restoredActive ?? Tabs.TabItems[0];
         }
         finally { _restoring = false; }
         SaveSession();
@@ -3999,7 +4031,7 @@ public sealed partial class MainWindow : Window
             if (!string.IsNullOrWhiteSpace(tab.GroupId) && GroupFor(tab.GroupId) is null) tab.GroupId = string.Empty;
             tabs.Add(tab);
         }
-        return tabs;
+        return tabs.OrderByDescending(tab => tab.IsPinned).ToList();
     }
 
     private void ApplyLocalGitState(TabSessionService.LocalGitData? state, bool selectActive)
@@ -4107,6 +4139,7 @@ public sealed partial class MainWindow : Window
         AddFlyoutItem(flyout, "New tab · 新分頁", "\uE710", async (_, _) => await ShowNewTabPickerAsync());
         flyout.Items.Add(new MenuFlyoutSeparator());
         AddFlyoutItem(flyout, "Rename/style tab… · 分頁名稱／樣式…", "\uE8D2", async (_, _) => await EditTabAsync(tab));
+        AddFlyoutItem(flyout, DataOf(tab).IsPinned ? "Unpin tab · 取消釘選分頁" : "Pin tab · 釘選分頁", "\uE718", (_, _) => ToggleTabPinned(tab));
         AddFlyoutItem(flyout, "New group from tab… · 由分頁新增分組…", "\uE8A5", async (_, _) => await CreateGroupFromTabAsync(tab));
         AddFlyoutItem(flyout, "Rename/style group… · 分組名稱／樣式…", "\uE713", async (_, _) => await EditCurrentGroupAsync(tab));
         AddFlyoutItem(flyout, "Remove tab from group · 分頁移出分組", "\uE711", (_, _) =>

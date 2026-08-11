@@ -8,7 +8,7 @@ The Config tab binds restart to an exact, short-lived successful `check_config` 
 
 Open in-app: `WinForge.exe --page homeassistant`
 
-![Home Assistant](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-homeassistant.png)
+![Home Assistant](https://raw.githubusercontent.com/Ding-Ding-Projects/WinForge/main/docs/screenshot-homeassistant.png)
 
 ## Git & GitHub · Git 與 GitHub
 

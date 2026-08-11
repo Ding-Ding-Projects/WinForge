@@ -199,14 +199,14 @@ public static partial class ManualContent
             SummaryZh = "全域快速啟動器 — 㩒個熱鍵就搵程式、跑指令、計數同做系統動作。",
             StepsEn = new[]
             {
-                "Turn on the Command Palette switch and pick its global hotkey (e.g. Alt+Space).",
+                "Turn on the Command Palette switch and use Ctrl+Shift+F (the default) or choose another global hotkey.",
                 "Set how many results to show, and tick the providers you want (apps, calculator, system actions, web search).",
                 "Click Open now, or press the hotkey anywhere, to bring up the palette.",
                 "Start typing to filter, then press Enter to run the top result.",
             },
             StepsZh = new[]
             {
-                "撳開 Command Palette 開關，揀佢嘅全域熱鍵（例如 Alt+Space）。",
+                "撳開 Command Palette 開關，預設用 Ctrl+Shift+F，或者揀另一個全域熱鍵。",
                 "設定顯示幾多個結果，再剔你想要嘅來源（程式、計算機、系統動作、網絡搜尋）。",
                 "撳 Open now，或者喺邊度㩒個熱鍵，都會彈出面板。",
                 "開始打字篩選，再㩒 Enter 跑最上面嗰個結果。",

@@ -31,6 +31,7 @@ internal sealed class AnnouncementItem
     public required string Text { get; init; }
     public AnnouncementPriority Priority { get; init; }
     public bool Chime { get; init; }
+    public string? CoalesceKey { get; init; }
 }
 
 /// <summary>
@@ -160,14 +161,36 @@ public sealed class AnnouncementService
     public void AnnounceRaw(string text, AnnouncementPriority priority = AnnouncementPriority.Normal, bool? chime = null)
         => Enqueue(text, priority, chime ?? ChimeEnabled);
 
-    private void Enqueue(string text, AnnouncementPriority priority, bool chime, bool both = false)
+    /// <summary>Queue a narrator line, replacing an older queued line with the same category key.</summary>
+    public void EnqueueCoalesced(string text, string coalesceKey, AnnouncementPriority priority = AnnouncementPriority.Normal)
+    {
+        if (string.IsNullOrWhiteSpace(coalesceKey))
+        {
+            Enqueue(text, priority, chime: false);
+            return;
+        }
+        Enqueue(text, priority, chime: false, coalesceKey: coalesceKey);
+    }
+
+    private void Enqueue(string text, AnnouncementPriority priority, bool chime, bool both = false, string? coalesceKey = null)
     {
         if (string.IsNullOrWhiteSpace(text) || _disposed) return;
 
-        var item = new AnnouncementItem { Text = text, Priority = priority, Chime = chime };
+        var item = new AnnouncementItem { Text = text, Priority = priority, Chime = chime, CoalesceKey = coalesceKey };
 
         lock (_gate)
         {
+            if (!string.IsNullOrWhiteSpace(coalesceKey))
+            {
+                var current = _queue.First;
+                while (current is not null)
+                {
+                    var next = current.Next;
+                    if (string.Equals(current.Value.CoalesceKey, coalesceKey, StringComparison.OrdinalIgnoreCase))
+                        _queue.Remove(current);
+                    current = next;
+                }
+            }
             if (priority == AnnouncementPriority.Urgent)
             {
                 _queue.AddFirst(item);
