@@ -7,8 +7,8 @@ Total candidate controls: **102** across **83** source files (**96** XAML contro
 | Classification | Count | Meaning |
 | --- | ---: | --- |
 | dedicated-pattern-tool | 7 | Configuration or purpose-built pattern editor, not a product search bar. |
-| integrated-core | 14 | Shared plain-text-first SearchPatternBox is active; the page uses the synchronized .NET pattern and flags. |
-| plain-text-later | 67 | Applicable ordinary local search/filter, scheduled for later batches. |
+| integrated-core | 15 | Shared plain-text-first SearchPatternBox is active; the page uses the synchronized .NET pattern and flags. |
+| plain-text-later | 66 | Applicable ordinary local search/filter, scheduled for later batches. |
 | read-only-output | 2 | Output field, not editable search input. |
 | shared-control-internal | 3 | Internal editor in the reusable synchronized search component, counted once as infrastructure rather than as another product surface. |
 | specialized-dialect | 9 | Requires a domain/provider adapter; do not force .NET regex semantics. |
@@ -118,6 +118,6 @@ Total candidate controls: **102** across **83** source files (**96** XAML contro
 | `Pages/WiresharkModule.xaml:91` | `DisplayFilterBox` | specialized-dialect | adapter-required | Wireshark display-filter dialect. |
 | `Pages/WiresharkModule.xaml:219` | `FileFilterBox` | specialized-dialect | adapter-required | Wireshark display-filter dialect for saved captures. |
 | `Pages/WiresharkModule.xaml:320` | `OpsFilter` | plain-text-later | remaining | Local plain-text search/filter; eligible for the shared control in a later integration batch. |
-| `Services/CommandPaletteWindow.cs:38` | `_search` | plain-text-later | remaining | Code-built command-palette search; anchored builder migration remains pending. |
+| `Services/CommandPaletteWindow.cs:39` | `_search` | integrated-core | shipped | Code-built command-palette search uses the shared builder, synchronized flags, query-only Enter, bounded matcher status, and localized accessible names. |
 
 The CSV beside this page is the machine-readable ledger. Regenerate both files after adding, removing, renaming, or integrating a candidate surface. · 同目錄 CSV 係機器可讀 ledger；新增、刪除、改名或整合候選介面後要重新產生兩份檔案。

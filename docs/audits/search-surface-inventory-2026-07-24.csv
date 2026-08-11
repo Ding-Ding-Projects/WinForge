@@ -100,4 +100,4 @@
 "Pages/WiresharkModule.xaml#DisplayFilterBox","Pages/WiresharkModule.xaml","91","DisplayFilterBox","TextBox","specialized-dialect","adapter-required","Wireshark display-filter dialect."
 "Pages/WiresharkModule.xaml#FileFilterBox","Pages/WiresharkModule.xaml","219","FileFilterBox","TextBox","specialized-dialect","adapter-required","Wireshark display-filter dialect for saved captures."
 "Pages/WiresharkModule.xaml#OpsFilter","Pages/WiresharkModule.xaml","320","OpsFilter","AutoSuggestBox","plain-text-later","remaining","Local plain-text search/filter; eligible for the shared control in a later integration batch."
-"Services/CommandPaletteWindow.cs#_search","Services/CommandPaletteWindow.cs","38","_search","TextBox","plain-text-later","remaining","Code-built command-palette search; anchored builder migration remains pending."
+"Services/CommandPaletteWindow.cs#_search","Services/CommandPaletteWindow.cs","39","_search","SearchPatternBox","integrated-core","shipped","Code-built command-palette search uses the shared builder, synchronized flags, query-only Enter, bounded matcher status, and localized accessible names."

@@ -15,6 +15,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
 using Windows.UI;
+using WinForge.Controls;
 using WinForge.Models;
 
 namespace WinForge.Services;
@@ -35,7 +36,7 @@ public sealed class CommandPaletteWindow
     private readonly Window _window;
     private readonly Grid _root;
     private readonly Border _surface;
-    private readonly TextBox _search;
+    private readonly SearchPatternBox _search;
     private readonly ListView _list;
     private readonly TextBlock _hint;
     private readonly ProgressRing _busyIndicator;
@@ -44,6 +45,7 @@ public sealed class CommandPaletteWindow
     private CancellationTokenSource? _invokeCts;
     private int _refreshVersion;
     private bool _invoking;
+    private string? _searchError;
 
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
@@ -105,27 +107,17 @@ public sealed class CommandPaletteWindow
         layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var searchRow = new Grid();
-        searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var searchIcon = new FontIcon
+        _search = new SearchPatternBox
         {
-            Glyph = ((char)0xE721).ToString(),
-            FontSize = 20,
-            Margin = new Thickness(6, 0, 12, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Foreground = ResBrush("TextFillColorSecondaryBrush", Color.FromArgb(0xC0, 0xFF, 0xFF, 0xFF)),
-        };
-        Grid.SetColumn(searchIcon, 0);
-        _search = new TextBox
-        {
-            FontSize = 22,
-            BorderThickness = new Thickness(0),
-            Background = new SolidColorBrush(Colors.Transparent),
             PlaceholderText = Loc.I.Pick("Search apps, modules, files, math…", "搜尋程式、模組、檔案、計算…"),
             VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            AutomationNameProvider = () => Loc.I.Pick("Command Palette search", "指令面板搜尋"),
         };
-        Grid.SetColumn(_search, 1);
+        AutomationProperties.SetAutomationId(_search, "CommandPaletteSearchBox");
+        Grid.SetColumn(_search, 0);
         _busyIndicator = new ProgressRing
         {
             Width = 22,
@@ -136,8 +128,7 @@ public sealed class CommandPaletteWindow
             VerticalAlignment = VerticalAlignment.Center
         };
         AutomationProperties.SetName(_busyIndicator, Loc.I.Pick("Running extension action", "擴充套件操作進行中"));
-        Grid.SetColumn(_busyIndicator, 2);
-        searchRow.Children.Add(searchIcon);
+        Grid.SetColumn(_busyIndicator, 1);
         searchRow.Children.Add(_search);
         searchRow.Children.Add(_busyIndicator);
         Grid.SetRow(searchRow, 0);
@@ -161,6 +152,8 @@ public sealed class CommandPaletteWindow
             Text = Loc.I.Pick("Enter launch · ↑↓ navigate · Ctrl+P pin · Esc close", "Enter 啟動 · ↑↓ 選擇 · Ctrl+P 釘選 · Esc 關閉"),
         };
         AutomationProperties.SetLiveSetting(_hint, AutomationLiveSetting.Polite);
+        AutomationProperties.SetAutomationId(_hint, "CommandPaletteSearchStatus");
+        AutomationProperties.SetName(_hint, Loc.I.Pick("Command Palette search status", "指令面板搜尋狀態"));
         Grid.SetRow(_hint, 2);
 
         layout.Children.Add(searchRow);
@@ -171,11 +164,13 @@ public sealed class CommandPaletteWindow
         ApplyAppearance();
 
         // ---- events ----
-        _search.TextChanged += (_, _) => Refresh();
+        _search.PatternChanged += (_, _) => Refresh();
+        _search.QuerySubmitted += (_, _) => InvokeSelected();
         _search.KeyDown += OnSearchKeyDown;
         _list.ItemClick += (_, e) => { if (e.ClickedItem is CommandPaletteResult r) InvokeResult(r); };
         _list.KeyDown += OnListKeyDown;
         _window.Activated += OnActivated;
+        Loc.I.LanguageChanged += OnLanguageChanged;
     }
 
     private void ApplyAppearance()
@@ -233,7 +228,7 @@ public sealed class CommandPaletteWindow
             SetForegroundWindow(hwnd);
         }
         catch { }
-        _search.Focus(FocusState.Programmatic);
+        _search.FocusQuery();
     }
 
     private void Hide()
@@ -271,19 +266,30 @@ public sealed class CommandPaletteWindow
 
     private void Refresh()
     {
-        string query = _search.Text ?? "";
+        string query = _search.Text;
+        SearchPatternService.Matcher matcher = _search.CompileMatcher();
         _refreshCts?.Cancel();
         var cts = new CancellationTokenSource();
         _refreshCts = cts;
         int version = Interlocked.Increment(ref _refreshVersion);
+        _searchError = matcher.Ok ? null : matcher.Error;
+
+        if (!matcher.Ok)
+        {
+            _results = new List<CommandPaletteResult>();
+            _list.ItemsSource = _results;
+            Resize();
+            UpdateHint();
+            return;
+        }
 
         if (query.Trim().Length > 0)
             _hint.Text = Loc.I.Pick("Searching…", "搜尋中…");
 
-        _ = RefreshAsync(query, version, cts.Token);
+        _ = RefreshAsync(query, matcher, version, cts.Token);
     }
 
-    private async Task RefreshAsync(string query, int version, CancellationToken ct)
+    private async Task RefreshAsync(string query, SearchPatternService.Matcher matcher, int version, CancellationToken ct)
     {
         try
         {
@@ -291,8 +297,29 @@ public sealed class CommandPaletteWindow
                 await Task.Delay(80, ct);
 
             var results = await Task.Run(() => CommandPaletteService.Query(query), ct);
+            string? matcherError = null;
+            if (matcher.Spec.UseRegex)
+            {
+                var filtered = new List<CommandPaletteResult>();
+                foreach (CommandPaletteResult result in results)
+                {
+                    SearchPatternService.MatchResult match = matcher.MatchAny(
+                        new[] { result.Title, result.Subtitle, result.ProviderTag });
+                    if (!match.Ok)
+                    {
+                        matcherError = match.Error;
+                        results = new List<CommandPaletteResult>();
+                        break;
+                    }
+
+                    if (match.IsMatch) filtered.Add(result);
+                }
+
+                if (matcherError is null) results = filtered;
+            }
             if (ct.IsCancellationRequested || version != _refreshVersion) return;
 
+            _searchError = matcherError;
             _results = results;
             _list.ItemsSource = _results;
             if (_results.Count > 0) _list.SelectedIndex = 0;
@@ -305,6 +332,7 @@ public sealed class CommandPaletteWindow
             if (ct.IsCancellationRequested || version != _refreshVersion) return;
             _results = new List<CommandPaletteResult>();
             _list.ItemsSource = _results;
+            _searchError = Loc.I.Pick("The command palette search failed.", "指令面板搜尋失敗。 ");
             Resize();
             UpdateHint();
         }
@@ -312,9 +340,19 @@ public sealed class CommandPaletteWindow
 
     private void UpdateHint()
     {
-        _hint.Text = _results.Count == 0
+        _hint.Text = _searchError is not null
+            ? Loc.I.Pick($"Search error: {_searchError}", $"搜尋錯誤：{_searchError}")
+            : _results.Count == 0
             ? Loc.I.Pick("No results · type to search", "無結果 · 輸入以搜尋")
             : Loc.I.Pick("Enter launch · ↑↓ navigate · Ctrl+P pin · Esc close", "Enter 啟動 · ↑↓ 選擇 · Ctrl+P 釘選 · Esc 關閉");
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        _search.PlaceholderText = Loc.I.Pick("Search apps, modules, files, math…", "搜尋程式、模組、檔案、計算…");
+        AutomationProperties.SetName(_hint, Loc.I.Pick("Command Palette search status", "指令面板搜尋狀態"));
+        AutomationProperties.SetName(_busyIndicator, Loc.I.Pick("Running extension action", "擴充套件操作進行中"));
+        UpdateHint();
     }
 
     private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
@@ -329,8 +367,6 @@ public sealed class CommandPaletteWindow
         {
             case VirtualKey.Escape:
                 Hide(); e.Handled = true; break;
-            case VirtualKey.Enter:
-                InvokeSelected(); e.Handled = true; break;
             case VirtualKey.Down:
                 Move(1); e.Handled = true; break;
             case VirtualKey.Up:
@@ -419,7 +455,7 @@ public sealed class CommandPaletteWindow
         else if (_open)
         {
             _hint.Text = Loc.I.Pick("The action could not be completed.", "未能完成操作。");
-            _search.Focus(FocusState.Programmatic);
+            _search.FocusQuery();
         }
     }
 
