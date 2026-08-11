@@ -14,6 +14,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Pages;
 using WinForge.Services;
@@ -3033,9 +3034,10 @@ public sealed partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
-        var search = new TextBox
+        var search = new SearchPatternBox
         {
             PlaceholderText = Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"),
+            AutomationName = Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"),
         };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(search, "NewTabPickerSearchBox");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(search, Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"));
@@ -3071,13 +3073,14 @@ public sealed partial class MainWindow : Window
             dialog?.Hide();
         }
 
-        void Render(string query)
+        void Render()
         {
             results.Children.Clear();
             renderedButtons.Clear();
-            query = (query ?? string.Empty).Trim();
+            string query = search.Text.Trim();
             var selectedCategory = categoryBox.SelectedItem as PickerCategory ?? PickerCategories[0];
             var entries = FilterEntriesForCategory(AllPickerEntries(), selectedCategory);
+            SearchPatternService.Matcher matcher = SearchPatternService.Compile(search.Spec);
 
             if (query.Length == 0)
             {
@@ -3094,18 +3097,19 @@ public sealed partial class MainWindow : Window
                 return;
             }
 
-            AddPickerSection(results,
+            AddPickerSection(
+                results,
                 selectedCategory.Id == "all"
                     ? Loc.I.Pick("Search results", "搜尋結果")
                     : Loc.I.Pick($"{selectedCategory.En} search results", $"{selectedCategory.Zh}搜尋結果"),
                 entries
-                    .Where(e => MatchesPickerEntry(e, query))
+                    .Where(e => MatchesPickerEntry(e, matcher))
                     .Take(40),
                 Open,
                 renderedButtons);
         }
 
-        search.TextChanged += (_, _) => Render(search.Text);
+        search.PatternChanged += (_, _) => Render();
         search.KeyDown += (_, e) =>
         {
             if (e.Key != Windows.System.VirtualKey.Enter || renderedButtons.Count == 0) return;
@@ -3115,8 +3119,8 @@ public sealed partial class MainWindow : Window
                 Open(key);
             }
         };
-        categoryBox.SelectionChanged += (_, _) => Render(search.Text);
-        Render(string.Empty);
+        categoryBox.SelectionChanged += (_, _) => Render();
+        Render();
 
         dialog = new ContentDialog
         {
@@ -3301,11 +3305,18 @@ public sealed partial class MainWindow : Window
             CategoryId = PickerCategoryIdFor(module.Tag),
         };
 
-    private static bool MatchesPickerEntry(NewTabEntry entry, string query)
+    private static bool MatchesPickerEntry(NewTabEntry entry, SearchPatternService.Matcher matcher)
     {
         var category = PickerCategories.FirstOrDefault(c => c.Id == entry.CategoryId);
-        var haystack = $"{entry.Title} {entry.Subtitle} {entry.Key} {category?.En} {category?.Zh}".ToLowerInvariant();
-        return haystack.Contains(query.ToLowerInvariant());
+        var haystack = new[]
+        {
+            entry.Title,
+            entry.Subtitle,
+            entry.Key,
+            category?.En,
+            category?.Zh,
+        };
+        return matcher.MatchAny(haystack).IsMatch;
     }
 
     private static IEnumerable<NewTabEntry> FilterEntriesForCategory(IEnumerable<NewTabEntry> entries, PickerCategory category)

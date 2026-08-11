@@ -45,6 +45,7 @@ git push
 - `features/README.md` — generated one-page-per-feature reference · 生成嘅每功能一頁參考
 - `buttons/README.md` — generated one-page-per-button/control reference · 生成嘅每按鈕／控制項一頁參考
 - `Accessibility.md` — keyboard and screen-reader baseline · 鍵盤同螢幕閱讀器基本標準
+- `New-Tab-Picker-Search.md` — Ctrl+T/Add-tab picker search and regex builder · Ctrl+T／Add-tab picker 搜尋同 regex builder
 - One deeper page per headline module · 每個重點模組一頁: Dashboard, Git-and-GitHub, GitHub-Desktop-Profiles, Package-Manager, Cake-Factory-and-Farm, Open-Source-App-Hub,
   Cloudflare-and-Tunnel, AI-Agents, Media, Settings-and-Control-Panel, Clipboard, Connections,
   System-Monitor.

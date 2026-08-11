@@ -21,7 +21,7 @@ Total candidate controls: **102** across **83** source files (**96** XAML contro
 | `Controls/SearchPatternBox.xaml:59` | `RawPatternBox` | shared-control-internal | infrastructure | Raw regex editor owned by the reusable synchronized search component. |
 | `Controls/SearchPatternBox.xaml:98` | `SampleBox` | shared-control-internal | infrastructure | Session-only preview sample owned by the reusable synchronized search component. |
 | `MainWindow.xaml:64` | `SearchBox` | plain-text-later | remaining | Local plain-text search/filter; eligible for the shared control in a later integration batch. |
-| `MainWindow.xaml.cs:3030` | `NewTabPickerSearchBox` | plain-text-later | remaining | Code-built new-tab picker search; shared builder migration remains pending. |
+| `MainWindow.xaml.cs:3037` | `NewTabPickerSearchBox` | integrated-core | shipped | Code-built new-tab picker search uses the shared plain-text-first `SearchPatternBox`, full .NET regex builder, synchronized flags, bounded matcher, category filter, and keyboard-first result activation. |
 | `Pages/AboutPage.xaml.cs:97` | `search` | integrated-core | shipped | Offline changelog search; the complete SearchPatternBox.Spec reaches date-filtered results. |
 | `Pages/AiChatModule.xaml:35` | `ChatSearchBox` | plain-text-later | remaining | Local plain-text search/filter; eligible for the shared control in a later integration batch. |
 | `Pages/AndroidAdbModule.xaml:167` | `LogTagBox` | specialized-dialect | adapter-required | ADB logcat tag selector; preserve logcat semantics. |

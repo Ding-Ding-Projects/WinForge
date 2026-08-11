@@ -325,8 +325,8 @@ static void ClassifiedInventory()
     string csv = ReadRepo("docs/audits/search-surface-inventory-2026-07-24.csv");
     string[] rows = csv.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
     Assert(rows.Length == 103, $"expected a header plus 102 classified controls, got {rows.Length}");
-    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 13, "integrated inventory count mismatch");
-    Assert(rows.Count(row => row.Contains(",\"plain-text-later\",", StringComparison.Ordinal)) == 68, "remaining plain-text count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 14, "integrated inventory count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"plain-text-later\",", StringComparison.Ordinal)) == 67, "remaining plain-text count mismatch");
     Assert(rows.Count(row => row.Contains(",\"specialized-dialect\",", StringComparison.Ordinal)) == 9, "specialized dialect count mismatch");
     Assert(rows.Count(row => row.Contains(",\"dedicated-pattern-tool\",", StringComparison.Ordinal)) == 7, "dedicated pattern count mismatch");
     Assert(rows.Count(row => row.Contains(",\"read-only-output\",", StringComparison.Ordinal)) == 2, "read-only output count mismatch");
