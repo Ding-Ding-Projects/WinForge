@@ -88,7 +88,6 @@ public sealed class SearchablePickerBox : UserControl
         _statusText.TextWrapping = TextWrapping.Wrap;
         _statusText.Visibility = Visibility.Collapsed;
         _statusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.OrangeRed);
-        AutomationProperties.SetAutomationId(_statusText, "SearchablePickerNoResults");
         AutomationProperties.SetName(_statusText, P("Picker search status", "選擇器搜尋狀態"));
         AutomationProperties.SetLiveSetting(_statusText, AutomationLiveSetting.Polite);
 
@@ -405,7 +404,7 @@ public sealed class SearchablePickerBox : UserControl
     }
 
     private bool HasSearchInput()
-        => _search.Spec.UseRegex || _search.Spec.Query.Length > 0;
+        => _search.Spec.Query.Length > 0;
 
     private void FocusOption(int delta)
     {
@@ -490,8 +489,9 @@ public sealed class SearchablePickerBox : UserControl
 
     private void OnToneChanged(object? sender, EventArgs e)
     {
+        _search.RefreshAutomationNames();
         ApplyAutomationNames();
-        RenderOptions();
+        RefreshItems();
     }
 
     private void ApplyAutomationNames()

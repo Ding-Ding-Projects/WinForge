@@ -5,7 +5,7 @@ Run("command-line shell route waits for NavigationView load", StartPageWaitsForL
 Run("shell route selects exactly once and awaits the picker", StartPageOpensSinglePicker);
 Run("automation contract retains stable dialog identifiers", DialogAutomationContractIsStable);
 Run("new-tab picker owns the shared bounded search contract", PickerSearchContract);
-Run("category picker owns its searchable regex dropdown", CategoryPickerSearchContract);
+Run("category picker owns its searchable regex dropdown source contract", CategoryPickerSearchContract);
 
 if (failures.Count == 0)
 {
@@ -89,6 +89,8 @@ static void PickerSearchContract()
 
 static void CategoryPickerSearchContract()
 {
+    // This pure executable verifies source contracts. WinUI focus, flyout, layout, and UI Automation
+    // behavior remain built-artifact/runtime evidence and are documented as such.
     var picker = MethodBody(Source(), "private async Task ShowNewTabPickerAsync()");
     AssertContains(picker, "var categoryBox = new SearchablePickerBox", "category picker reverted to a raw ComboBox");
     AssertNotContains(picker, "var categoryBox = new ComboBox", "plain category ComboBox remains in the picker");
@@ -96,6 +98,8 @@ static void CategoryPickerSearchContract()
     AssertContains(picker, "SearchTextProvider = item =>", "category search does not include stable category metadata");
     AssertContains(picker, "categoryBox.SelectionChanged += (_, _) => Render();", "category selection no longer refreshes picker results");
     AssertContains(picker, "categoryBox.RefreshItems()", "category labels are not refreshed after language changes");
+    AssertContains(picker, "FunnyLevelSettings.I.Changed += pickerToneChanged", "category result chrome is not refreshed after a tone change");
+    AssertContains(picker, "FunnyLevelSettings.I.Changed -= pickerToneChanged", "category tone subscription is not cleaned up");
 
     var control = ReadRepo("Controls", "SearchablePickerBox.cs");
     AssertContains(control, "private readonly SearchPatternBox _search", "category control has no owned SearchPatternBox");
@@ -114,6 +118,8 @@ static void CategoryPickerSearchContract()
     AssertContains(control, "VirtualKey.Up", "category search does not handle Up from the query field");
     AssertContains(control, "VirtualKey.Escape", "category search has no clear-then-close Escape path");
     AssertContains(control, "HasSearchInput()", "category Escape behavior has no clear-versus-close decision");
+    AssertContains(control, "_search.Spec.Query.Length > 0", "category Escape treats regex mode as input without a pattern");
+    AssertNotContains(control, "_search.Spec.UseRegex || _search.Spec.Query.Length > 0", "category Escape requires two Escapes for an empty regex pattern");
     AssertContains(control, "_search.Clear()", "category search cannot clear before closing");
     AssertContains(control, "CommitHighlightedOption", "category query Enter does not commit the highlighted option");
     AssertContains(control, "_optionsList.SelectedItem as Option", "category query Enter ignores the highlighted option");
@@ -130,13 +136,25 @@ static void CategoryPickerSearchContract()
     AssertContains(control, "_search.MaxLayoutWidth", "nested regex builder does not receive the narrow-layout width cap");
     AssertContains(control, "_search.AutomationIdPrefix = _searchAutomationId", "category search descendants are not namespaced");
     AssertContains(control, "$\"{prefix}_Status\"", "category status automation ID is not namespaced");
-    AssertContains(control, "SearchablePickerNoResults", "category status keeps its semantic status marker");
+    AssertNotContains(control, "SearchablePickerNoResults", "category status keeps a dead initializer instead of its final runtime ID");
+    AssertContains(control, "_search.RefreshAutomationNames();", "nested search accessible names are not refreshed after tone changes");
+    AssertContains(control, "RefreshItems();", "category option labels are not rebuilt after tone changes");
     AssertContains(control, "VirtualKey.Escape", "category list has no keyboard cancellation path");
 
     var searchPatternBox = ReadRepo("Controls", "SearchPatternBox.xaml.cs");
     AssertContains(searchPatternBox, "QueryKeyDown?.Invoke", "shared search control does not expose query-field key events");
     AssertContains(searchPatternBox, "AutomationIdPrefix", "shared search control cannot namespace descendant IDs");
     AssertContains(searchPatternBox, "MaxLayoutWidth", "shared search control cannot honor a narrow host width");
+    AssertContains(searchPatternBox, "public void RefreshAutomationNames()", "shared search control has no host-triggered accessibility refresh");
+    AssertContains(searchPatternBox, "FunnyLevelSettings.I.Changed += OnToneChanged", "shared search control does not observe funny-level changes");
+    AssertContains(searchPatternBox, "FunnyLevelSettings.I.Changed -= OnToneChanged", "shared search control does not clean up funny-level changes");
+
+    var mainWindow = Source();
+    AssertContains(mainWindow, "FunnyLevelSettings.I.StyleEnglish(En)", "category labels bypass the English funny-level style");
+    AssertContains(mainWindow, "FunnyLevelSettings.I.StyleCantonese(Zh)", "category labels bypass the Cantonese funny-level style");
+    AssertContains(mainWindow, "FunnyLevelSettings.I.StyleEnglish(\"Category\")", "category header bypasses the English funny-level style");
+    AssertContains(mainWindow, "FunnyLevelSettings.I.StyleCantonese(\"分類\")", "category header bypasses the Cantonese funny-level style");
+    AssertContains(mainWindow, "categoryBox.RefreshItems();", "category option text is not rebuilt from the host tone update");
 }
 
 static string MethodBody(string source, string signature)

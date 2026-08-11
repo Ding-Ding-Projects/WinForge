@@ -21,6 +21,7 @@ public sealed partial class SearchPatternBox : UserControl
     private readonly SearchPatternSession _session = new();
     private bool _syncing;
     private bool _languageSubscribed;
+    private bool _toneSubscribed;
     private bool _builderChoicesReady;
     private string _automationName = string.Empty;
     private string _automationIdPrefix = "SearchPattern";
@@ -97,6 +98,9 @@ public sealed partial class SearchPatternBox : UserControl
         }
     }
 
+    /// <summary>Refreshes descendant accessible names after a host-owned tone update.</summary>
+    public void RefreshAutomationNames() => ApplyAutomationNames();
+
     public SearchPatternService.Spec Spec => _session.Spec;
     public bool IsRegexMode => _session.UseRegex;
     public string? ValidationError => _session.Compile().Error;
@@ -114,7 +118,8 @@ public sealed partial class SearchPatternBox : UserControl
         SampleBox.Text = string.Empty;
     }
 
-    private string P(string en, string zh) => Loc.I.Pick(en, zh);
+    private string P(string en, string zh)
+        => Loc.I.Pick(FunnyLevelSettings.I.StyleEnglish(en), FunnyLevelSettings.I.StyleCantonese(zh));
 
     private void Control_Loaded(object sender, RoutedEventArgs e)
     {
@@ -123,6 +128,11 @@ public sealed partial class SearchPatternBox : UserControl
             Loc.I.LanguageChanged += OnLanguageChanged;
             _languageSubscribed = true;
         }
+        if (!_toneSubscribed)
+        {
+            FunnyLevelSettings.I.Changed += OnToneChanged;
+            _toneSubscribed = true;
+        }
         EnsureBuilderChoices();
         RenderText();
         SyncControlsFromSession();
@@ -130,15 +140,29 @@ public sealed partial class SearchPatternBox : UserControl
 
     private void Control_Unloaded(object sender, RoutedEventArgs e)
     {
-        if (!_languageSubscribed) return;
-        Loc.I.LanguageChanged -= OnLanguageChanged;
-        _languageSubscribed = false;
+        if (_languageSubscribed)
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            _languageSubscribed = false;
+        }
+        if (_toneSubscribed)
+        {
+            FunnyLevelSettings.I.Changed -= OnToneChanged;
+            _toneSubscribed = false;
+        }
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         RenderText();
         RebuildBuilderChoices();
+        UpdatePreview();
+    }
+
+    private void OnToneChanged(object? sender, EventArgs e)
+    {
+        RenderText();
+        ApplyAutomationNames();
         UpdatePreview();
     }
 
