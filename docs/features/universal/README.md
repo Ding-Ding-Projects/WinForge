@@ -8,7 +8,7 @@ This category documents the cross-surface experience contract that WinForge impl
 | Offline changelog viewer · 離線變更紀錄檢視器 | [Offline changelog](offline-changelog.md) |
 | Public-catalog dim-sum startup surprise · 公開 catalog 啟動點心驚喜 | [Dim-sum surprise](dim-sum-surprise.md) |
 | Bundled offline documentation browser · 捆綁離線文件瀏覽器 | [Offline documentation](offline-documentation.md) |
-| New-tab picker search and regex builder · 新分頁選擇器搜尋同 regex builder | [New-tab picker search](new-tab-picker-search.md) |
+| New-tab and category picker search and regex builder · 新分頁同分類選擇器搜尋同 regex builder | [New-tab picker search](new-tab-picker-search.md) |
 | Command Palette search and regex builder · 指令面板搜尋同 regex builder | [Command Palette search](command-palette-search.md) |
 | Pinned tabs and session persistence · 釘選分頁同工作階段保存 | [Pinned tabs](pinned-tabs.md) |
 | Local OTP QR pairing · 本機 OTP QR 配對 | [Authenticator QR pairing](authenticator-qr.md) |

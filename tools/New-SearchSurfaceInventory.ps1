@@ -67,6 +67,10 @@ $codeSearchSurfaces = [ordered]@{
         Evidence = 'new SearchPatternBox'; Type = 'SearchPatternBox'; Classification = 'integrated-core'; Status = 'shipped'
         Notes = 'Code-built new-tab picker search uses the shared matcher, full builder, synchronized flags, category filter, and keyboard-first activation.'
     }
+    'MainWindow.xaml.cs#NewTabPickerCategorySearchBox' = [pscustomobject]@{
+        Evidence = 'new SearchablePickerBox'; Type = 'SearchablePickerBox'; Classification = 'integrated-core'; Status = 'shipped'
+        Notes = 'Code-built category picker owns an anchored SearchPatternBox builder, metadata-aware matching, keyboard selection, no-match/error status, and focus return.'
+    }
     'Services/CommandPaletteWindow.cs#_search' = [pscustomobject]@{
         Evidence = 'private readonly SearchPatternBox _search'; Type = 'SearchPatternBox'; Classification = 'integrated-core'; Status = 'shipped'
         Notes = 'Code-built command-palette search uses the shared builder, synchronized flags, query-only Enter, bounded matcher status, and localized accessible names.'

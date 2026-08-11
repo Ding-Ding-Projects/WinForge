@@ -355,8 +355,8 @@ static void ClassifiedInventory()
 {
     string csv = ReadRepo("docs/audits/search-surface-inventory-2026-07-24.csv");
     string[] rows = csv.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-    Assert(rows.Length == 103, $"expected a header plus 102 classified controls, got {rows.Length}");
-    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 15, "integrated inventory count mismatch");
+    Assert(rows.Length == 104, $"expected a header plus 103 classified controls, got {rows.Length}");
+    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 16, "integrated inventory count mismatch");
     Assert(rows.Count(row => row.Contains(",\"plain-text-later\",", StringComparison.Ordinal)) == 66, "remaining plain-text count mismatch");
     Assert(rows.Count(row => row.Contains(",\"specialized-dialect\",", StringComparison.Ordinal)) == 9, "specialized dialect count mismatch");
     Assert(rows.Count(row => row.Contains(",\"dedicated-pattern-tool\",", StringComparison.Ordinal)) == 7, "dedicated pattern count mismatch");
@@ -387,6 +387,7 @@ static void CurrentInventory()
         ("Pages/AboutPage.xaml.cs", "search"),
         ("Pages/SettingsPage.xaml.cs", "search"),
         ("MainWindow.xaml.cs", "NewTabPickerSearchBox"),
+        ("MainWindow.xaml.cs", "NewTabPickerCategorySearchBox"),
         ("Services/CommandPaletteWindow.cs", "_search"),
         ("Pages/BitwardenConnectionView.cs", "_searchBox"),
         ("Pages/PdfToolkitModule.Viewer.cs", "_viewerSearchBox"),

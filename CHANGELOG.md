@@ -13,6 +13,41 @@ _Cleaned-up project history. Contributor / author names intentionally omitted._
 - **真正共用 search control** — code-built Command Palette 而家用 `SearchPatternBox`；純文字仍然係預設，旁邊嘅 .NET regex builder 會同步 pattern、旗標、驗證、本機 matching 同 capture-aware result search。只有真正 query field 嘅 Enter 會啟動結果，builder/sample 欄位按 Enter 唔會誤關。
 - **錯誤狀態講清楚** — invalid pattern、matcher failure 同零結果都有具名、localized feedback；語言切換會更新 accessible names；query state 只留喺 session，唔會寫入 history、export、telemetry 或 network request。
 - **驗證** — `RegexBuilder.Tests` 36/36、直接 `WinForge.csproj` x64 Debug build 0 warnings／0 errors、inventory 102 controls／83 files（15 個 integrated、66 個 ordinary 仲未接）、source audit resolve 2,935／2,935 handlers，同 `git diff --check` 通過。Aggregate solution build 今次 isolated checkout 冇跑，因為四個 ignored generated test project 唔存在。Commit：[`1a459439`](https://github.com/Ding-Ding-Projects/WinForge/commit/1a45943937d1a358ebec3a050d044b28f1aca296)。
+## 2026-08-11 — Close category picker tone and contract gaps
+
+- **Live copy refresh** — category labels, the selected-value button, the visible header, result section titles, search chrome, and descendant accessible names now follow language and both persisted funny-level settings without stale cached text. The shared picker rebuilds option text and selected state on a tone change, while the final category status automation ID is `NewTabPickerCategoryBox_Status` and regex descendants remain namespaced below `NewTabPickerCategorySearchBox`.
+- **Keyboard and verification contract** — empty regex mode no longer makes Escape require an extra press; the source contract explicitly covers the clear-then-close behavior, tone subscriptions, option rebuilding, and the source-versus-runtime boundary. Runtime WinUI focus, flyout, viewport, automation-tree, and rendered-copy evidence remains a built-artifact check; the first-run Terms & Conditions surface prevented a new screenshot without user consent.
+- **Verification** — `ShellAllAppsRoute.Tests` 5/5, `RegexBuilder.Tests` 35/35, `FunnyLevelSettings.Tests` 6/6, `ManagedReleaseContract.Tests` 27/27, direct WinForge x64 Debug build 0 warnings / 0 errors, and search inventory 103 controls / 83 source files with 15 integrated and 67 ordinary surfaces remaining. Implementation: [`f7652d6f`](https://github.com/Ding-Ding-Projects/WinForge/commit/f7652d6f1540c4c7925a6b10bb4d78bf1d6ed1ba).
+
+## 2026-08-11 — 分類 picker 語氣同合約漏洞收口
+
+- **即時文案更新** — 分類標籤、已揀值按鈕、可見標題、結果分段標題、搜尋介面同後代無障礙名稱，而家會跟語言同兩個持久 funny-level settings 更新，唔再留住舊 cache 文案。共用 picker 會喺語氣改變時重砌選項文字同已揀狀態；最終分類 status automation ID 係 `NewTabPickerCategoryBox_Status`，regex 後代仍然 namespace 喺 `NewTabPickerCategorySearchBox` 下面。
+- **鍵盤同驗證合約** — 空 regex mode 唔會再令 Escape 要多撳一下；source contract 明確覆蓋先清除再關閉、語氣 subscription、選項重砌，同 source-versus-runtime 邊界。真正 WinUI focus、flyout、viewport、automation tree 同顯示文案仍然係 built-artifact 檢查；首次 Terms & Conditions 畫面未有用戶同意，所以冇聲稱有新 screenshot。
+- **驗證** — `ShellAllAppsRoute.Tests` 5/5、`RegexBuilder.Tests` 35/35、`FunnyLevelSettings.Tests` 6/6、`ManagedReleaseContract.Tests` 27/27、直接 WinForge x64 Debug build 0 warnings／0 errors，而搜尋介面清單係 103 controls／83 source files，15 個 integrated、67 個普通介面仍待後續批次。Implementation：[`f7652d6f`](https://github.com/Ding-Ding-Projects/WinForge/commit/f7652d6f1540c4c7925a6b10bb4d78bf1d6ed1ba)。
+
+## 2026-08-11 — Harden category picker keyboard and surface behavior
+
+- **One flyout path and keyboard contract** — the category picker now uses its attached flyout as the only opening path. Down/Up from the query field enters the filtered list, Enter commits the highlighted option, and Escape clears active input before closing on the next Escape; closing returns focus to the category button.
+- **Live surface state** — localized flyout chrome and placeholder text refresh with `Loc.I.LanguageChanged`; both persisted funny-level settings refresh the category copy through `FunnyLevelSettings.Changed`. Descendant automation IDs are namespaced below `NewTabPickerCategorySearchBox`.
+- **Bounded matching and layout** — one precompiled `SearchPatternService.Matcher` is reused for every category option, and the flyout plus nested builder cap their width and option-list height from the live `XamlRoot` viewport. The runtime-only narrow-layout and first-run-consent boundary is documented without claiming a visual capture.
+- **Verification** — `ShellAllAppsRoute.Tests` 5/5, `RegexBuilder.Tests` 35/35, `FunnyLevelSettings.Tests` 6/6, `ManagedReleaseContract.Tests` 27/27, direct WinForge build 0 warnings / 0 errors, and search inventory 103 controls / 83 source files. Implementation: [`9cdd4d35`](https://github.com/Ding-Ding-Projects/WinForge/commit/9cdd4d355b456fac39a28d00a526324a898ac808).
+
+## 2026-08-11 — 分類 picker 鍵盤同介面行為加固
+
+- **單一路徑同鍵盤合約** — 分類 picker 而家只用 attached flyout 開啟。Query field 撳 Down／Up 會入篩選清單，Enter 確認 highlight 嘅選項，而 Escape 先清 active input，下一次 Escape 先關閉；關閉後 focus 會返分類按鈕。
+- **介面狀態即時更新** — flyout chrome 同 placeholder 會跟 `Loc.I.LanguageChanged` 更新；兩個持久 funny-level settings 會經 `FunnyLevelSettings.Changed` 更新分類 copy。Descendant automation ID 會 namespace 喺 `NewTabPickerCategorySearchBox` 下面。
+- **有界 matching 同 layout** — 一個 precompiled `SearchPatternService.Matcher` 會重用喺每個分類選項，flyout 同 nested builder 會按 live `XamlRoot` viewport 限制寬度同選項清單高度。窄版 runtime-only 同 first-run-consent boundary 已記錄，冇聲稱有 visual capture。
+- **驗證** — `ShellAllAppsRoute.Tests` 5/5、`RegexBuilder.Tests` 35/35、`FunnyLevelSettings.Tests` 6/6、`ManagedReleaseContract.Tests` 27/27、直接 WinForge build 0 warnings／0 errors，而搜尋介面清單係 103 controls／83 source files。Implementation：[`9cdd4d35`](https://github.com/Ding-Ding-Projects/WinForge/commit/9cdd4d355b456fac39a28d00a526324a898ac808)。
+
+## 2026-08-11 — Category dropdown gains its own regex search surface
+
+- **Searchable category picker** — The new-tab picker category dropdown now uses a local `SearchablePickerBox` with an anchored `SearchPatternBox`, plain-text-first matching over stable ids and bilingual labels, bounded .NET regex validation, and named no-match/error status. Arrow keys highlight options; click or Enter commits a category; Escape cancels; closing returns focus to the category button. The original `PickerCategory` objects and selection event remain intact. Commit: [`748791fe`](https://github.com/Ding-Ding-Projects/WinForge/commit/748791fe27fdd862ee0826c528afb0a38a09d8b7).
+- **Verification** — `ShellAllAppsRoute.Tests` 5/5, `RegexBuilder.Tests` 35/35, `ManagedReleaseContract.Tests` 27/27, `dotnet build WinForge.csproj -c Debug -p:Platform=x64 --no-restore` 0 warnings / 0 errors, and search-surface inventory 103 controls / 83 source files with 15 integrated and 67 ordinary surfaces remaining. No release or publication was performed for this isolated lane.
+
+## 2026-08-11 — 分類 dropdown 有自己嘅 regex 搜尋介面
+
+- **可搜尋分類 picker** — 新分頁 picker 嘅分類 dropdown 而家用本機 `SearchablePickerBox`，內置 anchored `SearchPatternBox`，預設純文字查穩定 id 同雙語標籤，支援有界 .NET regex 驗證同具名 no-match/error status。方向鍵 highlight 選項；click 或 Enter 確認分類；Escape 取消；關閉後 focus 返分類按鈕。原本 `PickerCategory` object 同 selection event 完整保留。Commit：[`748791fe`](https://github.com/Ding-Ding-Projects/WinForge/commit/748791fe27fdd862ee0826c528afb0a38a09d8b7)。
+- **驗證** — `ShellAllAppsRoute.Tests` 5/5、`RegexBuilder.Tests` 35/35、`ManagedReleaseContract.Tests` 27/27、`dotnet build WinForge.csproj -c Debug -p:Platform=x64 --no-restore` 0 warnings／0 errors，而搜尋介面清單係 103 controls／83 source files，15 個 integrated、67 個普通介面仍待後續批次。呢個 isolated lane 冇做 release 或 publication。
 
 ## 2026-08-11 — New-tab picker gets the shared regex search builder
 

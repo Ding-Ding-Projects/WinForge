@@ -2687,7 +2687,9 @@ public sealed partial class MainWindow : Window
         public string Zh { get; init; } = "";
         public string[] Keys { get; init; } = Array.Empty<string>();
 
-        public string Title => Loc.I.Pick(En, Zh);
+        public string Title => Loc.I.Pick(
+            FunnyLevelSettings.I.StyleEnglish(En),
+            FunnyLevelSettings.I.StyleCantonese(Zh));
     }
 
     private sealed class ShellSearchSuggestion
@@ -3046,18 +3048,24 @@ public sealed partial class MainWindow : Window
         RefreshPickerSearchAutomationName();
         root.Children.Add(search);
 
-        var categoryBox = new ComboBox
+        var categoryBox = new SearchablePickerBox
         {
-            Header = Loc.I.Pick("Category", "分類"),
+            Header = Loc.I.Pick(
+                FunnyLevelSettings.I.StyleEnglish("Category"),
+                FunnyLevelSettings.I.StyleCantonese("分類")),
             ItemsSource = PickerCategories,
-            DisplayMemberPath = nameof(PickerCategory.Title),
-            SelectedIndex = 0,
-            MinWidth = 220,
-            MaxWidth = 360,
+            DisplayTextProvider = item => ((PickerCategory)item).Title,
+            SearchTextProvider = item =>
+            {
+                var category = (PickerCategory)item;
+                return new[] { category.Id, category.En, category.Zh, category.Title };
+            },
+            AutomationNameProvider = () => Loc.I.Pick("Filter by category", "按分類篩選"),
+            SearchAutomationId = "NewTabPickerCategorySearchBox",
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(categoryBox, "NewTabPickerCategoryBox");
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(categoryBox, Loc.I.Pick("Filter by category", "按分類篩選"));
+        categoryBox.AutomationId = "NewTabPickerCategoryBox";
+        categoryBox.SelectedIndex = 0;
         root.Children.Add(categoryBox);
 
         var results = new StackPanel { Spacing = 12 };
@@ -3172,11 +3180,24 @@ public sealed partial class MainWindow : Window
         EventHandler pickerLanguageChanged = (_, _) =>
         {
             RefreshPickerSearchAutomationName();
+            categoryBox.Header = Loc.I.Pick(
+                FunnyLevelSettings.I.StyleEnglish("Category"),
+                FunnyLevelSettings.I.StyleCantonese("分類"));
+            categoryBox.RefreshItems();
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
                 noResults, Loc.I.Pick("New-tab picker result status", "新分頁 picker 結果狀態"));
             Render();
         };
         Loc.I.LanguageChanged += pickerLanguageChanged;
+        EventHandler pickerToneChanged = (_, _) =>
+        {
+            categoryBox.Header = Loc.I.Pick(
+                FunnyLevelSettings.I.StyleEnglish("Category"),
+                FunnyLevelSettings.I.StyleCantonese("分類"));
+            categoryBox.RefreshItems();
+            Render();
+        };
+        FunnyLevelSettings.I.Changed += pickerToneChanged;
 
         dialog = new ContentDialog
         {
@@ -3197,6 +3218,7 @@ public sealed partial class MainWindow : Window
         finally
         {
             Loc.I.LanguageChanged -= pickerLanguageChanged;
+            FunnyLevelSettings.I.Changed -= pickerToneChanged;
         }
         if (!string.IsNullOrWhiteSpace(selectedKey))
         {
