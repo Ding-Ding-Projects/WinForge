@@ -479,6 +479,7 @@ obj/
 ExportedObj/
 .consulo/
 *.csproj
+!tools/SquirrelPackaging/SquirrelPackaging.csproj
 *.unityproj
 *.sln
 *.suo
