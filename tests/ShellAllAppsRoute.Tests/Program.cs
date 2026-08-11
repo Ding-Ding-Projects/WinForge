@@ -5,6 +5,7 @@ Run("command-line shell route waits for NavigationView load", StartPageWaitsForL
 Run("shell route selects exactly once and awaits the picker", StartPageOpensSinglePicker);
 Run("automation contract retains stable dialog identifiers", DialogAutomationContractIsStable);
 Run("new-tab picker owns the shared bounded search contract", PickerSearchContract);
+Run("category picker owns its searchable regex dropdown", CategoryPickerSearchContract);
 
 if (failures.Count == 0)
 {
@@ -84,6 +85,30 @@ static void PickerSearchContract()
     var searchPatternBox = ReadRepo("Controls", "SearchPatternBox.xaml.cs");
     AssertContains(searchPatternBox, "QueryBox.Focus(FocusState.Programmatic)", "shared search control exposes no real-query focus path");
     AssertContains(searchPatternBox, "QueryBox_QuerySubmitted", "shared search control exposes no query-only Enter path");
+}
+
+static void CategoryPickerSearchContract()
+{
+    var picker = MethodBody(Source(), "private async Task ShowNewTabPickerAsync()");
+    AssertContains(picker, "var categoryBox = new SearchablePickerBox", "category picker reverted to a raw ComboBox");
+    AssertNotContains(picker, "var categoryBox = new ComboBox", "plain category ComboBox remains in the picker");
+    AssertContains(picker, "SearchAutomationId = \"NewTabPickerCategorySearchBox\"", "category search has no stable automation ID");
+    AssertContains(picker, "SearchTextProvider = item =>", "category search does not include stable category metadata");
+    AssertContains(picker, "categoryBox.SelectionChanged += (_, _) => Render();", "category selection no longer refreshes picker results");
+    AssertContains(picker, "categoryBox.RefreshItems()", "category labels are not refreshed after language changes");
+
+    var control = ReadRepo("Controls", "SearchablePickerBox.cs");
+    AssertContains(control, "private readonly SearchPatternBox _search", "category control has no owned SearchPatternBox");
+    AssertContains(control, "_search.PatternChanged +=", "category search does not react to synchronized pattern changes");
+    AssertContains(control, "_search.QuerySubmitted +=", "category search has no query-only Enter path");
+    AssertContains(control, "_search.CompileMatcher()", "category search does not validate the full pattern");
+    AssertContains(control, "Invalid .NET regex", "category search has no honest regex error state");
+    AssertContains(control, "No matching categories.", "category search has no honest no-match state");
+    AssertContains(control, "_flyout.Closed += Flyout_Closed", "category search has no close lifecycle");
+    AssertContains(control, "private void Flyout_Closed", "category picker close handler is missing");
+    AssertContains(control, "FocusPicker();", "category picker does not return focus after closing");
+    AssertContains(control, "SearchablePickerNoResults", "category status has no stable automation ID");
+    AssertContains(control, "VirtualKey.Escape", "category list has no keyboard cancellation path");
 }
 
 static string MethodBody(string source, string signature)

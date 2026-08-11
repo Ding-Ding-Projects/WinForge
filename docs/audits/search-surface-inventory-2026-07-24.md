@@ -2,12 +2,12 @@
 
 Generated from the current WinUI XAML plus the hand-written code-built search manifest by `tools/New-SearchSurfaceInventory.ps1`. The inventory deliberately separates ordinary product search from domain-specific query languages and configuration fields; a specialized field is never silently reinterpreted as .NET regex. · 呢份清單由現時 WinUI XAML 加手寫 code-built 搜尋 manifest 自動產生，刻意分開一般產品搜尋、專用查詢語言同設定欄位；專用欄位絕對唔會靜靜雞改成 .NET 正則。
 
-Total candidate controls: **102** across **83** source files (**96** XAML controls and **6** code-built controls). · 候選控制項總數：**102**，分佈喺 **83** 個來源檔案（**96** 個 XAML 控制，同 **6** 個 code-built 控制）。
+Total candidate controls: **103** across **83** source files (**96** XAML controls and **7** code-built controls). · 候選控制項總數：**103**，分佈喺 **83** 個來源檔案（**96** 個 XAML 控制，同 **7** 個 code-built 控制）。
 
 | Classification | Count | Meaning |
 | --- | ---: | --- |
 | dedicated-pattern-tool | 7 | Configuration or purpose-built pattern editor, not a product search bar. |
-| integrated-core | 14 | Shared plain-text-first SearchPatternBox is active; the page uses the synchronized .NET pattern and flags. |
+| integrated-core | 15 | Shared plain-text-first SearchPatternBox is active; the page uses the synchronized .NET pattern and flags. |
 | plain-text-later | 67 | Applicable ordinary local search/filter, scheduled for later batches. |
 | read-only-output | 2 | Output field, not editable search input. |
 | shared-control-internal | 3 | Internal editor in the reusable synchronized search component, counted once as infrastructure rather than as another product surface. |
@@ -22,6 +22,7 @@ Total candidate controls: **102** across **83** source files (**96** XAML contro
 | `Controls/SearchPatternBox.xaml:101` | `SampleBox` | shared-control-internal | infrastructure | Session-only preview sample owned by the reusable synchronized search component. |
 | `MainWindow.xaml:64` | `SearchBox` | plain-text-later | remaining | Local plain-text search/filter; eligible for the shared control in a later integration batch. |
 | `MainWindow.xaml.cs:3037` | `NewTabPickerSearchBox` | integrated-core | shipped | Code-built new-tab picker search uses the shared matcher, full builder, synchronized flags, category filter, and keyboard-first activation. |
+| `MainWindow.xaml.cs:3049` | `NewTabPickerCategorySearchBox` | integrated-core | shipped | Code-built category picker owns an anchored SearchPatternBox builder, metadata-aware matching, keyboard selection, no-match/error status, and focus return. |
 | `Pages/AboutPage.xaml.cs:97` | `search` | integrated-core | shipped | Offline changelog search; the complete SearchPatternBox.Spec reaches date-filtered results. |
 | `Pages/AiChatModule.xaml:35` | `ChatSearchBox` | plain-text-later | remaining | Local plain-text search/filter; eligible for the shared control in a later integration batch. |
 | `Pages/AndroidAdbModule.xaml:167` | `LogTagBox` | specialized-dialect | adapter-required | ADB logcat tag selector; preserve logcat semantics. |
