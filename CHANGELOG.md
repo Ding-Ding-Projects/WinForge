@@ -2,6 +2,20 @@
 
 _Cleaned-up project history. Contributor / author names intentionally omitted._
 
+## 2026-08-11 — Harden category picker keyboard and surface behavior
+
+- **One flyout path and keyboard contract** — the category picker now uses its attached flyout as the only opening path. Down/Up from the query field enters the filtered list, Enter commits the highlighted option, and Escape clears active input before closing on the next Escape; closing returns focus to the category button.
+- **Live surface state** — localized flyout chrome and placeholder text refresh with `Loc.I.LanguageChanged`; both persisted funny-level settings refresh the category copy through `FunnyLevelSettings.Changed`. Descendant automation IDs are namespaced below `NewTabPickerCategorySearchBox`.
+- **Bounded matching and layout** — one precompiled `SearchPatternService.Matcher` is reused for every category option, and the flyout plus nested builder cap their width and option-list height from the live `XamlRoot` viewport. The runtime-only narrow-layout and first-run-consent boundary is documented without claiming a visual capture.
+- **Verification** — `ShellAllAppsRoute.Tests` 5/5, `RegexBuilder.Tests` 35/35, `FunnyLevelSettings.Tests` 6/6, `ManagedReleaseContract.Tests` 27/27, direct WinForge build 0 warnings / 0 errors, and search inventory 103 controls / 83 source files. Implementation: [`9cdd4d35`](https://github.com/Ding-Ding-Projects/WinForge/commit/9cdd4d355b456fac39a28d00a526324a898ac808).
+
+## 2026-08-11 — 分類 picker 鍵盤同介面行為加固
+
+- **單一路徑同鍵盤合約** — 分類 picker 而家只用 attached flyout 開啟。Query field 撳 Down／Up 會入篩選清單，Enter 確認 highlight 嘅選項，而 Escape 先清 active input，下一次 Escape 先關閉；關閉後 focus 會返分類按鈕。
+- **介面狀態即時更新** — flyout chrome 同 placeholder 會跟 `Loc.I.LanguageChanged` 更新；兩個持久 funny-level settings 會經 `FunnyLevelSettings.Changed` 更新分類 copy。Descendant automation ID 會 namespace 喺 `NewTabPickerCategorySearchBox` 下面。
+- **有界 matching 同 layout** — 一個 precompiled `SearchPatternService.Matcher` 會重用喺每個分類選項，flyout 同 nested builder 會按 live `XamlRoot` viewport 限制寬度同選項清單高度。窄版 runtime-only 同 first-run-consent boundary 已記錄，冇聲稱有 visual capture。
+- **驗證** — `ShellAllAppsRoute.Tests` 5/5、`RegexBuilder.Tests` 35/35、`FunnyLevelSettings.Tests` 6/6、`ManagedReleaseContract.Tests` 27/27、直接 WinForge build 0 warnings／0 errors，而搜尋介面清單係 103 controls／83 source files。Implementation：[`9cdd4d35`](https://github.com/Ding-Ding-Projects/WinForge/commit/9cdd4d355b456fac39a28d00a526324a898ac808)。
+
 ## 2026-08-11 — Category dropdown gains its own regex search surface
 
 - **Searchable category picker** — The new-tab picker category dropdown now uses a local `SearchablePickerBox` with an anchored `SearchPatternBox`, plain-text-first matching over stable ids and bilingual labels, bounded .NET regex validation, and named no-match/error status. Arrow keys highlight options; click or Enter commits a category; Escape cancels; closing returns focus to the category button. The original `PickerCategory` objects and selection event remain intact. Commit: [`748791fe`](https://github.com/Ding-Ding-Projects/WinForge/commit/748791fe27fdd862ee0826c528afb0a38a09d8b7).
