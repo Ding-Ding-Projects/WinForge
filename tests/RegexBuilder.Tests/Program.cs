@@ -36,6 +36,7 @@ Run("App Launcher uses the synchronized search control", AppLauncherSurface);
 Run("Licenses uses the synchronized search control", LicensesSurface);
 Run("Native OSS Hub uses the synchronized search control", OpenSourceHubSurface);
 Run("Settings Hub uses the synchronized search control", SettingsHubSurface);
+Run("Command Palette uses the synchronized search control", CommandPaletteSurface);
 Run("shared control exposes the full builder contract", FullBuilderSurface);
 Run("all candidate XAML search/query controls are classified", ClassifiedInventory);
 Run("current XAML and code-built search surfaces are explicitly inventoried", CurrentInventory);
@@ -303,6 +304,36 @@ static void OpenSourceHubSurface() => SurfaceContract(
 static void SettingsHubSurface() => SurfaceContract(
     "Pages/SettingsHubModule.xaml", "Pages/SettingsHubModule.xaml.cs", "FilterBox_PatternChanged", "Apply(FilterBox.Spec)");
 
+static void CommandPaletteSurface()
+{
+    string source = ReadRepo("Services/CommandPaletteWindow.cs");
+    Assert(source.Contains("private readonly SearchPatternBox _search", StringComparison.Ordinal),
+        "command palette reverted to a plain search field");
+    Assert(source.Contains("_search.PatternChanged", StringComparison.Ordinal),
+        "command palette does not refresh from synchronized pattern state");
+    Assert(source.Contains("_search.QuerySubmitted", StringComparison.Ordinal),
+        "command palette has no query-only Enter activation");
+    Assert(source.Contains("_search.CompileMatcher", StringComparison.Ordinal)
+        && source.Contains("matcher.MatchAny", StringComparison.Ordinal),
+        "command palette does not apply the complete bounded matcher to results");
+    Assert(source.Contains("_searchError", StringComparison.Ordinal)
+        && source.Contains("Search error:", StringComparison.Ordinal)
+        && source.Contains("No results", StringComparison.Ordinal),
+        "command palette does not expose error and no-result status");
+    Assert(source.Contains("_search.FocusQuery()", StringComparison.Ordinal),
+        "command palette does not focus the real query editor");
+    Assert(source.Contains("SetAutomationId(_search, \"CommandPaletteSearchBox\")", StringComparison.Ordinal),
+        "command palette search has no stable automation ID");
+    Assert(source.Contains("AutomationNameProvider = () => Loc.I.Pick(", StringComparison.Ordinal)
+        && source.Contains("Loc.I.LanguageChanged += OnLanguageChanged", StringComparison.Ordinal),
+        "command palette does not refresh localized accessible names");
+    int keyStart = source.IndexOf("private void OnSearchKeyDown", StringComparison.Ordinal);
+    int keyEnd = source.IndexOf("private void OnListKeyDown", keyStart, StringComparison.Ordinal);
+    Assert(keyStart >= 0 && keyEnd > keyStart
+        && !source[keyStart..keyEnd].Contains("VirtualKey.Enter", StringComparison.Ordinal),
+        "command palette handles Enter on the composite wrapper instead of the real query editor");
+}
+
 static void FullBuilderSurface()
 {
     string xaml = ReadRepo("Controls/SearchPatternBox.xaml");
@@ -325,8 +356,8 @@ static void ClassifiedInventory()
     string csv = ReadRepo("docs/audits/search-surface-inventory-2026-07-24.csv");
     string[] rows = csv.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
     Assert(rows.Length == 103, $"expected a header plus 102 classified controls, got {rows.Length}");
-    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 14, "integrated inventory count mismatch");
-    Assert(rows.Count(row => row.Contains(",\"plain-text-later\",", StringComparison.Ordinal)) == 67, "remaining plain-text count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 15, "integrated inventory count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"plain-text-later\",", StringComparison.Ordinal)) == 66, "remaining plain-text count mismatch");
     Assert(rows.Count(row => row.Contains(",\"specialized-dialect\",", StringComparison.Ordinal)) == 9, "specialized dialect count mismatch");
     Assert(rows.Count(row => row.Contains(",\"dedicated-pattern-tool\",", StringComparison.Ordinal)) == 7, "dedicated pattern count mismatch");
     Assert(rows.Count(row => row.Contains(",\"read-only-output\",", StringComparison.Ordinal)) == 2, "read-only output count mismatch");

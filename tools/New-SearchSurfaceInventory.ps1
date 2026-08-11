@@ -68,8 +68,8 @@ $codeSearchSurfaces = [ordered]@{
         Notes = 'Code-built new-tab picker search uses the shared matcher, full builder, synchronized flags, category filter, and keyboard-first activation.'
     }
     'Services/CommandPaletteWindow.cs#_search' = [pscustomobject]@{
-        Evidence = 'private readonly TextBox _search'; Type = 'TextBox'; Classification = 'plain-text-later'; Status = 'remaining'
-        Notes = 'Code-built command-palette search; anchored builder migration remains pending.'
+        Evidence = 'private readonly SearchPatternBox _search'; Type = 'SearchPatternBox'; Classification = 'integrated-core'; Status = 'shipped'
+        Notes = 'Code-built command-palette search uses the shared builder, synchronized flags, query-only Enter, bounded matcher status, and localized accessible names.'
     }
     'Pages/BitwardenConnectionView.cs#_searchBox' = [pscustomobject]@{
         Evidence = '_searchBox = new AutoSuggestBox'; Type = 'AutoSuggestBox'; Classification = 'plain-text-later'; Status = 'remaining'

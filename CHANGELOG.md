@@ -2,6 +2,18 @@
 
 _Cleaned-up project history. Contributor / author names intentionally omitted._
 
+## 2026-08-11 — Command Palette gets the shared regex search builder
+
+- **Real shared search control** — the code-built Command Palette now uses `SearchPatternBox`; plain text remains the default, while the attached .NET regex builder synchronizes pattern, flags, validation, local matching, and capture-aware result search. Enter activates a result only from the real query field, not from builder/sample inputs. Commit: [`1a459439`](https://github.com/Ding-Ding-Projects/WinForge/commit/1a45943937d1a358ebec3a050d044b28f1aca296).
+- **Honest failure states** — invalid patterns, matcher failures, and zero results are named and localized; accessible names refresh when the language changes; query state remains session-only and is not written to history, exports, telemetry, or network requests.
+- **Verification** — `RegexBuilder.Tests` 36/36, direct `WinForge.csproj` x64 Debug build 0 warnings / 0 errors, inventory 102 controls / 83 files with 15 integrated / 66 ordinary surfaces remaining, source audit 2,935/2,935 handlers resolved, and `git diff --check` passed. The aggregate solution build was not run in this isolated checkout because four ignored generated test projects are absent.
+
+## 2026-08-11 — Command Palette 接上共用 regex 搜尋砌法
+
+- **真正共用 search control** — code-built Command Palette 而家用 `SearchPatternBox`；純文字仍然係預設，旁邊嘅 .NET regex builder 會同步 pattern、旗標、驗證、本機 matching 同 capture-aware result search。只有真正 query field 嘅 Enter 會啟動結果，builder/sample 欄位按 Enter 唔會誤關。
+- **錯誤狀態講清楚** — invalid pattern、matcher failure 同零結果都有具名、localized feedback；語言切換會更新 accessible names；query state 只留喺 session，唔會寫入 history、export、telemetry 或 network request。
+- **驗證** — `RegexBuilder.Tests` 36/36、直接 `WinForge.csproj` x64 Debug build 0 warnings／0 errors、inventory 102 controls／83 files（15 個 integrated、66 個 ordinary 仲未接）、source audit resolve 2,935／2,935 handlers，同 `git diff --check` 通過。Aggregate solution build 今次 isolated checkout 冇跑，因為四個 ignored generated test project 唔存在。Commit：[`1a459439`](https://github.com/Ding-Ding-Projects/WinForge/commit/1a45943937d1a358ebec3a050d044b28f1aca296)。
+
 ## 2026-08-11 — New-tab picker gets the shared regex search builder
 
 - **Real shared search control** — the Ctrl+T and Add-tab picker now uses `SearchPatternBox`; plain text remains the default, while the adjacent full .NET builder synchronizes raw pattern, flags, validation, local preview, and capture-aware search behavior. Category filtering, bilingual labels, and Enter-to-open-first-result remain intact. Commit: [`ab0d4201`](https://github.com/Ding-Ding-Projects/WinForge/commit/ab0d4201dc995610ee0c0ca9d31a5a3a378a7101).

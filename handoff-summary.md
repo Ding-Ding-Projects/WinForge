@@ -1,5 +1,12 @@
 # WinForge Full Development Handoff
 
+## 2026-08-11 Command Palette search lane · 2026-08-11 Command Palette 搜尋工作
+
+- **Scope / 範圍:** The isolated `codex/command-palette-search` checkout upgrades `Services/CommandPaletteWindow.cs` from a plain `TextBox` to the shared `SearchPatternBox`. It adds query-only Enter activation, real-query focus, bounded regex validation and result matching, explicit no-result/error status, language-refreshable accessible names, and the minimum inventory, source-contract, feature, wiki, Pages, README, and roadmap updates for this surface. No release files, external GitHub surfaces, or the primary checkout were changed.
+- **Verification / 驗證:** `dotnet run --project tests/RegexBuilder.Tests -c Debug` passed **36/36**; `dotnet build WinForge.csproj -c Debug -p:Platform=x64 --no-restore -m:1 /nr:false` passed **0 warnings / 0 errors**; `tools/New-SearchSurfaceInventory.ps1` passed **102 controls / 83 files** with **15 integrated-core** and **66 plain-text-later**; `git diff --check` passed. The solution-level build was attempted but this isolated checkout lacks four ignored, solution-referenced generated test projects (`SupportTickets.Tests`, `ScheduledSettings.Tests`, `TotpAuthenticator.Tests`, and `OfflineDocs.Tests`), so that aggregate result is not claimed here.
+- **Visual evidence / 視覺證據:** No fresh Command Palette capture is claimed. The first-run consent surface requires a user decision, and this bounded lane did not accept legal terms on the user's behalf.
+- **Delivery boundary / 交付界線:** Changes remain local to the isolated checkout for the parent integration agent. No external publication or remote update was performed by this lane.
+
 ## Current 2026-08-11 Squirrel.Windows delivery and universal experience pass · 2026-08-11 Squirrel.Windows 交付同共用體驗工作
 
 - **Scope / 範圍：** the active Inno Setup path is replaced by unsigned Squirrel.Windows packaging. The repository now carries `build.bat`, `build-installer.bat`, a self-contained x64 publish path, `Setup.exe`, `RELEASES`, the versioned full package, optional deltas, a portable archive, a provenance manifest, and a committed line counter. · 目前 Inno Setup 路徑已換成 unsigned Squirrel.Windows；repository 而家有 `build.bat`、`build-installer.bat`、自包含 x64 publish、`Setup.exe`、`RELEASES`、有版本號 full package、可選 delta、portable archive、provenance manifest 同 committed line counter。
