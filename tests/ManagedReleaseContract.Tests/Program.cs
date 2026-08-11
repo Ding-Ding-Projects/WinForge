@@ -247,7 +247,8 @@ static void InstallerMetadataContract()
     Contains(script, "--no-msi", "MSI disabled");
     Contains(script, "Setup.exe", "Setup output");
     Contains(script, "RELEASES", "RELEASES output");
-    Contains(script, "Get-AuthenticodeSignature", "unsigned verification");
+    Contains(script, "Get-PeCertificateTable", "unsigned verification");
+    Contains(script, "certificateTable.Size -ne 0", "certificate-table rejection");
 }
 
 static void RuntimeWiringContract()
