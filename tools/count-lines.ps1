@@ -1,7 +1,8 @@
 [CmdletBinding()]
-param([string]$Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path)
+param([string]$Root)
 
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($Root)) { $Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path }
 $root = (Resolve-Path -LiteralPath $Root).Path
 $tracked = @(& git -C $root ls-files -z | ForEach-Object { $_ })
 $raw = [string]::Join('', $tracked)
