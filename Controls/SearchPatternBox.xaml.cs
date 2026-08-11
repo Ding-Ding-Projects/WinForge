@@ -22,6 +22,7 @@ public sealed partial class SearchPatternBox : UserControl
     private bool _languageSubscribed;
     private bool _builderChoicesReady;
     private string _automationName = string.Empty;
+    private Func<string>? _automationNameProvider;
 
     public SearchPatternBox()
     {
@@ -38,6 +39,7 @@ public sealed partial class SearchPatternBox : UserControl
     }
 
     public event EventHandler? PatternChanged;
+    public event EventHandler? QuerySubmitted;
 
     public string Text
     {
@@ -67,6 +69,17 @@ public sealed partial class SearchPatternBox : UserControl
         }
     }
 
+    /// <summary>Provides a language-refreshable base name for the composite search control.</summary>
+    public Func<string>? AutomationNameProvider
+    {
+        get => _automationNameProvider;
+        set
+        {
+            _automationNameProvider = value;
+            ApplyAutomationNames();
+        }
+    }
+
     public SearchPatternService.Spec Spec => _session.Spec;
     public bool IsRegexMode => _session.UseRegex;
     public string? ValidationError => _session.Compile().Error;
@@ -74,6 +87,9 @@ public sealed partial class SearchPatternBox : UserControl
     public SearchPatternService.Matcher CompileMatcher() => _session.Compile();
     public SearchPatternService.MatchResult Match(string? candidate) => _session.Match(candidate);
     public SearchPatternService.MatchResult MatchAny(IEnumerable<string?> candidates) => _session.MatchAny(candidates);
+
+    /// <summary>Focuses the real editable query child rather than the composite wrapper.</summary>
+    public void FocusQuery() => QueryBox.Focus(FocusState.Programmatic);
 
     public void Clear()
     {
@@ -114,6 +130,9 @@ public sealed partial class SearchPatternBox : UserControl
         if (_syncing) return;
         _session.Query = sender.Text ?? string.Empty;
     }
+
+    private void QueryBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        => QuerySubmitted?.Invoke(this, EventArgs.Empty);
 
     private void RawPatternBox_TextChanged(object sender, TextChangedEventArgs e)
     {
@@ -384,9 +403,9 @@ public sealed partial class SearchPatternBox : UserControl
 
     private void ApplyAutomationNames()
     {
-        string baseName = string.IsNullOrWhiteSpace(_automationName)
-            ? P("Search", "搜尋")
-            : _automationName;
+        string baseName = _automationNameProvider?.Invoke() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(baseName))
+            baseName = string.IsNullOrWhiteSpace(_automationName) ? P("Search", "搜尋") : _automationName;
         AutomationProperties.SetName(QueryBox, baseName);
         AutomationProperties.SetName(RegexModeButton, P($"{baseName}: .NET regex mode", $"{baseName}：.NET 正則模式"));
         AutomationProperties.SetName(BuilderButton, P($"{baseName}: open full regex builder", $"{baseName}：開啟完整正則砌法"));

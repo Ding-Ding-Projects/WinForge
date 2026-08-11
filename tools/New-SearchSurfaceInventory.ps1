@@ -64,8 +64,8 @@ $codeSearchSurfaces = [ordered]@{
         Notes = 'Settings search built in code and bound to the shared matcher.'
     }
     'MainWindow.xaml.cs#NewTabPickerSearchBox' = [pscustomobject]@{
-        Evidence = 'NewTabPickerSearchBox'; Type = 'TextBox'; Classification = 'plain-text-later'; Status = 'remaining'
-        Notes = 'Code-built new-tab picker search; shared builder migration remains pending.'
+        Evidence = 'new SearchPatternBox'; Type = 'SearchPatternBox'; Classification = 'integrated-core'; Status = 'shipped'
+        Notes = 'Code-built new-tab picker search uses the shared matcher, full builder, synchronized flags, category filter, and keyboard-first activation.'
     }
     'Services/CommandPaletteWindow.cs#_search' = [pscustomobject]@{
         Evidence = 'private readonly TextBox _search'; Type = 'TextBox'; Classification = 'plain-text-later'; Status = 'remaining'

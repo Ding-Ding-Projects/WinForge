@@ -22,11 +22,13 @@
                 Grid.Column="0"
                 AutomationProperties.AutomationId="SearchPatternQuery"
                 QueryIcon="Find"
+                QuerySubmitted="QueryBox_QuerySubmitted"
                 TextChanged="QueryBox_TextChanged" />
 
             <ToggleButton
                 x:Name="RegexModeButton"
                 Grid.Column="1"
+                AutomationProperties.AutomationId="SearchPatternRegexMode"
                 MinWidth="44"
                 Padding="8,4"
                 Click="RegexModeButton_Click">
@@ -36,6 +38,7 @@
             <Button
                 x:Name="BuilderButton"
                 Grid.Column="2"
+                AutomationProperties.AutomationId="SearchPatternBuilderButton"
                 MinWidth="44"
                 Padding="8,4">
                 <FontIcon FontSize="15" Glyph="&#xE70F;" />
@@ -128,6 +131,7 @@
 
         <TextBlock
             x:Name="ValidationText"
+            AutomationProperties.AutomationId="SearchPatternValidation"
             AutomationProperties.LiveSetting="Polite"
             FontSize="12"
             Foreground="{ThemeResource SystemFillColorCriticalBrush}"

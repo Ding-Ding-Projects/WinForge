@@ -315,7 +315,7 @@ static void UniversalExperienceContract()
     Contains(main, "RootGrid.Loaded += StartDimSumSurpriseOnce", "first-usable-layout trigger");
     Contains(main, "new SearchPatternBox", "new-tab picker shared search control");
     Contains(main, "search.PatternChanged", "new-tab picker live search synchronization");
-    Contains(main, "MatchesPickerEntry(e, matcher)", "new-tab picker matcher handoff");
+    Contains(main, "MatchesPickerEntry(entry, matcher)", "new-tab picker matcher handoff");
     Contains(main, "SearchPatternService.Matcher matcher", "new-tab picker bounded regex matcher");
     False(ReadRepoFile("App.xaml.cs").Contains("DimSumSurpriseService.Start(Shell.DispatcherQueue)", StringComparison.Ordinal),
         "pre-layout dim-sum trigger");

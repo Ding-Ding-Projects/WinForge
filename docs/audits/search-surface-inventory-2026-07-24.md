@@ -7,8 +7,8 @@ Total candidate controls: **102** across **83** source files (**96** XAML contro
 | Classification | Count | Meaning |
 | --- | ---: | --- |
 | dedicated-pattern-tool | 7 | Configuration or purpose-built pattern editor, not a product search bar. |
-| integrated-core | 13 | Shared plain-text-first SearchPatternBox is active; the page uses the synchronized .NET pattern and flags. |
-| plain-text-later | 68 | Applicable ordinary local search/filter, scheduled for later batches. |
+| integrated-core | 14 | Shared plain-text-first SearchPatternBox is active; the page uses the synchronized .NET pattern and flags. |
+| plain-text-later | 67 | Applicable ordinary local search/filter, scheduled for later batches. |
 | read-only-output | 2 | Output field, not editable search input. |
 | shared-control-internal | 3 | Internal editor in the reusable synchronized search component, counted once as infrastructure rather than as another product surface. |
 | specialized-dialect | 9 | Requires a domain/provider adapter; do not force .NET regex semantics. |
@@ -18,10 +18,10 @@ Total candidate controls: **102** across **83** source files (**96** XAML contro
 | Source | Control | Classification | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `Controls/SearchPatternBox.xaml:20` | `QueryBox` | shared-control-internal | infrastructure | Primary query editor owned by the reusable synchronized search component. |
-| `Controls/SearchPatternBox.xaml:59` | `RawPatternBox` | shared-control-internal | infrastructure | Raw regex editor owned by the reusable synchronized search component. |
-| `Controls/SearchPatternBox.xaml:98` | `SampleBox` | shared-control-internal | infrastructure | Session-only preview sample owned by the reusable synchronized search component. |
+| `Controls/SearchPatternBox.xaml:62` | `RawPatternBox` | shared-control-internal | infrastructure | Raw regex editor owned by the reusable synchronized search component. |
+| `Controls/SearchPatternBox.xaml:101` | `SampleBox` | shared-control-internal | infrastructure | Session-only preview sample owned by the reusable synchronized search component. |
 | `MainWindow.xaml:64` | `SearchBox` | plain-text-later | remaining | Local plain-text search/filter; eligible for the shared control in a later integration batch. |
-| `MainWindow.xaml.cs:3037` | `NewTabPickerSearchBox` | integrated-core | shipped | Code-built new-tab picker search uses the shared plain-text-first `SearchPatternBox`, full .NET regex builder, synchronized flags, bounded matcher, category filter, and keyboard-first result activation. |
+| `MainWindow.xaml.cs:3037` | `NewTabPickerSearchBox` | integrated-core | shipped | Code-built new-tab picker search uses the shared matcher, full builder, synchronized flags, category filter, and keyboard-first activation. |
 | `Pages/AboutPage.xaml.cs:97` | `search` | integrated-core | shipped | Offline changelog search; the complete SearchPatternBox.Spec reaches date-filtered results. |
 | `Pages/AiChatModule.xaml:35` | `ChatSearchBox` | plain-text-later | remaining | Local plain-text search/filter; eligible for the shared control in a later integration batch. |
 | `Pages/AndroidAdbModule.xaml:167` | `LogTagBox` | specialized-dialect | adapter-required | ADB logcat tag selector; preserve logcat semantics. |

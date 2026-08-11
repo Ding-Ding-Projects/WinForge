@@ -3037,10 +3037,13 @@ public sealed partial class MainWindow : Window
         var search = new SearchPatternBox
         {
             PlaceholderText = Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"),
-            AutomationName = Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"),
+            AutomationNameProvider = () => Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"),
         };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(search, "NewTabPickerSearchBox");
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(search, Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"));
+        void RefreshPickerSearchAutomationName()
+            => Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
+                search, Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"));
+        RefreshPickerSearchAutomationName();
         root.Children.Add(search);
 
         var categoryBox = new ComboBox
@@ -3067,6 +3070,15 @@ public sealed partial class MainWindow : Window
         };
         root.Children.Add(scroller);
 
+        var noResults = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            Visibility = Visibility.Collapsed,
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(noResults, "NewTabPickerNoResults");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(noResults, Loc.I.Pick("New-tab picker result status", "新分頁 picker 結果狀態"));
+        root.Children.Add(noResults);
+
         void Open(string key)
         {
             selectedKey = key;
@@ -3077,12 +3089,15 @@ public sealed partial class MainWindow : Window
         {
             results.Children.Clear();
             renderedButtons.Clear();
-            string query = search.Text.Trim();
+            bool hasQuery = search.Spec.UseRegex
+                ? search.Spec.Query.Length > 0
+                : search.Spec.Query.Trim().Length > 0;
             var selectedCategory = categoryBox.SelectedItem as PickerCategory ?? PickerCategories[0];
             var entries = FilterEntriesForCategory(AllPickerEntries(), selectedCategory);
             SearchPatternService.Matcher matcher = SearchPatternService.Compile(search.Spec);
+            noResults.Visibility = Visibility.Collapsed;
 
-            if (query.Length == 0)
+            if (!hasQuery)
             {
                 if (selectedCategory.Id == "all")
                 {
@@ -3097,30 +3112,71 @@ public sealed partial class MainWindow : Window
                 return;
             }
 
+            if (!matcher.Ok)
+            {
+                noResults.Text = Loc.I.Pick($"Invalid .NET regex: {matcher.Error}", $".NET regex 無效：{matcher.Error}");
+                noResults.Visibility = Visibility.Visible;
+                return;
+            }
+
+            var matched = new List<NewTabEntry>();
+            string? matcherError = null;
+            foreach (var entry in entries)
+            {
+                var match = MatchesPickerEntry(entry, matcher);
+                if (!match.Ok)
+                {
+                    matcherError = match.Error;
+                    break;
+                }
+                if (match.IsMatch) matched.Add(entry);
+            }
+
+            if (matcherError is not null)
+            {
+                noResults.Text = Loc.I.Pick($"Search stopped: {matcherError}", $"搜尋已停止：{matcherError}");
+                noResults.Visibility = Visibility.Visible;
+                return;
+            }
+
+            if (matched.Count == 0)
+            {
+                noResults.Text = Loc.I.Pick("No matching apps or tools.", "搵唔到符合嘅 app 或工具。");
+                noResults.Visibility = Visibility.Visible;
+                return;
+            }
+
             AddPickerSection(
                 results,
                 selectedCategory.Id == "all"
                     ? Loc.I.Pick("Search results", "搜尋結果")
                     : Loc.I.Pick($"{selectedCategory.En} search results", $"{selectedCategory.Zh}搜尋結果"),
-                entries
-                    .Where(e => MatchesPickerEntry(e, matcher))
+                matched
                     .Take(40),
                 Open,
                 renderedButtons);
         }
 
         search.PatternChanged += (_, _) => Render();
-        search.KeyDown += (_, e) =>
+        search.QuerySubmitted += (_, _) =>
         {
-            if (e.Key != Windows.System.VirtualKey.Enter || renderedButtons.Count == 0) return;
+            if (renderedButtons.Count == 0) return;
             if (renderedButtons[0].Tag is string key)
             {
-                e.Handled = true;
                 Open(key);
             }
         };
         categoryBox.SelectionChanged += (_, _) => Render();
         Render();
+
+        EventHandler pickerLanguageChanged = (_, _) =>
+        {
+            RefreshPickerSearchAutomationName();
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
+                noResults, Loc.I.Pick("New-tab picker result status", "新分頁 picker 結果狀態"));
+            Render();
+        };
+        Loc.I.LanguageChanged += pickerLanguageChanged;
 
         dialog = new ContentDialog
         {
@@ -3132,9 +3188,16 @@ public sealed partial class MainWindow : Window
         };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(dialog, "NewTabPickerDialog");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(dialog, Loc.I.Pick("Open new tab", "開新分頁"));
-        dialog.Opened += (_, _) => search.Focus(FocusState.Programmatic);
+        dialog.Opened += (_, _) => search.FocusQuery();
 
-        await dialog.ShowAsync();
+        try
+        {
+            await dialog.ShowAsync();
+        }
+        finally
+        {
+            Loc.I.LanguageChanged -= pickerLanguageChanged;
+        }
         if (!string.IsNullOrWhiteSpace(selectedKey))
         {
             RememberAppUse(selectedKey);
@@ -3305,7 +3368,7 @@ public sealed partial class MainWindow : Window
             CategoryId = PickerCategoryIdFor(module.Tag),
         };
 
-    private static bool MatchesPickerEntry(NewTabEntry entry, SearchPatternService.Matcher matcher)
+    private static SearchPatternService.MatchResult MatchesPickerEntry(NewTabEntry entry, SearchPatternService.Matcher matcher)
     {
         var category = PickerCategories.FirstOrDefault(c => c.Id == entry.CategoryId);
         var haystack = new[]
@@ -3316,7 +3379,7 @@ public sealed partial class MainWindow : Window
             category?.En,
             category?.Zh,
         };
-        return matcher.MatchAny(haystack).IsMatch;
+        return matcher.MatchAny(haystack);
     }
 
     private static IEnumerable<NewTabEntry> FilterEntriesForCategory(IEnumerable<NewTabEntry> entries, PickerCategory category)

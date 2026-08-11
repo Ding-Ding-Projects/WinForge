@@ -4,6 +4,7 @@ var passed = 0;
 Run("command-line shell route waits for NavigationView load", StartPageWaitsForLoadedNavigation);
 Run("shell route selects exactly once and awaits the picker", StartPageOpensSinglePicker);
 Run("automation contract retains stable dialog identifiers", DialogAutomationContractIsStable);
+Run("new-tab picker owns the shared bounded search contract", PickerSearchContract);
 
 if (failures.Count == 0)
 {
@@ -64,6 +65,27 @@ static void DialogAutomationContractIsStable()
         "shell navigation automation-id convention changed");
 }
 
+static void PickerSearchContract()
+{
+    var picker = MethodBody(Source(), "private async Task ShowNewTabPickerAsync()");
+    AssertContains(picker, "var search = new SearchPatternBox", "picker reverted to a plain search control");
+    AssertNotContains(picker, "var search = new TextBox", "plain TextBox search remains in the picker");
+    AssertNotContains(picker, "search.TextChanged +=", "picker bypasses SearchPatternBox.PatternChanged");
+    AssertContains(picker, "search.PatternChanged += (_, _) => Render();", "picker does not refresh from synchronized pattern state");
+    AssertContains(picker, "search.QuerySubmitted += (_, _) =>", "picker has no query-only Enter activation");
+    AssertContains(picker, "search.Spec.UseRegex", "regex-mode empty-state logic loses whitespace patterns");
+    AssertContains(picker, "NewTabPickerNoResults", "picker has no named empty/error state");
+    AssertContains(picker, "SearchPatternService.Matcher matcher", "picker does not compile the complete SearchPatternBox.Spec");
+    AssertContains(picker, "MatchesPickerEntry(entry, matcher)", "picker results do not use the compiled matcher");
+    AssertContains(picker, "AutomationNameProvider = () => Loc.I.Pick(", "picker search has no language-refreshable accessible name");
+    AssertContains(picker, "search.FocusQuery()", "picker does not focus the real query editor");
+    AssertContains(picker, "SetAutomationId(search, \"NewTabPickerSearchBox\")", "picker search automation ID changed");
+
+    var searchPatternBox = ReadRepo("Controls", "SearchPatternBox.xaml.cs");
+    AssertContains(searchPatternBox, "QueryBox.Focus(FocusState.Programmatic)", "shared search control exposes no real-query focus path");
+    AssertContains(searchPatternBox, "QueryBox_QuerySubmitted", "shared search control exposes no query-only Enter path");
+}
+
 static string MethodBody(string source, string signature)
 {
     var signatureIndex = source.IndexOf(signature, StringComparison.Ordinal);
@@ -83,6 +105,27 @@ static string MethodBody(string source, string signature)
 static void AssertContains(string text, string value, string message)
 {
     if (!text.Contains(value, StringComparison.Ordinal)) throw new InvalidOperationException(message);
+}
+
+static void AssertNotContains(string text, string value, string message)
+{
+    if (text.Contains(value, StringComparison.Ordinal)) throw new InvalidOperationException(message);
+}
+
+static string ReadRepo(params string[] parts)
+{
+    var directory = new DirectoryInfo(AppContext.BaseDirectory);
+    while (directory is not null)
+    {
+        if (File.Exists(Path.Combine(directory.FullName, "WinForge.csproj")))
+        {
+            var path = directory.FullName;
+            foreach (var part in parts) path = Path.Combine(path, part);
+            return File.ReadAllText(path);
+        }
+        directory = directory.Parent;
+    }
+    throw new DirectoryNotFoundException("Could not find the WinForge repository root.");
 }
 
 static void Assert(bool condition, string message)
