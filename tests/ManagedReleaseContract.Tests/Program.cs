@@ -223,6 +223,7 @@ static void WorkflowContract()
 {
     string text = ReadRepoFile(".github", "workflows", "release.yml");
     Contains(text, "push:", "push trigger");
+    Contains(text, "branches:", "branch-only push filter prevents tag-trigger loops");
     Contains(text, "workflow_dispatch:", "dispatch trigger");
     Contains(text, "Ding-Ding-Projects/WinForge", "canonical repository gate");
     Contains(text, "WinForge.release.json", "packaged manifest");

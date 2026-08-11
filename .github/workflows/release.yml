@@ -6,6 +6,8 @@ name: Managed build & release · .NET 建置同發佈
 
 on:
   push:
+    branches:
+      - '**'
   workflow_dispatch:
     inputs:
       source_sha:
