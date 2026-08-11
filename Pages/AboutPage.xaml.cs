@@ -133,7 +133,7 @@ public sealed partial class AboutPage : Page
                 return;
             }
 
-            filtered = ChangelogService.Filter(loaded.Entries, search.Text, search.IsRegexMode, start, end, out string? error);
+            filtered = ChangelogService.Filter(loaded.Entries, search.Spec, start, end, out string? error);
             status.Text = loaded.Error is not null
                 ? Loc.I.Pick($"Offline changelog unavailable: {loaded.Error}", $"離線變更紀錄不可用：{loaded.Error}")
                 : error is not null

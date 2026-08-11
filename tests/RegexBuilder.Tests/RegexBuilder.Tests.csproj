@@ -10,5 +10,6 @@
     <Compile Include="..\..\Services\RegexTesterService.cs" Link="Services\RegexTesterService.cs" />
     <Compile Include="..\..\Services\SearchPatternService.cs" Link="Services\SearchPatternService.cs" />
     <Compile Include="..\..\Services\SearchPatternSession.cs" Link="Services\SearchPatternSession.cs" />
+    <Compile Include="..\..\Services\ChangelogService.cs" Link="Services\ChangelogService.cs" />
   </ItemGroup>
 </Project>

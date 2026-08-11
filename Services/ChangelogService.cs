@@ -63,41 +63,46 @@ public static class ChangelogService
         DateOnly? from,
         DateOnly? to,
         out string? error)
+        => Filter(
+            entries,
+            new SearchPatternService.Spec(query ?? string.Empty, UseRegex: useRegex),
+            from,
+            to,
+            out error);
+
+    public static IReadOnlyList<Entry> Filter(
+        IEnumerable<Entry> entries,
+        SearchPatternService.Spec? spec,
+        DateOnly? from,
+        DateOnly? to,
+        out string? error)
     {
         error = null;
         IEnumerable<Entry> result = entries;
         if (from is not null) result = result.Where(entry => entry.Date is not null && entry.Date.Value >= from.Value);
         if (to is not null) result = result.Where(entry => entry.Date is not null && entry.Date.Value <= to.Value);
 
-        string pattern = (query ?? string.Empty).Trim();
-        if (pattern.Length == 0) return result.ToArray();
-        if (pattern.Length > 4096)
+        SearchPatternService.Matcher matcher = SearchPatternService.Compile(spec);
+        if (!matcher.Ok)
         {
-            error = "Search patterns are limited to 4,096 characters.";
+            error = matcher.Error;
             return Array.Empty<Entry>();
         }
 
-        if (!useRegex)
-            return result.Where(entry => entry.SearchText.Contains(pattern, StringComparison.OrdinalIgnoreCase)).ToArray();
+        var filtered = new List<Entry>();
+        foreach (Entry entry in result)
+        {
+            SearchPatternService.MatchResult match = matcher.Match(entry.SearchText);
+            if (!match.Ok)
+            {
+                error = match.Error;
+                return Array.Empty<Entry>();
+            }
 
-        Regex regex;
-        try
-        {
-            regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
-                TimeSpan.FromMilliseconds(250));
-        }
-        catch (Exception ex) when (ex is ArgumentException or RegexMatchTimeoutException)
-        {
-            error = ex.Message;
-            return Array.Empty<Entry>();
+            if (match.IsMatch) filtered.Add(entry);
         }
 
-        try { return result.Where(entry => regex.IsMatch(entry.SearchText)).ToArray(); }
-        catch (RegexMatchTimeoutException)
-        {
-            error = "The regular expression exceeded the 250 ms safety limit.";
-            return Array.Empty<Entry>();
-        }
+        return filtered;
     }
 
     public static string ExportMarkdown(IEnumerable<Entry> entries, DateOnly? from, DateOnly? to)

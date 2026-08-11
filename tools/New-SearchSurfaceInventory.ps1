@@ -17,6 +17,9 @@ $integrated = @{
     'Pages/LicensesPage.xaml#SearchBox' = 'License and source notice search.'
     'Pages/OpenSourceAppHubModule.xaml#SearchBox' = 'Native OSS clone catalog search.'
     'Pages/SettingsHubModule.xaml#FilterBox' = 'In-app and Windows settings catalogs.'
+    'Pages/OfflineDocsPage.xaml#SearchBox' = 'Offline article title/body search using the shared matcher.'
+    'Pages/SupportTicketsPage.xaml#TicketSearchBox' = 'Local support-ticket search using the shared matcher.'
+    'Pages/TotpModule.xaml#EntrySearchBox' = 'Vault-entry metadata search using the shared matcher.'
 }
 
 $specialized = @{
@@ -48,8 +51,38 @@ $componentInternals = @{
     'Controls/SearchPatternBox.xaml#SampleBox' = 'Session-only preview sample owned by the reusable synchronized search component.'
 }
 
-$files = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -Filter '*.xaml' |
-    Where-Object { $_.FullName -notmatch '[\\/](?:bin|obj|\.git|\.artifacts)[\\/]' } |
+# Code-built search fields are kept in this hand-written manifest because a XAML-only
+# traversal cannot see them. The evidence marker is checked before the row is emitted so
+# a renamed or deleted field cannot silently shrink the inventory.
+$codeSearchSurfaces = [ordered]@{
+    'Pages/AboutPage.xaml.cs#search' = [pscustomobject]@{
+        Evidence = 'new SearchPatternBox'; Type = 'SearchPatternBox'; Classification = 'integrated-core'; Status = 'shipped'
+        Notes = 'Offline changelog search; the complete SearchPatternBox.Spec reaches date-filtered results.'
+    }
+    'Pages/SettingsPage.xaml.cs#search' = [pscustomobject]@{
+        Evidence = 'new SearchPatternBox'; Type = 'SearchPatternBox'; Classification = 'integrated-core'; Status = 'shipped'
+        Notes = 'Settings search built in code and bound to the shared matcher.'
+    }
+    'MainWindow.xaml.cs#NewTabPickerSearchBox' = [pscustomobject]@{
+        Evidence = 'NewTabPickerSearchBox'; Type = 'TextBox'; Classification = 'plain-text-later'; Status = 'remaining'
+        Notes = 'Code-built new-tab picker search; shared builder migration remains pending.'
+    }
+    'Services/CommandPaletteWindow.cs#_search' = [pscustomobject]@{
+        Evidence = 'private readonly TextBox _search'; Type = 'TextBox'; Classification = 'plain-text-later'; Status = 'remaining'
+        Notes = 'Code-built command-palette search; anchored builder migration remains pending.'
+    }
+    'Pages/BitwardenConnectionView.cs#_searchBox' = [pscustomobject]@{
+        Evidence = '_searchBox = new AutoSuggestBox'; Type = 'AutoSuggestBox'; Classification = 'plain-text-later'; Status = 'remaining'
+        Notes = 'Code-built vault search; shared builder migration remains pending.'
+    }
+    'Pages/PdfToolkitModule.Viewer.cs#_viewerSearchBox' = [pscustomobject]@{
+        Evidence = '_viewerSearchBox = new TextBox'; Type = 'TextBox'; Classification = 'plain-text-later'; Status = 'remaining'
+        Notes = 'Code-built PDF text search; shared builder migration remains pending.'
+    }
+}
+
+$files = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -Filter '*.xaml' -File |
+    Where-Object { $_.FullName -notmatch '[\\/](?:bin|obj|\.git|\.artifacts|artifacts|ThirdParty)[\\/]' } |
     Select-Object -ExpandProperty FullName)
 
 $elementPattern = '<(?:[A-Za-z0-9_]+:)?(?:AutoSuggestBox|TextBox|SearchPatternBox)\b(?:(?!</?(?:[A-Za-z0-9_]+:)?(?:AutoSuggestBox|TextBox|SearchPatternBox)\b)[\s\S])*?/?>'
@@ -110,6 +143,34 @@ foreach ($file in $files) {
     }
 }
 
+foreach ($entry in $codeSearchSurfaces.GetEnumerator()) {
+    $key = $entry.Key
+    $separator = $key.LastIndexOf('#')
+    $relative = $key.Substring(0, $separator)
+    $control = $key.Substring($separator + 1)
+    $absolute = Join-Path $RepoRoot ($relative.Replace('/', [IO.Path]::DirectorySeparatorChar))
+    if (-not (Test-Path -LiteralPath $absolute -PathType Leaf)) {
+        throw "Required code-built search source is missing: $relative"
+    }
+
+    $text = Get-Content -LiteralPath $absolute -Raw
+    if (-not $text.Contains([string]$entry.Value.Evidence, [StringComparison]::Ordinal)) {
+        throw "Required code-built search evidence is missing: $key -> $($entry.Value.Evidence)"
+    }
+
+    $line = 1 + ([regex]::Matches($text.Substring(0, $text.IndexOf([string]$entry.Value.Evidence, [StringComparison]::Ordinal)), "`n").Count)
+    $rows.Add([pscustomobject]@{
+        Id = $key
+        Source = $relative
+        Line = $line
+        Control = $control
+        Type = $entry.Value.Type
+        Classification = $entry.Value.Classification
+        Status = $entry.Value.Status
+        Notes = $entry.Value.Notes
+    })
+}
+
 $rows = @($rows | Sort-Object Source, Line)
 $csvTarget = Join-Path $RepoRoot $CsvPath
 $markdownTarget = Join-Path $RepoRoot $MarkdownPath
@@ -120,9 +181,11 @@ $counts = @($rows | Group-Object Classification | Sort-Object Name)
 $lines = [System.Collections.Generic.List[string]]::new()
 $lines.Add('# Search and query surface inventory · 搜尋與查詢介面清單')
 $lines.Add('')
-$lines.Add('Generated from the current WinUI XAML by `tools/New-SearchSurfaceInventory.ps1`. The inventory deliberately separates ordinary product search from domain-specific query languages and configuration fields; a specialized field is never silently reinterpreted as .NET regex. · 呢份清單由現時 WinUI XAML 自動產生，刻意分開一般產品搜尋、專用查詢語言同設定欄位；專用欄位絕對唔會靜靜雞改成 .NET 正則。')
+$lines.Add('Generated from the current WinUI XAML plus the hand-written code-built search manifest by `tools/New-SearchSurfaceInventory.ps1`. The inventory deliberately separates ordinary product search from domain-specific query languages and configuration fields; a specialized field is never silently reinterpreted as .NET regex. · 呢份清單由現時 WinUI XAML 加手寫 code-built 搜尋 manifest 自動產生，刻意分開一般產品搜尋、專用查詢語言同設定欄位；專用欄位絕對唔會靜靜雞改成 .NET 正則。')
 $lines.Add('')
-$lines.Add("Total candidate controls: **$($rows.Count)** across **$(@($rows.Source | Sort-Object -Unique).Count)** XAML files. · 候選控制項總數：**$($rows.Count)**，分佈喺 **$(@($rows.Source | Sort-Object -Unique).Count)** 個 XAML 檔案。")
+$xamlRows = @($rows | Where-Object { $_.Source -like '*.xaml' })
+$codeRows = @($rows | Where-Object { $_.Source -notlike '*.xaml' })
+$lines.Add("Total candidate controls: **$($rows.Count)** across **$(@($rows.Source | Sort-Object -Unique).Count)** source files (**$($xamlRows.Count)** XAML controls and **$($codeRows.Count)** code-built controls). · 候選控制項總數：**$($rows.Count)**，分佈喺 **$(@($rows.Source | Sort-Object -Unique).Count)** 個來源檔案（**$($xamlRows.Count)** 個 XAML 控制，同 **$($codeRows.Count)** 個 code-built 控制）。")
 $lines.Add('')
 $lines.Add('| Classification | Count | Meaning |')
 $lines.Add('| --- | ---: | --- |')

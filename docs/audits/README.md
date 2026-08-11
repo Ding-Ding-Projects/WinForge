@@ -7,7 +7,7 @@ This folder holds source-backed capability reconciliations. An item is marked sh
 ## Audits · 審核報告
 
 - [Core roadmap capability audit — 2026-07-24](roadmap-core-capability-audit-2026-07-24.md) · 核心路線圖功能審核 — All eight sections now complete: Windows 11, ViveTool, Media, Maintenance, Dev & Terminal, Home Assistant, Archives, and Browser Control, bringing the matrix to 115/115 shipped with 0 gaps.
-- [Search and query surface inventory — 2026-07-24](search-surface-inventory-2026-07-24.md) · 搜尋同查詢介面清單 — 93 candidate controls across 74 XAML files, classified as 8 integrated core/common searches, 64 applicable plain-text searches retained for later batches, 9 specialized dialect adapters, 7 dedicated pattern tools, 2 read-only outputs, and 3 shared-control internals.
+- [Search and query surface inventory — 2026-07-24](search-surface-inventory-2026-07-24.md) · 搜尋同查詢介面清單 — 102 candidate controls across 83 source files (96 XAML controls and 6 code-built controls), classified as 13 integrated builder-backed searches, 68 applicable plain-text searches retained for later batches, 9 specialized dialect adapters, 7 dedicated pattern tools, 2 read-only outputs, and 3 shared-control internals.
 
 ## Verification · 驗證
 
@@ -15,4 +15,4 @@ Run `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1` f
 
 由儲存庫根目錄執行 `powershell -ExecutionPolicy Bypass -File tools/Test-RoadmapCoreAudit.ps1`。檢查會鎖實每節項目數、已交付數、每項審核覆蓋、完整工作台實作標記、證據連結同 115/115 總數。
 
-Regenerate the search inventory with `pwsh -NoLogo -NoProfile -File tools/New-SearchSurfaceInventory.ps1 -RepoRoot .`; `RegexBuilder.Tests` locks its 93-row total and every classification count. · 用 `pwsh -NoLogo -NoProfile -File tools/New-SearchSurfaceInventory.ps1 -RepoRoot .` 重新生成搜尋清單；`RegexBuilder.Tests` 會鎖實 93 行總數同每個分類數字。
+Regenerate the search inventory with `pwsh -NoLogo -NoProfile -File tools/New-SearchSurfaceInventory.ps1 -RepoRoot .`; `RegexBuilder.Tests` locks its 102-row total, the 13 builder-backed surfaces, and every classification count. · 用 `pwsh -NoLogo -NoProfile -File tools/New-SearchSurfaceInventory.ps1 -RepoRoot .` 重新生成搜尋清單；`RegexBuilder.Tests` 會鎖實 102 行總數、13 個已接 builder 嘅介面，同每個分類數字。

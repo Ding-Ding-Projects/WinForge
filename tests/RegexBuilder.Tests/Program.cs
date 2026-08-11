@@ -27,6 +27,7 @@ Run("search session synchronizes query mode and flags", SessionSynchronization);
 Run("search session applies a complete state atomically", SessionApply);
 Run("search session preview reports live captures", SessionPreviewCaptures);
 Run("shared filter keeps plain and regex semantics distinct", SharedFilter);
+Run("changelog filter consumes the complete shared search spec", ChangelogSpec);
 Run("Dashboard uses the synchronized search control", DashboardSurface);
 Run("Category uses the synchronized search control", CategorySurface);
 Run("Search Results uses the synchronized search control", SearchResultsSurface);
@@ -37,6 +38,7 @@ Run("Native OSS Hub uses the synchronized search control", OpenSourceHubSurface)
 Run("Settings Hub uses the synchronized search control", SettingsHubSurface);
 Run("shared control exposes the full builder contract", FullBuilderSurface);
 Run("all candidate XAML search/query controls are classified", ClassifiedInventory);
+Run("current XAML and code-built search surfaces are explicitly inventoried", CurrentInventory);
 
 if (failures.Count == 0)
 {
@@ -254,6 +256,29 @@ static void SharedFilter()
     Assert(regex.SequenceEqual(new[] { "a.c", "abc" }), "regex filter did not use regex semantics");
 }
 
+static void ChangelogSpec()
+{
+    var entries = new[]
+    {
+        new ChangelogService.Entry("Release one", "alpha\nbeta", null, "abcdef1", "test"),
+        new ChangelogService.Entry("Release two", "BETA", null, "abcdef2", "test"),
+    };
+
+    var multiline = new SearchPatternService.Spec(
+        "^beta$",
+        UseRegex: true,
+        IgnoreCase: false,
+        Multiline: true);
+    IReadOnlyList<ChangelogService.Entry> filtered = ChangelogService.Filter(
+        entries, multiline, null, null, out string? error);
+    Assert(error is null && filtered.Count == 1 && filtered[0].Heading == "Release one",
+        "changelog filtering did not honor the complete regex spec");
+
+    var invalid = new SearchPatternService.Spec("(", UseRegex: true);
+    _ = ChangelogService.Filter(entries, invalid, null, null, out error);
+    Assert(!string.IsNullOrWhiteSpace(error), "invalid changelog pattern was accepted");
+}
+
 static void DashboardSurface() => SurfaceContract(
     "Pages/DashboardPage.xaml", "Pages/DashboardPage.xaml.cs", "SearchBox_PatternChanged", "SearchPatternService.Filter");
 
@@ -299,9 +324,9 @@ static void ClassifiedInventory()
 {
     string csv = ReadRepo("docs/audits/search-surface-inventory-2026-07-24.csv");
     string[] rows = csv.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-    Assert(rows.Length == 94, $"expected a header plus 93 classified controls, got {rows.Length}");
-    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 8, "integrated inventory count mismatch");
-    Assert(rows.Count(row => row.Contains(",\"plain-text-later\",", StringComparison.Ordinal)) == 64, "remaining plain-text count mismatch");
+    Assert(rows.Length == 103, $"expected a header plus 102 classified controls, got {rows.Length}");
+    Assert(rows.Count(row => row.Contains(",\"integrated-core\",", StringComparison.Ordinal)) == 13, "integrated inventory count mismatch");
+    Assert(rows.Count(row => row.Contains(",\"plain-text-later\",", StringComparison.Ordinal)) == 68, "remaining plain-text count mismatch");
     Assert(rows.Count(row => row.Contains(",\"specialized-dialect\",", StringComparison.Ordinal)) == 9, "specialized dialect count mismatch");
     Assert(rows.Count(row => row.Contains(",\"dedicated-pattern-tool\",", StringComparison.Ordinal)) == 7, "dedicated pattern count mismatch");
     Assert(rows.Count(row => row.Contains(",\"read-only-output\",", StringComparison.Ordinal)) == 2, "read-only output count mismatch");
@@ -310,6 +335,37 @@ static void ClassifiedInventory()
         && csv.Contains("AWS/JMESPath", StringComparison.Ordinal)
         && csv.Contains("Rename transformation input", StringComparison.Ordinal),
         "required specialized-dialect boundaries are missing");
+}
+
+static void CurrentInventory()
+{
+    string csv = ReadRepo("docs/audits/search-surface-inventory-2026-07-24.csv");
+    var required = new (string Source, string Control)[]
+    {
+        ("Pages/DashboardPage.xaml", "SearchBox"),
+        ("Pages/CategoryPage.xaml", "FilterBox"),
+        ("Pages/SearchResultsPage.xaml", "SearchBox"),
+        ("Pages/ManualPage.xaml", "FilterBox"),
+        ("Pages/AppLauncherModule.xaml", "SearchBox"),
+        ("Pages/LicensesPage.xaml", "SearchBox"),
+        ("Pages/OpenSourceAppHubModule.xaml", "SearchBox"),
+        ("Pages/SettingsHubModule.xaml", "FilterBox"),
+        ("Pages/OfflineDocsPage.xaml", "SearchBox"),
+        ("Pages/SupportTicketsPage.xaml", "TicketSearchBox"),
+        ("Pages/TotpModule.xaml", "EntrySearchBox"),
+        ("Pages/AboutPage.xaml.cs", "search"),
+        ("Pages/SettingsPage.xaml.cs", "search"),
+        ("MainWindow.xaml.cs", "NewTabPickerSearchBox"),
+        ("Services/CommandPaletteWindow.cs", "_search"),
+        ("Pages/BitwardenConnectionView.cs", "_searchBox"),
+        ("Pages/PdfToolkitModule.Viewer.cs", "_viewerSearchBox"),
+    };
+
+    foreach (var surface in required)
+    {
+        string marker = $"\"{surface.Source}#{surface.Control}\",\"{surface.Source}\",";
+        Assert(csv.Contains(marker, StringComparison.Ordinal), $"inventory is missing {surface.Source}#{surface.Control}");
+    }
 }
 
 static void SurfaceContract(string xamlPath, string codePath, string eventMarker, string matcherMarker)

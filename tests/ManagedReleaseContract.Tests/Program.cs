@@ -293,8 +293,10 @@ static void UniversalExperienceContract()
     Contains(page, "Show emojis in dialogs and message boxes", "emoji control");
     Contains(page, "temporarily removed language, funny-level, personal-vocabulary, and dim-sum controls", "School mode surface removal");
     Contains(about, "new SearchPatternBox", "offline changelog search");
+    Contains(about, "search.Spec", "complete changelog search spec handoff");
     Contains(about, "CalendarDatePicker", "offline changelog date filter");
     Contains(changelog, "CHANGELOG.md", "offline changelog source");
+    Contains(changelog, "SearchPatternService.Compile", "shared bounded changelog matcher");
     Contains(ReadRepoFile("WinForge.csproj"), "CHANGELOG.md", "bundled changelog");
 }
 
