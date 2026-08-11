@@ -6,6 +6,10 @@ Each tab records `IsPinned` in the local tab-session JSON. Pinned tabs occupy th
 
 The schema remains backward-compatible: old sessions without `IsPinned` read as unpinned, while new writes use session version 3. Existing group, style, repository, export, and local Git-history data remains intact. · 舊 session 冇 `IsPinned` 會當未釘選，新寫入用 session version 3。原有 group、style、repository、export 同 local Git-history 資料會保留。
 
+![WinForge tab shell with the persisted Dashboard session tab](../../screenshot-tab-session-reorder-2026-08-11.png)
+
+The fresh built-artifact capture is `docs/screenshot-tab-session-reorder-2026-08-11.png`, 1574×887, SHA-256 `822870EF6B4194C11A50EA0D5D17EC883FE4E51F1576C10CE26AAB46CFFF30A2`. It shows the real tab strip and restored Dashboard session state; the drag-completion persistence itself is verified by the source contract and close-flush path, not inferred from a static image. · 最新真實 build 圖係 `docs/screenshot-tab-session-reorder-2026-08-11.png`，1574×887，SHA-256 如上；顯示真實分頁列同還原後 Dashboard 工作階段狀態，而拖曳完成保存本身由來源 contract 同 close-flush path 驗證，唔係靠一張靜態圖估出嚟。
+
 ## Failure modes and accessibility · 失敗處理同無障礙
 
 - If a session cannot be written, the visible tab state still changes but the save layer reports through its existing bounded local-history path; a later restart may restore the last successful record.

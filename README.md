@@ -165,11 +165,13 @@ Visual changes require a fresh inspected screenshot for every changed page. If g
 <details>
 <summary>Current universal built-artifact captures · 目前共用功能真實建置擷取</summary>
 
-These captures came from the self-contained WinForge build on a dedicated hidden desktop. They show the actual Settings, About/changelog search, Support Tickets, TOTP authenticator, and rendered offline-documentation surfaces; they are not mockups or design exports. · 以下擷取來自專用隱藏 desktop 上面嘅自包含 WinForge build，顯示真實 Settings、About／changelog 搜尋、Support Tickets、TOTP authenticator 同離線文件渲染介面；唔係 mockup 或 design export。
+These captures came from the self-contained WinForge build on a dedicated hidden desktop. They show the actual Settings, About/changelog search, tab shell, Support Tickets, TOTP authenticator, and rendered offline-documentation surfaces; they are not mockups or design exports. · 以下擷取來自專用隱藏 desktop 上面嘅自包含 WinForge build，顯示真實 Settings、About／changelog 搜尋、分頁外殼、Support Tickets、TOTP authenticator 同離線文件渲染介面；唔係 mockup 或 design export。
 
 ![Settings universal controls in the built WinForge application](docs/screenshot-settings-universal-2026-08-11.png)
 
 ![About page offline changelog search with the adjacent regex builder action](docs/screenshot-about-changelog-regex-2026-08-11.png)
+
+![WinForge tab shell with the persisted Dashboard session tab](docs/screenshot-tab-session-reorder-2026-08-11.png)
 
 ![Support Tickets recovery desk with local disclosure and bulk controls](docs/screenshot-support-tickets-2026-08-11.png)
 
@@ -177,7 +179,7 @@ These captures came from the self-contained WinForge build on a dedicated hidden
 
 ![Offline documentation article rendered inside the built application](docs/screenshot-offline-documentation-2026-08-11.png)
 
-The five files are tracked evidence from the same verification pass: Settings SHA-256 `6A0B8BDC3F5DC9F58B9F30BF7E8A6EA1D3875A7EF059AE62C26B51C667485B9C`; About/changelog `7A92E8D73347AAC3549B03F7F541D14AC2D1CC3F022F6855756CC3DC85755B56`; Support Tickets `FB4FF05D43A212468734130B8A08163E6FFF7B9D65F9B996CCAA7C333742AB63`; TOTP `7D2D6D016D22EA0F92E074291C11B3F1D728D8EB042285664879738DE1C2C4C0`; offline documentation `A4199948F47F545D9870632FEDBB8540743767B8D67F0FCCA7AC803D8E2D5759`. · 五個檔案都係同一輪驗證嘅 tracked evidence，SHA-256 如上。
+The six files are tracked evidence from the same verification pass: Settings SHA-256 `6A0B8BDC3F5DC9F58B9F30BF7E8A6EA1D3875A7EF059AE62C26B51C667485B9C`; About/changelog `7A92E8D73347AAC3549B03F7F541D14AC2D1CC3F022F6855756CC3DC85755B56`; tab shell `822870EF6B4194C11A50EA0D5D17EC883FE4E51F1576C10CE26AAB46CFFF30A2`; Support Tickets `FB4FF05D43A212468734130B8A08163E6FFF7B9D65F9B996CCAA7C333742AB63`; TOTP `7D2D6D016D22EA0F92E074291C11B3F1D728D8EB042285664879738DE1C2C4C0`; offline documentation `A4199948F47F545D9870632FEDBB8540743767B8D67F0FCCA7AC803D8E2D5759`. · 六個檔案都係同一輪驗證嘅 tracked evidence，SHA-256 如上。
 
 </details>
 
