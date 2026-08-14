@@ -31,6 +31,7 @@ public sealed partial class AboutPage : Page
     private void Build()
     {
         Root.Children.Clear();
+        Root.MaxWidth = 760;
 
         Root.Children.Add(new TextBlock
         {

@@ -41,6 +41,8 @@ public sealed partial class AdvancedPasteModule : Page
         HeaderBlurb.Text = P(
             "Transform whatever you copied and paste it in a different format. Press the global hotkey anywhere to open a palette near the cursor, pick a transform, and it pastes straight into the active app — or run any transform here on the current clipboard.",
             "把你複製到嘅嘢即時轉換成另一種格式再貼上。喺任何地方撳全域熱鍵，喺滑鼠附近彈出面板，揀一個轉換，就會直接貼落作用中嘅 app — 又或者喺呢度對目前剪貼簿試跑任何轉換。");
+        PreviewBox.MinHeight = 120;
+        PreviewBox.MaxHeight = 260;
 
         HotkeyTitle.Text = P("Global hotkey", "全域熱鍵");
         HotkeyLabel.Text = P("Open palette with", "用咩開面板");
@@ -239,3 +241,4 @@ public sealed partial class AdvancedPasteModule : Page
             P("The result is on the clipboard.", "結果已放上剪貼簿。"));
     }
 }
+

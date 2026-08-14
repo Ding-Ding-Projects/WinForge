@@ -9,9 +9,6 @@
     mc:Ignorable="d">
 
     <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
-        <StackPanel
-            x:Name="Root"
-            MaxWidth="760"
-            Spacing="14" />
+        <StackPanel x:Name="Root" Spacing="14" />
     </ScrollViewer>
 </Page>

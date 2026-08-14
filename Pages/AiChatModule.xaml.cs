@@ -35,7 +35,7 @@ public sealed partial class AiChatModule : Page
     {
         InitializeComponent();
         Loc.I.LanguageChanged += OnLanguageChanged;
-        Loaded += async (_, _) => { Render(); await InitAsync(); };
+        Loaded += async (_, _) => { if (this.FindName("SidebarWidthDef") is ColumnDefinition colDef) colDef.Width = new GridLength(260); MaxTokBox.Minimum = 0; MaxTokBox.Maximum = 131072; Render(); await InitAsync(); };
         Unloaded += (_, _) =>
         {
             Loc.I.LanguageChanged -= OnLanguageChanged;
@@ -1075,3 +1075,4 @@ public sealed partial class AiChatModule : Page
         StatusBar.Message = msg;
     }
 }
+

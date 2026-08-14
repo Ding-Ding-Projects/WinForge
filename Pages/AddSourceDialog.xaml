@@ -9,7 +9,7 @@
     PrimaryButtonClick="Primary_Click">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="520">
-        <StackPanel Spacing="12" Width="440">
+        <StackPanel x:Name="Root" Spacing="12">
             <InfoBar x:Name="AdminBar" IsClosable="False" IsOpen="False" Severity="Warning" />
 
             <ComboBox x:Name="KnownBox" HorizontalAlignment="Stretch"

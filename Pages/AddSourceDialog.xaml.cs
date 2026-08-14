@@ -19,6 +19,7 @@ public sealed partial class AddSourceDialog : ContentDialog
     {
         _managerKey = managerKey ?? "";
         InitializeComponent();
+        Root.Width = 440;
         Render();
     }
 
@@ -106,3 +107,7 @@ public sealed partial class AddSourceDialog : ContentDialog
         Bar.IsOpen = true;
     }
 }
+
+
+
+

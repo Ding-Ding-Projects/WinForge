@@ -54,6 +54,9 @@ public sealed partial class AmmoniaPlantModule : Page
         try { _plant.SetPowerFraction(PowerSlider.Value / AmmoniaPlantService.MaxDrawMW); } catch { }
         Render();
         UpdateStep();
+        OutputBar.Minimum = 0; OutputBar.Maximum = 1150; OutputBar.Value = 0;
+        PowerSlider.Minimum = 0; PowerSlider.Maximum = 350; PowerSlider.Value = 280; PowerSlider.StepFrequency = 10;
+        PressureBar.Minimum = 0; PressureBar.Maximum = 200; PressureBar.Value = 0;
         _timer.Start();
     }
 
@@ -108,6 +111,9 @@ public sealed partial class AmmoniaPlantModule : Page
             AutomationProperties.SetName(PressureBar, PressureCaption.Text);
             AutomationProperties.SetName(ResetButton, ResetButton.Content?.ToString() ?? "Reset");
             UpdateStep();
+        OutputBar.Minimum = 0; OutputBar.Maximum = 1150; OutputBar.Value = 0;
+        PowerSlider.Minimum = 0; PowerSlider.Maximum = 350; PowerSlider.Value = 280; PowerSlider.StepFrequency = 10;
+        PressureBar.Minimum = 0; PressureBar.Maximum = 200; PressureBar.Value = 0;
             UpdateEconomy();
         }
         catch { }
@@ -119,6 +125,9 @@ public sealed partial class AmmoniaPlantModule : Page
         {
             _plant.SetPowerFraction(PowerSlider.Value / AmmoniaPlantService.MaxDrawMW);
             UpdateStep();
+        OutputBar.Minimum = 0; OutputBar.Maximum = 1150; OutputBar.Value = 0;
+        PowerSlider.Minimum = 0; PowerSlider.Maximum = 350; PowerSlider.Value = 280; PowerSlider.StepFrequency = 10;
+        PressureBar.Minimum = 0; PressureBar.Maximum = 200; PressureBar.Value = 0;
         }
         catch { }
     }
@@ -130,6 +139,9 @@ public sealed partial class AmmoniaPlantModule : Page
             if (_plant.Running) _plant.Stop();
             else _plant.Start();
             UpdateStep();
+        OutputBar.Minimum = 0; OutputBar.Maximum = 1150; OutputBar.Value = 0;
+        PowerSlider.Minimum = 0; PowerSlider.Maximum = 350; PowerSlider.Value = 280; PowerSlider.StepFrequency = 10;
+        PressureBar.Minimum = 0; PressureBar.Maximum = 200; PressureBar.Value = 0;
         }
         catch { }
     }
@@ -142,6 +154,9 @@ public sealed partial class AmmoniaPlantModule : Page
             PowerSlider.Value = AmmoniaPlantService.DefaultDrawMW;
             _plant.SetPowerFraction(PowerSlider.Value / AmmoniaPlantService.MaxDrawMW);
             UpdateStep();
+        OutputBar.Minimum = 0; OutputBar.Maximum = 1150; OutputBar.Value = 0;
+        PowerSlider.Minimum = 0; PowerSlider.Maximum = 350; PowerSlider.Value = 280; PowerSlider.StepFrequency = 10;
+        PressureBar.Minimum = 0; PressureBar.Maximum = 200; PressureBar.Value = 0;
         }
         catch { }
     }
@@ -150,6 +165,9 @@ public sealed partial class AmmoniaPlantModule : Page
     {
         _tick++;
         UpdateStep();
+        OutputBar.Minimum = 0; OutputBar.Maximum = 1150; OutputBar.Value = 0;
+        PowerSlider.Minimum = 0; PowerSlider.Maximum = 350; PowerSlider.Value = 280; PowerSlider.StepFrequency = 10;
+        PressureBar.Minimum = 0; PressureBar.Maximum = 200; PressureBar.Value = 0;
     }
 
     private void UpdateStep()
@@ -307,3 +325,4 @@ public sealed partial class AmmoniaPlantModule : Page
         catch { }
     }
 }
+

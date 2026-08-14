@@ -9,7 +9,7 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260" />
+            <ColumnDefinition x:Name="SidebarWidthDef" Width="*" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
@@ -130,15 +130,15 @@
                                 </Grid>
                                 <Slider
                                     x:Name="TempSlider"
-                                    Minimum="0"
+                                    
                                     Maximum="2"
                                     StepFrequency="0.05"
                                     ValueChanged="Temp_ValueChanged" />
                                 <TextBlock x:Name="MaxTokLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <NumberBox
                                     x:Name="MaxTokBox"
-                                    Minimum="0"
-                                    Maximum="131072"
+                                    
+                                    
                                     SpinButtonPlacementMode="Compact"
                                     ValueChanged="MaxTok_ValueChanged" />
                             </StackPanel>
@@ -233,3 +233,5 @@
         </Grid>
     </Grid>
 </Page>
+
+

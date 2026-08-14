@@ -25,7 +25,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ProgressBar x:Name="OutputBar" Grid.Column="0" Minimum="0" Maximum="1150" Value="0" Height="10" VerticalAlignment="Center" />
+                        <ProgressBar x:Name="OutputBar" Grid.Column="0" Height="10" VerticalAlignment="Center" />
                         <TextBlock x:Name="OutputValue" Grid.Column="1" Margin="12,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </Grid>
                     <TextBlock x:Name="ReactorModeText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -46,7 +46,7 @@
                             <TextBlock x:Name="DrawLabel" Grid.Column="0" VerticalAlignment="Center" />
                             <TextBlock x:Name="DrawValue" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </Grid>
-                        <Slider x:Name="DrawSlider" Minimum="0" Maximum="900" Value="0" StepFrequency="10" ValueChanged="DrawSlider_ValueChanged" />
+                        <Slider x:Name="DrawSlider" StepFrequency="10" ValueChanged="DrawSlider_ValueChanged" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="10">
@@ -78,7 +78,7 @@
                             <TextBlock x:Name="ProgressCaption" Grid.Column="0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                             <TextBlock x:Name="ProgressValue" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </Grid>
-                        <ProgressBar x:Name="ProgressBarRun" Minimum="0" Maximum="100" Value="0" Height="10" />
+                        <ProgressBar x:Name="ProgressBarRun" Height="10" />
                     </StackPanel>
 
                     <Grid ColumnSpacing="16" RowSpacing="10">
@@ -111,7 +111,7 @@
                                 <TextBlock x:Name="GpuCaption" Grid.Column="0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                                 <TextBlock x:Name="GpuValue" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" />
                             </Grid>
-                            <ProgressBar x:Name="GpuBar" Minimum="0" Maximum="100" Value="0" Height="8" />
+                            <ProgressBar x:Name="GpuBar" Height="8" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
                             <Grid>
@@ -122,7 +122,7 @@
                                 <TextBlock x:Name="TempCaption" Grid.Column="0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                                 <TextBlock x:Name="TempValue" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" />
                             </Grid>
-                            <ProgressBar x:Name="TempBar" Minimum="20" Maximum="95" Value="24" Height="8" />
+                            <ProgressBar x:Name="TempBar" Height="8" />
                         </StackPanel>
 
                         <StackPanel Grid.Row="2" Grid.Column="0" Spacing="1">

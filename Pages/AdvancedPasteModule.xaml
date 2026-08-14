@@ -9,7 +9,7 @@
     mc:Ignorable="d">
 
     <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="900" Spacing="14">
+        <StackPanel x:Name="Root" Spacing="14">
 
             <!--  Header  -->
             <controls:ModuleHeader x:Name="Header" Glyph="&#xE77F;" />
@@ -26,20 +26,20 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
-                            <TextBlock x:Name="HotkeyTitle" FontWeight="SemiBold" FontSize="15" />
-                            <TextBlock x:Name="HotkeyStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="HotkeyTitle" FontWeight="SemiBold"  />
+                            <TextBlock x:Name="HotkeyStatus"  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                         <ToggleSwitch x:Name="HotkeySwitch" Grid.Column="1" Toggled="Hotkey_Toggled" VerticalAlignment="Center" />
                     </Grid>
 
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                         <TextBlock x:Name="HotkeyLabel" VerticalAlignment="Center" />
-                        <ComboBox x:Name="HotkeyCombo" SelectionChanged="Hotkey_ComboChanged" MinWidth="220" />
+                        <ComboBox x:Name="HotkeyCombo" SelectionChanged="Hotkey_ComboChanged"  />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                         <TextBlock x:Name="DefaultLabel" VerticalAlignment="Center" />
-                        <ComboBox x:Name="DefaultCombo" SelectionChanged="Default_Changed" MinWidth="260" />
+                        <ComboBox x:Name="DefaultCombo" SelectionChanged="Default_Changed"  />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -50,16 +50,16 @@
             <!--  Try-it-now card (run an action on the current clipboard with preview)  -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <StackPanel Spacing="10">
-                    <TextBlock x:Name="TryTitle" FontWeight="SemiBold" FontSize="15" />
-                    <TextBlock x:Name="TryBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="TryTitle" FontWeight="SemiBold"  />
+                    <TextBlock x:Name="TryBlurb"  Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <ComboBox x:Name="TryCombo" MinWidth="260" />
+                        <ComboBox x:Name="TryCombo"  />
                         <Button x:Name="PreviewBtn" Click="Preview_Click" />
                         <Button x:Name="CopyResultBtn" Click="CopyResult_Click" />
                     </StackPanel>
                     <TextBox x:Name="AiInstruction" PlaceholderText="" Visibility="Collapsed" />
                     <TextBox x:Name="PreviewBox" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap"
-                             MinHeight="120" MaxHeight="260" Visibility="Collapsed"
+                              Visibility="Collapsed"
                              ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="Consolas" />
                 </StackPanel>
             </Border>
@@ -67,8 +67,8 @@
             <!--  Enabled-actions checklist  -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <StackPanel Spacing="10">
-                    <TextBlock x:Name="ActionsTitle" FontWeight="SemiBold" FontSize="15" />
-                    <TextBlock x:Name="ActionsBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ActionsTitle" FontWeight="SemiBold"  />
+                    <TextBlock x:Name="ActionsBlurb"  Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                     <StackPanel x:Name="ActionsList" Spacing="6" />
                 </StackPanel>
             </Border>
@@ -76,3 +76,4 @@
         </StackPanel>
     </ScrollViewer>
 </Page>
+

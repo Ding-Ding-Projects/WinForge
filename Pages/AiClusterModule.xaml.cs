@@ -42,6 +42,12 @@ public sealed partial class AiClusterModule : Page
         Render();
         UpdateStep();
         _timer.Start();
+
+        OutputBar.Minimum = 0; OutputBar.Maximum = 1150; OutputBar.Value = 0;
+        DrawSlider.Minimum = 0; DrawSlider.Maximum = 900; DrawSlider.Value = 0;
+        ProgressBarRun.Minimum = 0; ProgressBarRun.Maximum = 100; ProgressBarRun.Value = 0;
+        GpuBar.Minimum = 0; GpuBar.Maximum = 100; GpuBar.Value = 0;
+        TempBar.Minimum = 20; TempBar.Maximum = 95; TempBar.Value = 24;
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -341,3 +347,4 @@ public sealed partial class AiClusterModule : Page
         catch { }
     }
 }
+
