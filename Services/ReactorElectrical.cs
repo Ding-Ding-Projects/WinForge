@@ -46,6 +46,12 @@ public sealed class ReactorElectrical
     public const double RechargeRatePerHour    = 0.5;   // SOC/h — charger recovers the battery once any AC returns
     public const double TdafwMinSteamPsig      = 100.0; // psig — turbine-driven AFW loses motive steam below the usable band (design 80–150)
 
+    // Game-scaled EDG fuel: each diesel burns tank fuel while cranking or loaded. The tank starts
+    // EMPTY and has no on-site refill — every litre is a Material Cookie Clicker voucher redeemed
+    // through DieselVoucherService ("fuel bought with cookies"). No fuel ⇒ the diesels cannot start,
+    // and a running diesel that drains the tank stalls back to standby (LOOP becomes SBO).
+    public const double EdgFuelBurnLitresPerMinute = 1.0; // L/min per EDG while Starting or Loaded
+
     // ----------------------------------------------------------------- bus / offsite ----
     public bool     OffsitePowerAvailable { get; private set; } = true;  // preferred/grid power present (false ⇒ LOOP)
     public BusState BusA => _trainA.Bus;
@@ -60,6 +66,22 @@ public sealed class ReactorElectrical
     public double EdgAStartProgressSec => _trainA.StartProg;  // 0..EdgStartTimeSec (UI progress)
     public double EdgBStartProgressSec => _trainB.StartProg;
     public int    SequencerBlocksApplied { get; private set; } // 0..SeqBlockCount, max across loaded trains (UI)
+
+    /// <summary>柴油存量 · Shared EDG fuel tank in litres. Starts empty; only cookie vouchers fill it.</summary>
+    public double EdgFuelLitres { get; private set; }
+    /// <summary>正在耗油嘅柴油機數目 · EDGs currently burning fuel (Starting or Loaded), for UI.</summary>
+    public int EdgsBurningFuel => (IsBurning(EdgA) ? 1 : 0) + (IsBurning(EdgB) ? 1 : 0);
+    private static bool IsBurning(EdgState s) => s is EdgState.Starting or EdgState.Loaded;
+
+    /// <summary>入油 · Credit redeemed voucher litres to the shared tank.</summary>
+    public void AddEdgFuel(double litres)
+    {
+        if (double.IsFinite(litres) && litres > 0) EdgFuelLitres += litres;
+    }
+
+    /// <summary>直接設定油量 · Seed the tank (persisted level restore at sim start, and tests).</summary>
+    public void SetEdgFuel(double litres)
+        => EdgFuelLitres = double.IsFinite(litres) && litres > 0 ? litres : 0;
 
     // Each safety train is an identical little state machine (EDG + its 4.16 kV bus + timers).
     private struct Train { public EdgState Edg; public BusState Bus; public double StartProg; public double SeqTimer; }
@@ -98,6 +120,8 @@ public sealed class ReactorElectrical
 
     public void Reset()
     {
+        // EdgFuelLitres deliberately survives Reset: the fuel was bought with cookies through the
+        // voucher exchange, and a scenario reset must never confiscate purchased inventory.
         OffsitePowerAvailable = true;
         _trainA = new Train { Edg = EdgState.Standby, Bus = BusState.EnergizedOffsite };
         _trainB = new Train { Edg = EdgState.Standby, Bus = BusState.EnergizedOffsite };
@@ -113,9 +137,19 @@ public sealed class ReactorElectrical
         if (dt <= 0) return;
         OffsitePowerAvailable = inp.OffsiteAvailable;
 
+        // --- EDG fuel: burn from the shared cookie-voucher tank, then gate/stall on emptiness ---------
+        // Burn is based on the previous tick's state (a diesel that was cranking or loaded consumed
+        // fuel across this interval); an emptied tank stalls both diesels back to Standby, and StepTrain
+        // below refuses Standby→Starting while the tank is dry.
+        int burning = EdgsBurningFuel;
+        if (burning > 0)
+            EdgFuelLitres = Math.Max(0, EdgFuelLitres - burning * EdgFuelBurnLitresPerMinute / 60.0 * dt);
+        bool fuelAvailable = EdgFuelLitres > 0;
+        if (!fuelAvailable) { StallOnEmptyTank(ref _trainA); StallOnEmptyTank(ref _trainB); }
+
         // --- per-train EDG state machine + bus energization -------------------------------------------
-        StepTrain(dt, ref _trainA, inp, inp.EdgAFault);
-        StepTrain(dt, ref _trainB, inp, inp.EdgBFault);
+        StepTrain(dt, ref _trainA, inp, inp.EdgAFault, fuelAvailable);
+        StepTrain(dt, ref _trainB, inp, inp.EdgBFault, fuelAvailable);
         SequencerBlocksApplied = Math.Max(BlocksFor(_trainA), BlocksFor(_trainB));
 
         // --- 125 VDC station battery: depletes ONLY while no AC source is available -------------------
@@ -138,7 +172,19 @@ public sealed class ReactorElectrical
         TdafwRunning         = TdafwAvailable && !MdafwAvailable && inp.AfwDemand;          // the SBO decay-heat path
     }
 
-    private void StepTrain(double dt, ref Train t, in Inputs inp, bool fault)
+    /// <summary>油缸乾涸 · Fuel starvation: a cranking or loaded diesel stalls back to standby.
+    /// It may recrank (full 10-second start) once vouchers refill the tank.</summary>
+    private static void StallOnEmptyTank(ref Train t)
+    {
+        if (t.Edg is EdgState.Starting or EdgState.Loaded)
+        {
+            t.Edg = EdgState.Standby;
+            t.StartProg = 0;
+            t.SeqTimer = 0;
+        }
+    }
+
+    private void StepTrain(double dt, ref Train t, in Inputs inp, bool fault, bool fuelAvailable)
     {
         // Auto-start signal: LOOP (loss of voltage) OR Safety Injection — SI starts the diesel to ready
         // even with a healthy grid, so it is already up if the grid then fails.
@@ -158,7 +204,7 @@ public sealed class ReactorElectrical
             if (startSignal)
             {
                 if (fault) { t.Edg = EdgState.Failed; t.StartProg = 0; }
-                else if (t.Edg == EdgState.Standby) { t.Edg = EdgState.Starting; t.StartProg = 0; }
+                else if (t.Edg == EdgState.Standby && fuelAvailable) { t.Edg = EdgState.Starting; t.StartProg = 0; }
             }
         }
 

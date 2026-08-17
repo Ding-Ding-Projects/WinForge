@@ -9,6 +9,7 @@
 - [Ammonia / Fertilizer Plant](ammonia-fertilizer-plant.md) · [合成氨／肥料廠](ammonia-fertilizer-plant.md)
 - [Grid Load-Shed Dispatcher](grid-load-shed-dispatcher.md) · [電網卸載調度器](grid-load-shed-dispatcher.md)
 - [Optional feature-bus emergency diesel](optional-feature-bus-edg.md) · [可選功能匯流排應急柴油](optional-feature-bus-edg.md)
+- [Diesel voucher exchange — cookie-bought EDG fuel](diesel-voucher-exchange.md) · [柴油券交易 — 用曲奇買嘅應急柴油](diesel-voucher-exchange.md)
 
 ## Shared safety contract · 共通安全合約
 
@@ -23,6 +24,6 @@
 
 ## Verification · 驗證
 
-The production-service harness is `dotnet run --project tests/ReactorSim.Tests -c Debug`; the current Windows contract is **67/67**. The safe source-contract harness `dotnet run --project tests/ReactorSettingsLifecycle.Tests -c Debug` is **10/10**, covering the canonical background session, live read-only parallel observers, mutating-companion cleanup and safe meltdown-overlay synchronization on authority demotion, page-owned real-effect cleanup, post-load visible ARM, foreground-handoff countdown abort, truthful session-global shutdown outcomes, and once-per-session command-line auto-start. The solution compile gate is `dotnet build WinForge.sln -c Debug -p:Platform=x64` with zero errors. Visual capture for the 2026-07-24 industrial-load integration was blocked by solid-black WinUI frames in the available headless desktop; launch, functional, source, and accessibility evidence are recorded separately in [the handoff](../../../handoff-summary.md).
+The production-service harness is `dotnet run --project tests/ReactorSim.Tests -c Debug`; the current Windows contract is **73/73**. The safe source-contract harness `dotnet run --project tests/ReactorSettingsLifecycle.Tests -c Debug` is **10/10**, covering the canonical background session, live read-only parallel observers, mutating-companion cleanup and safe meltdown-overlay synchronization on authority demotion, page-owned real-effect cleanup, post-load visible ARM, foreground-handoff countdown abort, truthful session-global shutdown outcomes, and once-per-session command-line auto-start. The solution compile gate is `dotnet build WinForge.sln -c Debug -p:Platform=x64` with zero errors. Visual capture for the 2026-07-24 industrial-load integration was blocked by solid-black WinUI frames in the available headless desktop; launch, functional, source, and accessibility evidence are recorded separately in [the handoff](../../../handoff-summary.md).
 
-正式 service harness 係上述 `ReactorSim.Tests` command，現時 Windows 合約係 **67/67**；安全原始碼合約 harness `ReactorSettingsLifecycle.Tests` 亦 **10/10**，覆蓋正式背景 session、並行頁面即時唯讀觀察、authority 降級時清理可改動 companion 同安全同步熔毀 overlay、頁面持有真實效果清理、載入後可見 ARM、前景交接中止倒數、如實全 session 關機結果，同每 session 一次命令列自動起動。Solution 編譯 gate 必須零 errors。2026-07-24 工業負載整合時，現有 headless desktop 只擷取到全黑 WinUI frame，所以視覺證據受阻；啟動、功能、source 同無障礙證據已分開記錄喺 [handoff](../../../handoff-summary.md)。
+正式 service harness 係上述 `ReactorSim.Tests` command，現時 Windows 合約係 **73/73**；安全原始碼合約 harness `ReactorSettingsLifecycle.Tests` 亦 **10/10**，覆蓋正式背景 session、並行頁面即時唯讀觀察、authority 降級時清理可改動 companion 同安全同步熔毀 overlay、頁面持有真實效果清理、載入後可見 ARM、前景交接中止倒數、如實全 session 關機結果，同每 session 一次命令列自動起動。Solution 編譯 gate 必須零 errors。2026-07-24 工業負載整合時，現有 headless desktop 只擷取到全黑 WinUI frame，所以視覺證據受阻；啟動、功能、source 同無障礙證據已分開記錄喺 [handoff](../../../handoff-summary.md)。

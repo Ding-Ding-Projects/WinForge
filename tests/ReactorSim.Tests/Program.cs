@@ -35,7 +35,7 @@ internal static class Program
     private const int SuccessExitCode = 0;
     private const int ScenarioFailureExitCode = 1;
     private const int UsageExitCode = 2;
-    private const int ExpectedFullScenarioCount = 67;
+    private const int ExpectedFullScenarioCount = 73;
 
     private sealed record ScenarioResult(string Name, bool Pass, string Detail);
 
@@ -85,6 +85,7 @@ internal static class Program
         GridLoadShedScenarios();
         ReactorDependencyScenarios();
         CakeFactoryScenarios();
+        DieselVoucherScenarios();
 
         // ----------------------------------------------------------------- summary ----
         Console.WriteLine();
@@ -3784,6 +3785,164 @@ internal static class Program
             return (pass, $"noPowerRejected={powerGate}, poweredStart/progress={startedWithPower}/{active.CipProgress:P1}, " +
                           $"lossFreeze={active.CipProgress:P1}->{frozen.CipProgress:P1}, locks={activeLocks}, " +
                           $"after active={after.CipActive}, progress={after.CipProgress:P0}, sanitation={after.SanitationScore:F0}%");
+        });
+    }
+
+    // ----------------------------------------------------------------- diesel voucher exchange ----
+    // Consumer half of the Material Cookie Clicker exchange: the safety-grade EDG fuel tank starts
+    // EMPTY and is filled ONLY by redeeming cookie-minted vouchers from the shared append-only
+    // ledger. WinForge is the only writer allowed to set consumedAt, must never corrupt or truncate
+    // the ledger on parse failure, and must refuse a newer schemaVersion.
+    private static void DieselVoucherScenarios()
+    {
+        static string TempLedgerDir()
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "winforge-voucher-tests-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            return dir;
+        }
+
+        Scenario("voucher-exchange: missing ledger reads as empty and redeem writes nothing", () =>
+        {
+            string dir = TempLedgerDir();
+            try
+            {
+                string path = Path.Combine(dir, "diesel-vouchers.json");
+                var svc = new DieselVoucherService(path, persistTank: false);
+                var info = svc.ReadLedger();
+                var redeem = svc.RedeemAll();
+                bool pass = info.Status == DieselLedgerStatus.MissingFile
+                            && redeem.Status == DieselLedgerStatus.MissingFile
+                            && redeem.LitresAdded == 0
+                            && !File.Exists(path)
+                            && svc.TankLitres == 0;
+                return (pass, $"read={info.Status}, redeem={redeem.Status}, fileCreated={File.Exists(path)}, tank={svc.TankLitres} L");
+            }
+            finally { Directory.Delete(dir, recursive: true); }
+        });
+
+        Scenario("voucher-exchange: unparseable ledger is preserved byte-for-byte and never consumed", () =>
+        {
+            string dir = TempLedgerDir();
+            try
+            {
+                string path = Path.Combine(dir, "diesel-vouchers.json");
+                byte[] garbage = System.Text.Encoding.UTF8.GetBytes("{ \"schemaVersion\": 1, \"vouchers\": [ TRUNCAT");
+                File.WriteAllBytes(path, garbage);
+                var svc = new DieselVoucherService(path, persistTank: false);
+                var info = svc.ReadLedger();
+                var redeem = svc.RedeemAll();
+                byte[] after = File.ReadAllBytes(path);
+                bool pass = info.Status == DieselLedgerStatus.ParseError
+                            && redeem.Status == DieselLedgerStatus.ParseError
+                            && redeem.VouchersConsumed == 0
+                            && after.AsSpan().SequenceEqual(garbage)
+                            && svc.TankLitres == 0;
+                return (pass, $"read={info.Status}, redeem={redeem.Status}, preserved={after.AsSpan().SequenceEqual(garbage)}");
+            }
+            finally { Directory.Delete(dir, recursive: true); }
+        });
+
+        Scenario("voucher-exchange: newer schemaVersion is refused, not guessed at", () =>
+        {
+            string dir = TempLedgerDir();
+            try
+            {
+                string path = Path.Combine(dir, "diesel-vouchers.json");
+                string original = "{\n  \"schemaVersion\": 2,\n  \"vouchers\": []\n}\n";
+                File.WriteAllText(path, original);
+                var svc = new DieselVoucherService(path, persistTank: false);
+                var info = svc.ReadLedger();
+                var redeem = svc.RedeemAll();
+                bool pass = info.Status == DieselLedgerStatus.NewerSchema
+                            && redeem.Status == DieselLedgerStatus.NewerSchema
+                            && File.ReadAllText(path) == original;
+                return (pass, $"read={info.Status}, redeem={redeem.Status}, preserved={File.ReadAllText(path) == original}");
+            }
+            finally { Directory.Delete(dir, recursive: true); }
+        });
+
+        Scenario("voucher-exchange: redeem stamps only pending vouchers, preserves ids/order/receipts, is idempotent", () =>
+        {
+            string dir = TempLedgerDir();
+            try
+            {
+                string path = Path.Combine(dir, "diesel-vouchers.json");
+                File.WriteAllText(path,
+                    "{\n" +
+                    "  \"schemaVersion\": 1,\n" +
+                    "  \"vouchers\": [\n" +
+                    "    { \"id\": \"aaa\", \"mintedAt\": \"2026-08-01T00:00:00.000Z\", \"litres\": 1, \"cookiesSpent\": \"1000\", \"consumedAt\": \"2026-08-02T00:00:00.000Z\" },\n" +
+                    "    { \"id\": \"bbb\", \"mintedAt\": \"2026-08-03T00:00:00.000Z\", \"litres\": 2, \"cookiesSpent\": \"2311\", \"consumedAt\": null },\n" +
+                    "    { \"id\": \"ccc\", \"mintedAt\": \"2026-08-04T00:00:00.000Z\", \"litres\": 3, \"cookiesSpent\": \"1.234560e21\", \"consumedAt\": null }\n" +
+                    "  ]\n" +
+                    "}\n");
+                var svc = new DieselVoucherService(path, persistTank: false);
+                var redeem = svc.RedeemAll();
+                string text = File.ReadAllText(path);
+                using var doc = System.Text.Json.JsonDocument.Parse(text);
+                var vouchers = doc.RootElement.GetProperty("vouchers");
+                bool orderAndIds = vouchers.GetArrayLength() == 3
+                                   && vouchers[0].GetProperty("id").GetString() == "aaa"
+                                   && vouchers[1].GetProperty("id").GetString() == "bbb"
+                                   && vouchers[2].GetProperty("id").GetString() == "ccc";
+                bool receiptsKept = vouchers[2].GetProperty("cookiesSpent").GetString() == "1.234560e21";
+                bool firstStampKept = vouchers[0].GetProperty("consumedAt").GetString() == "2026-08-02T00:00:00.000Z";
+                bool newlyStamped = vouchers[1].GetProperty("consumedAt").GetString()?.EndsWith("Z") == true
+                                    && vouchers[2].GetProperty("consumedAt").GetString()?.EndsWith("Z") == true;
+                var again = svc.RedeemAll();
+                var info = svc.ReadLedger();
+                bool pass = redeem.Status == DieselLedgerStatus.Ok
+                            && redeem.VouchersConsumed == 2 && redeem.LitresAdded == 5
+                            && svc.TankLitres == 5
+                            && orderAndIds && receiptsKept && firstStampKept && newlyStamped
+                            && text.EndsWith("\n")
+                            && again.VouchersConsumed == 0
+                            && info is { PendingVouchers: 0, ConsumedVouchers: 3, ConsumedLitres: 6 };
+                return (pass, $"consumed={redeem.VouchersConsumed}/{redeem.LitresAdded} L, tank={svc.TankLitres} L, " +
+                              $"order/ids={orderAndIds}, receipts={receiptsKept}, oldStamp={firstStampKept}, " +
+                              $"idempotent={again.VouchersConsumed == 0}, final={info.ConsumedVouchers}/{info.ConsumedLitres} L");
+            }
+            finally { Directory.Delete(dir, recursive: true); }
+        });
+
+        Scenario("edg-fuel: empty tank means LOOP stays a station blackout until vouchers refuel it", () =>
+        {
+            var elec = new ReactorElectrical();
+            var loop = new ReactorElectrical.Inputs(
+                OffsiteAvailable: false, SiSignal: false, EdgAFault: false, EdgBFault: false,
+                SgSteamPressurePsig: 900, AfwDemand: true);
+            for (int i = 0; i < 120; i++) elec.Step(0.5, in loop); // 60 s of LOOP with a dry tank
+            bool dryIsSbo = elec.InSbo && elec.EdgA == EdgState.Standby && elec.EdgB == EdgState.Standby;
+
+            elec.AddEdgFuel(5.0); // cookie vouchers arrive
+            for (int i = 0; i < 24; i++) elec.Step(0.5, in loop); // 12 s — past the 10-second start
+            bool recovered = !elec.InSbo && elec.EdgA == EdgState.Loaded && elec.BusA == BusState.EnergizedEdg;
+            bool fuelBurned = elec.EdgFuelLitres < 5.0 && elec.EdgFuelLitres > 4.0;
+            bool pass = dryIsSbo && recovered && fuelBurned;
+            return (pass, $"drySbo={dryIsSbo}, recovered={recovered} (EdgA={elec.EdgA}), fuel={elec.EdgFuelLitres:F2} L");
+        });
+
+        Scenario("edg-fuel: diesels burn 1 L/min each, stall on exhaustion, and fuel survives Reset", () =>
+        {
+            var elec = new ReactorElectrical();
+            var loop = new ReactorElectrical.Inputs(
+                OffsiteAvailable: false, SiSignal: false, EdgAFault: false, EdgBFault: false,
+                SgSteamPressurePsig: 900, AfwDemand: true);
+            elec.AddEdgFuel(1.0); // both EDGs burning ⇒ 2 L/min total ⇒ dry in 30 s
+            for (int i = 0; i < 20; i++) elec.Step(0.5, in loop); // t = 10 s: both just loaded
+            bool loaded = elec.EdgA == EdgState.Loaded && elec.EdgB == EdgState.Loaded && !elec.InSbo;
+            double atLoad = elec.EdgFuelLitres;
+            for (int i = 0; i < 60; i++) elec.Step(0.5, in loop); // +30 s: tank must be dry
+            bool stalled = elec.EdgFuelLitres == 0 && elec.InSbo
+                           && elec.EdgA == EdgState.Standby && elec.BusA == BusState.Dead;
+
+            elec.AddEdgFuel(3.0);
+            elec.Reset();
+            bool fuelSurvivesReset = Math.Abs(elec.EdgFuelLitres - 3.0) < 1e-9;
+            bool burnRateSane = atLoad > 0.6 && atLoad < 0.7; // 10 s × 2 EDG × 1 L/min = ~0.333 L burned
+            bool pass = loaded && burnRateSane && stalled && fuelSurvivesReset;
+            return (pass, $"loaded={loaded}, fuelAtLoad={atLoad:F3} L, stalledToSbo={stalled}, resetKeepsFuel={fuelSurvivesReset}");
         });
     }
 }

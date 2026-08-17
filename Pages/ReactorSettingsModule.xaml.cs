@@ -90,6 +90,7 @@ public sealed partial class ReactorSettingsModule : Page
         }
         UpdateFeaturePowerState();
         UpdateApiState();
+        UpdateVoucherState(forceLedgerRead: false);
     }
 
     // ============================================================ load current state ====
@@ -147,6 +148,27 @@ public sealed partial class ReactorSettingsModule : Page
         StartFeatureDieselButton.Content = P("Start emergency diesel", "啟動應急柴油發電機");
         StopFeatureDieselButton.Content = P("Stop emergency diesel", "停止應急柴油發電機");
         UpdateFeaturePowerState();
+
+        // Diesel voucher exchange (safety-grade EDG fuel bought with cookies)
+        VoucherTitle.Text = P(
+            "Diesel voucher exchange — fuel bought with cookies",
+            "柴油券交易 — 用曲奇買嘅燃油");
+        VoucherBlurb.Text = P(
+            "The design-basis 10-second emergency diesels burn fuel from a tank that starts empty and has " +
+            "no on-site refill: every litre is a voucher minted by Material Cookie Clicker into the shared " +
+            "per-user ledger (%APPDATA%\\DingDingProjects\\exchange\\diesel-vouchers.json). WinForge is the " +
+            "only writer allowed to mark vouchers consumed; it never deletes or rewrites them, and a ledger " +
+            "that fails to parse is preserved untouched. Without fuel, a loss of offsite power becomes a " +
+            "station blackout.",
+            "設計基準嘅 10 秒應急柴油機由一個開頭係空、又冇廠內補給嘅油缸抽油：每一公升都係 Material Cookie " +
+            "Clicker 用曲奇鑄造、寫入共用帳本（%APPDATA%\\DingDingProjects\\exchange\\diesel-vouchers.json）嘅柴油券。" +
+            "只有 WinForge 可以將券蓋章為已用；佢永遠唔會刪除或者改寫券，解析失敗嘅帳本會原封不動保留。冇油嘅話，" +
+            "失去廠外電源就會變成全廠斷電。");
+        AutomationProperties.SetName(
+            VoucherTankProgress,
+            P("EDG diesel tank level", "應急柴油機油缸存量"));
+        RedeemVouchersButton.Content = P("Redeem diesel vouchers", "兌換柴油券");
+        UpdateVoucherState(forceLedgerRead: true);
 
         // Keep awake
         KeepAwakeToggle.Header = P("Keep PC awake while generating · 發電時保持電腦喚醒",
@@ -307,6 +329,75 @@ public sealed partial class ReactorSettingsModule : Page
         StopFeatureDieselButton.Visibility = diesel.State == FeatureEmergencyDieselState.Stopped
             ? Visibility.Collapsed
             : Visibility.Visible;
+    }
+
+    // ============================================================ diesel voucher exchange ====
+    private DieselLedgerInfo _ledgerInfo;
+    private long _ledgerReadTick;
+
+    private void UpdateVoucherState(bool forceLedgerRead)
+    {
+        // The ledger file is tiny, but there is no need to hit the disk on every 800 ms UI tick.
+        long now = Environment.TickCount64;
+        if (forceLedgerRead || now - _ledgerReadTick >= 2000 || _ledgerReadTick == 0)
+        {
+            _ledgerInfo = DieselVoucherService.I.ReadLedger();
+            _ledgerReadTick = now;
+        }
+
+        var exchange = DieselVoucherService.I;
+        double tank = exchange.TankLitres;
+        VoucherTankProgress.Maximum = Math.Max(60, tank);
+        VoucherTankProgress.Value = tank;
+        VoucherTankText.Text = P(
+            $"EDG tank {tank:0.0} L · burns {ReactorElectrical.EdgFuelBurnLitresPerMinute:0.0} L/min per " +
+            $"diesel while cranking or loaded · lifetime redeemed here: {exchange.LifetimeVouchersConsumed} " +
+            $"vouchers / {exchange.LifetimeLitresConsumed} L — all bought with cookies",
+            $"應急柴油機油缸 {tank:0.0} L · 每部柴油機啟動中或帶載時每分鐘耗油 " +
+            $"{ReactorElectrical.EdgFuelBurnLitresPerMinute:0.0} L · 本機歷來兌換 " +
+            $"{exchange.LifetimeVouchersConsumed} 張券／{exchange.LifetimeLitresConsumed} L — 全部用曲奇買");
+
+        var info = _ledgerInfo;
+        (VoucherLedgerText.Text, RedeemVouchersButton.IsEnabled) = info.Status switch
+        {
+            DieselLedgerStatus.MissingFile => (P(
+                "Ledger: none yet — Material Cookie Clicker has not minted a voucher on this machine.",
+                "帳本：仲未有 — Material Cookie Clicker 喺呢部機仲未鑄造過柴油券。"), false),
+            DieselLedgerStatus.Ok => (P(
+                $"Ledger: {info.PendingVouchers} voucher(s) / {info.PendingLitres} L waiting to redeem · " +
+                $"{info.ConsumedVouchers} voucher(s) / {info.ConsumedLitres} L already consumed.",
+                $"帳本：{info.PendingVouchers} 張券／{info.PendingLitres} L 等緊兌換 · " +
+                $"已消耗 {info.ConsumedVouchers} 張券／{info.ConsumedLitres} L。"), info.PendingVouchers > 0),
+            DieselLedgerStatus.NewerSchema => (P(
+                "Ledger: written by a newer build — refused rather than guessed. " + info.Error,
+                "帳本：由較新版本寫入 — 拒絕解讀而唔會亂估。" + info.Error), false),
+            _ => (P(
+                "Ledger: failed to parse — preserved untouched, nothing consumed. " + info.Error,
+                "帳本：解析失敗 — 已原封不動保留，冇消耗任何券。" + info.Error), false),
+        };
+        VoucherLedgerText.Foreground = info.Status is DieselLedgerStatus.ParseError or DieselLedgerStatus.NewerSchema
+            ? ThemeBrush("SystemFillColorCriticalBrush")
+            : ThemeBrush("TextFillColorPrimaryBrush");
+    }
+
+    private void RedeemVouchers_Click(object sender, RoutedEventArgs e)
+    {
+        var result = DieselVoucherService.I.RedeemAll();
+        VoucherStatusText.Text = result.Status switch
+        {
+            DieselLedgerStatus.Ok when result.VouchersConsumed > 0 => P(
+                $"✓ Redeemed {result.VouchersConsumed} voucher(s): +{result.LitresAdded} L of cookie-bought " +
+                "diesel added to the EDG tank.",
+                $"✓ 已兌換 {result.VouchersConsumed} 張券：+{result.LitresAdded} L 曲奇買嘅柴油已加入應急柴油機油缸。"),
+            DieselLedgerStatus.Ok => P("Nothing to redeem — every voucher is already consumed.",
+                                       "冇嘢好兌換 — 全部券已經消耗晒。"),
+            DieselLedgerStatus.MissingFile => P("No ledger yet — mint a voucher in Material Cookie Clicker first.",
+                                                "仲未有帳本 — 請先喺 Material Cookie Clicker 鑄造柴油券。"),
+            DieselLedgerStatus.NewerSchema => P("Refused: the ledger was written by a newer build. " + result.Error,
+                                                "拒絕：帳本由較新版本寫入。" + result.Error),
+            _ => P("Ledger not touched: " + result.Error, "帳本原封不動：" + result.Error),
+        };
+        UpdateVoucherState(forceLedgerRead: true);
     }
 
     private static Brush ThemeBrush(string key) => (Brush)Application.Current.Resources[key];

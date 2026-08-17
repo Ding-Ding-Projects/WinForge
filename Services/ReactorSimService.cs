@@ -1753,6 +1753,7 @@ public sealed class ReactorSimService
     // and the RCP/ECCS/AFW availability gates those buses drive). See Services/ReactorElectrical.cs.
     private readonly ReactorElectrical _elec = new();
     public ReactorElectrical Electrical => _elec;
+    private bool _edgFuelSeeded; // one-time seed of the persisted cookie-voucher EDG fuel level
     // Three-element feedwater controller internal state.
     private double _iLevel;           // master level-PI integrator (flow-fraction units)
     private double _steamFlowSlow;    // slow-lagged steam flow → shrink/swell is the high-pass residual
@@ -4395,6 +4396,17 @@ public sealed class ReactorSimService
     /// </summary>
     private void UpdateElectrical(double dt)
     {
+        // EDG fuel bridge — the tank in ReactorElectrical holds ONLY litres bought with cookies via
+        // the Material Cookie Clicker voucher exchange. Seed the persisted level once, inject any
+        // freshly redeemed litres, and report the burned-down level back for persistence.
+        if (!_edgFuelSeeded)
+        {
+            _elec.SetEdgFuel(DieselVoucherService.I.LoadTankLitres());
+            _edgFuelSeeded = true;
+        }
+        double redeemed = DieselVoucherService.I.TakePendingLitres();
+        if (redeemed > 0) _elec.AddEdgFuel(redeemed);
+
         bool sbo = ActiveScenario == ReactorScenario.StationBlackout;
         _elec.Step(dt, new ReactorElectrical.Inputs(
             OffsiteAvailable: !sbo,                       // LOOP only in the SBO scenario for now
@@ -4402,6 +4414,8 @@ public sealed class ReactorSimService
             EdgAFault: sbo, EdgBFault: sbo,               // SBO ⇒ both EDGs unavailable (the definition)
             SgSteamPressurePsig: SteamPressure * 145.038, // motive steam for the turbine-driven AFW pump
             AfwDemand: _lofwTimer > 60.0));               // a secondary heat sink is being called for
+
+        DieselVoucherService.I.ReportTankLitres(_elec.EdgFuelLitres);
 
         // Reactor coolant pumps are large non-1E motors fed from offsite power — a LOOP drops them all,
         // and they cannot be restarted on diesel power. UpdateFlow then coasts them down on their flywheels.
