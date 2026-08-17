@@ -148,13 +148,18 @@ static void ManualFeatureDieselFillAndCapacityUiAreWired()
         "manual start control is not gated by available simulated fuel");
 
     Equal(
-        1,
+        2,
         Count(xaml, "AutomationProperties.HeadingLevel=\"Level2\""),
         "reactor-settings level-2 heading count");
     AssertInOrder(
         xaml,
         "feature-power settings heading is missing level-2 automation semantics",
         "x:Name=\"FeaturePowerTitle\"",
+        "AutomationProperties.HeadingLevel=\"Level2\"");
+    AssertInOrder(
+        xaml,
+        "diesel-voucher-exchange heading is missing level-2 automation semantics",
+        "x:Name=\"VoucherTitle\"",
         "AutomationProperties.HeadingLevel=\"Level2\"");
     Equal(
         2,

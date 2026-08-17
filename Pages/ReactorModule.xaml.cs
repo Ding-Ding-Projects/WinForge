@@ -1507,6 +1507,9 @@ public sealed partial class ReactorModule : Page
         // Class 1E 125 VDC station battery — only depletes during a station blackout (no AC source).
         AddGauge("Vital DC battery", "1E 直流電池", 0, 100, () => _sim.Electrical.BatterySoc * 100,
             () => $"{_sim.Electrical.BatterySoc * 100:F0}% · {_sim.Electrical.BatteryVoltage:F0} VDC", id: "battery");
+        AddGauge("EDG diesel (cookie vouchers)", "柴油油量（曲奇券）", 0, 100,
+            () => Math.Min(100, _sim.Electrical.EdgFuelLitres),
+            () => $"{_sim.Electrical.EdgFuelLitres:F1} L", id: "edgfuel");
     }
 
     private string PeriodStr()

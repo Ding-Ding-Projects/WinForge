@@ -49,6 +49,7 @@
     <Compile Include="..\..\Services\ReactorScenarios.cs"       Link="Engine\ReactorScenarios.cs" />
     <Compile Include="..\..\Services\ReactorDependencyService.cs" Link="Engine\ReactorDependencyService.cs" />
     <Compile Include="..\..\Services\ReactorFeaturePowerService.cs" Link="Engine\ReactorFeaturePowerService.cs" />
+    <Compile Include="..\..\Services\DieselVoucherService.cs"   Link="Engine\DieselVoucherService.cs" />
     <Compile Include="..\..\Services\FuelFactoryService.cs"     Link="Engine\FuelFactoryService.cs" />
     <Compile Include="..\..\Services\NuclearWasteService.cs"    Link="Engine\NuclearWasteService.cs" />
     <Compile Include="..\..\Services\WaterTreatmentService.cs"  Link="Engine\WaterTreatmentService.cs" />
