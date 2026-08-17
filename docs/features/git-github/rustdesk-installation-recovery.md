@@ -28,4 +28,3 @@ The fallback does not bundle or modify RustDesk. It accepts only HTTPS downloads
 - [RustDesk module reference](../../wiki/features/apps-git-git/rustdesk.md)
 - [Package Manager](../../wiki/Package-Manager.md)
 - [Build and install](../../../README.md#build-and-install--建置同安裝)
-
