@@ -171,8 +171,8 @@ public static partial class ManualContent
                 "撳 Save peer 將個 ID 加入 Saved Peers 清單，下次一撳就連返。",
                 "喺 Server Settings 度指向你自己 host 嘅 ID／relay server（如果你有自架）。",
             },
-            TipEn = "First use installs RustDesk (via winget); set a permanent password for unattended access.",
-            TipZh = "第一次用會裝 RustDesk（用 winget）；想無人睇住都連到就設定個永久密碼。",
+            TipEn = "First use tries RustDesk.RustDesk via winget; when the catalog has no matching package, WinForge verifies and installs the latest official RustDesk Windows release. Set a permanent password for unattended access.",
+            TipZh = "第一次用會先用 winget 試 RustDesk.RustDesk；如果 catalog 冇符合套件，WinForge 會驗證並安裝最新官方 RustDesk Windows 發佈。想無人睇住都連到就設定個永久密碼。",
             Keywords = "rustdesk remote desktop id password peer relay self-hosted unattended 遠端桌面 遙距桌面 遠端控制",
         },
         new ManualEntry

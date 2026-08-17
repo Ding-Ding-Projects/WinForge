@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.DataTransfer;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -94,10 +95,38 @@ public sealed partial class RustDeskModule : Page
     private void BuildInstallButton()
     {
         InstallButtonHost.Children.Clear();
-        InstallButtonHost.Children.Add(EngineBars.AutoInstallProgress(
-            "RustDesk.RustDesk",
+        InstallButtonHost.Children.Add(InstallProgress.Create(
             "Install RustDesk", "安裝 RustDesk",
-            async () => await RefreshStatus()));
+            async (progress, ct) =>
+            {
+                var onLine = new Progress<string>(line => progress.Report(InstallProgressReport.FromLine(line)));
+                var winget = await PackageService.AutoInstallDetailed("RustDesk.RustDesk", onLine, ct);
+                var wingetOutput = string.Join("\n", new[] { winget.Message?.Primary, winget.Output }
+                    .Where(text => !string.IsNullOrWhiteSpace(text)));
+                if (winget.Success)
+                {
+                    await RefreshStatus();
+                    return winget;
+                }
+
+                if (!RustDeskRelease.IsPackageUnavailable(wingetOutput))
+                    return winget;
+
+                progress.Report(InstallProgressReport.Status(
+                    "WinGet has no RustDesk package; switching to the official release…",
+                    "WinGet 冇 RustDesk 套件；轉用官方發佈…"));
+                var official = await RustDeskService.InstallOfficialReleaseAsync(progress, ct);
+                if (official.Success)
+                {
+                    await RefreshStatus();
+                    return official;
+                }
+
+                var combined = string.IsNullOrWhiteSpace(wingetOutput)
+                    ? official.Output
+                    : $"WinGet: {wingetOutput}\n\nOfficial release: {official.Output}";
+                return official with { Output = combined };
+            }));
     }
 
     private async Task RefreshStatus()
@@ -109,6 +138,8 @@ public sealed partial class RustDeskModule : Page
             InstallBar.Title = P("RustDesk is not installed", "未安裝 RustDesk");
             InstallBar.Message = P("Install it to show your ID, connect to peers and manage the server.",
                 "安裝後可顯示 ID、連線對端同管理伺服器。");
+            InstallBar.Message += P(" WinGet is tried first; if its catalog has no RustDesk entry, the latest official Windows release is downloaded and verified.",
+                " 會先試 WinGet；如果佢個 catalog 冇 RustDesk，就下載並驗證最新官方 Windows 發佈。");
         }
 
         if (!installed)
