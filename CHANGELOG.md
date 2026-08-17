@@ -2,6 +2,20 @@
 
 _Cleaned-up project history. Contributor / author names intentionally omitted._
 
+## 2026-08-17 — RustDesk installer recovers from a missing WinGet package
+
+- **Fallback install path** — the RustDesk page still tries the exact `RustDesk.RustDesk` WinGet package, but a precise `No package found matching input criteria.` result now switches to the latest official RustDesk GitHub release. The downloaded Windows x64 asset is checked against the official URL, declared size, PE header, and SHA-256 digest before the existing elevated installer path runs.
+- **Honest failure handling** — installer hash errors, UAC cancellation, network errors, malformed release metadata, and other WinGet failures do not trigger a misleading fallback. If both routes fail, the UI keeps both diagnostics.
+- **Verification** — `tests/RustDeskInstaller.Tests` passes 5/5; `dotnet build WinForge.csproj -c Debug -p:Platform=x64` passes with 0 errors and the existing 2 `NU1903` SSH.NET advisory warnings; the RustDesk page was published and captured through the repository's off-screen driver at 1558×878 and inspected. No live RustDesk installation was performed during verification.
+- **Commit** — [`32ad8ec3`](https://github.com/Ding-Ding-Projects/WinForge/commit/32ad8ec3a47a649d96c69e7871e02b73dfb893d0).
+
+## 2026-08-17 — RustDesk 安裝喺 WinGet package 缺失時復原
+
+- **後備安裝路徑** — RustDesk 頁面仍然先試準確嘅 `RustDesk.RustDesk` WinGet package，但遇到準確嘅 `No package found matching input criteria.` 就會轉用最新官方 RustDesk GitHub 發佈。Windows x64 asset 會先按官方 URL、宣告大小、PE header 同 SHA-256 驗證，之後先行現有提權安裝流程。
+- **如實處理失敗** — installer hash error、UAC 取消、網絡錯誤、release metadata 格式錯，同其他 WinGet 失敗都唔會觸發誤導性後備路徑；兩條路都失敗時 UI 會保留兩邊診斷。
+- **驗證** — `tests/RustDeskInstaller.Tests` 5/5；`dotnet build WinForge.csproj -c Debug -p:Platform=x64` 0 errors，保留現有 2 個 `NU1903` SSH.NET advisory warnings；RustDesk 頁面經 repository off-screen driver publish、capture 到 1558×878 並已檢視。驗證期間冇真實安裝 RustDesk。
+- **Commit** — [`32ad8ec3`](https://github.com/Ding-Ding-Projects/WinForge/commit/32ad8ec3a47a649d96c69e7871e02b73dfb893d0)。
+
 ## 2026-08-11 — Command Palette gets the shared regex search builder
 
 - **Real shared search control** — the code-built Command Palette now uses `SearchPatternBox`; plain text remains the default, while the attached .NET regex builder synchronizes pattern, flags, validation, local matching, and capture-aware result search. Enter activates a result only from the real query field, not from builder/sample inputs. Commit: [`1a459439`](https://github.com/Ding-Ding-Projects/WinForge/commit/1a45943937d1a358ebec3a050d044b28f1aca296).
