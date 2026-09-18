@@ -4,6 +4,14 @@ WinForge is the canonical .NET 11 / WinUI 3 application. For the current task st
 
 WinForge 係正式 .NET 11／WinUI 3 app。目前任務狀態、驗證合約同 Git 完成記錄請睇 [`handoff-summary.md`](../handoff-summary.md)。
 
+## 2026-09-18 repository closeout · 2026-09-18 repository 收尾
+
+- Inventory and fetch completed from the primary checkout. `main` was fast-forwarded from `552952ffd94fe4650efffd64366745bd877f0c0f` to fetched `origin/main` commit `a21d7044`; no merge conflict was present. · 已由 primary checkout 完成 inventory 同 fetch；`main` 由 `552952ffd94fe4650efffd64366745bd877f0c0f` fast-forward 到 fetched `origin/main` commit `a21d7044`，冇 merge conflict。
+- The primary checkout is clean. No linked worktrees, local branches besides `main`, remote branches besides `origin/main`, or stashes were found. There was no recoverable dirty path requiring a preservation commit. · Primary checkout 係 clean；冇 linked worktree、除 `main` 之外嘅 local branch、除 `origin/main` 之外嘅 remote branch，亦冇 stash；冇 recoverable dirty path 要做 preservation commit。
+- External archive `winforge-20260918T172422Z.7z` was created at the configured external backup location and verified with 7-Zip. It is 410,145,631 bytes with 7,664 entries, including 983 `.git` entries; Git-tracked and non-ignored untracked paths were included, while ignored paths were excluded by Git. · External archive `winforge-20260918T172422Z.7z` 已寫入設定好嘅外部 backup 位置，並用 7-Zip 驗證成功；大小 410,145,631 bytes，共 7,664 entries，當中 983 個係 `.git` entries；Git tracked 同 non-ignored untracked path 已包括，ignored path 就由 Git 規則排除。
+- No linked checkout, branch, or stash met the exact safe-removal conditions. The cleanup therefore removed nothing. The clean primary checkout and `main` remain retained. · 冇 linked checkout、branch 或 stash 符合安全移除條件，所以今次 cleanup 冇移除任何嘢；clean primary checkout 同 `main` 繼續保留。
+- Remote proof after the documentation update must confirm `origin/main` contains the closeout commit. · 文件更新後要再做 remote proof，確認 `origin/main` 包含今次收尾 commit。
+
 ## Current guided Windows/System and Maintenance completion · 目前 Windows／System 同 Maintenance 補完
 
 - System Doctors now closes the three audited Windows/System gaps and five Maintenance gaps: Storage Sense cadence/retention, complete Filter Keys timings with live SPI apply, machine-wide DISM association templates, bounded Update pause/resume, driver export/backup-gated rollback/restore, broad read-only Autoruns audit, explicitly irreversible ResetBase, and selected Store-app reset/re-registration. The strict combined matrix is **104/115** with **11** factual gaps elsewhere. · 「系統醫生」而家補齊三個 Windows／System 同五個 Maintenance 缺口；合併 matrix 係 **104/115**，其他章節如實保留 **11** 個缺口。

@@ -6,6 +6,8 @@ This roadmap covers the canonical .NET/WinUI 3 application. The experimental C++
 
 ## Current priorities · 目前優先項目
 
+- [x] Complete the 2026-09-18 repository closeout: fetch and reconcile `main`, preserve every recoverable path, verify the external archive, document the clean primary checkout, and remove no item without a proven safe candidate. · 完成 2026-09-18 repository 收尾：fetch 同 reconcile `main`、保存每條 recoverable path、驗證 external archive、記錄 clean primary checkout，冇安全證明就唔移除任何項目。
+
 - [x] Keep the managed Squirrel.Windows installer, portable build, updater contract, and release metadata aligned so the application always receives compatible `Setup.exe`/`RELEASES` updates; hosted stable release `v1.1.348` proves the source tip, timing, digests, and four required assets. · 保持受控 Squirrel.Windows installer、portable build、updater 合約同 release metadata 一致；hosted stable release `v1.1.348` 已證明 source tip、時間、digest 同四項必要資產互相對得上。
 - [x] Add shared live settings, vault-backed School-mode unlock, the persisted emoji switch, opt-in serialized notification narration, an offline changelog viewer with regex/date filtering and export, persisted pinned tabs, and local TOTP pairing QR generation. · 加入共用即時設定、credential vault School mode 解鎖、保存 emoji 開關、選擇性序列化通知旁白、附 regex／日期篩選同匯出嘅離線變更紀錄、保存釘選分頁，同本機 TOTP 配對 QR 產生。
 - [x] Add a versioned scheduled-settings editor and resolver with local values, validated HTTPS API values, Home Assistant boolean activation, timezone/date/time semantics, safe external refresh, and vault-backed tokens. · 加入有版本嘅排程設定編輯器同 resolver，支援本機數值、驗證 HTTPS API、Home Assistant boolean、時區／日期／時間語義、安全外部刷新同 vault token。
